@@ -18,7 +18,6 @@ from __future__ import annotations
 
 import difflib
 import json
-import re
 from pathlib import Path
 
 from qgis.core import (
@@ -32,9 +31,10 @@ from qgis.core import (
 from ..core import net, tuning
 from ..core.background import run_on_main_thread
 from ..core.licence import set_layer_attribution
+from ..core.output_paths import file_stem
 from ..core.policy import create_managed_temp_dir
+from ..core.settings import Settings
 from ..core.tool_registry import Tool, ToolRegistry, tool_error
-from .data_tools import _avoid_reserved_name
 
 
 _FETCH_TIMEOUT_S = 60
@@ -49,13 +49,7 @@ _DEFAULT_RAMPS = ("Viridis", "Blues", "Spectral")
 
 def _slug(text: str) -> str:
 
-
-
-
-
-
-    cleaned = re.sub(r"[^a-z0-9]+", "_", str(text or "statistic").lower()).strip("_")[:40] or "statistic"
-    return _avoid_reserved_name(cleaned)
+    return file_stem(str(text or "").lower(), "statistic", cap=40)
 
 
 def _classify(layer, field: str, classes: int, mode_name: str, ramp_name: str):
@@ -157,8 +151,6 @@ def _build(path: str, name: str, field: str, classes: int, mode_name: str, ramp_
 def _is_backend_url(url: str) -> bool:
 
     from urllib.parse import urlsplit
-
-    from ..core.settings import Settings
 
     try:
         host = (urlsplit(url).hostname or "").lower().rstrip(".")

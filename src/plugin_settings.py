@@ -18,7 +18,12 @@ from qgis.PyQt.QtCore import QCoreApplication
 from .core import improve, telemetry
 from .core import telemetry_events as ev
 from .core.logger import log_warning
+from .core.qt_compat import disconnect_quietly
+from .core.served_state import get_pricing_url, get_pro_offer
 from .core.settings import Settings
+from .ui.external_links import open_external_url
+from .ui.settings_dialog import SettingsDialog
+from .ui.shared import exec_dialog
 
 
 def tr(text: str) -> str:
@@ -29,8 +34,6 @@ def tr(text: str) -> str:
 def open_settings_dialog(plugin):
 
 
-    from .ui.settings_dialog import SettingsDialog
-    from .ui.shared import exec_dialog
 
     if plugin.dock is None:
 
@@ -49,6 +52,7 @@ def open_settings_dialog(plugin):
         info["loading"] = True
     else:
         info["error"], info["error_code"] = tr("Sign in to see your account."), "SIGNED_OUT"
+    controller = plugin.controller
     values = {"mode": settings.mode, "approval": settings.approval, "server_url": settings.server_url,
               "settings": settings}
     dialog = SettingsDialog(plugin.iface.mainWindow(), info, values)
@@ -60,11 +64,12 @@ def open_settings_dialog(plugin):
     dialog.improve_toggled.connect(
         lambda on, d=dialog: improve_choice(d, on))
     dialog.values_changed.connect(lambda values: apply_settings_values(plugin, values))
+    if controller is not None:
+        dialog.project_memory_requested.connect(controller.request_project_memory)
     dialog.upgrade_requested.connect(lambda d=dialog: open_plans_from_settings(plugin, d))
 
-    panel = getattr(plugin.dock, "panel", None)
-    if panel is not None and hasattr(panel, "open_help"):
-        dialog.help_requested.connect(panel.open_help)
+    if plugin.panel is not None:
+        dialog.help_requested.connect(plugin.panel.open_help)
 
 
 
@@ -93,7 +98,8 @@ def open_settings_dialog(plugin):
         account.account_failed.connect(
             lambda message, code: dialog.set_account_info({"error": message, "error_code": code}))
         dialog.refresh_requested.connect(account.fetch_account_async)
-        dialog.sign_out_requested.connect(account.sign_out)
+
+        dialog.sign_out_requested.connect(lambda: plugin.controller._on_sign_out("settings"))
 
 
         dialog.sign_in_requested.connect(plugin.controller._on_sign_in)
@@ -104,26 +110,19 @@ def open_settings_dialog(plugin):
         exec_dialog(dialog)
     finally:
         if connected_repaint is not None:
-            try:
-                session.session_started.disconnect(connected_repaint)
-            except (TypeError, RuntimeError):
-                pass
+            disconnect_quietly(session, "session_started", connected_repaint)
         if account is not None:
             for signal, slot in ((account.account_loaded, dialog.set_account_info),):
                 try:
                     signal.disconnect(slot)
                 except (TypeError, RuntimeError):
                     pass
-            try:
-                account.account_failed.disconnect()
-            except (TypeError, RuntimeError):
-                pass
+            disconnect_quietly(account, "account_failed")
         dialog.deleteLater()
 
 
 def open_plans_from_settings(plugin, dialog) -> None:
 
-    from .ui.shared import get_pro_offer
 
     def report(link: str) -> None:
         telemetry.track(ev.SUBSCRIBE_LINK_CLICKED,
@@ -136,8 +135,6 @@ def open_plans_from_settings(plugin, dialog) -> None:
         account.open_plans("plugin_settings", on_outcome=report,
                            trial_surface="settings" if getattr(dialog, "trial_offered", False) else "")
         return
-    from .ui.external_links import open_external_url
-    from .ui.shared import get_pricing_url
     report("fallback")
     open_external_url(get_pricing_url(), parent=dialog)
 
@@ -174,14 +171,10 @@ def take_settings_prompt(plugin, text: str, chip=None) -> None:
 
 
     plugin._show_dock()
-    panel = getattr(plugin.dock, "panel", None) if plugin.dock is not None else None
-    composer = getattr(panel, "composer", None)
-    if composer is not None and hasattr(composer, "take_example_prompt"):
-        composer.take_example_prompt(text, chip)
+    if plugin.panel is not None:
+        plugin.panel.composer.take_example_prompt(text, chip)
 
 
 def settings_example_chosen(plugin, slug: str) -> None:
-    panel = getattr(plugin.dock, "panel", None) if plugin.dock is not None else None
-    composer = getattr(panel, "composer", None)
-    if composer is not None:
-        composer.example_chosen.emit(slug)
+    if plugin.panel is not None:
+        plugin.panel.composer.example_chosen.emit(slug)

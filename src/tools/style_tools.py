@@ -10,15 +10,20 @@ import time
 from qgis.core import QgsProject, QgsVectorLayer
 from qgis.utils import iface
 
-from ..core import background, layer_order, limits, net
+from ..core import background, layer_order, limits, net, security
 from ..core.background import run_on_main_thread
+from ..core.layer_release import remove_layers
 from ..core.logger import log_warning
+from ..core.numbers import as_finite, as_float, as_int
 from ..core.qt_compat import enum_member
 from ..core.tool_registry import coded_fact, tool_error
 from . import style_3d, style_rows
-from ._compat import QVAR_DOUBLE, QVAR_INT, QVAR_LONGLONG, QVAR_STRING
+from ._compat import QVAR_DOUBLE, QVAR_INT, QVAR_LONGLONG, QVAR_STRING, enum_value
+from ._layers import layer_not_found, resolve_layer
 from .colour_text import qcolor_from_text
-from .layer_lookup import _field_not_found_error, _find_layer, _layer_not_found_error, require_vector
+from .diagram_style import set_diagram_renderer
+from .elevation_style import apply_ramp_style
+from .layer_lookup import _field_not_found_error, require_vector
 
 
 
@@ -91,7 +96,6 @@ def _set_layer_legend_image(layer, args: dict) -> dict:
 
 
 def _set_diagram_renderer(layer, args: dict, plan: dict, largest: float, kept_style: str = "") -> dict:
-    from .diagram_style import set_diagram_renderer
 
     return set_diagram_renderer(layer, args, plan, largest, kept_style, _previous_style_keys)
 
@@ -124,7 +128,7 @@ def _style_reads_rows(args: dict) -> bool:
     _legacy_names(args)
     if args.get("legend_image") is not None or not args.get("layer_name"):
         return False
-    layer = _find_layer(args.get("layer_name"))
+    layer = resolve_layer(args.get("layer_name"))
     if not isinstance(layer, QgsVectorLayer):
         return False
     style_type = str(args.get("style_type") or "").strip()
@@ -155,7 +159,7 @@ def _set_layer_style(args: dict) -> dict:
 
 
 def _with_3d_colours(args: dict, result: dict) -> dict:
-    layer = _find_layer(args.get("layer_name") or "")
+    layer = resolve_layer(args.get("layer_name") or "")
     if isinstance(layer, QgsVectorLayer):
         painted = style_3d.colour_from_2d(layer)
         if painted:
@@ -220,9 +224,9 @@ def _style_plan(args: dict) -> dict:
     target = args.get("layer_name")
     if not target:
         return tool_error("layer_name is required.", "INVALID_ARGS", hint="style_layer_name_missing")
-    layer = _find_layer(target)
+    layer = resolve_layer(target)
     if not layer:
-        return _layer_not_found_error(target)
+        return layer_not_found(target)
 
     if args.get("legend_image") is not None:
         return _set_layer_legend_image(layer, args)
@@ -379,7 +383,7 @@ def _plan_graduated(layer, args: dict, plan: dict, rows) -> dict | None:
 
     from qgis.core import QgsApplication, QgsExpression
 
-    from .style_defaults import FIELD_SAMPLE, _number
+    from .style_defaults import FIELD_SAMPLE
 
     fields = layer.fields()
 
@@ -418,7 +422,7 @@ def _plan_graduated(layer, args: dict, plan: dict, rows) -> dict | None:
 
 
         rows.add("sample", style_rows.Values(rows.expression(expression), FIELD_SAMPLE) if expression
-                 else style_rows.Numbers(rows.field(idx), FIELD_SAMPLE, _number))
+                 else style_rows.Numbers(rows.field(idx), FIELD_SAMPLE, as_finite))
     if not breaks:
 
 
@@ -546,7 +550,7 @@ def _decide_categories(plan: dict, facts: dict) -> dict:
 def _decide_classes(plan: dict, facts: dict) -> dict:
 
 
-    from .style_defaults import _number, class_counts, graduated_choice
+    from .style_defaults import class_counts, graduated_choice
 
     args = plan["args"]
     auto_choice: dict = {}
@@ -572,7 +576,7 @@ def _decide_classes(plan: dict, facts: dict) -> dict:
         found = method.classes(doubles["min"], doubles["max"], count)
     sample = facts["sample"]
     if plan["expression"]:
-        sample = [number for number in map(_number, sample["values"]) if number is not None]
+        sample = [number for number in map(as_finite, sample["values"]) if number is not None]
     ranges = [(r.label(), float(r.lowerBound()), float(r.upperBound())) for r in found]
     out["ranges"] = _merge_repeated_classes(ranges, bool(sample) and all(float(v).is_integer() for v in sample))
     if len(out["ranges"]) < len(ranges):
@@ -1157,14 +1161,11 @@ def _picked_symbol(layer, text: str):
         QgsApplication,
         QgsMarkerSymbol,
         QgsRasterMarkerSymbolLayer,
-        QgsSimpleMarkerSymbolLayer,
         QgsSimpleMarkerSymbolLayerBase,
         QgsStyle,
         QgsSvgMarkerSymbolLayer,
         QgsWkbTypes,
     )
-
-    from ..core import security
 
     wanted = _symbol_kind(layer.geometryType())
     style = QgsStyle.defaultStyle()
@@ -1204,14 +1205,17 @@ def _picked_symbol(layer, text: str):
             return tool_error(f"No file {path!r}.", "FILE_NOT_FOUND")
         size = 4.0
         layer_cls = QgsSvgMarkerSymbolLayer if extension == ".svg" else QgsRasterMarkerSymbolLayer
-        return QgsMarkerSymbol([layer_cls(path, size)]), ("svg" if extension == ".svg" else "image")
+        symbol = QgsMarkerSymbol.createSimple({})
+        symbol.changeSymbolLayer(0, layer_cls(path, size))
+        return symbol, ("svg" if extension == ".svg" else "image")
 
-    shape, ok = QgsSimpleMarkerSymbolLayerBase.decodeShape(text.lower())
+    _shape, ok = QgsSimpleMarkerSymbolLayerBase.decodeShape(text.lower())
     if ok:
         if not points:
             return tool_error(f"A marker shape draws points, and {layer.name()!r} holds {_kind_word(wanted)}.",
                               "INVALID_ARGS", hint="style_symbol_points_only")
-        return QgsMarkerSymbol([QgsSimpleMarkerSymbolLayer(shape, 3.0)]), "shape"
+
+        return QgsMarkerSymbol.createSimple({"name": text.lower(), "size": "3"}), "shape"
 
     same_kind = []
     for candidate in difflib.get_close_matches(text, names, n=40, cutoff=0.3):
@@ -1299,8 +1303,6 @@ def _wider_than_the_selection(layer) -> dict:
 def _style_raster_layer(layer, target: str, args: dict) -> dict:
 
     from qgis.core import QgsRasterLayer
-
-    from .elevation_style import apply_ramp_style
 
     if not isinstance(layer, QgsRasterLayer):
         kind = type(layer).__name__.replace("Qgs", "").replace("Layer", "").lower() or "unknown"
@@ -1407,9 +1409,8 @@ def _requested_classes(args: dict) -> int:
         value = args.get(key)
         if value in (None, ""):
             continue
-        try:
-            asked = int(value)
-        except (TypeError, ValueError):
+        asked = as_int(value)
+        if asked is None:
             continue
         if asked > 0:
             return min(asked, _MAX_CATEGORIES)
@@ -1887,10 +1888,7 @@ def _cluster_renderer(layer, args: dict):
     color = qcolor_from_text(str(args.get("color") or "#2b83ba"))
     label_color = qcolor_from_text(str(args.get("label_color") or "#ffffff"))
     stroke = qcolor_from_text(str(args.get("stroke_color") or "#ffffff"))
-    try:
-        distance = float(args.get("cluster_distance", 12) or 12)
-    except (TypeError, ValueError):
-        distance = 12.0
+    distance = as_float(args.get("cluster_distance", 12) or 12, 12.0)
     distance = max(1.0, min(60.0, distance))
     try:
         min_size = float(args.get("min_size", 8) or 8)
@@ -2030,8 +2028,6 @@ def _stroke_unit(unit):
 
     from qgis.core import Qgis, QgsUnitTypes
 
-    from ._compat import enum_value
-
     if unit == "map_units":
         return enum_value((Qgis, "RenderUnit.MapUnits"), (QgsUnitTypes, "RenderMapUnits"))
     if unit == "mm":
@@ -2121,9 +2117,9 @@ def _flash_features(args: dict) -> dict:
 
 
 
-    layer = _find_layer(args["layer_name"])
+    layer = resolve_layer(args["layer_name"])
     if not layer:
-        return _layer_not_found_error(args["layer_name"])
+        return layer_not_found(args["layer_name"])
     if not isinstance(layer, QgsVectorLayer):
         return tool_error(f"Layer {layer.name()!r} is not a vector layer, and only features can be flashed.",
                           "INVALID_ARGS", hint="flash_needs_vector", layer=layer.name())
@@ -2295,9 +2291,8 @@ def _expression_choice(text: str, values: list) -> dict:
 
     numbers = []
     for value in values:
-        try:
-            number = float(value)
-        except (TypeError, ValueError):
+        number = as_float(value)
+        if number is None:
             continue
         if number == number:
             numbers.append(number)
@@ -2310,7 +2305,7 @@ def _set_layer_labels(args: dict) -> dict:
     if not args.get("in_3d") or not isinstance(result, dict) or "_error" in result \
             or result.get("labels") == "disabled":
         return result
-    floating = style_3d.float_labels(_find_layer(args["layer_name"]))
+    floating = style_3d.float_labels(resolve_layer(args["layer_name"]))
     if "_error" in floating:
         return {**floating, "_error": floating["_error"] + " The 2D labels were set."}
     result["labels_3d"] = floating
@@ -2723,8 +2718,6 @@ def _label_polygon_edges(layer, args: dict) -> dict:
         return tool_error("segment_lengths requires a polygon layer.", "INVALID_ARGS")
     old_id = str(layer.customProperty("terralab/segment_lengths_layer", ""))
     if old_id:
-        from .processing_run import remove_layers
-
 
         remove_layers([old_id])
     name = str(args.get("output_name") or f"{layer.name()} boundary dimensions")

@@ -14,6 +14,7 @@ import re
 from typing import Any
 
 from .logger import log_warning
+from .tuning_tool_rules import clean_tool_rules
 
 
 
@@ -114,9 +115,9 @@ def _clean_service_url(value: Any, where: str) -> str | None:
 
 
     try:
-        from . import security
+        from . import security_urls
 
-        if security.is_local_url(text, resolve=False) or security.is_private_url(text, resolve=False):
+        if security_urls.is_local_url(text, resolve=False) or security_urls.is_private_url(text, resolve=False):
             log_warning(f"Server policy {where} names a local or private address, ignored")
             return None
     except Exception as exc:  # noqa: BLE001
@@ -126,6 +127,31 @@ def _clean_service_url(value: Any, where: str) -> str | None:
 
 
     return text if where.endswith("_prefix") else text.rstrip("/")
+
+
+
+
+_CLOUD_CLIENT_PROVIDERS = ("googledrive", "onedrive")
+_CLIENT_CHARS = frozenset("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_.~")
+
+
+def _clean_cloud_clients(value: Any, where: str) -> dict | None:
+    if not isinstance(value, dict):
+        log_warning(f"Server policy {where} is not an object, ignored")
+        return None
+    out: dict = {}
+    for provider in _CLOUD_CLIENT_PROVIDERS:
+        row = value.get(provider)
+        if not isinstance(row, dict):
+            continue
+        kept = {name: str(row[name]).strip() for name in ("client_id", "client_secret")
+                if isinstance(row.get(name), str) and 0 < len(row[name].strip()) <= 200
+                and set(row[name].strip()) <= _CLIENT_CHARS}
+        if kept.get("client_id"):
+            out[provider] = kept
+        else:
+            log_warning(f"Server policy {where}.{provider} has no usable client_id, ignored")
+    return out
 
 
 def _clean_tokens(value: Any, where: str) -> list | None:
@@ -605,11 +631,12 @@ def _crs_rules(value: dict, where: str) -> dict:
 
 
     out: dict = {}
-    raw = value.get("distance_parameters")
-    if isinstance(raw, list):
-        names = [n for n in raw[:_MAX_RULE_ROWS] if isinstance(n, str) and _PARAMETER.fullmatch(n)]
-        if names:
-            out["distance_parameters"] = list(dict.fromkeys(names))
+    for key in ("distance_parameters", "overlay_parameters", "resolution_parameters"):
+        raw = value.get(key)
+        if isinstance(raw, list):
+            names = [n for n in raw[:_MAX_RULE_ROWS] if isinstance(n, str) and _PARAMETER.fullmatch(n)]
+            if names:
+                out[key] = list(dict.fromkeys(names))
     degrees: dict = {}
     raw = value.get("on_degrees")
     for alg, row in list(raw.items() if isinstance(raw, dict) else ())[:_MAX_RULE_ROWS]:
@@ -863,6 +890,85 @@ def _clean_isochrone_rules(value: Any, where: str) -> dict | None:
     return out
 
 
+_SHAPE_METRICS = frozenset({"circularity", "elongation", "rectangularity", "solidity", "hole_share"})
+_RELIEFS = ("raised", "sunken")
+
+
+def _terrain_name(value: Any, spot: str):
+
+    if isinstance(value, dict):
+        names = {k: _rule_text(value.get(k), f"{spot}.{k}") for k in _RELIEFS}
+        return names if all(names.values()) else None
+    return _rule_text(value, spot)
+
+
+def _terrain_colour(value: Any, spot: str):
+    if isinstance(value, dict):
+        ok = all(isinstance(value.get(k), str) and _HEX_COLOUR.fullmatch(value[k]) for k in _RELIEFS)
+        return {k: value[k] for k in _RELIEFS} if ok else None
+    return value if isinstance(value, str) and _HEX_COLOUR.fullmatch(value) else None
+
+
+def _terrain_bounds(value: Any, spot: str) -> dict | None:
+    if not isinstance(value, dict):
+        return None
+    out = {k: v for k, v in value.items()
+           if k in _SHAPE_METRICS and _rule_number(v, 0.0, 100.0, f"{spot}.{k}") is not None}
+    return out if len(out) == len(value) else None
+
+
+def _clean_terrain_rules(value: Any, where: str) -> dict | None:
+
+    if not _versioned(value, where):
+        return None
+    out: dict = {"version": _RULES_VERSION}
+    classes = []
+    raw = value.get("classes")
+    for i, row in enumerate(raw[:_MAX_RULE_ROWS] if isinstance(raw, list) else ()):
+        spot = f"{where}.classes[{i}]"
+        name = _terrain_name(row.get("type"), f"{spot}.type") if isinstance(row, dict) else None
+        low = _terrain_bounds(row.get("min", {}), f"{spot}.min") if name else None
+        high = _terrain_bounds(row.get("max", {}), f"{spot}.max") if name else None
+        if low is None or high is None:
+            log_warning(f"Server policy {spot} is not a class, ignored")
+            continue
+        clean = {"type": name, "min": low, "max": high}
+        colour = _terrain_colour(row.get("colour"), f"{spot}.colour")
+        if colour:
+            clean["colour"] = colour
+        shape = row.get("shape")
+        if isinstance(shape, dict) and shape.get("metric") in _SHAPE_METRICS:
+            clean["shape"] = {"metric": shape["metric"]}
+            full = shape.get("elongation_full")
+            if full is not None and _rule_number(full, 1.0, 100.0, f"{spot}.shape.elongation_full") is not None:
+                clean["shape"]["elongation_full"] = full
+        classes.append(clean)
+    if classes:
+        out["classes"] = classes
+    relief = _rule_part(value.get("relief"), f"{where}.relief",
+                        {k: _in_range(0.01, 100.0) for k in ("rise_to_m", "full_to_m", "zero_at_m")})
+    if relief:
+        out["relief"] = relief
+    score = _rule_part(value.get("score"), f"{where}.score",
+                       {k: _in_range(0.0, 1.0) for k in ("relief", "shape", "near", "other_shape")})
+    if score:
+        out["score"] = score
+    defaults = _rule_part(value.get("defaults"), f"{where}.defaults", {
+        "lrm_radius_m": _in_range(1.0, 5000.0), "svf_radius_m": _in_range(1.0, 2500.0),
+        "directions": _in_range(4, 64, whole=True), "threshold_m": _in_range(0.01, 100.0),
+        "min_area_m2": _in_range(0.0, 1_000_000.0), "max_area_m2": _in_range(1.0, 100_000_000.0),
+        "max_candidates": _in_range(1, 2000, whole=True), "reference_distance_m": _in_range(1.0, 5000.0)})
+    if defaults:
+        out["defaults"] = defaults
+    stack = value.get("stack")
+    if isinstance(stack, list) and stack and all(isinstance(n, str) and re.fullmatch(r"[a-z_]{1,30}", n)
+                                                  for n in stack[:_MAX_RULE_ROWS]):
+        out["stack"] = list(dict.fromkeys(stack[:_MAX_RULE_ROWS]))
+    elif stack is not None:
+        log_warning(f"Server policy {where}.stack is not a list of product names, ignored")
+    return out
+
+
 def _clean_vocab_rules(value: Any, where: str) -> dict | None:
 
     if not _versioned(value, where):
@@ -898,6 +1004,17 @@ def _clean_vocab_rules(value: Any, where: str) -> dict | None:
                 log_warning(f"Server policy {where}.elevation.stops do not run in order from 0 to 1, ignored")
         elif stops is not None:
             log_warning(f"Server policy {where}.elevation.stops is not a list of [offset, #RRGGBB], ignored")
+        span = raw.get("range_m")
+        if (isinstance(span, list) and len(span) == 2
+                and all(_rule_number(v, -20000.0, 20000.0, f"{where}.elevation.range_m") is not None for v in span)
+                and span[0] < span[1]):
+            elevation["range_m"] = [float(span[0]), float(span[1])]
+        elif span is not None:
+            log_warning(f"Server policy {where}.elevation.range_m is not [low, high], ignored")
+        if "ramp_aliases" in raw:
+            aliases = _words(raw["ramp_aliases"], f"{where}.elevation.ramp_aliases")
+            if aliases:
+                elevation["ramp_aliases"] = aliases
     if elevation:
         out["elevation"] = elevation
     if "diagram_palette" in value:
@@ -910,6 +1027,21 @@ def _clean_vocab_rules(value: Any, where: str) -> dict | None:
               and isinstance(c, str) and _HEX_COLOUR.fullmatch(c)}
     if routes:
         out["gtfs_route_colors"] = routes
+    raw = value.get("gtfs_route_types")
+    types = {k: w for k, w in list(raw.items() if isinstance(raw, dict) else ())[:_MAX_RULE_ROWS]
+             if isinstance(k, str) and re.fullmatch(r"\d{1,4}", k) and isinstance(w, str)
+             and re.fullmatch(r"[a-z_]{1,20}", w)}
+    if types:
+        out["gtfs_route_types"] = types
+    stops = _rule_part(value.get("gtfs_stops"), f"{where}.gtfs_stops", {
+        "classes": _in_range(1, 12, whole=True), "size_from_mm": _in_range(0.1, 20.0),
+        "size_to_mm": _in_range(0.1, 20.0)})
+    for name in ("color_from", "color_to"):
+        colour = value.get("gtfs_stops", {}).get(name) if isinstance(value.get("gtfs_stops"), dict) else None
+        if isinstance(colour, str) and _HEX_COLOUR.fullmatch(colour):
+            stops[name] = colour
+    if stops:
+        out["gtfs_stops"] = stops
     return out
 
 
@@ -924,6 +1056,8 @@ def _clean_service(key: str, value: Any, where: str) -> Any:
         return _clean_tokens(value, where)
     if key in _SERVICE_HOSTS:
         return _clean_hosts(value, where)
+    if key == "cloud_clients":
+        return _clean_cloud_clients(value, where)
     if key == "hosted_caps":
         return _clean_caps(value, where)
     if key == "wfs_silent_pages":
@@ -954,6 +1088,18 @@ def _clean_service(key: str, value: Any, where: str) -> Any:
         return _clean_isochrone_rules(value, where)
     if key == "vocab_rules":
         return _clean_vocab_rules(value, where)
+    if key == "terrain_rules":
+        return _clean_terrain_rules(value, where)
+    if key == "tool_rules":
+        return clean_tool_rules(value, where)
+    if key == "source_rules":
+        from .source_rules import clean_source_rules
+
+        return clean_source_rules(value, where)
+    if key == "geodata_rules":
+        from . import geodata_rules
+
+        return geodata_rules.clean(value, where)
     return _UNKNOWN_SERVICE
 
 

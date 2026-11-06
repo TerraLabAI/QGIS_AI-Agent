@@ -14,12 +14,16 @@ import urllib.request
 
 from qgis.core import QgsProject, QgsRasterLayer, QgsVectorLayer
 
-from ..core import catalog, limits, net, security
+from ..core import catalog, geodata_rules, limits, net, security_urls
 from ..core.background import on_main_thread, run_on_main_thread, take
 from ..core.context import quickmapservices_started
 from ..core.follow import view_kept
+from ..core.host_platform import remove_quietly
 from ..core.layer_order import COVERAGE_PROPERTY, cover_report, feature_count_of, place_basemap
+from ..core.layer_release import remove_layers
 from ..core.logger import log_warning
+from ..core.output_paths import file_stem
+from ..core.policy import create_managed_temp_dir
 from ..core.provider_uri import encode_uri_url
 from ..core.tool_registry import ServedValueMissing, coded_fact, tool_error
 from .data_common import _canvas_viewbox_4326, _http_get, _viewbox_bounds, built_here, worker_options
@@ -107,14 +111,10 @@ def _list_xyz_sources(args: dict) -> dict:
 
 
 
-
-
-_BASEMAP_SYNONYMS = {"openstreetmap": "osm", "mapnik": "standard"}
-
-
 def _basemap_words(text: str) -> set:
 
-    return {_BASEMAP_SYNONYMS.get(word, word)
+    synonyms = geodata_rules.rule("basemaps", "synonyms")
+    return {synonyms.get(word, word)
             for word in re.split(r"[^0-9a-z]+", (text or "").lower()) if word}
 
 
@@ -132,9 +132,9 @@ def _resolve_qms_source(catalog: dict, source: str):
 
 
 
-    if _basemap_words(low) <= {"osm", "standard"} and "osm_mapnik" in catalog:
-        return catalog["osm_mapnik"], None
-
+    bare = geodata_rules.rule("basemaps", "bare_osm")
+    if _basemap_words(low) <= set(bare["words"]) and bare["id"] in catalog:
+        return catalog[bare["id"]], None
     subs = [ds_id for ds_id in catalog if low in ds_id.lower()]
     if len(subs) == 1:
         return catalog[subs[0]], None
@@ -149,9 +149,10 @@ def _resolve_qms_source(catalog: dict, source: str):
 
 
     wanted = _basemap_words(source)
+    penalty = geodata_rules.rule("basemaps", "vector_penalty")
     if wanted:
         scored = [(len(_basemap_words(f"{ds_id} {getattr(ds, 'alias', '') or ''}") - wanted)
-                   + (1 if str(getattr(ds, "type", "") or "").upper() == "MVT" else 0), ds_id, ds)
+                   + (penalty if str(getattr(ds, "type", "") or "").upper() == "MVT" else 0), ds_id, ds)
                   for ds_id, ds in catalog.items()
                   if wanted <= _basemap_words(f"{ds_id} {getattr(ds, 'alias', '') or ''}")]
         if scored:
@@ -470,8 +471,6 @@ def _add_xyz_layer(args: dict) -> dict:
 
             twins = [_twin_of(layer, before.values()) for layer in added]
             if added and all(twins):
-                from .processing_run import remove_layers
-
                 kept = twins[0]
                 remove_layers(added)
                 return {
@@ -703,9 +702,6 @@ def _oapif_local_copy(collection: str, name: str, box: list | None = None) -> di
         from osgeo import gdal
     except Exception:  # noqa: BLE001
         return None
-    from ..core.host_platform import remove_quietly
-    from ..core.policy import create_managed_temp_dir
-    from .data_inspect import _safe_extract_stem
 
 
     net.check_url(collection)
@@ -718,7 +714,7 @@ def _oapif_local_copy(collection: str, name: str, box: list | None = None) -> di
 
     ceiling = int(limits.current("MAX_FEATURES_MATERIALISED"))
     cancel = net.current_cancel_check()
-    path = os.path.join(create_managed_temp_dir("extract"), f"{_safe_extract_stem(name)}.gpkg")
+    path = os.path.join(create_managed_temp_dir("extract"), f"{file_stem(name, 'extract')}.gpkg")
     try:
 
 
@@ -846,7 +842,7 @@ def _add_vector_tile_layer(args: dict) -> dict:
 
 
         probe = template.replace("{z}", "0").replace("{x}", "0").replace("{y}", "0").replace("{s}", "a")
-        template_error = security.validate_url(probe)
+        template_error = security_urls.validate_url(probe)
         if template_error:
             return tool_error(f"The TileJSON at {url} names a tile template that is not fetched: {template_error}",
                               "PERMISSION_DENIED")
@@ -930,10 +926,6 @@ def _looks_like_xyz_url(source: str) -> bool:
 
 
 
-
-_GIBS_LEVEL_RE = re.compile(r"GoogleMapsCompatible_Level(\d{1,2})\b")
-
-
 def _raw_zmax(url: str, asked=None) -> int:
 
     try:
@@ -941,8 +933,9 @@ def _raw_zmax(url: str, asked=None) -> int:
             return int(asked)
     except (TypeError, ValueError):
         pass
-    found = _GIBS_LEVEL_RE.search(str(url or ""))
-    return int(found.group(1)) if found else 19
+    prefix = re.escape(geodata_rules.rule("basemaps", "gibs_matrix_prefix"))
+    found = re.search(prefix + r"(\d{1,2})\b", str(url or ""))
+    return int(found.group(1)) if found else geodata_rules.rule("basemaps", "default_max_zoom")
 
 
 def _raw_zmin(asked=None) -> int:

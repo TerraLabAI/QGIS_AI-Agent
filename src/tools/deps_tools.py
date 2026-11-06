@@ -40,6 +40,8 @@ OPTIONAL_DEPENDENCIES = {
         "unlocks": "Google Earth Engine tools",
 
         "session_state": "earthengine_tools",
+
+        "words": "earthengine_card",
     },
 
 
@@ -443,7 +445,7 @@ def _check(args: dict) -> dict:
 
             "unlocks_hint": "dependency_unlocks",
             **(_session_state(spec) if installed else {}),
-            **coded_fact(hint="dependency_post_install", variant=feature, package=spec["package"],
+            **coded_fact(hint="dependency_post_install", variant=spec.get("words", feature), package=spec["package"],
                          import_name=spec["import_name"]),
         })
 
@@ -652,6 +654,7 @@ def _install_status(args: dict) -> dict:
         if t.get("hint"):
             out["hint"] = t["hint"]
     if t["status"] == "complete":
-        out.update(coded_fact(hint="dependency_post_install", variant=t["feature"], package=t["package"],
+        words = OPTIONAL_DEPENDENCIES.get(t["feature"], {}).get("words", t["feature"])
+        out.update(coded_fact(hint="dependency_post_install", variant=words, package=t["package"],
                               import_name=t["import_name"]))
     return out

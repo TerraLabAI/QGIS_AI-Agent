@@ -608,9 +608,9 @@ class _ChatPanelQueue:
 
 
         run = self._live_run(self._current_run) if self._current_run else None
-        card = next((c for c in reversed(run.permissions)
-                     if isinstance(c, (QuestionCard, InstallWaitCard)) and c.is_open()), None) \
-            if run is not None else None
+        cards = list(run.permissions) if run is not None else []
+        card = next((c for c in reversed(cards + [c for held in self._task_cards.values() for c in held])
+                     if isinstance(c, (QuestionCard, InstallWaitCard)) and c.is_open()), None)
         tool_call_id = card.open_page_id() if card is not None else ""
         if not tool_call_id:
             return False

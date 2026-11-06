@@ -15,35 +15,14 @@ import os
 import re
 from typing import Any
 
-from ..core import security
+from ..core import security, tuning
+from ..core.output_paths import OGR_DBNAME_PATTERN
 from ..core.tool_registry import spec
 
 
 
 UNKNOWN_DANGER = "write"
 
-
-
-_OPTIONAL_PATH_ARGS = {
-    "take_screenshot": ("save_path",),
-    "render_map": ("save_path", "output_path"),
-    "take_qgis_window_screenshot": ("save_path",),
-    "create_memory_layer": ("gpkg_path",),
-    "create_hillshade": ("output_path",),
-    "get_3d_screenshot": ("save_path",),
-    "zonal_statistics": ("output_path",),
-    "spatial_join": ("output_path",),
-    "raster_calculator": ("output_path",),
-    "georeference_raster": ("output_path",),
-    "create_chart": ("output_path",),
-    "make_animation": ("output_path",),
-    "export_document_report": ("output_path",),
-    "create_flow_lines": ("output_path",),
-}
-
-
-_APPENDS_EXTENSION = {"create_hillshade": ".tif", "georeference_raster": ".tif", "create_chart": ".png",
-                      "make_animation": ".gif", "create_flow_lines": ".gpkg"}
 
 
 
@@ -95,19 +74,16 @@ _OFF_MACHINE_PROVIDERS = ("ORS Tools:",)
 
 def paid_algorithms() -> frozenset:
 
-    from ..core import tuning
 
     return tuning.check_algs("paid_algorithms", PAID_ALGORITHMS)
 
 
 def _off_machine_providers() -> tuple:
 
-    from ..core import tuning
 
     return tuning.names("off_machine_providers", _OFF_MACHINE_PROVIDERS)
 
 
-_RANK = {"read": 0, "write": 1, "destructive": 2}
 _SQL_MUTATION_RE = re.compile(r"(?is)^\s*(?:with\b.*?)?\b(?:delete|drop|truncate|update|alter|insert|replace|create)\b")
 _MEMORY_SINKS = ("memory:", "ogr:", "postgres:", "TEMPORARY_OUTPUT")
 _DRIVE_RE = re.compile(r"^[A-Za-z]:[\\/]")
@@ -115,8 +91,7 @@ _DRIVE_RE = re.compile(r"^[A-Za-z]:[\\/]")
 
 
 
-_OGR_DBNAME_PATTERN = r"^ogr:dbname='(?P<path>[^']+)'"
-_OGR_DBNAME_RE = re.compile(_OGR_DBNAME_PATTERN)
+_OGR_DBNAME_RE = re.compile(OGR_DBNAME_PATTERN)
 
 
 def static_danger(name: str) -> str:
@@ -151,7 +126,7 @@ def looks_like_disk_path(value: Any) -> bool:
     return has_dir and has_ext
 
 
-def _processing_output_params(algorithm_id: str) -> set[str] | None:
+def processing_output_params(algorithm_id: str) -> set[str] | None:
 
     try:
         from qgis.core import QgsApplication
@@ -181,7 +156,7 @@ def _processing_replaces_file(args: dict, own_files: frozenset = frozenset()) ->
     parameters = args.get("parameters") if isinstance(args, dict) else None
     if not isinstance(parameters, dict):
         return False
-    outputs = _processing_output_params(str(args.get("algorithm_id") or ""))
+    outputs = processing_output_params(str(args.get("algorithm_id") or ""))
     for key, value in parameters.items():
         if outputs is not None:
             is_output = key in outputs
@@ -213,7 +188,7 @@ def plugin_algorithm_danger(algorithm_id: str) -> str | None:
     provider = algorithm_id.split(":", 1)[0]
     if provider.lower() in _CORE_PROVIDERS:
         return None
-    outputs = _processing_output_params(algorithm_id)
+    outputs = processing_output_params(algorithm_id)
 
 
     if outputs is None or outputs:
@@ -310,15 +285,17 @@ def effective_danger(name: str, args: dict | None = None, own_files: frozenset =
     by_spec = _declared_level(declared, args, own_files) if declared is not None else None
     if by_spec is not None:
         return by_spec
-    for arg in _OPTIONAL_PATH_ARGS.get(name, ()):
+
+
+    for arg in () if declared is None or declared.saves_open_project else declared.writes_at:
         value = args.get(arg)
 
 
 
 
 
-        if isinstance(value, str) and name in _APPENDS_EXTENSION and not os.path.splitext(value)[1]:
-            value = value + _APPENDS_EXTENSION[name]
+        if isinstance(value, str):
+            value = declared.written_name(value)
 
 
 

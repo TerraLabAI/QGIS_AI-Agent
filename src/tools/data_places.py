@@ -12,10 +12,10 @@ import urllib.request
 
 from qgis.core import QgsCoordinateReferenceSystem, QgsCoordinateTransform, QgsProject
 
-from ..core import net
+from ..core import geodata_rules, ground, net
 from ..core.background import run_on_main_thread
 from ..core.feature_requests import feature_request
-from ..core.geometry_budget import VertexBudget
+from ..core.geometry_budget import VertexBudget, vertex_count
 from ..core.logger import log_warning
 from ..core.qt_compat import enum_member
 from ..core.serialization import CodedText
@@ -32,14 +32,13 @@ from .data_geocoding import (
     _resolve_geocode_provider,
     _without_generic_place_words,
 )
+from .data_outline import _outline_contains, _polys_bbox
 from .data_overture import (
-    _CLIP_MAX_PARTS,
-    _CLIP_SUBTYPE_ORDER,
-    _CLIP_SUBTYPE_WAVES,
-    _HIT_SUBTYPES,
-    _outline_contains,
+    _clip_max_parts,
+    _clip_subtype_order,
+    _clip_subtype_waves,
+    _hit_subtypes,
     _overture_call,
-    _polys_bbox,
     _rings_of,
 )
 
@@ -159,7 +158,7 @@ def _outline_of_layer(name: str):
                             f"checks at once ({budget.per_geometry:,}; the largest {max(n for n, _t in simplified):,})"
                             f" and were simplified for the clip" + (f", to about {metres:,.0f} m" if metres else "")
                             + ".")
-        if count > _CLIP_MAX_PARTS:
+        if count > _clip_max_parts():
 
             made["parts"] = count
         return made
@@ -173,8 +172,6 @@ def _within_vertices(geometry, budget):
 
 
     import math
-
-    from ..core.geometry_budget import vertex_count
 
     cap = budget.per_geometry
     box = geometry.boundingBox()
@@ -191,7 +188,6 @@ def _within_vertices(geometry, budget):
 
 def _ground_metres(layer, units: float) -> float:
 
-    from ..core import ground
 
     if layer.crs().isGeographic():
         return units * 111_320.0
@@ -240,7 +236,8 @@ def _place_tier(hit: dict) -> int:
     return 1 if kind == "city" else 0
 
 
-_NEAR_VIEW_DEG = 30.0
+
+
 
 
 def _in_near_view(hit: dict, viewbox) -> bool:
@@ -248,7 +245,7 @@ def _in_near_view(hit: dict, viewbox) -> bool:
     if not bounds:
         return False
     west, south, east, north = bounds
-    if max(east - west, north - south) > _NEAR_VIEW_DEG:
+    if max(east - west, north - south) > geodata_rules.rule("places", "near_view_deg"):
         return False
     return west <= float(hit["lon"]) <= east and south <= float(hit["lat"]) <= north
 
@@ -405,7 +402,7 @@ def _outline_of_place(name: str):
 
 
 
-    span = _NAME_SEARCH_HALF_DEG
+    span = geodata_rules.rule("places", "name_search_half_deg")
     box = (lon - span, lat - span, lon + span, lat + span)
     hit_box = _hit_box(hit)
 
@@ -420,11 +417,13 @@ def _outline_of_place(name: str):
 
 
 
-    kind = (_HIT_SUBTYPES.get(str(hit.get("osm_value") or "").lower())
-            or _HIT_SUBTYPES.get(str(hit.get("type") or "").lower(), ""))
+    subtypes = _hit_subtypes()
+    kind = (subtypes.get(str(hit.get("osm_value") or "").lower())
+            or subtypes.get(str(hit.get("type") or "").lower(), ""))
     arrondissement = _arrondissement_key(name)
     code = str(hit.get("country_code") or "").upper()
-    order = ((kind,) + tuple(s for s in _CLIP_SUBTYPE_ORDER if s != kind)) if kind else _CLIP_SUBTYPE_ORDER
+    default_order = tuple(_clip_subtype_order())
+    order = ((kind,) + tuple(s for s in default_order if s != kind)) if kind else default_order
     fallback = None
 
 
@@ -436,7 +435,7 @@ def _outline_of_place(name: str):
 
 
     def wave_of(level: str) -> int:
-        return next(i for i, wave in enumerate(_CLIP_SUBTYPE_WAVES) if level in wave)
+        return next(i for i, wave in enumerate(_clip_subtype_waves()) if level in wave)
 
     payloads = _divisions_payloads(box, tuple(s for s in order if s == kind or wave_of(s) == 0))
     for rank, subtype in enumerate(order):
@@ -483,8 +482,8 @@ def _outline_of_place(name: str):
                 fallback = fallback or outline
         best = max(named, key=lambda item: item[0]) if named else None
         if best is not None and best[0][0] and best[0][1] and (
-                hit_box is None or best[0][2] >= _GOOD_OVERLAP
-                or (subtype != kind and widest >= _PAST_HIT_BOX * _box_area(hit_box))):
+                hit_box is None or best[0][2] >= geodata_rules.rule("places", "good_overlap")
+                or (subtype != kind and widest >= geodata_rules.rule("places", "past_hit_box") * _box_area(hit_box))):
 
 
 
@@ -573,17 +572,6 @@ def _osm_outline(hit: dict, name: str, labelled: bool = False):
             "outline_source": f"OpenStreetMap outline of the {what} {label} ({letter}{number})"}
 
 
-
-
-_NAME_SEARCH_HALF_DEG = 0.01
-
-
-_GOOD_OVERLAP = 0.5
-
-
-_PAST_HIT_BOX = 4.0
-
-
 def _hit_box(hit: dict):
 
     bounds = hit.get("boundingbox")
@@ -628,9 +616,6 @@ def _extra_words(label: str, wanted: set):
 
 
 
-_AROUND_HALF_DEG = 0.0045
-_AROUND_MIN_HALF_DEG = 0.0009
-
 
 def _outline_around(hit: dict, name: str) -> dict:
 
@@ -648,14 +633,15 @@ def _outline_around(hit: dict, name: str) -> dict:
         if south is not None and south <= lat <= north and west <= lon <= east:
             extent = (west, south, east, north)
     if extent is None:
-        half = _AROUND_HALF_DEG
+        half = geodata_rules.rule("places", "around_half_deg")
         extent = (lon - half / squash, lat - half, lon + half / squash, lat + half)
         how = f"a box about {2 * half * 111:.0f} km a side around the geocoded point"
     else:
         how = "the geocoder's own extent of it"
     west, south, east, north = extent
-    half_x = max((east - west) / 2, _AROUND_MIN_HALF_DEG / squash)
-    half_y = max((north - south) / 2, _AROUND_MIN_HALF_DEG)
+    least = geodata_rules.rule("places", "around_min_half_deg")
+    half_x = max((east - west) / 2, least / squash)
+    half_y = max((north - south) / 2, least)
     middle_x, middle_y = (west + east) / 2, (south + north) / 2
     west, east, south, north = middle_x - half_x, middle_x + half_x, middle_y - half_y, middle_y + half_y
     ring = [(west, south), (east, south), (east, north), (west, north), (west, south)]

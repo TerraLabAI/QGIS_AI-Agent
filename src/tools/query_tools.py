@@ -37,18 +37,17 @@ from ..core.logger import log_debug
 from ..core.policy import MAX_LIST_CHARS
 from ..core.qt_compat import enum_member
 from ..core.tool_registry import coded_fact, tool_error
-from ..core.vsi import PERSISTENT_OPTIONS, streamed_in_place, streamed_size
-from ._layers import loaded_feature_count
+from ..core.vsi import PERSISTENT_OPTIONS, streamed_in_place, streamed_size, thread_options
+from . import vector_write
+from ._layers import layer_not_found, loaded_feature_count, resolve_layer
 from .layer_lookup import (
     _field_not_found_error,
-    _find_layer,
     _jsonable_value,
-    _layer_not_found_error,
     extent_block,
     require_raster,
     require_vector,
 )
-from .project_tools import _is_remote_vector, filter_facts
+from .project_tools import _is_remote_vector, filter_facts, is_remote_raster
 
 
 
@@ -227,7 +226,7 @@ def _get_features_off_main(layer_args: dict) -> bool:
 
 
 
-    layer = _find_layer(str((layer_args or {}).get("layer_name") or ""))
+    layer = resolve_layer(str((layer_args or {}).get("layer_name") or ""))
     return isinstance(layer, QgsVectorLayer)
 
 
@@ -628,9 +627,9 @@ def _evaluate_expression(args: dict) -> dict:
     layer = None
     layer_name = args.get("layer_name")
     if layer_name:
-        layer = _find_layer(layer_name)
+        layer = resolve_layer(layer_name)
         if not layer:
-            return _layer_not_found_error(layer_name)
+            return layer_not_found(layer_name)
         ctx.appendScopes(QgsExpressionContextUtils.globalProjectLayerScopes(layer))
     else:
         ctx.appendScopes(QgsExpressionContextUtils.globalProjectLayerScopes(None))
@@ -693,7 +692,6 @@ def _evaluate_expression(args: dict) -> dict:
             "_note": "Expression references geometry/fields, so it is evaluated per feature.",
             "_note_hint": "expression_per_feature",
         }
-
 
     value = expr.evaluate(ctx)
     if expr.hasEvalError():
@@ -897,9 +895,9 @@ def _stats_open(layer_name: str, field: str, args: dict = None) -> dict:
 
 
     args = args or {}
-    layer = _find_layer(layer_name)
+    layer = resolve_layer(layer_name)
     if not layer:
-        return _layer_not_found_error(layer_name)
+        return layer_not_found(layer_name)
     if not isinstance(layer, QgsVectorLayer):
         return _not_a_vector_error(layer, field)
     if not field:
@@ -1356,7 +1354,85 @@ def _class_page(renderer, rtype: str, args: dict, colour_of, budget: dict) -> di
     return out
 
 
+def _samples_in_worker(args: dict) -> bool:
+
+
+
+
+
+    layer, error = require_raster(str((args or {}).get("layer_name") or ""))
+    return not error and layer.providerType() == "gdal"
+
+
 def _raster_sample(args: dict) -> dict:
+    if not background.on_main_thread():
+        plan = run_on_main_thread(_point_plan, args, {}, timeout=30)
+        if "source" not in plan:
+            return plan
+        read = _gdal_sample(plan)
+        if read is None:
+            return run_on_main_thread(_point_plan, args, None, timeout=60)
+        if read is False:
+            return tool_error("No data at this location (outside extent or nodata)", "INVALID_ARGS")
+        return {**plan["answer"], "value": read}
+    return _point_plan(args, None)
+
+
+def _gdal_sample(plan: dict):
+
+
+    from osgeo import gdal
+
+    try:
+        dataset = gdal.OpenEx(plan["source"], gdal.OF_RASTER | gdal.OF_READONLY)
+    except RuntimeError:
+        dataset = None
+    if dataset is None:
+        return None
+    try:
+        origin_x, width_x, rot_x, origin_y, rot_y, height_y = dataset.GetGeoTransform()
+        if rot_x or rot_y or not width_x or not height_y:
+            return None
+        col = int(math.floor((plan["px"] - origin_x) / width_x))
+        row = int(math.floor((plan["py"] - origin_y) / height_y))
+        if not (0 <= col < dataset.RasterXSize and 0 <= row < dataset.RasterYSize):
+            return False
+        band = dataset.GetRasterBand(plan["band"])
+        cell = band.ReadAsArray(col, row, 1, 1) if _has_numpy() else None
+        raw = float(cell[0][0]) if cell is not None else _read_one(band, col, row)
+        if raw is None:
+            return None
+        if raw != raw or (plan["use_nodata"] and plan["nodata"] is not None and raw == plan["nodata"]):
+            return False
+        if any(low <= raw <= high for low, high in plan["user_nodata"]):
+            return False
+        scale, offset = band.GetScale(), band.GetOffset()
+        if (scale not in (None, 1.0)) or (offset not in (None, 0.0)):
+            raw = raw * (scale if scale is not None else 1.0) + (offset or 0.0)
+        return raw
+    except RuntimeError:
+        return None
+    finally:
+        dataset = None
+
+
+def _has_numpy() -> bool:
+    try:
+        import numpy  # noqa: F401
+    except ImportError:
+        return False
+    return True
+
+
+def _read_one(band, col: int, row: int):
+    import struct
+
+    data = band.ReadRaster(col, row, 1, 1, buf_type=7)
+    return struct.unpack("d", data)[0] if data else None
+
+
+def _point_plan(args: dict, read) -> dict:
+
     from qgis.core import QgsCoordinateTransform, QgsPointXY
 
     layer, error = require_raster(args["layer_name"])
@@ -1395,12 +1471,25 @@ def _raster_sample(args: dict) -> dict:
     if band < 1 or band > layer.bandCount():
         return tool_error(f"Band {band} is outside the raster's 1..{layer.bandCount()} range.",
                           "INVALID_ARGS", hint="raster_band_numbering")
+    if read is not None:
+
+        provider = layer.dataProvider()
+        read.update(source=str(layer.source() or ""), band=band, px=point.x(), py=point.y(),
+                    use_nodata=bool(provider.sourceHasNoDataValue(band) and provider.useSourceNoDataValue(band)),
+                    nodata=float(provider.sourceNoDataValue(band)) if provider.sourceHasNoDataValue(band) else None,
+                    user_nodata=[(float(r.min()), float(r.max())) for r in provider.userNoDataValues(band)],
+                    answer=_sample_answer(layer, band, point, crs_id, None))
+        return read
     try:
         value, ok = layer.dataProvider().sample(point, band)
     except Exception as e:
         return tool_error(f"Sampling failed: {e}", "EXECUTION_FAILED")
     if not ok:
         return tool_error("No data at this location (outside extent or nodata)", "INVALID_ARGS")
+    return _sample_answer(layer, band, point, crs_id, value)
+
+
+def _sample_answer(layer, band: int, point, crs_id, value) -> dict:
 
 
 
@@ -1416,18 +1505,6 @@ def _raster_sample(args: dict) -> dict:
     if crs_id and str(crs_id).strip().upper() != str(layer.crs().authid()).upper():
         out["asked_in_crs"] = str(crs_id)
     return out
-
-
-def _remote_raster(layer) -> bool:
-
-    if streamed_in_place(layer):
-        return True
-    try:
-        source = str(layer.source() or "")
-        provider = str(layer.providerType() or "").lower()
-    except Exception:  # noqa: BLE001
-        return False
-    return source.startswith(("http://", "https://")) or provider in ("wms", "wcs", "arcgismapserver")
 
 
 
@@ -1475,7 +1552,7 @@ def _measured_window(layer) -> tuple:
         extent = QgsRectangle(layer.extent())
     except Exception:  # noqa: BLE001
         return None, ""
-    if full <= _REMOTE_STATS_PIXELS_MAX or px <= 0 or py <= 0 or extent.isNull() or not _remote_raster(layer):
+    if full <= _REMOTE_STATS_PIXELS_MAX or px <= 0 or py <= 0 or extent.isNull() or not is_remote_raster(layer):
         return None, ""
     window = _canvas_window(layer, extent)
     if window is None or window.isNull() or window.isEmpty():
@@ -1548,23 +1625,19 @@ def _exact_band_stats(source: str, band: int, cancelled) -> dict | None:
         from osgeo import gdal
     except ImportError:
         return None
-
-    set_option = getattr(gdal, "SetThreadLocalConfigOption", lambda *_: None)
-    set_option("GDAL_PAM_ENABLED", "NO")
-    try:
-        dataset = gdal.OpenEx(source, gdal.OF_RASTER | gdal.OF_READONLY)
-        if dataset is None or band > dataset.RasterCount:
+    with thread_options(gdal, GDAL_PAM_ENABLED="NO"):
+        try:
+            dataset = gdal.OpenEx(source, gdal.OF_RASTER | gdal.OF_READONLY)
+            if dataset is None or band > dataset.RasterCount:
+                return None
+            raster_band = dataset.GetRasterBand(band)
+            lo, hi, mean, std = raster_band.ComputeStatistics(
+                False, callback=lambda *_: 0 if cancelled is not None and cancelled() else 1)
+            valid = raster_band.GetMetadataItem("STATISTICS_VALID_PERCENT")
+            cells = dataset.RasterXSize * dataset.RasterYSize
+            scale, offset = raster_band.GetScale() or 1.0, raster_band.GetOffset() or 0.0
+        except (RuntimeError, TypeError, ValueError):
             return None
-        raster_band = dataset.GetRasterBand(band)
-        lo, hi, mean, std = raster_band.ComputeStatistics(
-            False, callback=lambda *_: 0 if cancelled is not None and cancelled() else 1)
-        valid = raster_band.GetMetadataItem("STATISTICS_VALID_PERCENT")
-        cells = dataset.RasterXSize * dataset.RasterYSize
-        scale, offset = raster_band.GetScale() or 1.0, raster_band.GetOffset() or 0.0
-    except (RuntimeError, TypeError, ValueError):
-        return None
-    finally:
-        set_option("GDAL_PAM_ENABLED", None)
     if valid is None:
         return None
     lo, hi = sorted((lo * scale + offset, hi * scale + offset))
@@ -1628,28 +1701,25 @@ def _band_quantiles(read: dict, cancelled) -> dict:
         from osgeo import gdal
     except ImportError:
         return {}
-
-    set_option = getattr(gdal, "SetThreadLocalConfigOption", lambda *_: None)
-    set_option("GDAL_PAM_ENABLED", "NO")
     dataset = None
-    try:
-        dataset = gdal.OpenEx(read["source"], gdal.OF_RASTER | gdal.OF_READONLY)
-        if dataset is None or read["band"] > dataset.RasterCount:
+    with thread_options(gdal, GDAL_PAM_ENABLED="NO"):
+        try:
+            dataset = gdal.OpenEx(read["source"], gdal.OF_RASTER | gdal.OF_READONLY)
+            if dataset is None or read["band"] > dataset.RasterCount:
+                return {}
+            window = _Bounds(*read["window"]) if read.get("window") else None
+            xoff, yoff, width, height = _window_pixels(dataset, window)
+            step = max(1.0, math.sqrt(width * height / float(_QUANTILE_PIXELS)))
+            buf_w, buf_h = max(1, int(width / step)), max(1, int(height / step))
+            raster_band = dataset.GetRasterBand(read["band"])
+            array = raster_band.ReadAsArray(xoff, yoff, width, height, buf_xsize=buf_w, buf_ysize=buf_h)
+            nodata = raster_band.GetNoDataValue() if read.get("source_nodata", True) else None
+            scale, offset = raster_band.GetScale(), raster_band.GetOffset()
+            transform = dataset.GetGeoTransform()
+        except (RuntimeError, TypeError, ValueError, AttributeError):
             return {}
-        window = _Bounds(*read["window"]) if read.get("window") else None
-        xoff, yoff, width, height = _window_pixels(dataset, window)
-        step = max(1.0, math.sqrt(width * height / float(_QUANTILE_PIXELS)))
-        buf_w, buf_h = max(1, int(width / step)), max(1, int(height / step))
-        raster_band = dataset.GetRasterBand(read["band"])
-        array = raster_band.ReadAsArray(xoff, yoff, width, height, buf_xsize=buf_w, buf_ysize=buf_h)
-        nodata = raster_band.GetNoDataValue() if read.get("source_nodata", True) else None
-        scale, offset = raster_band.GetScale(), raster_band.GetOffset()
-        transform = dataset.GetGeoTransform()
-    except (RuntimeError, TypeError, ValueError, AttributeError):
-        return {}
-    finally:
-        dataset = None
-        set_option("GDAL_PAM_ENABLED", None)
+        finally:
+            dataset = None
     if array is None or (cancelled is not None and cancelled()):
         return {}
     values, valid = _band_values(np, array, read, nodata, scale, offset)
@@ -1804,28 +1874,25 @@ def _sampled_band_stats(read: dict, cancelled) -> dict | None:
         from osgeo import gdal
     except ImportError:
         return None
-
-    set_option = getattr(gdal, "SetThreadLocalConfigOption", lambda *_: None)
-    set_option("GDAL_PAM_ENABLED", "NO")
     dataset = None
-    try:
-        dataset = gdal.OpenEx(read["source"], gdal.OF_RASTER | gdal.OF_READONLY)
-        if dataset is None or read["band"] > dataset.RasterCount:
+    with thread_options(gdal, GDAL_PAM_ENABLED="NO"):
+        try:
+            dataset = gdal.OpenEx(read["source"], gdal.OF_RASTER | gdal.OF_READONLY)
+            if dataset is None or read["band"] > dataset.RasterCount:
+                return None
+            window = _Bounds(*read["window"]) if read.get("window") else None
+            xoff, yoff, width, height = _window_pixels(dataset, window)
+            step = max(1.0, math.sqrt(width * height / float(_REMOTE_SAMPLE_PIXELS)))
+            buf_w, buf_h = max(1, int(width / step)), max(1, int(height / step))
+            raster_band = dataset.GetRasterBand(read["band"])
+            array = raster_band.ReadAsArray(xoff, yoff, width, height, buf_xsize=buf_w, buf_ysize=buf_h)
+            nodata = raster_band.GetNoDataValue() if read.get("source_nodata", True) else None
+            scale, offset = raster_band.GetScale(), raster_band.GetOffset()
+            transform = dataset.GetGeoTransform()
+        except (RuntimeError, TypeError, ValueError, AttributeError):
             return None
-        window = _Bounds(*read["window"]) if read.get("window") else None
-        xoff, yoff, width, height = _window_pixels(dataset, window)
-        step = max(1.0, math.sqrt(width * height / float(_REMOTE_SAMPLE_PIXELS)))
-        buf_w, buf_h = max(1, int(width / step)), max(1, int(height / step))
-        raster_band = dataset.GetRasterBand(read["band"])
-        array = raster_band.ReadAsArray(xoff, yoff, width, height, buf_xsize=buf_w, buf_ysize=buf_h)
-        nodata = raster_band.GetNoDataValue() if read.get("source_nodata", True) else None
-        scale, offset = raster_band.GetScale(), raster_band.GetOffset()
-        transform = dataset.GetGeoTransform()
-    except (RuntimeError, TypeError, ValueError, AttributeError):
-        return None
-    finally:
-        dataset = None
-        set_option("GDAL_PAM_ENABLED", None)
+        finally:
+            dataset = None
     if array is None or (cancelled is not None and cancelled()):
         return None
     values, valid = _band_values(np, array, read, nodata, scale, offset)
@@ -1927,7 +1994,7 @@ def _band_stats_on_main(args: dict, sample_in_worker: bool = False) -> dict:
                           "INVALID_ARGS", hint="raster_band_numbering")
     provider = layer.dataProvider()
     window, why = _measured_window(layer)
-    if sample_in_worker and str(layer.providerType() or "") == "gdal" and _remote_raster(layer):
+    if sample_in_worker and str(layer.providerType() or "") == "gdal" and is_remote_raster(layer):
         return _sample_plan(args, layer, provider, band, window, why)
     try:
         from qgis.core import QgsRectangle
@@ -1984,7 +2051,7 @@ def _band_stats_on_main(args: dict, sample_in_worker: bool = False) -> dict:
                                 "highest and lowest cells can lie between them.")
         out["measured"] = f"approximate: QGIS's sample of {read:,} cells"
         if (window is None and full <= _EXACT_STATS_PIXELS_MAX and layer.providerType() == "gdal"
-                and not _remote_raster(layer) and not provider.userNoDataValues(band)
+                and not is_remote_raster(layer) and not provider.userNoDataValues(band)
                 and (provider.useSourceNoDataValue(band) or not provider.sourceHasNoDataValue(band))):
             out["_exact_source"] = str(layer.source() or "")
     _coverage_note(out, counted, float(stats.mean), coverage, str(layer.providerType() or "").lower())
@@ -2094,9 +2161,9 @@ def _class_counts(np, valid_values, sampled: int, cells: int, window=None) -> di
 def _get_provider_capabilities(args: dict) -> dict:
     from qgis.core import QgsVectorDataProvider
 
-    layer = _find_layer(args["layer_name"])
+    layer = resolve_layer(args["layer_name"])
     if not layer:
-        return _layer_not_found_error(args["layer_name"])
+        return layer_not_found(args["layer_name"])
     if not isinstance(layer, QgsVectorLayer):
         return _not_a_vector_error(layer)
 
@@ -2127,8 +2194,6 @@ def _get_provider_capabilities(args: dict) -> dict:
         "capabilities": names,
     }
 
-
-    from . import vector_write
 
     facts = vector_write.storage_facts(layer)
     result["path"] = facts["path"]

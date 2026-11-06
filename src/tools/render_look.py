@@ -20,9 +20,12 @@ import uuid
 
 from qgis.PyQt.QtCore import QSize
 
+from ..core import limits
+from ..core.numbers import as_int
 from ..core.qt_compat import enum_member
 from ..core.security import validate_path
-from ..core.tool_registry import tool_error
+from ..core.tool_registry import coded_fact, tool_error
+from . import layout_ready
 
 
 
@@ -67,6 +70,34 @@ def _zoom(args: dict) -> float:
     return min(8.0, 1.0 / max(box[2], box[3], 0.02))
 
 
+def _clamp_render_size(asked_width, asked_height) -> tuple:
+
+
+
+
+
+
+
+
+
+
+
+
+
+    asked_width, asked_height = max(1, int(asked_width)), max(1, int(asked_height))
+    max_w = limits.current("MAX_RENDER_WIDTH_PX")
+    max_h = limits.current("MAX_RENDER_HEIGHT_PX")
+    width, height = min(asked_width, max_w), min(asked_height, max_h)
+    if (width, height) == (asked_width, asked_height):
+        return width, height, ""
+    shape = min(width / float(asked_width), height / float(asked_height))
+    width = max(64, min(width, int(round(asked_width * shape))))
+    height = max(64, min(height, int(round(asked_height * shape))))
+    note = coded_fact(hint="render_size_clamped", asked_width=asked_width, asked_height=asked_height,
+                      width=width, height=height, max_width=max_w, max_height=max_h)
+    return width, height, note
+
+
 def _sized(width_units: float, height_units: float, args: dict) -> tuple:
 
 
@@ -74,8 +105,6 @@ def _sized(width_units: float, height_units: float, args: dict) -> tuple:
 
 
 
-
-    from .advanced_render import _clamp_render_size
 
     asked_width, asked_height = args.get("width"), args.get("height")
     zoom = _zoom(args)
@@ -129,8 +158,7 @@ def layout_page_start(args: dict) -> dict:
 
     from qgis.core import QgsLayoutMeasurement, QgsProject
 
-    from ..core.layout_quality import assess_layout
-    from . import layout_ready
+    from .layout_quality import assess_layout
 
     manager = QgsProject.instance().layoutManager()
     wanted = str(args.get("layout_name") or "").strip()
@@ -156,10 +184,7 @@ def layout_page_start(args: dict) -> dict:
     count = int(pages.pageCount())
     if count <= 0:
         return tool_error(f"Layout '{layout.name()}' has no page.", "INVALID_ARGS")
-    try:
-        page = int(args.get("page") or 1)
-    except (TypeError, ValueError):
-        page = 1
+    page = as_int(args.get("page") or 1, 1)
     if not 1 <= page <= count:
         return tool_error(f"Layout '{layout.name()}' has {count} page(s), so page {page} does not exist.",
                           "INVALID_ARGS")
@@ -197,8 +222,6 @@ def layout_page_draw(started: dict) -> dict:
 
 
     from qgis.core import QgsLayoutExporter, QgsProject
-
-    from . import layout_ready
 
     layout = QgsProject.instance().layoutManager().layoutByName(started["layout_name"])
     if layout is None:
@@ -342,10 +365,7 @@ def file_image(args: dict) -> dict:
         return tool_error(path_error, "INVALID_ARGS")
     if not os.path.isfile(path):
         return tool_error(f"No file at {path}.", "INVALID_ARGS", hint="render_file_missing")
-    try:
-        page = int(args.get("page") or 1)
-    except (TypeError, ValueError):
-        page = 1
+    page = as_int(args.get("page") or 1, 1)
     suffix = os.path.splitext(path)[1].lower()
 
     if suffix == ".pdf":
@@ -395,8 +415,6 @@ def _under_render_cap(image, args: dict):
 
 
     from qgis.PyQt.QtCore import Qt
-
-    from .advanced_render import _clamp_render_size
 
     width, height = _sized(image.width() or 1, image.height() or 1, args)
     width, height, _note = _clamp_render_size(width, height)

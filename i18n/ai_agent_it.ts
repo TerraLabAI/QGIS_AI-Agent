@@ -1163,14 +1163,6 @@ L'eliminazione diventa definitiva al termine del periodo di tolleranza. Fino ad 
             <translation>Georeferenzia {raster}</translation>
         </message>
         <message>
-            <source>Get a Sentinel image</source>
-            <translation>Ottieni un'immagine Sentinel</translation>
-        </message>
-        <message>
-            <source>Get an elevation model</source>
-            <translation>Ottieni un modello di elevazione</translation>
-        </message>
-        <message>
             <source>Hans van der Kwast's review, recorded in QGIS.</source>
             <translation>La recensione di Hans van der Kwast, registrata in QGIS.</translation>
         </message>
@@ -1231,10 +1223,6 @@ L'eliminazione diventa definitiva al termine del periodo di tolleranza. Fino ad 
             <translation>Elenca i plugin</translation>
         </message>
         <message>
-            <source>List the satellite catalogs</source>
-            <translation>Elenca i cataloghi satellitari</translation>
-        </message>
-        <message>
             <source>Load 3D Tiles[ from {url}]</source>
             <translation>Carica 3D Tiles[ da {url}]</translation>
         </message>
@@ -1255,20 +1243,12 @@ L'eliminazione diventa definitiva al termine del periodo di tolleranza. Fino ad 
             <translation>Guarda l'interfaccia</translation>
         </message>
         <message>
-            <source>Look for data on the web[ for {query}]</source>
-            <translation>Cerca dati sul web[ per {query}]</translation>
-        </message>
-        <message>
             <source>Look for data on this computer</source>
             <translation>Cerca dati su questo computer</translation>
         </message>
         <message>
             <source>Look for relief anomalies[ in {lrm_layer}][ in {dem}]</source>
             <translation>Cerca anomalie di rilievo[ in {lrm_layer}][ in {dem}]</translation>
-        </message>
-        <message>
-            <source>Look up the place[ {query}]</source>
-            <translation>Cerca il luogo[ {query}]</translation>
         </message>
         <message>
             <source>Make the temporary layers permanent[ in {gpkg_path}]</source>
@@ -1327,10 +1307,6 @@ L'eliminazione diventa definitiva al termine del periodo di tolleranza. Fino ad 
             <translation>Calcolo raster[ come {name}]</translation>
         </message>
         <message>
-            <source>Read a NASA Earthdata collection[ {short_name}]</source>
-            <translation>Leggi una collezione NASA Earthdata[ {short_name}]</translation>
-        </message>
-        <message>
             <source>Read a coordinate from the map</source>
             <translation>Leggi una coordinata dalla mappa</translation>
         </message>
@@ -1339,20 +1315,12 @@ L'eliminazione diventa definitiva al termine del periodo di tolleranza. Fino ad 
             <translation>Leggi gli elementi di {layer_name}</translation>
         </message>
         <message>
-            <source>Read the AI Agent documentation[ on {query}]</source>
-            <translation>Leggi la documentazione di AI Agent[ su {query}]</translation>
-        </message>
-        <message>
             <source>Read the CRS of {layer_name}</source>
             <translation>Leggi l'SR di {layer_name}</translation>
         </message>
         <message>
             <source>Read the Python errors</source>
             <translation>Leggi gli errori Python</translation>
-        </message>
-        <message>
-            <source>Read the QGIS documentation[ on {query}]</source>
-            <translation>Leggi la documentazione QGIS[ su {query}]</translation>
         </message>
         <message>
             <source>Read the extent of {layer_name}</source>
@@ -1471,48 +1439,16 @@ L'eliminazione diventa definitiva al termine del periodo di tolleranza. Fino ad 
             <translation>Salvato uno script di Processing</translation>
         </message>
         <message>
-            <source>Search Copernicus images[ of {collection}]</source>
-            <translation>Cerca immagini Copernicus[ di {collection}]</translation>
-        </message>
-        <message>
-            <source>Search NASA Earthdata files</source>
-            <translation>Cerca file NASA Earthdata</translation>
-        </message>
-        <message>
-            <source>Search NASA Earthdata[ for {query}]</source>
-            <translation>Cerca in NASA Earthdata[ per {query}]</translation>
-        </message>
-        <message>
             <source>Search open data[ for {query}]</source>
             <translation>Cerca open data[ per {query}]</translation>
-        </message>
-        <message>
-            <source>Search satellite images</source>
-            <translation>Cerca immagini satellitari</translation>
-        </message>
-        <message>
-            <source>Search statistics[ on {topic}]</source>
-            <translation>Cerca statistiche[ su {topic}]</translation>
-        </message>
-        <message>
-            <source>Search the Earth Engine catalog[ for {query}]</source>
-            <translation>Cerca nel catalogo Earth Engine[ per {query}]</translation>
         </message>
         <message>
             <source>Search the QGIS Hub[ for {query}]</source>
             <translation>Cerca nel QGIS Hub[ per {query}]</translation>
         </message>
         <message>
-            <source>Search the data catalog[ for {query}]</source>
-            <translation>Cerca nel catalogo dati[ per {query}]</translation>
-        </message>
-        <message>
             <source>Search the processing tools[ for {query}]</source>
             <translation>Cerca negli strumenti di Processing[ per {query}]</translation>
-        </message>
-        <message>
-            <source>Search the web[ for {query}]</source>
-            <translation>Cerca sul web[ per {query}]</translation>
         </message>
         <message>
             <source>Select features in {layer_name}</source>
@@ -2546,6 +2482,38 @@ L'eliminazione diventa definitiva al termine del periodo di tolleranza. Fino ad 
             <source>This report includes your description and the current conversation. We use it to fix issues and improve AI Agent.</source>
             <translation>Questa segnalazione include la tua descrizione e la conversazione attuale. La usiamo per risolvere i problemi e migliorare AI Agent.</translation>
         </message>
+        <message>
+            <source>Copy</source>
+            <translation>Copia</translation>
+        </message>
+        <message>
+            <source>Real tasks the AI agent does from one sentence.</source>
+            <translation>Attività reali che l'AI Agent svolge a partire da una frase.</translation>
+        </message>
+        <message>
+            <source>Uses</source>
+            <translation>Usa</translation>
+        </message>
+        <message>
+            <source>What you type</source>
+            <translation>Cosa scrivi</translation>
+        </message>
+        <message>
+            <source>Expired on {day}.</source>
+            <translation>Scaduto il {day}.</translation>
+        </message>
+        <message>
+            <source>Expires on {day}.</source>
+            <translation>Scade il {day}.</translation>
+        </message>
+        <message>
+            <source>Private link: its signature stays on this computer. TerraLab and the AI agent see only the site and the file name.</source>
+            <translation>Link privato: la firma resta su questo computer. TerraLab e l'AI agent vedono solo il sito e il nome del file.</translation>
+        </message>
+        <message>
+            <source>expired</source>
+            <translation>scaduto</translation>
+        </message>
     </context>
     <context>
         <name>AIAgentContext</name>
@@ -3288,6 +3256,18 @@ L'eliminazione diventa definitiva al termine del periodo di tolleranza. Fino ad 
             <source>Type the code shown in your browser:</source>
             <translation>Scrivi il codice mostrato nel browser:</translation>
         </message>
+        <message>
+            <source>Ask it to load data, style layers, run analyses or edit features.</source>
+            <translation>Chiedi di caricare dati, applicare stili ai layer, eseguire analisi o modificare feature.</translation>
+        </message>
+        <message>
+            <source>Free. Opens your browser, takes about 15 seconds.</source>
+            <translation>Gratis. Si apre il browser, servono circa 15 secondi.</translation>
+        </message>
+        <message>
+            <source>Sign in or create an account</source>
+            <translation>Accedi o crea un account</translation>
+        </message>
     </context>
     <context>
         <name>ActivityRow</name>
@@ -3475,6 +3455,10 @@ L'eliminazione diventa definitiva al termine del periodo di tolleranza. Fino ad 
         <message>
             <source>Write the request for an HTML report of this analysis, with its maps and charts</source>
             <translation>Scrivi la richiesta di un report HTML di questa analisi, con le sue mappe e i suoi grafici</translation>
+        </message>
+        <message>
+            <source>Remove rating</source>
+            <translation>Rimuovi la valutazione</translation>
         </message>
     </context>
     <context>
@@ -4109,6 +4093,42 @@ L'eliminazione diventa definitiva al termine del periodo di tolleranza. Fino ad 
             <source>a temporary layer</source>
             <translation>un livello temporaneo</translation>
         </message>
+        <message>
+            <source>Not handled, the AI agent is offline: {0}</source>
+            <translation>Non gestito, l'AI Agent è offline: {0}</translation>
+        </message>
+        <message>
+            <source>Nothing is kept about this project yet.</source>
+            <translation>Per ora non è salvato nulla su questo progetto.</translation>
+        </message>
+        <message>
+            <source>Project memory</source>
+            <translation>Memoria del progetto</translation>
+        </message>
+        <message>
+            <source>Project memory cleared.</source>
+            <translation>Memoria del progetto cancellata.</translation>
+        </message>
+        <message>
+            <source>Watched folder: not handled, no answer from the server: {0}</source>
+            <translation>Cartella monitorata: non gestito, nessuna risposta dal server: {0}</translation>
+        </message>
+        <message>
+            <source>Watched folder: not handled, the AI agent is offline: {0}</source>
+            <translation>Cartella monitorata: non gestito, l'AI Agent è offline: {0}</translation>
+        </message>
+        <message>
+            <source>Clear what the AI agent remembers about this project?</source>
+            <translation>Cancellare ciò che l'agente AI ricorda di questo progetto?</translation>
+        </message>
+        <message>
+            <source>Save the project first: its memory is kept under the project file.</source>
+            <translation>Salva prima il progetto: la sua memoria è conservata nel file di progetto.</translation>
+        </message>
+        <message>
+            <source>The AI agent is not connected. Try again in a moment.</source>
+            <translation>L'agente AI non è connesso. Riprova tra un attimo.</translation>
+        </message>
     </context>
     <context>
         <name>AgentSession</name>
@@ -4633,6 +4653,14 @@ L'eliminazione diventa definitiva al termine del periodo di tolleranza. Fino ad 
         <message>
             <source>Make an HTML report of this analysis, with its maps, charts and method.</source>
             <translation>Crea un report HTML di questa analisi, con le sue mappe, i suoi grafici e il metodo.</translation>
+        </message>
+        <message>
+            <source>Pay to get Pro back</source>
+            <translation>Paga per riavere Pro</translation>
+        </message>
+        <message>
+            <source>Task ended</source>
+            <translation>Attività terminata</translation>
         </message>
     </context>
     <context>
@@ -5475,6 +5503,30 @@ L'eliminazione diventa definitiva al termine del periodo di tolleranza. Fino ad 
             <source>Try in chat</source>
             <translation>Prova nella chat</translation>
         </message>
+        <message>
+            <source>All %n</source>
+            <translation>Tutti %n</translation>
+        </message>
+        <message>
+            <source>Examples with this source</source>
+            <translation>Esempi con questa fonte</translation>
+        </message>
+        <message>
+            <source>Fewer</source>
+            <translation>Meno</translation>
+        </message>
+        <message>
+            <source>More</source>
+            <translation>Altro</translation>
+        </message>
+        <message>
+            <source>More in {shelf}</source>
+            <translation>Altro in {shelf}</translation>
+        </message>
+        <message>
+            <source>{first} and %n more licences</source>
+            <translation>{first} e altre %n licenze</translation>
+        </message>
     </context>
     <context>
         <name>ConnectorsPage</name>
@@ -5653,6 +5705,14 @@ L'eliminazione diventa definitiva al termine del periodo di tolleranza. Fino ad 
         <message>
             <source>sources</source>
             <translation>fonti</translation>
+        </message>
+        <message>
+            <source>Search sources, datasets or a country</source>
+            <translation>Cerca fonti, dataset o un paese</translation>
+        </message>
+        <message>
+            <source>{sources} sources the AI agent finds and loads by itself: {datasets} datasets in {countries} countries.</source>
+            <translation>{sources} fonti che l'AI Agent trova e carica da solo: {datasets} dataset in {countries} paesi.</translation>
         </message>
     </context>
     <context>
@@ -5840,8 +5900,8 @@ L'eliminazione diventa definitiva al termine del periodo di tolleranza. Fino ad 
             <translation>Tutorial</translation>
         </message>
         <message>
-            <source>You are talking to an AI system. It can be wrong: check its changes.</source>
-            <translation>Stai parlando con un sistema di AI. Può sbagliare: controlla le modifiche.</translation>
+            <source>AI can make mistakes. Check its changes.</source>
+            <translation>L'IA può commettere errori. Controlla le sue modifiche.</translation>
         </message>
         <message>
             <source>Asks before it acts.</source>
@@ -6195,6 +6255,14 @@ Fai clic per aprirne la pagina.</translation>
             <source>Videos and guides to get started. They open in your browser.</source>
             <translation>Video e guide per iniziare. Si aprono nel browser.</translation>
         </message>
+        <message>
+            <source>Learn</source>
+            <translation>Impara</translation>
+        </message>
+        <message>
+            <source>Videos, guides and the other TerraLab plugins. Links open in your browser.</source>
+            <translation>Video, guide e gli altri plugin di TerraLab. I link si aprono nel browser.</translation>
+        </message>
     </context>
     <context>
         <name>MapHooks</name>
@@ -6462,6 +6530,46 @@ Fai clic per aprirne la pagina.</translation>
         <message>
             <source>The page links to {hosts}, a site the agent does not know.</source>
             <translation>La pagina rimanda a {hosts}, un sito che l'assistente non conosce.</translation>
+        </message>
+        <message>
+            <source>Adds: {}</source>
+            <translation>Aggiunge: {}</translation>
+        </message>
+        <message>
+            <source>Also covers the next calls of this kind in this answer</source>
+            <translation>Copre anche le prossime chiamate di questo tipo in questa risposta</translation>
+        </message>
+        <message>
+            <source>Changes: {}</source>
+            <translation>Modifica: {}</translation>
+        </message>
+        <message>
+            <source>Deletes files: {}</source>
+            <translation>Elimina file: {}</translation>
+        </message>
+        <message>
+            <source>Deletes: {}</source>
+            <translation>Elimina: {}</translation>
+        </message>
+        <message>
+            <source>Not in this project: {}</source>
+            <translation>Non in questo progetto: {}</translation>
+        </message>
+        <message>
+            <source>Other effects the preview could not read: {}</source>
+            <translation>Altri effetti che l'anteprima non ha potuto leggere: {}</translation>
+        </message>
+        <message>
+            <source>Reads: {}</source>
+            <translation>Legge: {}</translation>
+        </message>
+        <message>
+            <source>Runs: {}</source>
+            <translation>Esegue: {}</translation>
+        </message>
+        <message>
+            <source>Writes files: {}</source>
+            <translation>Scrive file: {}</translation>
         </message>
     </context>
     <context>
@@ -6949,6 +7057,26 @@ Fai clic per aprirne la pagina.</translation>
             <source>{n} free tasks left</source>
             <translation>{n} attività gratuite rimaste</translation>
         </message>
+        <message>
+            <source>Pay now</source>
+            <translation>Paga ora</translation>
+        </message>
+        <message>
+            <source>Pay {amount} now</source>
+            <translation>Paga {amount} ora</translation>
+        </message>
+        <message>
+            <source>Pro is off until it's paid. You're on the free plan for now.</source>
+            <translation>Pro resta disattivato finché non paghi. Per ora sei sul piano gratuito.</translation>
+        </message>
+        <message>
+            <source>Your Pro payment failed</source>
+            <translation>Il tuo pagamento Pro non è riuscito</translation>
+        </message>
+        <message>
+            <source>Your payment of {amount} failed</source>
+            <translation>Il tuo pagamento di {amount} non è riuscito</translation>
+        </message>
     </context>
     <context>
         <name>QuotaPauseCard</name>
@@ -7177,6 +7305,10 @@ Fai clic per aprirne la pagina.</translation>
             <source>{n} steps</source>
             <translation>{n} passaggi</translation>
         </message>
+        <message>
+            <source>Thought</source>
+            <translation>Pensiero</translation>
+        </message>
     </context>
     <context>
         <name>SettingsDialog</name>
@@ -7189,8 +7321,8 @@ Fai clic per aprirne la pagina.</translation>
             <translation>Eliminare tutte le {n} note? L'AI non le aggiungerà di nuovo.</translation>
         </message>
         <message>
-            <source>Lets us read a chat only to fix a bug. Chats are kept 30 days.</source>
-            <translation>Ci consente di leggere una chat solo per correggere un bug. Le chat vengono conservate per 30 giorni.</translation>
+            <source>We may read a chat only to fix a bug, never to train AI. Chats are kept 30 days.</source>
+            <translation>Possiamo leggere una chat solo per correggere un bug, mai per addestrare l'IA. Le chat vengono conservate per 30 giorni.</translation>
         </message>
         <message>
             <source>The AI saves notes on its own</source>
@@ -7371,8 +7503,8 @@ Fai clic per aprirne la pagina.</translation>
         </message>
         <message>
             <location filename="src/ui/settings_dialog.py" />
-            <source>Help improve AI Agent</source>
-            <translation>Aiuta a migliorare AI Agent</translation>
+            <source>Allow chat review</source>
+            <translation>Consenti la revisione della chat</translation>
         </message>
         <message>
             <location filename="src/ui/settings_dialog.py" />
@@ -7937,8 +8069,8 @@ Fai clic per aprirne la pagina.</translation>
         </message>
         <message>
             <location filename="src/ui/settings_account.py" />
-            <source>Lets us read a chat only to fix a wrong answer or a bug.</source>
-            <translation>Ci permette di leggere una chat solo per correggere una risposta sbagliata o un bug.</translation>
+            <source>We may read a chat only to fix a wrong answer or a bug, never to train AI.</source>
+            <translation>Possiamo leggere una chat solo per correggere una risposta sbagliata o un bug, mai per addestrare l'IA.</translation>
         </message>
         <message>
             <location filename="src/ui/settings_account.py" />
@@ -8159,6 +8291,95 @@ Fai clic per aprirne la pagina.</translation>
         <message>
             <source>Send feedback</source>
             <translation>Invia feedback</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_dialog.py" />
+            <source>See usage</source>
+            <translation>Vedi l'utilizzo</translation>
+        </message>
+        <message>
+            <source>Always answer in French, never delete a layer without asking</source>
+            <translation>Rispondi sempre in francese, non eliminare mai un layer senza chiedere</translation>
+        </message>
+        <message>
+            <source>Choose folder...</source>
+            <translation>Scegli cartella...</translation>
+        </message>
+        <message>
+            <source>Clear project memory</source>
+            <translation>Cancella la memoria del progetto</translation>
+        </message>
+        <message>
+            <source>Connected accounts</source>
+            <translation>Account collegati</translation>
+        </message>
+        <message>
+            <source>Folder to watch</source>
+            <translation>Cartella da monitorare</translation>
+        </message>
+        <message>
+            <source>Instructions</source>
+            <translation>Istruzioni</translation>
+        </message>
+        <message>
+            <source>Job</source>
+            <translation>Compito</translation>
+        </message>
+        <message>
+            <source>Learn</source>
+            <translation>Impara</translation>
+        </message>
+        <message>
+            <source>Name</source>
+            <translation>Nome</translation>
+        </message>
+        <message>
+            <source>No folder chosen</source>
+            <translation>Nessuna cartella scelta</translation>
+        </message>
+        <message>
+            <source>Pro reads both before every run.</source>
+            <translation>Pro legge entrambe prima di ogni esecuzione.</translation>
+        </message>
+        <message>
+            <source>Proactive triggers</source>
+            <translation>Attivatori proattivi</translation>
+        </message>
+        <message>
+            <source>Project memory</source>
+            <translation>Memoria del progetto</translation>
+        </message>
+        <message>
+            <source>Read by the AI agent at the start of every conversation.</source>
+            <translation>Letto dall'AI Agent all'inizio di ogni conversazione.</translation>
+        </message>
+        <message>
+            <source>Saved notes · {n}</source>
+            <translation>Note salvate · {n}</translation>
+        </message>
+        <message>
+            <source>Show project memory</source>
+            <translation>Mostra la memoria del progetto</translation>
+        </message>
+        <message>
+            <source>The AI agent looks at new data files in this folder and at the schedules you ask for, only while QGIS is open. Nothing runs when QGIS is closed.</source>
+            <translation>L'AI Agent controlla i nuovi file di dati in questa cartella e le pianificazioni che chiedi, solo mentre QGIS è aperto. Non gira nulla quando QGIS è chiuso.</translation>
+        </message>
+        <message>
+            <source>Urban planner at the city of Lyon, cadastre and PLU layers in EPSG:2154</source>
+            <translation>Urbanista del comune di Lione, layer di catasto e PLU in EPSG:2154</translation>
+        </message>
+        <message>
+            <source>Watch a folder and run my schedules while QGIS is open</source>
+            <translation>Monitora una cartella ed esegui le mie pianificazioni mentre QGIS è aperto</translation>
+        </message>
+        <message>
+            <source>What Pro adds: {points}</source>
+            <translation>Cosa aggiunge Pro: {points}</translation>
+        </message>
+        <message>
+            <source>commercial use, more tasks, memory, your instructions and higher effort</source>
+            <translation>uso commerciale, più attività, memoria, le tue istruzioni e sforzo maggiore</translation>
         </message>
     </context>
     <context>
@@ -8602,6 +8823,22 @@ Fai clic per aprirne la pagina.</translation>
             <source>its changes to your project cannot be shown before it runs</source>
             <translation>le sue modifiche al progetto non possono essere mostrate prima dell'esecuzione</translation>
         </message>
+        <message>
+            <source>Access to {host}</source>
+            <translation>Accesso a {host}</translation>
+        </message>
+        <message>
+            <source>Allowed for this conversation</source>
+            <translation>Consentito per questa conversazione</translation>
+        </message>
+        <message>
+            <source>Allowed once</source>
+            <translation>Consentito una volta</translation>
+        </message>
+        <message>
+            <source>Signed in</source>
+            <translation>Accesso effettuato</translation>
+        </message>
     </context>
     <context>
         <name>ToolGroup</name>
@@ -8673,6 +8910,14 @@ Fai clic per aprirne la pagina.</translation>
         <message>
             <source>Updating…</source>
             <translation>Aggiorno...</translation>
+        </message>
+        <message>
+            <source>Download</source>
+            <translation>Scarica</translation>
+        </message>
+        <message>
+            <source>This QGIS has no plugin repository turned on. Download the ZIP, then use Install from ZIP in Plugins &gt; Manage and Install Plugins.</source>
+            <translation>Questo QGIS non ha alcun repository di plugin attivo. Scarica lo ZIP, poi usa Installa da ZIP in Plugin &gt; Gestisci e installa plugin.</translation>
         </message>
     </context>
     <context>
@@ -10051,6 +10296,1320 @@ Questo file non è più dove l'esecuzione lo ha scritto.</translation>
         <message>
             <source>Thanks for the feedback</source>
             <translation>Grazie per il feedback</translation>
+        </message>
+    </context>
+    <context>
+        <name>ToolDetails</name>
+        <message>
+            <source>Copied</source>
+            <translation>Copiato</translation>
+        </message>
+        <message>
+            <source>Copy as Python</source>
+            <translation>Copia come Python</translation>
+        </message>
+        <message>
+            <source>Open in Processing</source>
+            <translation>Apri in Processing</translation>
+        </message>
+        <message>
+            <source>Open this algorithm's dialog with the same settings, to check them or run it again. The output goes to a new temporary layer.</source>
+            <translation>Apre la finestra di questo algoritmo con le stesse impostazioni, per controllarle o eseguirlo di nuovo. Il risultato va in un nuovo layer temporaneo.</translation>
+        </message>
+        <message>
+            <source>Show less</source>
+            <translation>Mostra meno</translation>
+        </message>
+        <message>
+            <source>Show {n} more</source>
+            <translation>Mostra altri {n}</translation>
+        </message>
+        <message>
+            <source>The processing.run line, ready for the QGIS Python console</source>
+            <translation>La riga processing.run, pronta per la console Python di QGIS</translation>
+        </message>
+        <message>
+            <source>Fewer</source>
+            <translation>Meno</translation>
+        </message>
+        <message>
+            <source>{n} more</source>
+            <translation>altri {n}</translation>
+        </message>
+    </context>
+    <context>
+        <name>AccountCard</name>
+        <message>
+            <source>Add keys</source>
+            <translation>Aggiungi chiavi</translation>
+        </message>
+        <message>
+            <source>Add token</source>
+            <translation>Aggiungi token</translation>
+        </message>
+        <message>
+            <source>Allow</source>
+            <translation>Consenti</translation>
+        </message>
+        <message>
+            <source>Allow for this conversation</source>
+            <translation>Consenti per questa conversazione</translation>
+        </message>
+        <message>
+            <source>Allowed for this conversation</source>
+            <translation>Consentito per questa conversazione</translation>
+        </message>
+        <message>
+            <source>Allowed once</source>
+            <translation>Consentito una volta</translation>
+        </message>
+        <message>
+            <source>Connect your {label} account</source>
+            <translation>Collega il tuo account {label}</translation>
+        </message>
+        <message>
+            <source>Connected</source>
+            <translation>Collegato</translation>
+        </message>
+        <message>
+            <source>Continue with your {label} account</source>
+            <translation>Continua con il tuo account {label}</translation>
+        </message>
+        <message>
+            <source>Deny</source>
+            <translation>Nega</translation>
+        </message>
+        <message>
+            <source>Keys refused</source>
+            <translation>Chiavi rifiutate</translation>
+        </message>
+        <message>
+            <source>Needs your answer</source>
+            <translation>Serve la tua risposta</translation>
+        </message>
+        <message>
+            <source>Not allowed</source>
+            <translation>Non consentito</translation>
+        </message>
+        <message>
+            <source>Replace keys</source>
+            <translation>Sostituisci le chiavi</translation>
+        </message>
+        <message>
+            <source>Replace token</source>
+            <translation>Sostituisci il token</translation>
+        </message>
+        <message>
+            <source>Sent to {host} only.</source>
+            <translation>Inviato solo a {host}.</translation>
+        </message>
+        <message>
+            <source>Sign in</source>
+            <translation>Accedi</translation>
+        </message>
+        <message>
+            <source>Sign in again</source>
+            <translation>Accedi di nuovo</translation>
+        </message>
+        <message>
+            <source>Sign in to {host}</source>
+            <translation>Accedi a {host}</translation>
+        </message>
+        <message>
+            <source>Sign-in refused</source>
+            <translation>Accesso rifiutato</translation>
+        </message>
+        <message>
+            <source>Skip</source>
+            <translation>Salta</translation>
+        </message>
+        <message>
+            <source>Skipped</source>
+            <translation>Saltato</translation>
+        </message>
+        <message>
+            <source>Stored encrypted in QGIS on this computer. Never sent to TerraLab or the AI agent.</source>
+            <translation>Salvato cifrato in QGIS su questo computer. Mai inviato a TerraLab né all'AI Agent.</translation>
+        </message>
+        <message>
+            <source>TerraLab's shared access is used up. A free token keeps you going.</source>
+            <translation>L'accesso condiviso di TerraLab è esaurito. Con un token gratuito puoi continuare.</translation>
+        </message>
+        <message>
+            <source>TerraLab's shared access is used up. Free S3 keys keep you going.</source>
+            <translation>L'accesso condiviso di TerraLab è esaurito. Con chiavi S3 gratuite puoi continuare.</translation>
+        </message>
+        <message>
+            <source>This service answers only a signed-in user.</source>
+            <translation>Questo servizio risponde solo a chi ha effettuato l'accesso.</translation>
+        </message>
+        <message>
+            <source>Token refused</source>
+            <translation>Token rifiutato</translation>
+        </message>
+        <message>
+            <source>Use your {label} access?</source>
+            <translation>Usare il tuo accesso a {label}?</translation>
+        </message>
+        <message>
+            <source>{host} opens with a token or an API key from your account.</source>
+            <translation>{host} si apre con un token o una chiave API del tuo account.</translation>
+        </message>
+        <message>
+            <source>{host} refused your saved access ({user}).</source>
+            <translation>{host} ha rifiutato l'accesso salvato ({user}).</translation>
+        </message>
+        <message>
+            <source>{host} refused your saved access.</source>
+            <translation>{host} ha rifiutato l'accesso salvato.</translation>
+        </message>
+        <message>
+            <source>{label} answers only a signed-in user.</source>
+            <translation>{label} risponde solo a chi ha effettuato l'accesso.</translation>
+        </message>
+        <message>
+            <source>{label} refused your saved S3 keys.</source>
+            <translation>{label} ha rifiutato le chiavi S3 salvate.</translation>
+        </message>
+        <message>
+            <source>{label} refused your saved token.</source>
+            <translation>{label} ha rifiutato il token salvato.</translation>
+        </message>
+        <message>
+            <source>{service} needs a token</source>
+            <translation>{service} richiede un token</translation>
+        </message>
+        <message>
+            <source>Sign in with {name}</source>
+            <translation>Accedi con {name}</translation>
+        </message>
+        <message>
+            <source>TerraLab's shared access is used up. Your free account keeps you going.</source>
+            <translation>L'accesso condiviso di TerraLab è esaurito. Il tuo account gratuito ti permette di continuare.</translation>
+        </message>
+        <message>
+            <source>Try again</source>
+            <translation>Riprova</translation>
+        </message>
+        <message>
+            <source>Use S3 keys instead</source>
+            <translation>Usa invece le chiavi S3</translation>
+        </message>
+        <message>
+            <source>{name} no longer accepts your saved sign-in.</source>
+            <translation>{name} non accetta più l'accesso salvato.</translation>
+        </message>
+        <message>
+            <source>Keys expired</source>
+            <translation>Chiavi scadute</translation>
+        </message>
+        <message>
+            <source>Sign-in expired</source>
+            <translation>Accesso scaduto</translation>
+        </message>
+        <message>
+            <source>Token expired</source>
+            <translation>Token scaduto</translation>
+        </message>
+        <message>
+            <source>{host} no longer accepts your saved access.</source>
+            <translation>{host} non accetta più l'accesso che hai salvato.</translation>
+        </message>
+        <message>
+            <source>{label} no longer accepts your saved S3 keys.</source>
+            <translation>{label} non accetta più le chiavi S3 che hai salvato.</translation>
+        </message>
+        <message>
+            <source>{label} no longer accepts your saved token.</source>
+            <translation>{label} non accetta più il token che hai salvato.</translation>
+        </message>
+        <message>
+            <source>Your {name} sign-in expired.</source>
+            <translation>Il tuo accesso a {name} è scaduto.</translation>
+        </message>
+        <message>
+            <source>Details</source>
+            <translation>Dettagli</translation>
+        </message>
+        <message>
+            <source>File: {value}</source>
+            <translation>File: {value}</translation>
+        </message>
+        <message>
+            <source>Only this file is read with it; nothing is written.</source>
+            <translation>Con queste chiavi viene letto solo questo file; non viene scritto nulla.</translation>
+        </message>
+        <message>
+            <source>Saved access: {value}</source>
+            <translation>Accesso salvato: {value}</translation>
+        </message>
+        <message>
+            <source>Sent to: {value}</source>
+            <translation>Inviato a: {value}</translation>
+        </message>
+        <message>
+            <source>Choose in Google Drive</source>
+            <translation>Scegli in Google Drive</translation>
+        </message>
+    </context>
+    <context>
+        <name>ConnectedAccountsPage</name>
+        <message>
+            <source>API key</source>
+            <translation>Chiave API</translation>
+        </message>
+        <message>
+            <source>Connected accounts</source>
+            <translation>Account collegati</translation>
+        </message>
+        <message>
+            <source>Kept in QGIS's encrypted vault, on this computer. Neither TerraLab nor the AI agent sees them.</source>
+            <translation>Conservate nel vault cifrato di QGIS, su questo computer. Né TerraLab né l'AI Agent possono vederle.</translation>
+        </message>
+        <message>
+            <source>No account yet. When a source asks you to sign in, the AI agent shows a card, and the access you save appears here.</source>
+            <translation>Ancora nessun account. Quando una fonte chiede di accedere, l'AI Agent mostra una scheda e l'accesso che salvi compare qui.</translation>
+        </message>
+        <message>
+            <source>Remove</source>
+            <translation>Rimuovi</translation>
+        </message>
+        <message>
+            <source>Remove the access to {host}</source>
+            <translation>Rimuovi l'accesso a {host}</translation>
+        </message>
+        <message>
+            <source>S3 keys</source>
+            <translation>Chiavi S3</translation>
+        </message>
+        <message>
+            <source>The sign-ins the AI agent may use, each only after you allow it.</source>
+            <translation>Gli accessi che l'AI Agent può usare, ciascuno solo dopo il tuo consenso.</translation>
+        </message>
+        <message>
+            <source>Token</source>
+            <translation>Token</translation>
+        </message>
+        <message>
+            <source>Username and password</source>
+            <translation>Nome utente e password</translation>
+        </message>
+        <message>
+            <source>Google account</source>
+            <translation>Account Google</translation>
+        </message>
+        <message>
+            <source>No project picked</source>
+            <translation>Nessun progetto scelto</translation>
+        </message>
+        <message>
+            <source>Project {project}</source>
+            <translation>Progetto {project}</translation>
+        </message>
+        <message>
+            <source>Change project…</source>
+            <translation>Cambia progetto…</translation>
+        </message>
+        <message>
+            <source>Google sign-in</source>
+            <translation>Accesso Google</translation>
+        </message>
+        <message>
+            <source>Signed in with the browser</source>
+            <translation>Accesso effettuato tramite browser</translation>
+        </message>
+        <message>
+            <source>Add account</source>
+            <translation>Aggiungi account</translation>
+        </message>
+        <message>
+            <source>Expired</source>
+            <translation>Scaduto</translation>
+        </message>
+        <message>
+            <source>Expires on {day}</source>
+            <translation>Scade il {day}</translation>
+        </message>
+        <message>
+            <source>More actions for {label}</source>
+            <translation>Altre azioni per {label}</translation>
+        </message>
+        <message>
+            <source>QGIS deletes it from its vault. Layers loaded with it stop loading, and the AI agent asks you to sign in again the next time {host} needs it.</source>
+            <translation>QGIS lo elimina dal suo database di autenticazione. I layer caricati con esso smettono di caricarsi e l'agente AI ti chiede di accedere di nuovo la prossima volta che {host} ne ha bisogno.</translation>
+        </message>
+        <message>
+            <source>Refused at its last use</source>
+            <translation>Rifiutato all'ultimo utilizzo</translation>
+        </message>
+        <message>
+            <source>Remove your {label} access?</source>
+            <translation>Rimuovere il tuo accesso a {label}?</translation>
+        </message>
+        <message>
+            <source>Remove…</source>
+            <translation>Rimuovi…</translation>
+        </message>
+        <message>
+            <source>Replace…</source>
+            <translation>Sostituisci…</translation>
+        </message>
+        <message>
+            <source>Storage keys</source>
+            <translation>Chiavi di archiviazione</translation>
+        </message>
+        <message>
+            <source>Choose files…</source>
+            <translation>Scegli i file…</translation>
+        </message>
+        <message>
+            <source>{name} sign-in</source>
+            <translation>Accesso a {name}</translation>
+        </message>
+    </context>
+    <context>
+        <name>KeysDialog</name>
+        <message>
+            <source>Access key</source>
+            <translation>Chiave di accesso</translation>
+        </message>
+        <message>
+            <source>Cancel</source>
+            <translation>Annulla</translation>
+        </message>
+        <message>
+            <source>Connect</source>
+            <translation>Collega</translation>
+        </message>
+        <message>
+            <source>Connect {label}</source>
+            <translation>Collega {label}</translation>
+        </message>
+        <message>
+            <source>Connected</source>
+            <translation>Collegato</translation>
+        </message>
+        <message>
+            <source>Header name</source>
+            <translation>Nome dell'header</translation>
+        </message>
+        <message>
+            <source>Hide</source>
+            <translation>Nascondi</translation>
+        </message>
+        <message>
+            <source>Key</source>
+            <translation>Chiave</translation>
+        </message>
+        <message>
+            <source>Not saved. Fill in the fields, and unlock QGIS's vault with its master password when QGIS asks.</source>
+            <translation>Non salvato. Compila i campi e sblocca il vault di QGIS con la sua password principale quando QGIS la chiede.</translation>
+        </message>
+        <message>
+            <source>Not saved. Paste both keys, and unlock QGIS's vault with its master password when QGIS asks.</source>
+            <translation>Non salvato. Incolla entrambe le chiavi e sblocca il vault di QGIS con la sua password principale quando QGIS la chiede.</translation>
+        </message>
+        <message>
+            <source>Open {host}</source>
+            <translation>Apri {host}</translation>
+        </message>
+        <message>
+            <source>Password</source>
+            <translation>Password</translation>
+        </message>
+        <message>
+            <source>Secret key</source>
+            <translation>Chiave segreta</translation>
+        </message>
+        <message>
+            <source>Show</source>
+            <translation>Mostra</translation>
+        </message>
+        <message>
+            <source>Sign in</source>
+            <translation>Accedi</translation>
+        </message>
+        <message>
+            <source>Sign in to {host}</source>
+            <translation>Accedi a {host}</translation>
+        </message>
+        <message>
+            <source>Sign in with a free account, add a credential and paste both keys here.</source>
+            <translation>Accedi con un account gratuito, aggiungi una credenziale e incolla qui entrambe le chiavi.</translation>
+        </message>
+        <message>
+            <source>Stored encrypted in QGIS on this computer, behind your QGIS master password. Never sent to TerraLab or the AI agent.</source>
+            <translation>Salvato cifrato in QGIS su questo computer, protetto dalla password principale di QGIS. Mai inviato a TerraLab né all'AI Agent.</translation>
+        </message>
+        <message>
+            <source>Use a username and password instead</source>
+            <translation>Usa invece nome utente e password</translation>
+        </message>
+        <message>
+            <source>Use an API key instead</source>
+            <translation>Usa invece una chiave API</translation>
+        </message>
+        <message>
+            <source>Username</source>
+            <translation>Nome utente</translation>
+        </message>
+        <message>
+            <source>the S3 keys manager</source>
+            <translation>il gestore delle chiavi S3</translation>
+        </message>
+        <message>
+            <source>Checking…</source>
+            <translation>Verifica in corso…</translation>
+        </message>
+        <message>
+            <source>QGIS will ask you to choose a master password. It locks every sign-in saved in QGIS and cannot be recovered, so keep it somewhere safe.</source>
+            <translation>QGIS ti chiederà di scegliere una master password. Protegge tutti gli accessi salvati in QGIS e non può essere recuperata, quindi conservala in un posto sicuro.</translation>
+        </message>
+        <message>
+            <source>{host} refused these details. Check them and try again.</source>
+            <translation>{host} ha rifiutato questi dati. Controllali e riprova.</translation>
+        </message>
+    </context>
+    <context>
+        <name>ProLock</name>
+        <message>
+            <source>Pro</source>
+            <translation>Pro</translation>
+        </message>
+    </context>
+    <context>
+        <name>ProNote</name>
+        <message>
+            <source>Get Pro</source>
+            <translation>Passa a Pro</translation>
+        </message>
+    </context>
+    <context>
+        <name>SectionHead</name>
+        <message>
+            <source>See all</source>
+            <translation>Mostra tutto</translation>
+        </message>
+    </context>
+    <context>
+        <name>SiblingRow</name>
+        <message>
+            <source>Install</source>
+            <translation>Installa</translation>
+        </message>
+        <message>
+            <source>Installed</source>
+            <translation>Installato</translation>
+        </message>
+        <message>
+            <source>Open</source>
+            <translation>Apri</translation>
+        </message>
+        <message>
+            <source>Opens the QGIS plugin manager on this plugin.</source>
+            <translation>Apre la gestione plugin di QGIS su questo plugin.</translation>
+        </message>
+        <message>
+            <source>Show the plugin's panel.</source>
+            <translation>Mostra il pannello del plugin.</translation>
+        </message>
+    </context>
+    <context>
+        <name>SiblingsSection</name>
+        <message>
+            <source>Edit your imagery with a single sentence.</source>
+            <translation>Modifica le tue immagini con una sola frase.</translation>
+        </message>
+        <message>
+            <source>Other TerraLab plugins</source>
+            <translation>Altri plugin di TerraLab</translation>
+        </message>
+        <message>
+            <source>Turn buildings, trees or water into polygons.</source>
+            <translation>Trasforma edifici, alberi o acqua in poligoni.</translation>
+        </message>
+    </context>
+    <context>
+        <name>SignInDialog</name>
+        <message>
+            <source>Cancel</source>
+            <translation>Annulla</translation>
+        </message>
+        <message>
+            <source>Connect</source>
+            <translation>Collega</translation>
+        </message>
+        <message>
+            <source>Connected</source>
+            <translation>Collegato</translation>
+        </message>
+        <message>
+            <source>Header name</source>
+            <translation>Nome dell'header</translation>
+        </message>
+        <message>
+            <source>Hide</source>
+            <translation>Nascondi</translation>
+        </message>
+        <message>
+            <source>Key</source>
+            <translation>Chiave</translation>
+        </message>
+        <message>
+            <source>Not saved. Fill in the fields, and unlock QGIS's vault with its master password when QGIS asks.</source>
+            <translation>Non salvato. Compila i campi e sblocca il vault di QGIS con la sua password principale quando QGIS la chiede.</translation>
+        </message>
+        <message>
+            <source>Open {host}</source>
+            <translation>Apri {host}</translation>
+        </message>
+        <message>
+            <source>Password</source>
+            <translation>Password</translation>
+        </message>
+        <message>
+            <source>Show</source>
+            <translation>Mostra</translation>
+        </message>
+        <message>
+            <source>Sign in</source>
+            <translation>Accedi</translation>
+        </message>
+        <message>
+            <source>Sign in to {host}</source>
+            <translation>Accedi a {host}</translation>
+        </message>
+        <message>
+            <source>Stored encrypted in QGIS on this computer, behind your QGIS master password. Never sent to TerraLab or the AI agent.</source>
+            <translation>Salvato cifrato in QGIS su questo computer, protetto dalla password principale di QGIS. Mai inviato a TerraLab né all'AI Agent.</translation>
+        </message>
+        <message>
+            <source>Use a username and password instead</source>
+            <translation>Usa invece nome utente e password</translation>
+        </message>
+        <message>
+            <source>Use an API key instead</source>
+            <translation>Usa invece una chiave API</translation>
+        </message>
+        <message>
+            <source>Username</source>
+            <translation>Nome utente</translation>
+        </message>
+        <message>
+            <source>Checking…</source>
+            <translation>Verifica in corso…</translation>
+        </message>
+        <message>
+            <source>QGIS will ask you to choose a master password. It locks every sign-in saved in QGIS and cannot be recovered, so keep it somewhere safe.</source>
+            <translation>QGIS ti chiederà di scegliere una master password. Protegge tutti gli accessi salvati in QGIS e non può essere recuperata, quindi conservala in un posto sicuro.</translation>
+        </message>
+        <message>
+            <source>{host} refused these details. Check them and try again.</source>
+            <translation>{host} ha rifiutato questi dati. Controllali e riprova.</translation>
+        </message>
+    </context>
+    <context>
+        <name>TasksPanel</name>
+        <message>
+            <source>Done</source>
+            <translation>Fatto</translation>
+        </message>
+        <message>
+            <source>Failed</source>
+            <translation>Non riuscito</translation>
+        </message>
+        <message>
+            <source>Paused</source>
+            <translation>In pausa</translation>
+        </message>
+        <message>
+            <source>Queued</source>
+            <translation>In coda</translation>
+        </message>
+        <message>
+            <source>Stopped</source>
+            <translation>Fermato</translation>
+        </message>
+        <message>
+            <source>Stopping...</source>
+            <translation>Arresto in corso...</translation>
+        </message>
+        <message>
+            <source>Tasks</source>
+            <translation>Attività</translation>
+        </message>
+        <message>
+            <source>Working</source>
+            <translation>In corso</translation>
+        </message>
+    </context>
+    <context>
+        <name>TokenDialog</name>
+        <message>
+            <source>A token or an API key from your {service} account. Sent to {host} only.</source>
+            <translation>Un token o una chiave API del tuo account {service}. Inviato solo a {host}.</translation>
+        </message>
+        <message>
+            <source>Cancel</source>
+            <translation>Annulla</translation>
+        </message>
+        <message>
+            <source>Connect</source>
+            <translation>Collega</translation>
+        </message>
+        <message>
+            <source>Connect {label}</source>
+            <translation>Collega {label}</translation>
+        </message>
+        <message>
+            <source>Connect {service}</source>
+            <translation>Collega {service}</translation>
+        </message>
+        <message>
+            <source>Connected</source>
+            <translation>Collegato</translation>
+        </message>
+        <message>
+            <source>Header name</source>
+            <translation>Nome dell'header</translation>
+        </message>
+        <message>
+            <source>Hide</source>
+            <translation>Nascondi</translation>
+        </message>
+        <message>
+            <source>Key</source>
+            <translation>Chiave</translation>
+        </message>
+        <message>
+            <source>Not saved. Fill in the fields, and unlock QGIS's vault with its master password when QGIS asks.</source>
+            <translation>Non salvato. Compila i campi e sblocca il vault di QGIS con la sua password principale quando QGIS la chiede.</translation>
+        </message>
+        <message>
+            <source>Not saved. Paste the token, and unlock QGIS's vault with its master password when QGIS asks.</source>
+            <translation>Non salvato. Incolla il token e sblocca il vault di QGIS con la sua password principale quando QGIS la chiede.</translation>
+        </message>
+        <message>
+            <source>Open {host}</source>
+            <translation>Apri {host}</translation>
+        </message>
+        <message>
+            <source>Password</source>
+            <translation>Password</translation>
+        </message>
+        <message>
+            <source>Paste your token</source>
+            <translation>Incolla il tuo token</translation>
+        </message>
+        <message>
+            <source>Show</source>
+            <translation>Mostra</translation>
+        </message>
+        <message>
+            <source>Sign in</source>
+            <translation>Accedi</translation>
+        </message>
+        <message>
+            <source>Sign in to {host}</source>
+            <translation>Accedi a {host}</translation>
+        </message>
+        <message>
+            <source>Sign in with a free account, choose Generate Token, copy it and paste it here.</source>
+            <translation>Accedi con un account gratuito, scegli Generate Token, copialo e incollalo qui.</translation>
+        </message>
+        <message>
+            <source>Stored encrypted in QGIS on this computer, behind your QGIS master password. Never sent to TerraLab or the AI agent.</source>
+            <translation>Salvato cifrato in QGIS su questo computer, protetto dalla password principale di QGIS. Mai inviato a TerraLab né all'AI Agent.</translation>
+        </message>
+        <message>
+            <source>Token</source>
+            <translation>Token</translation>
+        </message>
+        <message>
+            <source>Token for {host}</source>
+            <translation>Token per {host}</translation>
+        </message>
+        <message>
+            <source>Use a username and password instead</source>
+            <translation>Usa invece nome utente e password</translation>
+        </message>
+        <message>
+            <source>Use an API key instead</source>
+            <translation>Usa invece una chiave API</translation>
+        </message>
+        <message>
+            <source>Username</source>
+            <translation>Nome utente</translation>
+        </message>
+        <message>
+            <source>Checking…</source>
+            <translation>Verifica in corso…</translation>
+        </message>
+        <message>
+            <source>QGIS will ask you to choose a master password. It locks every sign-in saved in QGIS and cannot be recovered, so keep it somewhere safe.</source>
+            <translation>QGIS ti chiederà di scegliere una master password. Protegge tutti gli accessi salvati in QGIS e non può essere recuperata, quindi conservala in un posto sicuro.</translation>
+        </message>
+        <message>
+            <source>{host} refused these details. Check them and try again.</source>
+            <translation>{host} ha rifiutato questi dati. Controllali e riprova.</translation>
+        </message>
+    </context>
+    <context>
+        <name>_TaskRow</name>
+        <message>
+            <source>Stop</source>
+            <translation>Ferma</translation>
+        </message>
+    </context>
+    <context>
+        <name>EarthEngineConnect</name>
+        <message>
+            <source>A non-commercial Earth Engine project is not for commercial work.</source>
+            <translation>Un progetto Earth Engine non commerciale non è adatto al lavoro commerciale.</translation>
+        </message>
+        <message>
+            <source>Cancel</source>
+            <translation>Annulla</translation>
+        </message>
+        <message>
+            <source>Change project</source>
+            <translation>Cambia progetto</translation>
+        </message>
+        <message>
+            <source>Choose project</source>
+            <translation>Scegli il progetto</translation>
+        </message>
+        <message>
+            <source>Choose your Earth Engine project</source>
+            <translation>Scegli il tuo progetto Earth Engine</translation>
+        </message>
+        <message>
+            <source>Connect</source>
+            <translation>Connetti</translation>
+        </message>
+        <message>
+            <source>Connect Earth Engine</source>
+            <translation>Connetti Earth Engine</translation>
+        </message>
+        <message>
+            <source>Connected</source>
+            <translation>Connesso</translation>
+        </message>
+        <message>
+            <source>Earth Engine needs Google's earthengine-api package. It installs into QGIS in about a minute, then you sign in with Google.</source>
+            <translation>Earth Engine richiede il pacchetto earthengine-api di Google. Si installa in QGIS in circa un minuto, poi accedi con Google.</translation>
+        </message>
+        <message>
+            <source>Earth Engine refused your project {project}.</source>
+            <translation>Earth Engine ha rifiutato il tuo progetto {project}.</translation>
+        </message>
+        <message>
+            <source>Earth Engine runs on one of your Google Cloud projects.</source>
+            <translation>Earth Engine funziona su uno dei tuoi progetti Google Cloud.</translation>
+        </message>
+        <message>
+            <source>Finish signing in to Google in your browser.</source>
+            <translation>Completa l'accesso a Google nel browser.</translation>
+        </message>
+        <message>
+            <source>Google refused the sign-in ({error}).</source>
+            <translation>Google ha rifiutato l'accesso ({error}).</translation>
+        </message>
+        <message>
+            <source>Google refused your saved sign-in.</source>
+            <translation>Google ha rifiutato l'accesso salvato.</translation>
+        </message>
+        <message>
+            <source>Install</source>
+            <translation>Installa</translation>
+        </message>
+        <message>
+            <source>Installing earthengine-api...</source>
+            <translation>Installazione di earthengine-api...</translation>
+        </message>
+        <message>
+            <source>No Earth Engine project on this account yet. Registering one is free for noncommercial use.</source>
+            <translation>Nessun progetto Earth Engine su questo account per ora. La registrazione è gratuita per uso non commerciale.</translation>
+        </message>
+        <message>
+            <source>Not saved: QGIS's vault stayed locked. Connect again and set the master password when QGIS asks.</source>
+            <translation>Non salvato: l'archivio delle credenziali di QGIS è rimasto bloccato. Connettiti di nuovo e imposta la password principale quando QGIS lo chiede.</translation>
+        </message>
+        <message>
+            <source>Open the sign-in page again</source>
+            <translation>Riapri la pagina di accesso</translation>
+        </message>
+        <message>
+            <source>Pick the Cloud project Earth Engine runs on.</source>
+            <translation>Scegli il progetto Cloud su cui funziona Earth Engine.</translation>
+        </message>
+        <message>
+            <source>Project refused</source>
+            <translation>Progetto rifiutato</translation>
+        </message>
+        <message>
+            <source>Reading your Cloud projects...</source>
+            <translation>Lettura dei tuoi progetti Cloud...</translation>
+        </message>
+        <message>
+            <source>Refresh</source>
+            <translation>Aggiorna</translation>
+        </message>
+        <message>
+            <source>Register a project</source>
+            <translation>Registra un progetto</translation>
+        </message>
+        <message>
+            <source>Sign in again</source>
+            <translation>Accedi di nuovo</translation>
+        </message>
+        <message>
+            <source>Sign in with Google</source>
+            <translation>Accedi con Google</translation>
+        </message>
+        <message>
+            <source>Sign in with Google and pick your own Cloud project.</source>
+            <translation>Accedi con Google e scegli il tuo progetto Cloud.</translation>
+        </message>
+        <message>
+            <source>Sign-in didn't finish ({error}).</source>
+            <translation>Accesso non completato ({error}).</translation>
+        </message>
+        <message>
+            <source>Sign-in didn't finish within 5 minutes.</source>
+            <translation>Accesso non completato entro 5 minuti.</translation>
+        </message>
+        <message>
+            <source>Sign-in didn't finish. You can close this window and return to QGIS.</source>
+            <translation>Accesso non completato. Puoi chiudere questa finestra e tornare a QGIS.</translation>
+        </message>
+        <message>
+            <source>Sign-in expired</source>
+            <translation>Accesso scaduto</translation>
+        </message>
+        <message>
+            <source>The Earth Engine API is off in your project {project}.</source>
+            <translation>L'API Earth Engine è disattivata nel tuo progetto {project}.</translation>
+        </message>
+        <message>
+            <source>Try again</source>
+            <translation>Riprova</translation>
+        </message>
+        <message>
+            <source>Turn on the Earth Engine API</source>
+            <translation>Attiva l'API Earth Engine</translation>
+        </message>
+        <message>
+            <source>Use this project</source>
+            <translation>Usa questo progetto</translation>
+        </message>
+        <message>
+            <source>You're signed in. You can close this window and return to QGIS.</source>
+            <translation>Hai effettuato l'accesso. Puoi chiudere questa finestra e tornare a QGIS.</translation>
+        </message>
+        <message>
+            <source>Your Cloud projects could not be read ({error}).</source>
+            <translation>Impossibile leggere i tuoi progetti Cloud ({error}).</translation>
+        </message>
+        <message>
+            <source>Your Earth Engine sign-in expired.</source>
+            <translation>L'accesso a Earth Engine è scaduto.</translation>
+        </message>
+        <message>
+            <source>Your Google sign-in stays in QGIS's encrypted vault on this computer. Never sent to TerraLab or the AI agent.</source>
+            <translation>L'accesso a Google resta nell'archivio delle credenziali cifrato di QGIS su questo computer. Non viene mai inviato a TerraLab né all'AI agent.</translation>
+        </message>
+        <message>
+            <source>Your browser opens Google's sign-in. Earth Engine then runs on your own Google Cloud project, under that project's terms.</source>
+            <translation>Il browser apre l'accesso di Google. Earth Engine funziona poi sul tuo progetto Google Cloud, secondo i termini di quel progetto.</translation>
+        </message>
+        <message>
+            <source>Your project {project} is not registered for Earth Engine.</source>
+            <translation>Il tuo progetto {project} non è registrato per Earth Engine.</translation>
+        </message>
+        <message>
+            <source>earthengine-api did not install: {error}</source>
+            <translation>Installazione di earthengine-api non riuscita: {error}</translation>
+        </message>
+        <message>
+            <source>{count} other projects do not have Earth Engine.</source>
+            <translation>{count} altri progetti non hanno Earth Engine.</translation>
+        </message>
+        <message>
+            <source>QGIS will ask you to choose a master password. It locks every sign-in saved in QGIS and cannot be recovered, so keep it somewhere safe.</source>
+            <translation>QGIS ti chiederà di scegliere una password principale. Blocca tutti gli accessi salvati in QGIS e non può essere recuperata, quindi conservala in un luogo sicuro.</translation>
+        </message>
+    </context>
+    <context>
+        <name>BrowserWait</name>
+        <message>
+            <source>Cancel</source>
+            <translation>Annulla</translation>
+        </message>
+        <message>
+            <source>Check that the page shows the code {code}, then sign in.</source>
+            <translation>Controlla che la pagina mostri il codice {code}, poi accedi.</translation>
+        </message>
+        <message>
+            <source>Connecting…</source>
+            <translation>Connessione in corso…</translation>
+        </message>
+        <message>
+            <source>Finish signing in to {name} in your browser.</source>
+            <translation>Completa l'accesso a {name} nel browser.</translation>
+        </message>
+        <message>
+            <source>Not saved. Unlock QGIS's vault with its master password when QGIS asks.</source>
+            <translation>Non salvato. Sblocca il database di autenticazione di QGIS con la password principale quando QGIS la chiede.</translation>
+        </message>
+        <message>
+            <source>Open the page again</source>
+            <translation>Riapri la pagina</translation>
+        </message>
+        <message>
+            <source>Opening your browser…</source>
+            <translation>Apertura del browser in corso…</translation>
+        </message>
+        <message>
+            <source>Sign-in didn't finish.</source>
+            <translation>Accesso non completato.</translation>
+        </message>
+        <message>
+            <source>The sign-in was declined in the browser.</source>
+            <translation>L'accesso è stato rifiutato nel browser.</translation>
+        </message>
+        <message>
+            <source>{label} did not answer. Check your connection.</source>
+            <translation>{label} non ha risposto. Controlla la connessione.</translation>
+        </message>
+        <message>
+            <source>{label} did not create the S3 keys.</source>
+            <translation>{label} non ha creato le chiavi S3.</translation>
+        </message>
+        <message>
+            <source>{label} refused the sign-in.</source>
+            <translation>{label} ha rifiutato l'accesso.</translation>
+        </message>
+        <message>
+            <source>Send this approval link to your IT admin: {link}</source>
+            <translation>Invia questo link di approvazione al tuo amministratore IT: {link}</translation>
+        </message>
+        <message>
+            <source>Your organization lets only an admin approve TerraLab AI Agent for {label}.</source>
+            <translation>La tua organizzazione consente solo a un amministratore di approvare TerraLab AI Agent per {label}.</translation>
+        </message>
+    </context>
+    <context>
+        <name>CloudKeysDialog</name>
+        <message>
+            <source>Access key ID</source>
+            <translation>ID chiave di accesso</translation>
+        </message>
+        <message>
+            <source>Account key</source>
+            <translation>Chiave dell'account</translation>
+        </message>
+        <message>
+            <source>Cancel</source>
+            <translation>Annulla</translation>
+        </message>
+        <message>
+            <source>Checking…</source>
+            <translation>Verifica in corso…</translation>
+        </message>
+        <message>
+            <source>Connect</source>
+            <translation>Connetti</translation>
+        </message>
+        <message>
+            <source>Connect {label}</source>
+            <translation>Connetti {label}</translation>
+        </message>
+        <message>
+            <source>Connect {store}</source>
+            <translation>Connetti {store}</translation>
+        </message>
+        <message>
+            <source>Connected</source>
+            <translation>Connesso</translation>
+        </message>
+        <message>
+            <source>Endpoint, empty for Amazon S3</source>
+            <translation>Endpoint, vuoto per Amazon S3</translation>
+        </message>
+        <message>
+            <source>For {address}. A read-only key is enough: the AI agent only reads from it.</source>
+            <translation>Per {address}. Basta una chiave di sola lettura: l'AI agent si limita a leggere.</translation>
+        </message>
+        <message>
+            <source>HMAC access key</source>
+            <translation>Chiave di accesso HMAC</translation>
+        </message>
+        <message>
+            <source>HMAC secret</source>
+            <translation>Segreto HMAC</translation>
+        </message>
+        <message>
+            <source>Header name</source>
+            <translation>Nome dell'intestazione</translation>
+        </message>
+        <message>
+            <source>Hide</source>
+            <translation>Nascondi</translation>
+        </message>
+        <message>
+            <source>JSON key (*.json)</source>
+            <translation>Chiave JSON (*.json)</translation>
+        </message>
+        <message>
+            <source>Key</source>
+            <translation>Chiave</translation>
+        </message>
+        <message>
+            <source>Keys expired</source>
+            <translation>Chiavi scadute</translation>
+        </message>
+        <message>
+            <source>Keys refused</source>
+            <translation>Chiavi rifiutate</translation>
+        </message>
+        <message>
+            <source>Not saved. Fill in the fields, and unlock QGIS's vault with its master password when QGIS asks.</source>
+            <translation>Non salvato. Compila i campi e, quando QGIS lo chiede, sblocca il suo archivio delle credenziali con la password principale.</translation>
+        </message>
+        <message>
+            <source>Open {host}</source>
+            <translation>Apri {host}</translation>
+        </message>
+        <message>
+            <source>Password</source>
+            <translation>Password</translation>
+        </message>
+        <message>
+            <source>QGIS will ask you to choose a master password. It locks every sign-in saved in QGIS and cannot be recovered, so keep it somewhere safe.</source>
+            <translation>QGIS ti chiederà di scegliere una password principale. Protegge tutti gli accessi salvati in QGIS e non può essere recuperata, quindi conservala in un posto sicuro.</translation>
+        </message>
+        <message>
+            <source>Region (optional)</source>
+            <translation>Regione (facoltativa)</translation>
+        </message>
+        <message>
+            <source>SAS token</source>
+            <translation>Token SAS</translation>
+        </message>
+        <message>
+            <source>Secret access key</source>
+            <translation>Chiave di accesso segreta</translation>
+        </message>
+        <message>
+            <source>Service account key (JSON file)</source>
+            <translation>Chiave dell'account di servizio (file JSON)</translation>
+        </message>
+        <message>
+            <source>Show</source>
+            <translation>Mostra</translation>
+        </message>
+        <message>
+            <source>Sign in</source>
+            <translation>Accedi</translation>
+        </message>
+        <message>
+            <source>Sign in to {host}</source>
+            <translation>Accedi a {host}</translation>
+        </message>
+        <message>
+            <source>Storage account name</source>
+            <translation>Nome dell'account di archiviazione</translation>
+        </message>
+        <message>
+            <source>Stored encrypted in QGIS on this computer, behind your QGIS master password. Never sent to TerraLab or the AI agent.</source>
+            <translation>Salvata cifrata in QGIS su questo computer, protetta dalla tua password principale di QGIS. Non viene mai inviata a TerraLab né all'AI agent.</translation>
+        </message>
+        <message>
+            <source>The keys could not be checked: {error}</source>
+            <translation>Non è stato possibile verificare le chiavi: {error}</translation>
+        </message>
+        <message>
+            <source>This bucket opens only with a service account key.</source>
+            <translation>Questo bucket si apre solo con una chiave dell'account di servizio.</translation>
+        </message>
+        <message>
+            <source>This bucket opens only with your access keys.</source>
+            <translation>Questo bucket si apre solo con le tue chiavi di accesso.</translation>
+        </message>
+        <message>
+            <source>This container opens only with your account key or a SAS token.</source>
+            <translation>Questo container si apre solo con la chiave dell'account o con un token SAS.</translation>
+        </message>
+        <message>
+            <source>This file is not a service account key. In the Google Cloud console, open the service account, then Keys, Add key, JSON.</source>
+            <translation>Questo file non è una chiave dell'account di servizio. Nella console Google Cloud apri l'account di servizio, poi Chiavi, Aggiungi chiave, JSON.</translation>
+        </message>
+        <message>
+            <source>Use a SAS token instead</source>
+            <translation>Usa invece un token SAS</translation>
+        </message>
+        <message>
+            <source>Use a service account key instead</source>
+            <translation>Usa invece una chiave dell'account di servizio</translation>
+        </message>
+        <message>
+            <source>Use a username and password instead</source>
+            <translation>Usa invece nome utente e password</translation>
+        </message>
+        <message>
+            <source>Use an API key instead</source>
+            <translation>Usa invece una chiave API</translation>
+        </message>
+        <message>
+            <source>Use an HMAC key instead</source>
+            <translation>Usa invece una chiave HMAC</translation>
+        </message>
+        <message>
+            <source>Use the account key instead</source>
+            <translation>Usa invece la chiave dell'account</translation>
+        </message>
+        <message>
+            <source>Username</source>
+            <translation>Nome utente</translation>
+        </message>
+        <message>
+            <source>{host} refused these details. Check them and try again.</source>
+            <translation>{host} ha rifiutato questi dati. Controllali e riprova.</translation>
+        </message>
+        <message>
+            <source>{store} no longer accepts your saved keys.</source>
+            <translation>{store} non accetta più le chiavi salvate.</translation>
+        </message>
+        <message>
+            <source>{store} refused your saved keys.</source>
+            <translation>{store} ha rifiutato le chiavi salvate.</translation>
+        </message>
+        <message>
+            <source>{where} refused these keys.</source>
+            <translation>{where} ha rifiutato queste chiavi.</translation>
+        </message>
+    </context>
+    <context>
+        <name>AccountDrive</name>
+        <message>
+            <source>Allow SharePoint sites</source>
+            <translation>Consenti i siti SharePoint</translation>
+        </message>
+        <message>
+            <source>Cancel</source>
+            <translation>Annulla</translation>
+        </message>
+        <message>
+            <source>Choose this file in Google Drive</source>
+            <translation>Scegli questo file in Google Drive</translation>
+        </message>
+        <message>
+            <source>Connect Google Drive</source>
+            <translation>Collega Google Drive</translation>
+        </message>
+        <message>
+            <source>Connect OneDrive and SharePoint</source>
+            <translation>Collega OneDrive e SharePoint</translation>
+        </message>
+        <message>
+            <source>Connect SharePoint</source>
+            <translation>Collega SharePoint</translation>
+        </message>
+        <message>
+            <source>Read with your account, only for this request.</source>
+            <translation>Lettura con il tuo account, solo per questa richiesta.</translation>
+        </message>
+        <message>
+            <source>Read-only: the AI agent can open your files, never change or delete them.</source>
+            <translation>Sola lettura: l'agente AI può aprire i tuoi file, ma non li modifica né li elimina mai.</translation>
+        </message>
+        <message>
+            <source>Reading SharePoint sites needs one more permission. Your organization's admin may have to approve it.</source>
+            <translation>Per leggere i siti SharePoint serve un altro permesso. L'amministratore della tua organizzazione potrebbe doverlo approvare.</translation>
+        </message>
+        <message>
+            <source>Sign in again</source>
+            <translation>Accedi di nuovo</translation>
+        </message>
+        <message>
+            <source>Sign in with {name}</source>
+            <translation>Accedi con {name}</translation>
+        </message>
+        <message>
+            <source>The AI agent sees only the files you pick. Pick this one to let it open it.</source>
+            <translation>L'agente AI vede solo i file che scegli. Scegli questo per permettergli di aprirlo.</translation>
+        </message>
+        <message>
+            <source>Try again</source>
+            <translation>Riprova</translation>
+        </message>
+        <message>
+            <source>Use your {label} access?</source>
+            <translation>Usare il tuo accesso a {label}?</translation>
+        </message>
+        <message>
+            <source>You pick the files the AI agent may open. It sees nothing else in your Drive.</source>
+            <translation>Sei tu a scegliere i file che l'agente AI può aprire. Non vede nient'altro nel tuo Drive.</translation>
+        </message>
+        <message>
+            <source>Your sign-in stays in QGIS's encrypted vault on this computer. Never sent to TerraLab or the AI agent.</source>
+            <translation>Il tuo accesso resta nel vault crittografato di QGIS su questo computer. Non viene mai inviato a TerraLab né all'agente AI.</translation>
+        </message>
+        <message>
+            <source>{name} no longer accepts your saved sign-in.</source>
+            <translation>{name} non accetta più l'accesso che hai salvato.</translation>
+        </message>
+    </context>
+    <context>
+        <name>RatingCard</name>
+        <message>
+            <source>Add details (optional)</source>
+            <translation>Aggiungi dettagli (facoltativo)</translation>
+        </message>
+        <message>
+            <source>Close</source>
+            <translation>Chiudi</translation>
+        </message>
+        <message>
+            <source>Could not send. Try again.</source>
+            <translation>Invio non riuscito. Riprova.</translation>
+        </message>
+        <message>
+            <source>Not what I asked</source>
+            <translation>Non è ciò che avevo chiesto</translation>
+        </message>
+        <message>
+            <source>Send</source>
+            <translation>Invia</translation>
+        </message>
+        <message>
+            <source>Tell us more (optional)</source>
+            <translation>Dicci di più (facoltativo)</translation>
+        </message>
+        <message>
+            <source>Thanks for the feedback</source>
+            <translation>Grazie per il feedback</translation>
+        </message>
+        <message>
+            <source>Too slow</source>
+            <translation>Troppo lento</translation>
+        </message>
+        <message>
+            <source>What went wrong?</source>
+            <translation>Cosa è andato storto?</translation>
+        </message>
+        <message>
+            <source>What worked well?</source>
+            <translation>Cosa ha funzionato bene?</translation>
+        </message>
+        <message>
+            <source>Wrong result</source>
+            <translation>Risultato sbagliato</translation>
+        </message>
+        <message>
+            <source>Your words are sent with this chat and recent logs.</source>
+            <translation>Le tue parole vengono inviate con questa chat e con i log recenti.</translation>
         </message>
     </context>
 </TS>

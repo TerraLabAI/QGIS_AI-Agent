@@ -50,7 +50,7 @@ _QSS = scale_qss_font_px(
     f"QWidget#updateGateBadge {{ background: {ACCENT_TINT}; border: 1px solid {ACCENT_BORDER_SOFT};"
     f" border-radius: 11px; }}"
     f"QLabel#updateGateBadgeText {{ font-size: {FONT_HINT}px; font-weight: 600; color: {ACCENT};"
-    " background: transparent; border: none; letter-spacing: 0.4px; }"
+    " background: transparent; border: none; }"
     f"QLabel#updateGateTitle {{ font-size: 16px; font-weight: 600; color: {INK};"
     " background: transparent; border: none; }"
     f"QLabel#updateGateBody {{ font-size: {FONT_BODY}px; color: {INK_2};"

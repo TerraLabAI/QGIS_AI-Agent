@@ -22,7 +22,6 @@ from __future__ import annotations
 
 _DEFAULTS = {
     "pro": True,
-    "step_cap": 0,
     "memory": True,
 
 
@@ -75,10 +74,6 @@ def set_plan_features(raw) -> None:
         if key in raw:
             out[key] = bool(raw[key])
             said.add(key)
-    try:
-        out["step_cap"] = max(0, int(raw.get("step_cap") or 0))
-    except (TypeError, ValueError):
-        out["step_cap"] = 0
     efforts = raw.get("efforts")
     if isinstance(efforts, (list, tuple)):
         kept: list = []
@@ -113,11 +108,6 @@ def autopilot_allowed() -> bool:
 
 def memory_allowed() -> bool:
     return bool(_features.get("memory", True))
-
-
-def step_cap() -> int:
-
-    return int(_features.get("step_cap") or 0)
 
 
 def efforts_allowed() -> tuple:

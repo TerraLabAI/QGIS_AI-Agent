@@ -17,6 +17,7 @@ from qgis.PyQt.QtWidgets import QComboBox, QHBoxLayout, QLabel, QPushButton, QWi
 
 from ..api.account import GenericRequestTask, get_device_platform
 from ..api.terralab_client import PRODUCT_ID, TerraLabClient
+from ..core import telemetry
 from ..core.settings import Settings
 from .confirm_dialog import ask_confirm
 from .font_scale import scale_px_length
@@ -211,6 +212,9 @@ class RetentionRow(QObject):
                   self._on_saved, self._on_save_failed)
 
     def _on_saved(self, data: object) -> None:
+        if self._pending is not _UNSET:
+            telemetry.track_setting("history_retention_days",
+                                    "until_deleted" if self._pending is None else self._pending)
         self._pending = _UNSET
         if isinstance(data, dict) and data.get("tier") in ("free", "pro", "zero"):
             self._data = dict(data)

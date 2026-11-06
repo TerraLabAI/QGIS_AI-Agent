@@ -32,22 +32,24 @@ from qgis.core import (
     QgsVectorLayer,
 )
 
-from ..core import ground, limits, tuning, vsi
+from ..core import ground, limits, tool_rules, tuning, vsi
 from ..core.logger import log_debug
+from ..core.numbers import as_float, as_int
 from ..core.policy import create_managed_temp_dir
 from ..core.qt_compat import enum_member
 from ..core.tool_registry import tool_error
-from .layer_lookup import _find_layer
-from .processing_crs_checks import _TERRAIN_BY_CELL
+from ._layers import resolve_layer
+from .elevation_style import RELIEF_PROPERTY
+from .processing_crs_checks import _TERRAIN_BY_CELL, is_metric
+from .processing_decisions import _type_name, nodata_sentinel
+from .processing_destinations import _is_optional
 from .project_tools import _is_remote_vector
 
 
+def _guards() -> dict:
 
 
-
-_DISTANCE_DEGREES_MAX = 10.0
-_DISTANCE_SPAN_RATIO = 100.0
-_DISTANCE_FLOOR = 100_000.0
+    return tool_rules.section("guards")
 
 
 def _distance_sanity(parameters: dict, confirmed: bool) -> dict | None:
@@ -59,17 +61,19 @@ def _distance_sanity(parameters: dict, confirmed: bool) -> dict | None:
     if isinstance(distance, bool) or not isinstance(distance, (int, float)):
         return None
     source = parameters.get("INPUT")
-    layer = _find_layer(source) if isinstance(source, str) else None
+    layer = resolve_layer(source) if isinstance(source, str) else None
     if layer is None or not hasattr(layer, "extent"):
         return None
     extent = layer.extent()
     span = max(extent.width(), extent.height()) if not extent.isEmpty() else 0.0
+    cuts = _guards().get("distance") or {}
     if layer.crs().isValid() and layer.crs().isGeographic():
-        limit, unit = tuning.threshold("distance_degrees_max", _DISTANCE_DEGREES_MAX, 1.0, 90.0), "degrees"
+        limit, unit = cuts.get("degrees_max"), "degrees"
     else:
-        ratio = tuning.threshold("distance_span_ratio", _DISTANCE_SPAN_RATIO, 5.0, 1000.0)
-        floor = tuning.threshold("distance_floor", _DISTANCE_FLOOR, 1_000.0, 10_000_000.0)
-        limit, unit = max(floor, ratio * span), "layer units"
+        ratio, floor = cuts.get("span_ratio"), cuts.get("floor")
+        limit, unit = (max(floor, ratio * span) if ratio is not None and floor is not None else None), "layer units"
+    if limit is None:
+        return None
     if abs(float(distance)) <= limit:
         return None
 
@@ -99,25 +103,11 @@ def _grid_cells_max() -> int:
 _EXTENT_RE = re.compile(r"^\s*(-?[\d.eE+]+)\s*,\s*(-?[\d.eE+]+)\s*,\s*(-?[\d.eE+]+)\s*,\s*(-?[\d.eE+]+)")
 
 
-def _number(value) -> float | None:
-
-    if isinstance(value, bool):
-        return None
-    if isinstance(value, (int, float)):
-        return float(value)
-    if isinstance(value, str):
-        try:
-            return float(value.strip())
-        except ValueError:
-            return None
-    return None
-
-
 def _extent_numbers(value) -> tuple[float, float, float, float] | None:
 
 
     if isinstance(value, (list, tuple)):
-        numbers = [_number(v) for v in value]
+        numbers = [as_float(v) for v in value]
         if len(numbers) == 4 and all(n is not None for n in numbers):
             return tuple(numbers)  # type: ignore[return-value]
         return None
@@ -154,9 +144,9 @@ def _grid_sanity(parameters: dict, confirmed: bool) -> dict | None:
     numbers = _extent_numbers(parameters.get("EXTENT"))
     if numbers is None:
         return None
-    spacing = _number(parameters.get("SPACING"))
-    hspacing = _number(parameters.get("HSPACING", parameters.get("SPACING")))
-    vspacing = _number(parameters.get("VSPACING", parameters.get("SPACING")))
+    spacing = as_float(parameters.get("SPACING"))
+    hspacing = as_float(parameters.get("HSPACING", parameters.get("SPACING")))
+    vspacing = as_float(parameters.get("VSPACING", parameters.get("SPACING")))
     hspacing = hspacing if hspacing is not None else spacing
     vspacing = vspacing if vspacing is not None else spacing
     if hspacing is None or vspacing is None:
@@ -212,32 +202,17 @@ _REMOTE_RASTER_PIXELS_MAX = 60_000_000
 def _remote_raster_pixels_max() -> int:
 
     return tuning.ceiling("processing_remote_raster_pixels_max", _REMOTE_RASTER_PIXELS_MAX, 1_000_000)
-_RASTER_INPUT_KEYS = ("INPUT", "INPUT_RASTER", "INPUT_A", "INPUT_B", "RASTER", "GRID", "ELEVATION", "DEM")
 
 
-_RASTER_LIST_KEYS = ("LAYERS", "INPUT_LAYERS", "INPUTS")
-
-
-
-
-_WINDOW_KEYS = ("PROJWIN", "EXTENT", "TARGET_EXTENT", "MASK", "MASK_LAYER")
-
-
-
-
-
-
-_WINDOW_ALGORITHMS = ("gdal:cliprasterbyextent", "gdal:cliprasterbymasklayer", "gdal:translate",
-                      "gdal:warpreproject", "gdal:rearrange_bands", "native:cliprasterbyextent")
 
 
 def _raster_ids(parameters: dict):
 
-    for key in _RASTER_INPUT_KEYS:
+    for key in tool_rules.names("guards", "raster_input_keys"):
         value = parameters.get(key)
         if isinstance(value, str) and value:
             yield key, value
-    for key in _RASTER_LIST_KEYS:
+    for key in tool_rules.names("guards", "raster_list_keys"):
         values = parameters.get(key)
         if isinstance(values, (list, tuple)):
             for value in values:
@@ -269,25 +244,13 @@ def fitting_pixel_size(width: float, height: float, budget: float) -> float:
 
 def _units_word(crs) -> str:
     try:
-        return "degrees" if crs.isGeographic() else "metres" if _metric(crs) else "map units"
+        return "degrees" if crs.isGeographic() else "metres" if is_metric(crs) else "map units"
     except Exception:  # noqa: BLE001
         return "map units"
 
 
-def _metric(crs) -> bool:
-    try:
-        from qgis.core import Qgis
-
-        return crs.mapUnits() == Qgis.DistanceUnit.Meters
-    except Exception:  # noqa: BLE001
-        return False
 
 
-
-
-
-
-_RESAMPLE_ALGORITHMS = ("gdal:translate", "gdal:warpreproject")
 _EXTRA_SIZE_RE = re.compile(r"-(tr|ts|outsize)\s+([-+\d.eE]+%?)\s+([-+\d.eE]+%?)")
 
 
@@ -305,7 +268,7 @@ def _target_extent(layer, parameters: dict):
 
 def _resampled_pixels(layer, algorithm_id: str, parameters: dict) -> float | None:
 
-    if algorithm_id not in _RESAMPLE_ALGORITHMS:
+    if algorithm_id not in tool_rules.names("guards", "resample_algorithms"):
         return None
     try:
         width, height = (_target_extent(layer, parameters) if algorithm_id == "gdal:warpreproject"
@@ -404,9 +367,10 @@ def _raster_size_sanity(parameters: dict, confirmed: bool, algorithm_id: str = "
 
 
 
-    windowed = any(parameters.get(key) for key in _WINDOW_KEYS)
+    windowed = any(parameters.get(key) for key in tool_rules.names("guards", "window_keys"))
 
-    if confirmed or (windowed and (not algorithm_id or algorithm_id in _WINDOW_ALGORITHMS)):
+    if confirmed or (windowed and (not algorithm_id
+                                   or algorithm_id in tool_rules.names("guards", "window_algorithms"))):
         return None
     project = QgsProject.instance()
     for key, value in _raster_ids(parameters):
@@ -442,7 +406,6 @@ def _raster_size_sanity(parameters: dict, confirmed: bool, algorithm_id: str = "
 
 
 
-_EXTERNAL_PROVIDERS = frozenset({"grass", "grass7", "saga", "sagang", "otb"})
 
 
 
@@ -511,7 +474,7 @@ def localise_streamed_rasters(algorithm_id: str, parameters: dict) -> tuple[dict
 
 
     provider = str(algorithm_id or "").split(":", 1)[0].lower()
-    if provider not in _EXTERNAL_PROVIDERS:
+    if provider not in tool_rules.names("guards", "external_providers"):
         return parameters, [], None
     project = QgsProject.instance()
     out, notes = dict(parameters), []
@@ -537,10 +500,6 @@ def localise_streamed_rasters(algorithm_id: str, parameters: dict) -> tuple[dict
 
 
 
-
-
-
-_WINDOW_RATIO_MAX = 4.0
 _WINDOW_CRS_RE = re.compile(r"\[\s*(EPSG:\d+)\s*\]", re.IGNORECASE)
 
 
@@ -574,7 +533,9 @@ def _window_readings(value, layer):
         except Exception:  # noqa: BLE001
             return None
     extent = layer.extent()
-    ratio_max = tuning.threshold("processing_window_ratio_max", _WINDOW_RATIO_MAX, 1.5, 10.0)
+    ratio_max = _guards().get("window_ratio_max")
+    if ratio_max is None:
+        return None
     return rect, rect.intersects(extent) and rect.area() <= ratio_max * extent.area()
 
 
@@ -584,14 +545,13 @@ def _window_readings(value, layer):
 
 
 
-_GROUND_METHOD_ALGORITHMS = {"exportaddgeometrycolumns": ("METHOD", "CALC_METHOD")}
 _ELLIPSOIDAL_METHOD = 2
 
 
 def _ground_measure_repair(alg, parameters: dict) -> list[str]:
 
     algorithm_id = alg.id() if alg is not None else ""
-    names = _GROUND_METHOD_ALGORITHMS.get(algorithm_id.split(":")[-1].lower())
+    names = (_guards().get("ground_method") or {}).get(algorithm_id.split(":")[-1].lower())
     if not names:
         return []
     declared = {definition.name() for definition in alg.parameterDefinitions()}
@@ -599,7 +559,7 @@ def _ground_measure_repair(alg, parameters: dict) -> list[str]:
     if key is None or parameters.get(key, 0) not in (0, "0"):
         return []
     source = parameters.get("INPUT")
-    layer = _find_layer(source) if isinstance(source, str) else source
+    layer = resolve_layer(source) if isinstance(source, str) else source
     if layer is None or not hasattr(layer, "crs") or not layer.crs().isValid():
         return []
     crs = layer.crs()
@@ -676,7 +636,7 @@ def _resolve_layer_inputs(parameters: dict, alg=None) -> tuple[dict, list[str]]:
             continue
         if os.path.exists(value):
             continue
-        layer = _find_layer(value)
+        layer = resolve_layer(value)
         if layer is None:
             continue
         try:
@@ -711,7 +671,7 @@ def _layer_id_for(item):
 
     if not _names_a_layer(item):
         return item
-    layer = _find_layer(item.strip())
+    layer = resolve_layer(item.strip())
     try:
         return layer.id() if layer is not None and layer.id() else item
     except (AttributeError, RuntimeError):
@@ -884,7 +844,7 @@ def selected_sources(alg, parameters: dict) -> tuple[dict, dict, dict | None]:
                 f"{key} of {algorithm} is a {kind or 'non-vector'} input, and only a vector feature "
                 f"source reads a selection or an expression (QGIS's 'Selected features only' box). "
                 f"Nothing was run.", "INVALID_ARGS", hint="processing_subset_not_vector", parameter=key)
-        layer = None if any(mark in source for mark in _NOT_A_LAYER_NAME) else _find_layer(source.strip())
+        layer = None if any(mark in source for mark in _NOT_A_LAYER_NAME) else resolve_layer(source.strip())
         if layer is None or not hasattr(layer, "selectedFeatureCount"):
             if layer is None and not any(mark in source for mark in _NOT_A_LAYER_NAME):
                 return plain, selected, _no_such_layers(alg, key, [source.strip()])
@@ -993,7 +953,7 @@ def _unresolved_input_check(alg, parameters: dict) -> dict | None:
         value = source.strip()
         if value in _OUTPUT_SENTINELS or any(mark in value for mark in _NOT_A_LAYER_NAME):
             continue
-        if os.path.exists(value) or _find_layer(value) is not None:
+        if os.path.exists(value) or resolve_layer(value) is not None:
             continue
         return _no_such_layers(alg, key, [value])
 
@@ -1003,7 +963,7 @@ def _unresolved_input_check(alg, parameters: dict) -> dict | None:
         items = parameters.get(key)
         if not isinstance(items, list):
             continue
-        missing = [item.strip() for item in items if _names_a_layer(item) and _find_layer(item.strip()) is None]
+        missing = [item.strip() for item in items if _names_a_layer(item) and resolve_layer(item.strip()) is None]
         if missing:
             return _no_such_layers(alg, key, missing)
     return None
@@ -1093,9 +1053,8 @@ def _enum_problem(definition, value) -> str:
                 return (f"is the label '{item}', and an enum takes the integer beside it: send {match}. "
                         f"Choices: {listed}")
             return f"is '{item}', which is not one of its choices. Choices: {listed}"
-        try:
-            index = int(item)
-        except (TypeError, ValueError):
+        index = as_int(item)
+        if index is None:
             continue
         if index < 0 or index >= len(options):
             return f"is {index}, outside its choices. Choices: {listed}"
@@ -1117,7 +1076,7 @@ def _field_parent_layer(value):
             return None
     if not _names_a_layer(value):
         return None
-    layer = QgsProject.instance().mapLayer(value.strip()) or _find_layer(value.strip())
+    layer = QgsProject.instance().mapLayer(value.strip()) or resolve_layer(value.strip())
     return layer if isinstance(layer, QgsVectorLayer) else None
 
 
@@ -1210,8 +1169,6 @@ def _parameter_sanity(alg, parameters: dict) -> dict | None:
 
 
 
-    from .processing_destinations import _is_optional
-
     absent = []
     for definition in definitions:
         name = definition.name()
@@ -1296,7 +1253,7 @@ def _empty_input_check(alg, parameters: dict) -> dict | None:
 
             layer = QgsProject.instance().mapLayer(source)
         else:
-            layer = _find_layer(source) if isinstance(source, str) else source
+            layer = resolve_layer(source) if isinstance(source, str) else source
         if layer is None or not hasattr(layer, "featureCount"):
             continue
         if _is_remote_vector(layer):
@@ -1315,34 +1272,6 @@ def _empty_input_check(alg, parameters: dict) -> dict | None:
     return None
 
 
-
-
-
-_NODATA_SENTINELS = (-9999.0, -99999.0, -32768.0, -32767.0, -3.4028234663852886e38)
-
-
-def _nodata_sentinel(rast, band: int) -> float | None:
-
-    try:
-        import qgis.core as _core
-
-        provider = rast.dataProvider()
-        if (provider.sourceHasNoDataValue(band) and provider.useSourceNoDataValue(band)) \
-                or provider.userNoDataValues(band):
-            return None
-
-        wanted = getattr(getattr(getattr(_core, "Qgis", None), "RasterBandStatistic", None), "Min", None)
-        if wanted is None:
-            wanted = getattr(_core.QgsRasterBandStats, "Min", None)
-        minimum = float(provider.bandStatistics(band, wanted, rast.extent(), 250000).minimumValue)
-    except Exception:  # noqa: BLE001
-        return None
-    for sentinel in _NODATA_SENTINELS:
-        if abs(minimum - sentinel) <= abs(sentinel) * 1e-9:
-            return sentinel
-    return None
-
-
 _ZONAL_ALGORITHMS = frozenset()
 
 
@@ -1356,14 +1285,11 @@ def _undeclared_nodata_check(algorithm_id: str, parameters: dict, confirmed: boo
     if confirmed or algorithm_id not in tuning.check_algs("zonal_algorithms", _ZONAL_ALGORITHMS):
         return None
     source = parameters.get("INPUT_RASTER")
-    layer = source if hasattr(source, "dataProvider") else (_find_layer(source) if isinstance(source, str) else None)
+    layer = source if hasattr(source, "dataProvider") else (resolve_layer(source) if isinstance(source, str) else None)
     if not isinstance(layer, QgsRasterLayer):
         return None
-    try:
-        band = int(parameters.get("RASTER_BAND") or 1)
-    except (TypeError, ValueError):
-        band = 1
-    sentinel = _nodata_sentinel(layer, band)
+    band = as_int(parameters.get("RASTER_BAND") or 1, 1)
+    sentinel = nodata_sentinel(layer, band)
     if sentinel is None:
         return None
     return tool_error(
@@ -1378,9 +1304,22 @@ def _undeclared_nodata_check(algorithm_id: str, parameters: dict, confirmed: boo
 
 
 HILLSHADE_PROPERTY = "ai_agent/hillshade_of"
-_HILLSHADE_ALGORITHM = re.compile(
-    r"TerraLab AI Agent with ([\w.:-]*(?:hillshad|r\.relief|analyticalhillshading)[\w.:-]*)", re.IGNORECASE)
-_HILLSHADE_NAME = re.compile(r"hillshad|shaded[ _-]?relief|ombrage|schummerung|sombreado", re.IGNORECASE)
+
+
+def _hillshade_patterns():
+
+
+    words = _guards().get("hillshade") or {}
+
+    def alternatives(key: str):
+        found = [re.escape(word).replace(r"\ ", "[ _-]?") for word in words.get(key) or ()]
+        return "|".join(found)
+
+    algorithm, name = alternatives("algorithm_words"), alternatives("name_words")
+    history = re.compile(r"TerraLab AI Agent with ([\w.:-]*(?:" + algorithm + r")[\w.:-]*)", re.IGNORECASE)
+    return (history if algorithm else None, re.compile(name, re.IGNORECASE) if name else None)
+
+
 _COMMAND_INPUT = re.compile(r"""['"]INPUT['"]\s*:\s*['"]([^'"]+)['"]""")
 
 
@@ -1413,22 +1352,19 @@ def computed_hillshade(layer) -> dict:
     if not isinstance(layer, QgsRasterLayer):
         return {}
     try:
-        from .elevation_style import RELIEF_PROPERTY
-
         if layer.customProperty(RELIEF_PROPERTY, ""):
             return {}
         dem_id = str(layer.customProperty(HILLSHADE_PROPERTY, "") or "")
         if dem_id:
             return {"how": "made by create_hillshade", "dem": _dem_named(dem_id, layer)}
         history = " ".join(str(item) for item in layer.metadata().history())
-        found = _HILLSHADE_ALGORITHM.search(history)
+        history_pattern, name_pattern = _hillshade_patterns()
+        found = history_pattern.search(history) if history_pattern else None
         if found:
             source = _COMMAND_INPUT.search(history, found.end())
             return {"how": f"made by {found.group(1).rstrip('.')}",
                     "dem": _dem_named(source.group(1), layer) if source else ""}
-        if _HILLSHADE_NAME.search(layer.name()) and layer.bandCount() == 1:
-            from .processing_decisions import _type_name
-
+        if name_pattern and name_pattern.search(layer.name()) and layer.bandCount() == 1:
             if _type_name(layer) == "Byte":
                 return {"how": "named a hillshade, one band of 0-255 light values", "dem": ""}
     except Exception:  # noqa: BLE001
@@ -1453,5 +1389,5 @@ def _hillshade_input_check(algorithm_id: str, parameters: dict) -> dict | None:
     if algorithm_id not in tuning.check_algs("terrain_by_cell", _TERRAIN_BY_CELL):
         return None
     source = parameters.get("INPUT")
-    layer = source if hasattr(source, "crs") else (_find_layer(source) if isinstance(source, str) else None)
+    layer = source if hasattr(source, "crs") else (resolve_layer(source) if isinstance(source, str) else None)
     return hillshade_of_hillshade(layer, algorithm_id)

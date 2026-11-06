@@ -7,16 +7,16 @@
 
 from __future__ import annotations
 
-from .._widgets import AI_EDIT_KEYS
+from ...core import siblings
 from .base import PluginAdapter
 
 
 class AiEditAdapter(PluginAdapter):
-    keys = AI_EDIT_KEYS
+    keys = siblings.AI_EDIT.folders
     aliases = ("ai-edit", "aiedit", "ai edit")
 
     def display_name(self) -> str:
-        return "AI Edit"
+        return siblings.AI_EDIT.label
 
 
 _ADAPTER = AiEditAdapter()

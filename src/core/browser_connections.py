@@ -16,8 +16,7 @@ from __future__ import annotations
 from urllib.parse import urlsplit
 
 from .logger import log_warning
-from .provenance import plain_source
-
+from .source_text import plain_source
 
 _ROOTS = {"wms": ("ows/items/wms/connections", "WMS"), "wfs": ("ows/items/wfs/connections", "WFS"),
           "oapif": ("ows/items/wfs/connections", "OGC API Features"), "xyz": ("xyz", "XYZ"),

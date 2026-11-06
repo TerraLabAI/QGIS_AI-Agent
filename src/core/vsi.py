@@ -50,6 +50,12 @@ import os
 import re
 import urllib.parse
 
+from . import machine, net, security_urls
+from .background import MainThreadBusy, on_main_thread, run_on_main_thread
+from .host_platform import retry_file_op
+from .policy import AGENT_HOME
+
+
 
 
 
@@ -60,7 +66,7 @@ import urllib.parse
 
 
 VSICURL_ALLOWED_EXTENSIONS = (".parquet", ".geoparquet", ".fgb", ".gpkg", ".pmtiles", ".tif", ".tiff",
-                              ".vrt", ".laz", ".las", ".vpc", "{noext}")
+                              ".jp2", ".vrt", ".laz", ".las", ".vpc", "{noext}")
 
 
 
@@ -266,8 +272,6 @@ def _base_bundle() -> bytes:
 
 def _write_bundle(name: str, parts) -> str | None:
 
-    from .host_platform import retry_file_op
-    from .policy import AGENT_HOME
 
     target = os.path.join(AGENT_HOME, "certs", name)
     os.makedirs(os.path.dirname(target), exist_ok=True)
@@ -301,7 +305,6 @@ def _ca_bundle_with_qgis_extras():
 
 
 
-    from .background import on_main_thread, run_on_main_thread
 
 
     extra = _qgis_extra_cas() if on_main_thread() else run_on_main_thread(_qgis_extra_cas, timeout=10)
@@ -346,7 +349,6 @@ def _chain_bundle():
 
 
     from . import missing_roots
-    from .background import on_main_thread, run_on_main_thread
 
     intermediates = missing_roots.intermediates_pem()
     if not intermediates:
@@ -397,7 +399,6 @@ def size_block_cache() -> None:
         return
     if gdal.GetConfigOption("CPL_VSIL_CURL_CACHE_SIZE"):
         return
-    from . import machine
 
     total = machine.total_memory_mb() or machine.REFERENCE_RAM_MB
     mb = min(BLOCK_CACHE_MAX_MB, max(BLOCK_CACHE_MIN_MB, total // BLOCK_CACHE_SHARE))
@@ -426,7 +427,6 @@ def apply_persistent() -> bool:
                 gdal.SetConfigOption(key, None)
         else:
             gdal.SetConfigOption(key, value)
-    from .background import MainThreadBusy
 
     try:
         bundle = _ca_bundle_with_qgis_extras()
@@ -504,6 +504,28 @@ def share_proxy(found: dict | None) -> None:
 
 
 @contextlib.contextmanager
+def thread_options(gdal, **options):
+
+
+
+
+
+    set_local = getattr(gdal, "SetThreadLocalConfigOption", None)
+    if set_local is None or not options:
+        yield
+        return
+    get_local = getattr(gdal, "GetThreadLocalConfigOption", lambda *_: None)
+    previous = {key: get_local(key, None) for key in options}
+    for key, value in options.items():
+        set_local(key, value)
+    try:
+        yield
+    finally:
+        for key, value in previous.items():
+            set_local(key, value)
+
+
+@contextlib.contextmanager
 def scoped_read(gdal=None, **overrides: str):
 
 
@@ -541,6 +563,7 @@ def scoped_read(gdal=None, **overrides: str):
 
 
 _XML_DATASET_MAX_BYTES = 2 * 1024 * 1024
+_REMOTE_VSI = ("/vsicurl", "/vsis3", "/vsigs", "/vsiaz", "/vsioss", "/vsiswift", "/vsiadls", "/vsihdfs", "/vsiwebhdfs")
 _XML_SOURCE_RE = re.compile(
     rb"(?is)<(SourceFilename|SrcDataSource|SourceDataset)\b([^>]*)>(.*?)</\1\s*>")
 
@@ -553,7 +576,6 @@ def xml_dataset_refusal(body: bytes, base_url: str) -> str | None:
 
     if not looks_like_xml(body):
         return None
-    from . import net
 
     for _tag, attrs, raw in _XML_SOURCE_RE.findall(body):
         text = html.unescape(raw.decode("utf-8", "replace")).strip()
@@ -571,6 +593,36 @@ def xml_dataset_refusal(body: bytes, base_url: str) -> str | None:
     return None
 
 
+def local_dataset_sources(path: str, seen: set | None = None) -> list:
+
+
+
+
+
+    seen = set() if seen is None else seen
+    real = os.path.realpath(path)
+    if real in seen or len(seen) >= 16 or not os.path.isfile(real):
+        return []
+    seen.add(real)
+    try:
+        with open(real, "rb") as handle:
+            body = handle.read(256)
+            if not looks_like_xml(body):
+                return []
+            body += handle.read(_XML_DATASET_MAX_BYTES)
+    except OSError:
+        return []
+    found = []
+    for _tag, _attrs, raw in _XML_SOURCE_RE.findall(body):
+        text = html.unescape(raw.decode("utf-8", "replace")).strip()
+        if not text or re.match(r"(?i)[a-z][a-z0-9+.-]+:", text) or text.lower().startswith(_REMOTE_VSI):
+            continue
+        source = text if text.startswith("/vsi") else os.path.normpath(os.path.join(os.path.dirname(path), text))
+        found.append(source)
+        found.extend(local_dataset_sources(source, seen))
+    return found
+
+
 def remote_dataset_refusal(url: str) -> str | None:
 
 
@@ -579,14 +631,11 @@ def remote_dataset_refusal(url: str) -> str | None:
 
 
 
-    from . import net, security_urls
-
     try:
         parts = urllib.parse.urlsplit(url)
     except ValueError:
         return None
-    ext = os.path.splitext(parts.path)[1].lower()
-    if ext not in ("", ".vrt") or security_urls._routed_public_host(parts.hostname or ""):
+    if security_urls._routed_public_host(parts.hostname or ""):
         return None
     try:
         response = net.open_url(url, timeout=15)

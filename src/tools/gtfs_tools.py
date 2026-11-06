@@ -53,12 +53,14 @@ from qgis.PyQt.QtCore import QT_TRANSLATE_NOOP, QCoreApplication
 from ..core import limits, net, security, tuning
 from ..core.background import run_on_main_thread
 from ..core.host_platform import remove_tree
+from ..core.numbers import as_int
+from ..core.output_paths import safe_file_name
 from ..core.policy import create_managed_temp_dir
 from ..core.qt_compat import enum_member
 from ..core.serialization import CodedText
 from ..core.text_encoding import ansi_encoding, detect_encoding
 from ..core.tool_registry import Tool, ToolRegistry, tool_error
-from .data_common import _download_timeout, _safe_filename
+from .data_common import _download_timeout
 
 
 def _tr(text: str) -> str:
@@ -73,10 +75,10 @@ _REQUIRED = ("stops.txt", "routes.txt", "trips.txt", "stop_times.txt")
 _WEEKDAYS = ("monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday")
 
 
-_ROUTE_TYPE_WORDS = {
-    "0": "tram", "1": "metro", "2": "rail", "3": "bus", "4": "ferry", "5": "cable_tram",
-    "6": "aerial_lift", "7": "funicular", "11": "trolleybus", "12": "monorail",
-}
+
+def _route_types() -> dict:
+    return (tuning.service_doc("vocab_rules") or {}).get("gtfs_route_types") or {}
+
 
 
 
@@ -95,7 +97,6 @@ _SHAPES_CHECK_EVERY = 20_000
 
 
 _MAX_FREQUENCY_DEPARTURES_PER_WINDOW = 20_000
-_ROUTE_CLASSES = 5
 _VALID_DATE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 
 
@@ -505,10 +506,7 @@ def _frequency_windows(freq_rows: list, active_trip_route: dict) -> dict:
             continue
         start = _gtfs_seconds(row.get("start_time") or "")
         end = _gtfs_seconds(row.get("end_time") or "")
-        try:
-            headway = int(row.get("headway_secs") or "0")
-        except ValueError:
-            headway = 0
+        headway = as_int(row.get("headway_secs") or "0", 0)
         if start is None or end is None or headway <= 0 or end <= start:
             continue
         windows[trip_id].append((start, end, headway))
@@ -772,7 +770,7 @@ def _route_lines(route_rows: list, trip_rows: list, shape_points: dict, stop_coo
         routes.append({
             "route_id": route_id,
             "short_name": row.get("route_short_name") or "", "long_name": row.get("route_long_name") or "",
-            "route_type": _ROUTE_TYPE_WORDS.get(str(row.get("route_type") or "").strip(), "other"),
+            "route_type": _route_types().get(str(row.get("route_type") or "").strip(), "other"),
             "route_color": (row.get("route_color") or "").strip().lstrip("#"),
             "trips_per_day": per_route_trips.get(route_id, 0),
             "line": line, "geometry_source": source,
@@ -858,16 +856,26 @@ def _quantile_breaks(values: list, classes: int) -> list:
 
 
 def _style_stops(layer, values: list) -> None:
+
+
+
+
     from qgis.core import QgsGraduatedSymbolRenderer, QgsMarkerSymbol, QgsRendererRange
     from qgis.PyQt.QtGui import QColor
 
-    breaks = _quantile_breaks(values, min(_ROUTE_CLASSES, max(1, len(set(values)))))
+    rules = (tuning.service_doc("vocab_rules") or {}).get("gtfs_stops") or {}
+    if not {"classes", "color_from", "color_to", "size_from_mm", "size_to_mm"} <= set(rules):
+        return
+    start, end = QColor(rules["color_from"]), QColor(rules["color_to"])
+    breaks = _quantile_breaks(values, min(rules["classes"], max(1, len(set(values)))))
     ranges = []
     for i in range(len(breaks) - 1):
         t = i / max(1, len(breaks) - 2)
-        color = QColor(int(round(255 + (49 - 255) * t)), int(round(245 + (54 - 245) * t)),
-                       int(round(235 + (149 - 235) * t)))
-        symbol = QgsMarkerSymbol.createSimple({"color": color.name(), "size": f"{2.0 + 2.0 * t:.2f}",
+        color = QColor(int(round(start.red() + (end.red() - start.red()) * t)),
+                       int(round(start.green() + (end.green() - start.green()) * t)),
+                       int(round(start.blue() + (end.blue() - start.blue()) * t)))
+        size = rules["size_from_mm"] + (rules["size_to_mm"] - rules["size_from_mm"]) * t
+        symbol = QgsMarkerSymbol.createSimple({"color": color.name(), "size": f"{size:.2f}",
                                                "outline_color": "#333333", "outline_width": "0.2"})
         label = _tr("{lo} - {hi} trips/day").format(lo=f"{int(breaks[i]):,}", hi=f"{int(breaks[i + 1]):,}")
         ranges.append(QgsRendererRange(breaks[i], breaks[i + 1], symbol, label))
@@ -1009,7 +1017,7 @@ def _load_gtfs(args: dict) -> dict:
         if net.is_cancelled(cancel):
             return _stopped()
 
-        stem = _safe_filename(str(args.get("layer_name") or "").strip() or "gtfs_feed", "gtfs_feed")
+        stem = safe_file_name(str(args.get("layer_name") or "").strip() or "gtfs_feed", "gtfs_feed")
         folder = create_managed_temp_dir("gtfs-output")
         gpkg_path = os.path.join(folder, f"{stem}.gpkg")
         try:

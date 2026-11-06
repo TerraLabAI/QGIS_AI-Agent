@@ -31,8 +31,10 @@ import functools
 import os
 import re
 
+from ..core.layer_rank import normalized
 from ..core.logger import log_debug
-from ..core.tool_registry import tool_error
+from ..core.policy import AGENT_TMP_DIR
+from ..core.tool_registry import PINNED_LAYER_KEYS, spec, tool_error
 
 
 _FILLER_WORDS = frozenset(["a", "an", "the", "of", "in", "for", "layer", "data", "dataset"])
@@ -102,7 +104,6 @@ def normalize_name(name: str) -> str:
 
 
 
-    from ..core.layer_rank import normalized
 
     return " ".join(token for token in normalized(name).split() if token not in _FILLER_WORDS)
 
@@ -614,17 +615,6 @@ def _added_here(project, limit: int = 4) -> list[dict]:
     return out
 
 
-
-
-
-
-PINNED_LAYER_KEYS = ("layer_name", "layer", "layer_id", "target_layer")
-
-LAYER_LIST_KEYS = ("layers", "layer_names")
-
-OUTPUT_LAYER_KEYS = {"execute_sql": ("layer_name",)}
-
-
 def pin_layer_names(args: dict, tool: str = "", pins: dict | None = None) -> dict | None:
 
 
@@ -656,7 +646,8 @@ def pin_layer_names(args: dict, tool: str = "", pins: dict | None = None) -> dic
     from qgis.core import QgsProject
 
     project = QgsProject.instance()
-    skipped = OUTPUT_LAYER_KEYS.get(tool, ())
+    declared = spec(tool)
+    skipped = declared.creates_layer_at if declared else ()
     pins = pins if pins is not None else {}
     for key in PINNED_LAYER_KEYS:
         if key in skipped:
@@ -797,8 +788,6 @@ def unique_layer_name(name: str, keep_id: str = "") -> str:
 def is_scratch_layer(layer) -> bool:
 
     import tempfile
-
-    from ..core.policy import AGENT_TMP_DIR
 
     try:
         if layer.providerType() == "memory":

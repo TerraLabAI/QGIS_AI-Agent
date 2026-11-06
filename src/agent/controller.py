@@ -1,0 +1,558 @@
+# SPDX-FileCopyrightText: 2026 TerraLab <yvann.barbot@terra-lab.ai>
+# SPDX-License-Identifier: GPL-2.0-or-later
+
+
+
+
+
+
+
+
+from __future__ import annotations
+
+import sys
+import time
+
+from qgis.PyQt.QtCore import QObject, QTimer, pyqtSignal
+
+from ..api.account import Account
+from ..core import first_run_funnel, telemetry
+from ..core import telemetry_events as ev
+from ..core.context import mention_candidates
+from ..core.host_platform import os_label, plugin_version, qgis_version
+from ..core.logger import log, log_warning
+from ..core.plan import autopilot_allowed, effort_allowed, efforts_stated
+from ..core.protocol import CANCEL_QGIS_CLOSED, Approval, Effort, RunStatus
+from ..core.qt_compat import one_shot
+from ..core.run_state import RunMachine
+from ..core.session import AgentSession
+from ..core.settings import DEFAULT_SERVER_URL, Settings
+from ..core.telemetry_errors import report_exception
+from ..core.threads import ThreadStore
+from .controller_account import _ControllerAccount
+from .controller_actions import PanelActionsMixin, _project_path
+from .controller_frames import _ControllerFrames
+from .controller_memory import _ControllerMemory
+from .controller_offers import _ControllerOffers
+from .controller_projects import _ControllerProjects
+from .controller_runs import _ControllerRuns
+from .controller_shared import (
+    _DIFF_SETTLE_MS,
+    CANCEL_GRACE_MS,
+    RESUME_GRACE_S,
+    RETRY_MEMORY,
+    RUN_SILENCE_S,
+    tr,
+)
+from .controller_tasks import _ControllerTasks
+from .executor import ToolExecutor
+
+
+__all__ = ["AgentController", "CANCEL_GRACE_MS", "RESUME_GRACE_S", "RUN_SILENCE_S"]
+
+
+def _panel_deleted(panel) -> bool:
+
+    try:
+        from qgis.PyQt import sip
+        return bool(sip.isdeleted(panel))
+    except (ImportError, TypeError):
+        return False
+
+
+class AgentController(_ControllerRuns, _ControllerFrames, _ControllerProjects, _ControllerOffers,
+                      _ControllerMemory, _ControllerAccount, _ControllerTasks, PanelActionsMixin, QObject):
+    layer_action_requested = pyqtSignal(str, str)
+    settings_requested = pyqtSignal()
+    notice = pyqtSignal(str, str)
+
+
+    approval_waiting = pyqtSignal(bool)
+
+
+    run_finished = pyqtSignal(str)
+
+    def __init__(self, iface, panel, registry, settings: Settings | None = None,
+                 account: Account | None = None, parent=None, *, session=None, executor=None, store=None):
+        super().__init__(parent)
+        self._iface = iface
+        self._panel = panel
+        self._registry = registry
+        self._settings = settings or Settings()
+        self._account = account or Account(self._settings, self)
+        self._store = store if store is not None else ThreadStore(on_index_ready=self._on_thread_index_ready)
+        self._manifest_cache: tuple | None = None
+        self._session = session if session is not None else AgentSession(
+            self._settings, self._account, self._identity, self._manifest, self)
+        self._executor = executor if executor is not None else ToolExecutor(
+            registry, self._session, self._settings, self)
+
+
+
+        self._set_report_provider(self.session_report)
+        self._thread_id: str | None = None
+        self._crashed_chat: tuple | None = None
+
+        self._runs = RunMachine(RETRY_MEMORY)
+        self._quota_tracked_run: str | None = None
+        self._pairing_started: float | None = None
+        self._last_run: dict | None = None
+
+        self._example_pick = ""
+        self._last_verification: dict | None = None
+        self._agent_text: dict[str, str] = {}
+
+
+        self._steers: dict[str, dict] = {}
+
+        self._retry_after_restore: tuple[str, str] = ("", "")
+
+
+
+        self._run_projects: dict[str, str] = {}
+        self._text_break: dict[str, bool] = {}
+
+
+        self._answer_start: dict[str, int] = {}
+
+
+
+
+        self._replay_run: str | None = None
+        self._call_runs = self._runs.calls
+        self._call_names: dict[str, tuple] = {}
+        self._missing_slots: set[str] = set()
+        self._failed_slots: set[str] = set()
+
+
+        self._panel_queue: list[tuple] = []
+        self._proposals: dict[str, dict] = {}
+        self._question_args: dict[str, dict] = {}
+
+
+
+        self._poll_calls: set[str] = set()
+
+
+
+
+        self._project_connections: list[tuple] = []
+        self._end_timer = one_shot(self, self._end_run_locally)
+        self._resend_timer = one_shot(self, self._resend_run)
+        self._watchdog = one_shot(self, self._on_server_silent)
+        self._lost_timer = one_shot(self, self._on_resume_outcome_missing)
+
+
+        self._conn_lost_timer = one_shot(self, self._say_connection_lost, 15000)
+        self._link_notice = ""
+        self._diff_timer = one_shot(self, self._refresh_run_changes, _DIFF_SETTLE_MS)
+        self._pending_changed = 0
+        self._wire_panel()
+        self._wire_session()
+        self._wire_executor()
+        self._wire_account()
+        self._memory_init()
+
+
+    def start(self) -> None:
+        self._panel_call("set_mention_provider", mention_candidates)
+        self._panel_call("set_permission_mode", self._approval())
+
+
+        self._panel_call("set_paid_plan", self._settings.last_paid)
+        self._panel_call("set_effort", self._landing_effort())
+        self._panel_call("set_threads", self._store.list_threads(), _project_path())
+        self._watch_project()
+        telemetry.set_auth_provider(self._account.get_auth_header)
+        telemetry.new_session()
+        telemetry.start_flush_timer()
+        first_run_funnel.set_sender(self._session.send_funnel)
+        if telemetry.first_open_recorded():
+            telemetry.track(ev.PLUGIN_FIRST_OPEN)
+
+
+
+        QTimer.singleShot(0, self._track_opened)
+        if self._account.state in (Account.ACTIVATED, Account.LOCKED):
+            self._panel_call("set_connection_state", "connecting", "")
+            self._session.connect_to_server()
+
+
+
+            if self._account.state == Account.LOCKED:
+                self._account.refresh_activation_async()
+        else:
+            self._panel_call("set_connection_state", "signed_out", "")
+
+        self._account.try_sibling_sign_in()
+
+
+        if hasattr(self._account, "watch_focus"):
+            self._account.watch_focus()
+
+    def open_stamps(self, facts: dict, began: float) -> None:
+
+
+        self._open_facts = dict(facts or {})
+        self._open_began = float(began or 0.0)
+
+    def _track_opened(self) -> None:
+        try:
+            main_window = self._iface.mainWindow()
+            panel_visible = bool(self._panel.isVisibleTo(main_window)) if main_window is not None else None
+        except (AttributeError, RuntimeError, TypeError):
+            panel_visible = None
+        props = {"signed_in": self._account.has_activation_key, "panel_visible": panel_visible}
+        facts = getattr(self, "_open_facts", None) or {}
+        props.update({key: facts[key] for key in ("opened_by", "load_ms", "registry_ms", "dock_ms", "controller_ms")
+                      if key in facts})
+        began = getattr(self, "_open_began", 0.0)
+        if began:
+
+
+            props["open_to_typeable_ms"] = int((time.monotonic() - began) * 1000)
+        telemetry.track(ev.PLUGIN_OPENED, props)
+
+    def _on_thread_index_ready(self) -> None:
+
+        self._panel_call("set_threads", self._store.list_threads(), _project_path())
+
+    def _set_report_provider(self, provider) -> None:
+        try:
+            self._panel.diagnostics_provider = provider
+            self._panel.auth_header_provider = self._account.get_auth_header if provider else None
+        except (AttributeError, RuntimeError):
+            pass
+
+    def shutdown(self) -> None:
+
+        self._shut_down = True
+        self._unwatch_project()
+        if hasattr(self._account, "unwatch_focus"):
+            self._account.unwatch_focus()
+
+        self._set_report_provider(None)
+
+
+
+        for timer in (self._end_timer, self._watchdog, self._resend_timer, self._lost_timer, self._diff_timer,
+                      self._conn_lost_timer):
+            timer.stop()
+        self._panel_queue.clear()
+
+
+
+
+        self._executor.watchdog.stop()
+
+        self._executor.cancel_background()
+
+        if getattr(self._account, "state", None) == getattr(Account, "PAIRING", object()):
+            try:
+                self._account.cancel_pairing()
+            except Exception as exc:  # noqa: BLE001
+                log_warning(f"Sign-in poll not cancelled on unload: {exc}")
+        run = self._run
+        if run is not None and not run.get("cancelled"):
+
+
+
+            try:
+                self._session.send_cancel(run["run_id"], CANCEL_QGIS_CLOSED)
+            except Exception as exc:  # noqa: BLE001
+                log_warning(f"Run {run['run_id'][:8]}: no cancel sent on unload: {exc}")
+
+
+            self._store_ending(run["run_id"], RunStatus.CANCELLED, tr("Stopped: QGIS closed during this run."), {})
+        try:
+            self._account.stop_upgrade_watch()
+        except Exception as exc:  # noqa: BLE001
+            log_warning(f"Upgrade watch not stopped on unload: {exc}")
+
+        self._session.disconnect_from_server(wait=True)
+
+        self._store.close()
+        telemetry.shutdown()
+
+    @property
+    def session(self) -> AgentSession:
+        return self._session
+
+    @property
+    def account(self) -> Account:
+        return self._account
+
+    @property
+    def _run(self) -> dict | None:
+
+        return self._runs.current
+
+
+    def _identity(self) -> dict:
+
+
+
+        from ..tools.deps_tools import importable_libraries
+
+        facts = getattr(self, "_open_facts", None) or {}
+        return {"plugin_version": plugin_version(), "qgis_version": qgis_version(),
+                "os": os_label(), "locale": self._settings.locale,
+                "python_version": f"{sys.version_info.major}.{sys.version_info.minor}",
+                "libraries": list(importable_libraries()),
+
+
+                "machine": {key: value for key, value in (("load_ms", facts.get("load_ms")),
+                                                          ("panel_ms", facts.get("open_ms")))
+                            if isinstance(value, int)}}
+
+    def _manifest(self) -> tuple:
+
+        self._sync_sibling_tools()
+        if self._manifest_cache is None:
+            manifest = self._registry.manifest()
+            self._manifest_cache = (self._registry.manifest_hash(manifest), manifest)
+        return self._manifest_cache
+
+    def _sync_sibling_tools(self) -> bool:
+
+
+        try:
+            from ..tools import aiseg_review
+            changed = aiseg_review.sync(self._registry)
+        except Exception as exc:  # noqa: BLE001
+            log_warning(f"Sibling tools not re-checked: {exc}")
+            return False
+        if changed:
+            self._manifest_cache = None
+        return changed
+
+    def _resync_sibling_tools_when_idle(self) -> None:
+
+
+
+
+        tools = self._sync_sibling_tools()
+        plan = getattr(self, "_plan_resync", False)
+        if not (tools or plan) or self._run is not None or not self._session.is_online:
+            return
+        self._plan_resync = False
+        log("Plan or sibling plugin tools changed; reconnecting so the server sends the new session")
+        self._session.disconnect_from_server()
+        self._session.connect_to_server()
+
+
+    def _connect(self, name: str, slot) -> None:
+        signal = getattr(self._panel, name, None)
+        if signal is None or not hasattr(signal, "connect"):
+            log_warning(f"Panel has no signal {name}")
+            return
+        signal.connect(slot)
+
+    def _panel_call(self, name: str, *args) -> None:
+        if self._panel_queue:
+
+            self._drain_panel()
+        self._panel_now(name, *args)
+
+    def _panel_later(self, name: str, *args) -> None:
+
+
+
+
+
+
+
+
+
+        if not self._panel_queue:
+            QTimer.singleShot(0, self._drain_panel)
+        self._panel_queue.append((name, args))
+
+    def _drain_panel(self) -> None:
+        queued, self._panel_queue = self._panel_queue, []
+        for name, args in queued:
+            self._panel_now(name, *args)
+
+    def _panel_now(self, name: str, *args) -> None:
+        if self._panel is not None and _panel_deleted(self._panel):
+            return
+        method = getattr(self._panel, name, None)
+        if method is None:
+            if name not in self._missing_slots:
+                self._missing_slots.add(name)
+                log_warning(f"Panel has no slot {name}")
+            return
+        try:
+            method(*args)
+        except Exception as exc:  # noqa: BLE001
+
+            if name in self._failed_slots:
+                return
+            self._failed_slots.add(name)
+            report_exception(exc, "panel_slot", module=type(self._panel).__module__, slot=name)
+
+    def _wire_panel(self) -> None:
+        self._connect("send_requested", self._on_send)
+        self._connect("stop_requested", self._on_stop)
+        self._connect("answer_rated", self._on_answer_rated)
+        self._connect("answer_reason", self._on_answer_reason)
+        self._connect("steer_requested", self._on_steer)
+        self._connect("task_stop_requested", self._on_task_stop)
+        self._connect("unsteer_requested", self._on_unsteer)
+        self._connect("queue_send_requested", self._on_queue_send)
+        self._connect("undo_retry_requested", self._on_undo_retry)
+        self._connect("permission_decided", self._on_permission_decided)
+        self._connect("question_answered", self._on_question_answered)
+        self._connect("question_reply", self._on_question_answered)
+        self._connect("retry_requested", self._on_retry)
+        self._connect("continue_requested", self._on_continue)
+        self._connect("undo_requested", self._on_undo)
+        self._connect("restore_requested", self._on_restore)
+        self._connect("discard_all_requested", self._on_discard_all)
+        self._connect("restore_after_stop_requested", self._on_restore_after_stop)
+        self._connect("history_requested", self._send_history)
+        self._connect("layer_action_requested", self._on_layer_action)
+        self._connect("file_add_requested", self._on_file_add)
+        self._connect("new_thread_requested", self._on_new_thread)
+        self._connect("thread_selected", self._on_thread_selected)
+        self._connect("thread_delete_requested", self._on_thread_delete)
+        self._connect("chip_removed", lambda kind, value: log(f"chip removed: {kind}"))
+        self._connect("files_dropped", self._on_files_dropped)
+        self._connect("sign_out_requested", self._on_sign_out)
+        self._connect("context_add_requested", self._on_context_add)
+        self._connect("mode_changed", self._on_mode_changed)
+        self._connect("effort_changed", self._on_effort_changed)
+        self._connect("pairing_reopen_requested", self._account.reopen_pairing_page)
+        self._connect("pairing_cancel_requested", self._account.cancel_pairing)
+        self._connect("pairing_code_submitted", self._account.submit_pairing_code)
+        self._connect("update_dismissed", self._on_update_dismissed)
+        self._connect("update_download_clicked", self._on_update_download_clicked)
+        self._connect("low_balance_shown", self._on_low_balance_shown)
+        self._connect("example_chosen", self._on_example_chosen)
+        self._connect("attachment_added", self._on_attachment_added)
+        self._connect("dashboard_requested", lambda: log("Dashboard opened from the panel"))
+        self._connect("pro_pill_requested", self._on_pro_pill_requested)
+        self._connect("pro_contact_requested", self._on_pro_contact_requested)
+        self._connect("plans_requested", self._on_plans_requested)
+        self._connect("start_now_requested", self._on_start_now_requested)
+        self._connect("invoice_requested", self._on_invoice_requested)
+        self._connect("upsell_shown", self._on_upsell_shown)
+        self._connect("payment_card_shown", lambda surface, amount_shown: telemetry.track(
+            ev.PAYMENT_FAILED_CARD_SHOWN, {"surface": surface, "amount_shown": amount_shown}))
+        self._connect("pay_requested", self._account.open_payment)
+        self._connect("limit_reached", self._on_limit_reached)
+        self._connect("reconnect_requested", self._on_reconnect_requested)
+        self._connect("help_requested", self._on_help_requested)
+        self._connect("open_settings_requested", self.settings_requested)
+
+
+        self._connect("open_settings_requested", self._sync_permission_mode)
+        self._connect("sign_in_requested", self._on_sign_in)
+
+        self._connect("recommendation_decided", self._on_recommendation_decided)
+        self._connect("memory_undo_requested", self._on_memory_undo)
+        self._connect("diff_applied", self._on_diff_applied)
+
+    def _wire_session(self) -> None:
+        s = self._session
+        s.state_changed.connect(self._on_state_changed)
+        s.session_started.connect(self._on_session_started)
+        s.token.connect(self._on_token)
+        s.plan.connect(self._on_plan)
+        s.plan_update.connect(self._on_plan_update)
+        s.tool_call.connect(self._on_tool_call)
+        s.run_end.connect(self._on_run_end)
+        s.server_error.connect(self._on_server_error)
+        s.usage.connect(self._on_usage)
+        s.thread_title.connect(self._on_thread_title)
+        s.memory_note.connect(self._on_memory_note)
+        s.status_line.connect(self._on_status_line)
+        s.sources.connect(self._on_sources)
+        s.counts.connect(self._on_counts)
+        if hasattr(s, "steer_ack"):
+            s.steer_ack.connect(self._on_steer_ack)
+        if hasattr(s, "task_update"):
+            s.task_update.connect(self._on_task_update)
+            s.task_result.connect(self._on_task_result)
+        if hasattr(s, "server_tool"):
+            s.server_tool.connect(self._on_server_tool)
+        if hasattr(s, "connection_failed"):
+            s.connection_failed.connect(self._on_connection_failed)
+        if hasattr(s, "connection_ready"):
+            s.connection_ready.connect(self._on_connection_ready)
+
+    def _wire_executor(self) -> None:
+        e = self._executor
+        e.tool_started.connect(self._on_tool_started)
+        e.tool_finished.connect(self._on_tool_finished)
+        e.call_progress.connect(self._on_call_progress)
+        e.permission_needed.connect(self._on_permission_needed)
+        e.permission_resolved.connect(self._on_permission_resolved)
+        e.question_needed.connect(self._on_question_needed)
+        e.question_answered_elsewhere.connect(self._on_question_answered)
+        e.install_wait_needed.connect(self._on_install_wait_needed)
+        e.account_needed.connect(self._on_account_needed)
+        e.question_resolved.connect(lambda cid, answer: self._panel_call("resolve_question", cid, answer))
+        e.project_changed.connect(self._on_project_changed)
+        e.stop_requested.connect(self._on_stop)
+
+    def _wire_account(self) -> None:
+        a = self._account
+        a.paired.connect(self._on_paired)
+        a.signed_out.connect(self._on_signed_out)
+        a.session_expired.connect(self._on_session_expired)
+
+
+        a.pairing_started.connect(lambda url: self._panel_call("set_pairing_state", True, "", url))
+        a.pairing_browser_seen.connect(lambda: self._panel_call(
+            "set_pairing_status", tr("Sign-in page open, waiting for you...")))
+        a.pairing_address.connect(lambda message, tone: self._panel_call("set_pairing_note", message, tone))
+        a.pairing_stalled.connect(
+            lambda _reason, message: self._panel_call("set_pairing_note", message, "info"))
+        a.pairing_link_back.connect(lambda: self._panel_call("set_pairing_note", "", "info"))
+        a.pairing_code_needed.connect(lambda: self._panel_call("show_pairing_code_input"))
+        a.pairing_failed.connect(self._on_pairing_failed)
+        a.pairing_timeout.connect(lambda: self._on_pairing_failed(tr("Sign-in timed out. Try again."), "TIMEOUT"))
+        a.notice.connect(self.notice)
+        a.state_changed.connect(self._on_account_state)
+        a.usage_refreshed.connect(self._on_website_usage)
+        a.checkout_not_finished.connect(lambda: self._panel_call("show_checkout_return"))
+        a.checkout_not_finished.connect(lambda: telemetry.track(
+            ev.CHECKOUT_RETURN_CHECKED, {"outcome": "not_finished", **telemetry.upsell_context()}))
+        a.checkout_return_paid.connect(lambda: telemetry.track(
+            ev.CHECKOUT_RETURN_CHECKED, {"outcome": "paid", **telemetry.upsell_context()}))
+        self._session.session_started.connect(self._bind_unlocked_account)
+
+    def _approval(self, approval: str = "") -> str:
+
+        approval = approval if approval in Approval.ALL else self._settings.approval
+        return Approval.ASK if (approval == Approval.AUTO and not autopilot_allowed()) else approval
+
+    def _effort(self) -> str:
+
+
+        effort = self._settings.effort
+        return effort if (effort in Effort.ALL and effort_allowed(effort)) else Effort.LOW
+
+    def _landing_effort(self) -> str:
+
+
+
+
+
+        if not efforts_stated() and not self._settings.last_paid:
+            return Effort.LOW
+        return self._effort()
+
+
+    def _on_reconnect_requested(self) -> None:
+
+
+
+        if self._session.state in ("online", "connecting"):
+            return
+        url = self._settings.server_url
+        if url != DEFAULT_SERVER_URL:
+            log_warning(f"Reconnecting to {url}, which is not the default service")
+        self._panel_call("set_connection_state", "connecting", "")
+        self._session.connect_to_server()

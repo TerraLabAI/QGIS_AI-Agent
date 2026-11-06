@@ -26,6 +26,7 @@ import contextlib
 from qgis.core import QgsVectorLayer
 
 from ..core import tuning
+from ..core.numbers import as_float
 from ..core.qt_compat import enum_member
 from ..core.tool_registry import tool_error
 from .colour_text import qcolor_from_text
@@ -143,10 +144,7 @@ def set_diagram_renderer(layer, args: dict, plan: dict, largest: float, kept_sty
             colors.append(explicit[i % len(explicit)])
         else:
             colors.append(matched.get(field) or _palette_colour(i, len(fields)))
-    try:
-        size = float(args.get("diagram_size") or 12)
-    except (TypeError, ValueError):
-        size = 12.0
+    size = as_float(args.get("diagram_size") or 12, 12.0)
     if not scaled:
         largest = 0.0
     try:

@@ -25,10 +25,13 @@
 
 
 
+
+
 from __future__ import annotations
 
 from qgis.PyQt.QtCore import QEvent, Qt, QTimer, pyqtSignal
 from qgis.PyQt.QtWidgets import (
+    QBoxLayout,
     QFrame,
     QGridLayout,
     QHBoxLayout,
@@ -42,9 +45,8 @@ from ..shared import tr
 from ..use_cases import match_cases
 from . import common as C
 from . import keys
-from .cards import ExampleTile, tile_height
+from .cards import ExampleRow, ExampleTile, tile_height
 from .parts import (
-    ArrowButton,
     Breadcrumb,
     EmptyState,
     PageHeader,
@@ -77,27 +79,12 @@ class Carousel(QWidget):
         super().__init__(parent)
         self.tiles: list = []
         self._width = 0
-        self._page = 0
         col = QVBoxLayout(self)
         col.setContentsMargins(0, 0, 0, 0)
         col.setSpacing(C.px(C.SPACE_2))
-        head = QHBoxLayout()
-        head.setContentsMargins(0, 0, 0, 0)
-        head.setContentsMargins(0, 0, C.px(C.EDGE), 0)
-        head.setSpacing(C.px(8))
-        title_head = SectionHead(title, self)
-        title_head.clicked.connect(see_all)
-        head.addWidget(title_head, 0, Qt.AlignmentFlag.AlignVCenter)
-        head.addStretch(1)
-        self._prev = ArrowButton("chevron_left", self)
-        self._prev.setToolTip(tr("Previous"))
-        self._prev.clicked.connect(self.previous_page)
-        self._next = ArrowButton("chevron_right", self)
-        self._next.setToolTip(tr("Next"))
-        self._next.clicked.connect(self.next_page)
-        head.addWidget(self._prev, 0, Qt.AlignmentFlag.AlignVCenter)
-        head.addWidget(self._next, 0, Qt.AlignmentFlag.AlignVCenter)
-        col.addLayout(head)
+        head = SectionHead(title, self)
+        head.clicked.connect(see_all)
+        col.addWidget(head)
         self._scroll = _SideScroll(self)
         self._scroll.setFrameShape(QFrame.Shape.NoFrame)
         self._scroll.setWidgetResizable(False)
@@ -109,7 +96,8 @@ class Carousel(QWidget):
         row = QHBoxLayout(self._strip)
         row.setContentsMargins(0, 0, 0, 0)
         row.setSpacing(C.px(C.TILE_GAP))
-        for case in cases:
+
+        for case in cases[:3]:
             tile = ExampleTile(case, self._strip)
             tile.clicked.connect(lambda c=case: opener(c))
             row.addWidget(tile)
@@ -122,8 +110,6 @@ class Carousel(QWidget):
         lay.addWidget(self._scroll)
         col.addWidget(holder)
         bar = self._scroll.horizontalScrollBar()
-        bar.valueChanged.connect(self._arrows)
-        bar.rangeChanged.connect(self._arrows)
         watch_scroll(self, bar)
 
     def set_width(self, width: int) -> None:
@@ -138,29 +124,60 @@ class Carousel(QWidget):
         count = len(self.tiles)
         self._strip.setFixedSize(count * tile_w + max(0, count - 1) * gap, tile_height(tile_w))
         self._scroll.setFixedHeight(tile_height(tile_w))
-        self._page = 3 * (tile_w + gap)
-        self._arrows()
 
-    def _arrows(self, *_args) -> None:
-        bar = self._scroll.horizontalScrollBar()
-        more = bar.maximum() > 0
-        self._prev.setVisible(more)
-        self._next.setVisible(more)
-        self._prev.setEnabled(bar.value() > bar.minimum())
-        self._next.setEnabled(bar.value() < bar.maximum())
 
-    def next_page(self) -> None:
-        bar = self._scroll.horizontalScrollBar()
-        bar.setValue(self._snap(bar.value() + self._page))
 
-    def previous_page(self) -> None:
-        bar = self._scroll.horizontalScrollBar()
-        bar.setValue(self._snap(bar.value() - self._page))
 
-    def _snap(self, value: int) -> int:
+_FEATURED_SHARE = 0.6
+_FEATURED_SIDE_W = 600
+_FEATURED_LIST = 3
 
-        step = self._page // 3 if self._page else 1
-        return max(0, round(value / step) * step)
+
+class FeaturedShelf(QWidget):
+
+
+    def __init__(self, title: str, cases: list, opener, see_all, parent=None):
+        super().__init__(parent)
+        self.tiles: list = []
+        self._width = 0
+        col = QVBoxLayout(self)
+        col.setContentsMargins(0, 0, 0, 0)
+        col.setSpacing(C.px(C.SPACE_2))
+        head = SectionHead(title, self)
+        head.clicked.connect(see_all)
+        col.addWidget(head)
+        body = QWidget(self)
+        self._row = QBoxLayout(QBoxLayout.Direction.LeftToRight, body)
+        self._row.setContentsMargins(C.px(C.EDGE), 0, C.px(C.EDGE), 0)
+        self._row.setSpacing(C.px(C.TILE_GAP))
+        self._lead = ExampleTile(cases[0], body)
+        self._lead.clicked.connect(lambda c=cases[0]: opener(c))
+        self._row.addWidget(self._lead, 0, Qt.AlignmentFlag.AlignTop)
+        self.tiles.append(self._lead)
+        self._list = QWidget(body)
+        rows = QVBoxLayout(self._list)
+        rows.setContentsMargins(0, 0, 0, 0)
+        rows.setSpacing(C.px(4))
+        for case in cases[1:1 + _FEATURED_LIST]:
+            item = ExampleRow(case, self._list)
+            item.clicked.connect(lambda c=case: opener(c))
+            rows.addWidget(item)
+            self.tiles.append(item)
+        rows.addStretch(1)
+        self._row.addWidget(self._list, 1, Qt.AlignmentFlag.AlignTop)
+        col.addWidget(body)
+
+    def set_width(self, width: int) -> None:
+        if width == self._width:
+            return
+        self._width = width
+        side = width >= C.px(_FEATURED_SIDE_W) and len(self.tiles) > 1
+        self._row.setDirection(QBoxLayout.Direction.LeftToRight if side
+                               else QBoxLayout.Direction.TopToBottom)
+        gap = C.px(C.TILE_GAP)
+        lead = round((width - gap) * _FEATURED_SHARE) if side else width
+        self._lead.set_tile_width(lead)
+        self._list.setFixedWidth(width - gap - lead if side else width)
 
 
 class ExamplesHome(QWidget):
@@ -289,8 +306,9 @@ class ExamplesHome(QWidget):
                 cases = [c for c in self._cases if c.group == key and c.listed]
                 if not cases:
                     continue
-                carousel = Carousel(text, cases, self.case_opened.emit,
-                                    lambda k=key: self.group_requested.emit(k), self._content)
+                shelf = FeaturedShelf if not self._carousels else Carousel
+                carousel = shelf(text, cases, self.case_opened.emit,
+                                 lambda k=key: self.group_requested.emit(k), self._content)
                 self._content_col.addWidget(carousel)
                 self._carousels.append(carousel)
             if not self._carousels:
@@ -318,7 +336,7 @@ class ExamplesHome(QWidget):
         self._search.setFocus()
 
     def _home_line(self) -> str:
-        return tr("Real tasks the AI agent does from one sentence. Open one to try it.")
+        return tr("Real tasks the AI agent does from one sentence.")
 
     def _grid(self, title: str, cases: list) -> None:
         holder = QWidget(self._content)

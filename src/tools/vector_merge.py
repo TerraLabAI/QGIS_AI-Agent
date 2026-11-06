@@ -22,11 +22,13 @@ from qgis.core import QgsTask
 
 from ..core import layer_order, net, tuning
 from ..core.host_platform import remove_quietly, remove_tree
+from ..core.layer_release import register_task
 from ..core.logger import log_warning
 from ..core.policy import create_managed_temp_dir
 from ..core.qt_compat import enum_member
 from ..core.tool_registry import coded_fact, tool_error
 from . import kml_description
+from .processing_run import _process_outputs
 
 
 
@@ -547,7 +549,6 @@ class FolderMergeTask(QgsTask):
 
 def merge_report(outcome: dict, gpkg: str, name: str, folder: str) -> dict:
 
-    from .processing_run import _process_outputs
 
     layers = outcome.get("layers") or []
     if not layers:
@@ -580,8 +581,6 @@ def merge_report(outcome: dict, gpkg: str, name: str, folder: str) -> dict:
 
 
 def start_folder_merge(folder: str, paths: list, name: str) -> dict:
-    from .processing_run import register_task
-
     task = FolderMergeTask(folder, paths, name)
 
     def connect(_task_id: str, entry: dict) -> None:
@@ -666,7 +665,7 @@ def folder_plan(folder: str, wanted: str) -> tuple[str, object]:
     counts = {ext.lstrip("."): len(paths) for ext, paths in sorted(found.items(), key=lambda kv: -len(kv[1]))}
     wanted = str(wanted or "").strip()
     if wanted:
-        from .layer_io_tools import members_matching
+        from .data_common import members_matching
 
 
 

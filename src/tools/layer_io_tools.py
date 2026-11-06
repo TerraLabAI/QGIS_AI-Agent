@@ -9,9 +9,7 @@ from __future__ import annotations
 
 import os
 import re
-import time
 import unicodedata
-import uuid
 
 from qgis.core import (
     QgsCoordinateReferenceSystem,
@@ -34,16 +32,39 @@ from ..core.background import (
 from ..core.crs_ref import crs_ref
 from ..core.host_platform import IS_WINDOWS, release_pooled_handles, remove_quietly, retry_file_op
 from ..core.layer_order import feature_count_of, is_remote_vector
+from ..core.layer_release import register_task
 from ..core.logger import log_warning
 from ..core.policy import create_managed_temp_dir
 from ..core.qt_compat import enum_member
 from ..core.security import validate_path
+from ..core.snapshot_files import _sqlite_copy
 from ..core.tool_registry import coded_fact, tool_error
+from ..core.vsi import thread_options
 from . import vector_write
 from ._compat import FIELD_TYPES
+from ._layers import layer_not_found, resolve_layer
+from .crs_at_load import _VERDICT_FACT, normalise_crs, verdict
 from .csv_loader import CSV_EXTENSIONS, add_csv
-from .data_common import built_here, ogr_opens, query_sublayers, read_through, worker_options
-from .layer_lookup import _find_layer, _layer_not_found_error, require_vector
+from .data_common import (
+    _SINGLE_LAYER_EXTENSIONS,
+    built_here,
+    members_matching,
+    ogr_opens,
+    query_sublayers,
+    raster_variables,
+    read_through,
+    worker_options,
+)
+from .elevation_style import apply_elevation_style, elevation_stretch
+from .layer_files import (
+    detach_vector_layers_at_path,
+    discard_staged_write,
+    publish_staged_write,
+    release_layers_at_path,
+    restore_detached_layers,
+    staging_path,
+)
+from .layer_lookup import require_vector
 from .missing_file import missing_file
 
 _CONTAINER_EXTENSIONS = (".gpkg", ".sqlite", ".gdb", ".kml", ".kmz", ".gml", ".gpx", ".dxf", ".vrt")
@@ -170,7 +191,6 @@ def container_layers(source: str) -> list | None:
 
 
 
-    from .data_inspect import _SINGLE_LAYER_EXTENSIONS
 
     low = source.lower()
     if "|" in source:
@@ -254,33 +274,29 @@ def archive_datasets(names: list, gdal_path) -> tuple[list, list]:
     found: dict = {}
     verdicts: dict = {}
 
-
-
-    readdir = getattr(gdal, "GetThreadLocalConfigOption", lambda *_: None)("GDAL_DISABLE_READDIR_ON_OPEN", None)
-    set_option = getattr(gdal, "SetThreadLocalConfigOption", lambda *_: None)
-    set_option("GDAL_DISABLE_READDIR_ON_OPEN", "EMPTY_DIR")
     gdal.PushErrorHandler("CPLQuietErrorHandler")
-    try:
-        for name in files:
-            if _is_sidecar(name, lowered):
-                continue
-            ext = os.path.splitext(name)[1].lower()
-            seen = verdicts.get(ext, [])
-            if len(seen) >= _SAME_FORMAT_PROOF and len(set(seen)) == 1:
+    with thread_options(gdal, GDAL_DISABLE_READDIR_ON_OPEN="EMPTY_DIR"):
+        try:
+            for name in files:
+                if _is_sidecar(name, lowered):
+                    continue
+                ext = os.path.splitext(name)[1].lower()
+                seen = verdicts.get(ext, [])
+                if len(seen) >= _SAME_FORMAT_PROOF and len(set(seen)) == 1:
 
 
-                driver_name = seen[0]
-            else:
+                    driver_name = seen[0]
+                else:
 
 
 
-                driver_name = _vector_driver(gdal, gdal_path(name)) or (_TEXT_TABLE if ext in CSV_EXTENSIONS else "")
-                verdicts.setdefault(ext, []).append(driver_name)
-            if driver_name:
-                found.setdefault((os.path.splitext(name)[0].lower(), driver_name), []).append(name)
-    finally:
-        gdal.PopErrorHandler()
-        set_option("GDAL_DISABLE_READDIR_ON_OPEN", readdir)
+                    driver_name = (_vector_driver(gdal, gdal_path(name))
+                                   or (_TEXT_TABLE if ext in CSV_EXTENSIONS else ""))
+                    verdicts.setdefault(ext, []).append(driver_name)
+                if driver_name:
+                    found.setdefault((os.path.splitext(name)[0].lower(), driver_name), []).append(name)
+        finally:
+            gdal.PopErrorHandler()
     vectors, tables, texts = [], [], []
     for (_stem, driver_name), members in found.items():
         if driver_name == _TEXT_TABLE:
@@ -317,43 +333,6 @@ def gdb_folders(names: list) -> list:
                     found.append(folder)
                 break
     return found
-
-
-
-_FORMAT_WORD = re.compile(r"\*?\.?([a-z0-9]{2,8})")
-
-
-def members_matching(names: list, wanted: str) -> list:
-
-
-
-
-    wanted = str(wanted or "").strip()
-    if not wanted:
-        return []
-
-    def keys(member: str) -> tuple:
-        base = os.path.basename(member.rstrip("/\\"))
-        return member, base, os.path.splitext(base)[0]
-
-    folded = wanted.casefold()
-
-
-    exact = ([member for member in names if wanted in keys(member)]
-             or [member for member in names if folded in [key.casefold() for key in keys(member)]])
-    if exact:
-        return exact[:1]
-    word = _FORMAT_WORD.fullmatch(folded)
-    if word:
-        by_format = [member for member in names if member.casefold().endswith("." + word.group(1))]
-        if by_format:
-            return by_format
-    if any(char in wanted for char in "*?["):
-        import fnmatch
-
-        return [member for member in names
-                if any(fnmatch.fnmatchcase(key.casefold(), folded) for key in keys(member))]
-    return []
 
 
 def _table_wkb_type(table) -> int:
@@ -550,7 +529,6 @@ def _readable(text: str, encoding: str = "") -> str:
     return raw.decode("utf-8", "replace")
 
 
-_REMOTE_VECTOR_PREFIXES = ("http://", "https://", "/vsicurl/")
 
 
 _CAD_EXTENSIONS = (".dwg", ".dxf")
@@ -596,7 +574,6 @@ def _cad_crs_question(path: str, name: str) -> dict:
 
 
 
-    from .crs_at_load import _VERDICT_FACT, verdict
 
     def refusal(probe) -> dict:
         if not probe.isValid():
@@ -606,10 +583,10 @@ def _cad_crs_question(path: str, name: str) -> dict:
                               "EXECUTION_FAILED", hint="cad_unreadable")
         found = verdict(probe, QgsCoordinateReferenceSystem(), declared=False)
         found = found or {"verdict": "missing", "crs": "", "candidates": []}
-        candidate_crs = [authid for authid, _why in found["candidates"]]
+        candidate_crs = list(found["candidates"])
         return tool_error(
             "CAD import needs the CRS the drawing was made in, and a drawing does not say it: "
-            "nothing was imported." + (f" {found['detail']}" if found.get("detail") else ""),
+            "nothing was imported.",
             "INVALID_ARGS",
             candidate_crs=candidate_crs,
             variant="candidates" if candidate_crs else "none", layer=name, cad=True,
@@ -926,11 +903,6 @@ def _add_vector_layer(args: dict) -> dict:
 
     path = args["path"]
     name = args.get("name") or os.path.splitext(os.path.basename(path))[0]
-
-    if path.startswith(_REMOTE_VECTOR_PREFIXES):
-        from .data_tools import _add_vector_from_url
-        url = path.replace("/vsicurl/", "") if path.startswith("/vsicurl/") else path
-        return _add_vector_from_url({"url": url, "layer_name": name, "crs": args.get("crs")})
 
 
 
@@ -1310,7 +1282,6 @@ def _add_raster_layer(args: dict) -> dict:
         return missing_file(path, f"File not found: {path}")
 
     from .processing_paths import narrow_open_path
-    from .stac_tools import normalise_crs, raster_variables
 
 
     source, unopenable = narrow_open_path(path)
@@ -1344,7 +1315,6 @@ def _add_raster_layer(args: dict) -> dict:
         source = _zip_member_uri(path, picked[0])
         if not args.get("name"):
             name = os.path.splitext(os.path.basename(picked[0]))[0]
-    from .elevation_style import apply_elevation_style, elevation_stretch
 
 
 
@@ -1474,104 +1444,6 @@ def _add_point_cloud_layer(args: dict) -> dict:
     return out
 
 
-def _same_file(a: str, b: str) -> bool:
-
-
-    try:
-        if os.path.normcase(os.path.abspath(a)) == os.path.normcase(os.path.abspath(b)):
-            return True
-
-        return ("~" in a or "~" in b) and os.path.exists(a) and os.path.exists(b) and os.path.samefile(a, b)
-    except Exception:
-        return False
-
-
-def _release_layers_at_path(path: str, skip_ids=None, delete_existing: bool = False) -> list:
-
-
-
-
-
-
-
-
-
-
-
-    if not os.path.exists(path):
-        return []
-    from .processing_run import remove_layers
-
-    removed = []
-    skip_ids = set(skip_ids or ())
-    project = QgsProject.instance()
-    for layer_id, layer in list(project.mapLayers().items()):
-        if layer_id in skip_ids:
-            continue
-        source = layer.source() or ""
-
-        file_part = source.split("|", 1)[0]
-        if not file_part or not _same_file(file_part, path):
-            continue
-
-
-
-        release_pooled_handles(layer)
-        removed += remove_layers([layer_id])
-
-    if not delete_existing:
-        return removed
-
-
-
-
-
-
-
-    still_loaded = any(
-        (lyr.source() or "").split("|", 1)[0]
-        and _same_file((lyr.source() or "").split("|", 1)[0], path)
-        for lyr in project.mapLayers().values()
-    )
-    if not still_loaded:
-        _delete_with_retry(path)
-    return removed
-
-
-def _staging_path(path: str) -> str:
-
-
-
-
-
-
-    directory = os.path.dirname(path) or "."
-    stem, ext = os.path.splitext(os.path.basename(path))
-    tag = uuid.uuid4().hex[:8]
-    staging = os.path.join(directory, f".{stem}.ai-agent-{tag}.partial{ext}")
-    from ..core import security
-
-
-
-
-
-    if len(staging) + 8 >= security._MAX_PATH and not security._long_paths_ok():
-        staging = os.path.join(directory, f".ai-{tag}.partial{ext}")
-    return staging
-
-
-def _staged_files(staging: str) -> list:
-
-    directory = os.path.dirname(staging) or "."
-    stem = os.path.splitext(os.path.basename(staging))[0]
-    try:
-        names = os.listdir(directory)
-    except OSError:
-        return []
-    return [os.path.join(directory, name) for name in names
-            if os.path.splitext(name)[0] == stem and os.path.isfile(os.path.join(directory, name))]
-
-
 def _raster_staged_files(staging: str) -> list:
 
 
@@ -1587,105 +1459,6 @@ def _raster_staged_files(staging: str) -> list:
         return []
     return [os.path.join(directory, name) for name in names
             if (name == stem or name.startswith(stem + ".")) and os.path.isfile(os.path.join(directory, name))]
-
-
-def _publish_staged_write(staging: str, path: str) -> str:
-
-
-
-
-
-
-    produced = _staged_files(staging)
-    if not os.path.isfile(staging):
-        return f"the writer produced no file at {os.path.basename(staging)}"
-    target_stem = os.path.splitext(path)[0]
-    try:
-
-
-        for produced_path in sorted(produced, key=lambda f: f == staging):
-            extension = os.path.splitext(produced_path)[1]
-
-
-
-
-            retry_file_op(os.replace, produced_path, f"{target_stem}{extension}")
-    except OSError as exc:
-        return str(exc)
-    return ""
-
-
-def _detach_vector_layers_at_path(path: str) -> tuple[list[dict], dict]:
-
-
-
-
-
-
-
-
-    from qgis.core import QgsMapLayerStyle
-
-    matches = []
-    for layer in QgsProject.instance().mapLayers().values():
-        source = layer.source() or ""
-        file_part = source.split("|", 1)[0]
-        if not file_part or not _same_file(file_part, path):
-            continue
-        if not isinstance(layer, QgsVectorLayer):
-            return [], tool_error(f"A non-vector layer named '{layer.name()}' is using {os.path.basename(path)}.",
-                                  hint="export_target_non_vector_layer", layer=layer.name(),
-                                  file=os.path.basename(path))
-        if layer.isEditable() or layer.isModified():
-            return [], tool_error(f"Layer '{layer.name()}' has unsaved edits in {os.path.basename(path)}.",
-                                  hint="export_target_unsaved_edits", layer=layer.name(),
-                                  file=os.path.basename(path))
-        style = QgsMapLayerStyle()
-        style.readFromLayer(layer)
-        matches.append({
-            "layer": layer,
-            "source": source,
-            "name": layer.name(),
-            "provider": layer.providerType(),
-            "style": style,
-            "selection": list(layer.selectedFeatureIds()),
-            "subset": layer.subsetString(),
-        })
-
-    detached = []
-    for state in matches:
-        layer = state["layer"]
-        geometry = QgsWkbTypes.displayString(layer.wkbType()) or "None"
-        crs = layer.crs().authid()
-        temporary = geometry + (f"?crs={crs}" if crs else "")
-        detached.append(state)
-
-
-        release_pooled_handles(layer)
-        layer.setDataSource(temporary, state["name"], "memory")
-        if not layer.isValid() or layer.providerType() != "memory":
-            _restore_detached_layers(detached)
-            return [], tool_error(f"Could not release layer '{state['name']}' before replacing "
-                                  f"{os.path.basename(path)}.")
-    return detached, {}
-
-
-def _restore_detached_layers(states: list[dict]) -> list[str]:
-
-    failed = []
-    for state in states:
-        layer = state["layer"]
-        layer.setDataSource(state["source"], state["name"], state["provider"])
-        if not layer.isValid():
-            failed.append(state["name"])
-            continue
-        if state["subset"]:
-            layer.setSubsetString(state["subset"])
-        state["style"].writeToLayer(layer)
-        if state["selection"]:
-            layer.selectByIds(state["selection"])
-        layer.triggerRepaint()
-    return failed
 
 
 def _style_into_export(layer, path: str, driver: str, table: str) -> dict:
@@ -1728,24 +1501,18 @@ def _style_into_export(layer, path: str, driver: str, table: str) -> dict:
 def _publish_export(staging: str, path: str, driver: str) -> tuple[dict, list[str]]:
 
     if driver != "GPKG" or not os.path.exists(path):
-        written = _publish_staged_write(staging, path)
+        written = publish_staged_write(staging, path)
         return (_export_failure(path, written, lead="") if written else {}), []
-    states, detach_error = _detach_vector_layers_at_path(path)
+    states, detach_error = detach_vector_layers_at_path(path)
     if detach_error:
         return detach_error, []
     try:
-        written = _publish_staged_write(staging, path)
+        written = publish_staged_write(staging, path)
     finally:
-        failed = _restore_detached_layers(states)
+        failed = restore_detached_layers(states)
     if failed:
         return tool_error(f"The export was written, but these layers could not be refreshed: {', '.join(failed)}"), []
     return (_export_failure(path, written, lead="") if written else {}), [state["name"] for state in states]
-
-
-def _discard_staged_write(staging: str) -> None:
-
-    for produced_path in _staged_files(staging):
-        remove_quietly(produced_path)
 
 
 
@@ -1913,56 +1680,6 @@ def _field_kind_name(field) -> str:
     return ""
 
 
-def _delete_with_retry(path: str, attempts: int = 8, pause: float = 0.02) -> bool:
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    max_pause = 0.15
-
-
-    try:
-        from osgeo import gdal
-    except Exception:
-        gdal = None
-
-    for attempt in range(attempts):
-        if not os.path.exists(path):
-            return True
-        if gdal is not None:
-            try:
-                gdal.Unlink(path)
-            except Exception:  # nosec B110
-                pass
-            if not os.path.exists(path):
-                return True
-        try:
-            os.remove(path)
-            return True
-        except FileNotFoundError:
-            return True
-        except OSError:
-            if attempt == attempts - 1:
-                return False
-            time.sleep(min(pause * (2 ** attempt), max_pause))
-    return False
-
-
 def _staging_failure(path: str, exc: Exception) -> dict:
     return tool_error(f"Could not prepare the export beside {os.path.basename(path)}: {exc}",
                       "EXECUTION_FAILED", hint="export_staging_failed")
@@ -1970,7 +1687,6 @@ def _staging_failure(path: str, exc: Exception) -> dict:
 
 def _copy_into_staging(_task, source: str, staging: str) -> bool:
 
-    from ..core.snapshot_files import _sqlite_copy
 
     _sqlite_copy(source, staging)
     return True
@@ -1988,8 +1704,6 @@ def _export_in_background(layer, path: str, staging: str, driver: str, options, 
 
     try:
         from qgis.core import QgsTask, QgsVectorFileWriterTask
-
-        from .processing_run import register_task
     except ImportError:
         return None
     try:
@@ -1997,7 +1711,7 @@ def _export_in_background(layer, path: str, staging: str, driver: str, options, 
 
         task = QgsVectorFileWriterTask(layer, staging, options)
     except (TypeError, ValueError):
-        _discard_staged_write(staging)
+        discard_staged_write(staging)
         return None
     copy = None
     if stage_from:
@@ -2006,7 +1720,7 @@ def _export_in_background(layer, path: str, staging: str, driver: str, options, 
                                         _copy_into_staging, stage_from, staging)
             task.addSubTask(copy, [], enum_member(QgsTask, "SubTaskDependency", "ParentDependsOnSubTask"))
         except (AttributeError, TypeError, ValueError):
-            _discard_staged_write(staging)
+            discard_staged_write(staging)
             return None
     done = {"exported": path, "format": driver, "feature_count": count,
             "selected_only": options.onlySelectedFeatures}
@@ -2030,14 +1744,14 @@ def _export_in_background(layer, path: str, staging: str, driver: str, options, 
 
 
             if entry.get("status") != "running":
-                _discard_staged_write(staging)
+                discard_staged_write(staging)
                 entry.pop("partial_file", None)
                 entry["note"] = (f"The export was stopped. {os.path.basename(path)} was not touched: the "
                                  f"write went to a file of its own, which has been removed.")
                 return
             publish_error, refreshed = _publish_export(staging, path, driver)
             if publish_error:
-                _discard_staged_write(staging)
+                discard_staged_write(staging)
                 entry["status"] = "error"
                 entry["error"] = (f"The export was written but could not be put in place at {path}: "
                                   f"{publish_error}. The file that was there is unchanged.")
@@ -2055,7 +1769,7 @@ def _export_in_background(layer, path: str, staging: str, driver: str, options, 
             entry["outputs"] = done
 
         def failed(_code, message) -> None:
-            _discard_staged_write(staging)
+            discard_staged_write(staging)
             entry.pop("partial_file", None)
             if entry.get("status") != "running":
                 return
@@ -2067,7 +1781,7 @@ def _export_in_background(layer, path: str, staging: str, driver: str, options, 
 
 
 
-            _discard_staged_write(staging)
+            discard_staged_write(staging)
             entry.pop("partial_file", None)
             failed_copy = getattr(copy, "exception", None) if copy is not None else None
             if failed_copy is not None and entry.get("status") == "running":
@@ -2088,7 +1802,7 @@ def _export_in_background(layer, path: str, staging: str, driver: str, options, 
     try:
         task_id, _entry = register_task(task, f"export_layer {driver}", connect=wire)
     except Exception:  # noqa: BLE001
-        _discard_staged_write(staging)
+        discard_staged_write(staging)
         return None
     return {"task_id": task_id, "status": "running", "exporting": path, "feature_count": count,
             **coded_fact(hint="export_running", task_id=task_id),
@@ -2150,7 +1864,7 @@ def _export_raster(layer, path: str, args: dict) -> dict:
         return tool_error(f"{path} already exists.", "INVALID_ARGS", hint="export_raster_exists", path=path)
     source = layer.source().split("|", 1)[0]
     os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
-    staging = _staging_path(path)
+    staging = staging_path(path)
     try:
         if layer.providerType() == "gdal" and os.path.isfile(source):
             from osgeo import gdal
@@ -2172,7 +1886,7 @@ def _export_raster(layer, path: str, args: dict) -> dict:
                                       QgsProject.instance().transformContext())
             if int(code) != 0:
                 raise RuntimeError(f"QgsRasterFileWriter returned error {int(code)}")
-        released = _release_layers_at_path(path, skip_ids={layer.id()})
+        released = release_layers_at_path(path, skip_ids={layer.id()})
 
 
 
@@ -2228,9 +1942,9 @@ def _csv_geometry(layer) -> tuple[str, list[str]] | dict:
 def _export_layer(args: dict) -> dict:
     from qgis.core import QgsCoordinateReferenceSystem, QgsVectorFileWriter
 
-    layer = _find_layer(args["layer_name"])
+    layer = resolve_layer(args["layer_name"])
     if not layer:
-        return _layer_not_found_error(args["layer_name"])
+        return layer_not_found(args["layer_name"])
 
     path = args["path"]
     path_error = validate_path(path, write=True)
@@ -2290,7 +2004,7 @@ def _export_layer(args: dict) -> dict:
 
 
 
-    released = [] if driver == "GPKG" else _release_layers_at_path(path, skip_ids={layer.id()})
+    released = [] if driver == "GPKG" else release_layers_at_path(path, skip_ids={layer.id()})
 
     options = QgsVectorFileWriter.SaveVectorOptions()
     options.driverName = driver
@@ -2323,7 +2037,7 @@ def _export_layer(args: dict) -> dict:
 
 
 
-    staging = _staging_path(path)
+    staging = staging_path(path)
     if driver == "GPKG":
 
 
@@ -2357,7 +2071,7 @@ def _export_layer(args: dict) -> dict:
                 else:
                     _sqlite_copy(path, staging)
             except (OSError, sqlite3.Error) as exc:
-                _discard_staged_write(staging)
+                discard_staged_write(staging)
                 return _staging_failure(path, exc)
             options.actionOnExistingFile = enum_member(
                 QgsVectorFileWriter, "ActionOnExistingFile", "CreateOrOverwriteLayer")
@@ -2404,7 +2118,7 @@ def _export_layer(args: dict) -> dict:
         try:
             _sqlite_copy(stage_from, staging)
         except (OSError, sqlite3.Error) as exc:
-            _discard_staged_write(staging)
+            discard_staged_write(staging)
             return _staging_failure(path, exc)
 
     error_code, error_msg, *_ = QgsVectorFileWriter.writeAsVectorFormatV3(
@@ -2412,12 +2126,12 @@ def _export_layer(args: dict) -> dict:
     )
 
     if error_code != enum_member(QgsVectorFileWriter, "WriterError", "NoError"):
-        _discard_staged_write(staging)
+        discard_staged_write(staging)
         return _export_failure(path, error_msg)
 
     publish_failure, refreshed = _publish_export(staging, path, driver)
     if publish_failure:
-        _discard_staged_write(staging)
+        discard_staged_write(staging)
         publish_failure["_error"] = (f"The export was written but could not be put in place at {path}: "
                                      f"{publish_failure['_error']}")
         return publish_failure

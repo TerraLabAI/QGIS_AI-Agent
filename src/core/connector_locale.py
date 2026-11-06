@@ -35,15 +35,7 @@
 
 from __future__ import annotations
 
-try:  # pragma: no cover
-    from qgis.PyQt.QtCore import QLocale
-except Exception:  # noqa: BLE001
-    QLocale = None  # type: ignore[assignment]
-
-try:  # pragma: no cover
-    from qgis.core import QgsSettings
-except Exception:  # noqa: BLE001
-    QgsSettings = None  # type: ignore[assignment]
+from .i18n import qgis_locale_names
 
 
 
@@ -113,20 +105,7 @@ def system_locale() -> tuple[str, str]:
     global _cached_locale
     if _cached_locale is not None:
         return _cached_locale
-    chosen = ""
-    if QgsSettings is not None:
-        try:
-            store = QgsSettings()
-            if bool(store.value("locale/overrideFlag", False, type=bool)):
-                chosen = str(store.value("locale/userLocale", "", type=str) or "")
-        except Exception:  # noqa: BLE001
-            chosen = ""
-    machine = ""
-    if QLocale is not None:
-        try:
-            machine = str(QLocale.system().name() or "")
-        except Exception:  # noqa: BLE001
-            machine = ""
+    chosen, machine = qgis_locale_names()
     picked_language, picked_region = _split(chosen)
     machine_language, machine_region = _split(machine)
 

@@ -24,6 +24,8 @@ import re
 import urllib.parse
 from typing import NamedTuple
 
+from . import tuning
+
 
 
 
@@ -84,7 +86,6 @@ def open_data_hosts() -> tuple:
 
 
 
-    from . import tuning
 
     served = tuning.service_list("open_data_hosts", ())
     return (OPEN_DATA_HOST, *(host for host in served if not host.startswith(".") and host != OPEN_DATA_HOST))
@@ -161,7 +162,6 @@ class Resolved(NamedTuple):
 
 
 _UNCHANGED = "unchanged"
-
 
 _HEX = "0123456789abcdef"
 _LETTERS = "abcdefghijklmnopqrstuvwxyz"
@@ -461,17 +461,6 @@ def _file(name: str, url: str, size=None, fmt: str = "") -> dict:
 
 
 _SOCRATA_GEOMETRY = ("point", "multipoint", "line", "multiline", "polygon", "multipolygon", "location")
-_ARCGIS_SERVICES = ("Feature Service", "Map Service", "Image Service", "Vector Tile Service")
-_ARCGIS_FILE_EXT = {"Shapefile": ".zip", "CSV": ".csv", "GeoJson": ".geojson", "File Geodatabase": ".zip",
-                    "KML": ".kml", "GeoPackage": ".gpkg", "Microsoft Excel": ".xlsx", "Image": ".tif"}
-
-
-_WEBMAP_SERVICES = {"ArcGISFeatureLayer": "Feature Service", "ArcGISMapServiceLayer": "Map Service",
-                    "ArcGISTiledMapServiceLayer": "Map Service", "ArcGISImageServiceLayer": "Image Service",
-                    "ArcGISTiledImageServiceLayer": "Image Service"}
-_WEBMAP_OGC = ("WMS", "WMTS", "WFS", "OGCFeatureLayer")
-
-
 def _webmap_layers(layers, depth: int = 0) -> list[dict]:
 
     out: list[dict] = []
@@ -485,9 +474,9 @@ def _webmap_layers(layers, depth: int = 0) -> list[dict]:
         if not url.startswith(("https://", "http://")):
             continue
         title = str(layer.get("title") or "") or posixpath.basename(url.rstrip("/"))
-        if kind in _WEBMAP_SERVICES:
-            entry = dict(_file(title, url.rstrip("/")), service=_WEBMAP_SERVICES[kind])
-        elif kind in _WEBMAP_OGC:
+        if kind in _served("webmap_services", {}):
+            entry = dict(_file(title, url.rstrip("/")), service=_served("webmap_services", {})[kind])
+        elif kind in _served("webmap_ogc", []):
             entry = dict(_file(title, url), folder=True)
         else:
             entry = _file(title, url)
@@ -560,7 +549,7 @@ def listing_files(listing: str, api_url: str, payload) -> list[dict]:
         parts = urllib.parse.urlsplit(api_url)
         layer = _fragment_params(parts.fragment).get("layer", "")
         kind, title = str(payload.get("type") or ""), str(payload.get("title") or payload["id"])
-        if kind in _ARCGIS_SERVICES and payload.get("url"):
+        if kind in _served("arcgis_services", []) and payload.get("url"):
             url = str(payload["url"]).rstrip("/")
             _service, slash, last = url.rpartition("/")
             if layer and kind == "Feature Service" and not (slash and last.isdecimal()):
@@ -571,9 +560,10 @@ def listing_files(listing: str, api_url: str, payload) -> list[dict]:
             prefix = parts.path.split("/sharing/", 1)[0]
             files.append(dict(_file(title, f"{parts.scheme}://{parts.netloc}{prefix}/home/webmap/viewer.html"
                                            f"?webmap={payload['id']}"), folder=True))
-        elif kind in _ARCGIS_FILE_EXT:
+        elif kind in _served("arcgis_file_ext", {}):
             data = f"{parts.scheme}://{parts.netloc}{parts.path}/data"
-            files.append(_file(f"{title}{_ARCGIS_FILE_EXT[kind]}" if not posixpath.splitext(title)[1] else title,
+            suffix = _served("arcgis_file_ext", {})[kind]
+            files.append(_file(f"{title}{suffix}" if not posixpath.splitext(title)[1] else title,
                                data, payload.get("size")))
     elif listing == "arcgis_webmap" and isinstance(payload, dict):
         files.extend(_webmap_layers(payload.get("operationalLayers")))
@@ -613,16 +603,19 @@ def listing_terms(listing: str, payload) -> dict:
     return out
 
 
+def _served(name: str, empty):
 
-DATA_EXTENSIONS = frozenset({
-    ".geojson", ".json", ".gpkg", ".kml", ".kmz", ".zip", ".shp", ".csv", ".fgb", ".parquet", ".geoparquet",
-    ".gpx", ".gml", ".tif", ".tiff", ".pmtiles", ".xlsx", ".ods", ".jp2", ".laz", ".las", ".nc", ".gz",
-})
 
-_RANK = {**dict.fromkeys((".geojson", ".gpkg", ".shp", ".zip", ".kml", ".kmz", ".fgb", ".parquet",
-                           ".geoparquet", ".gpx", ".gml", ".json", ".gz"), 0),
-         **dict.fromkeys((".tif", ".tiff", ".pmtiles", ".jp2", ".nc", ".laz", ".las"), 1),
-         **dict.fromkeys((".csv", ".xlsx", ".ods"), 2)}
+    from . import source_rules
+
+    return source_rules.table("links" if name.startswith(("arcgis", "webmap")) else "files", name, empty)
+
+
+def data_extensions() -> list:
+
+    return _served("data_exts", [])
+
+
 
 
 def rank(entry: dict) -> int:
@@ -630,7 +623,7 @@ def rank(entry: dict) -> int:
         return 0
     if entry.get("folder"):
         return 4
-    return _RANK.get(extension(entry.get("name") or "") or extension(entry.get("url") or ""), 3)
+    return _served("rank", {}).get(extension(entry.get("name") or "") or extension(entry.get("url") or ""), 3)
 
 
 def extension(name: str) -> str:

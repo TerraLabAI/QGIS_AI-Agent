@@ -17,10 +17,11 @@ import urllib.request
 
 from qgis.core import QgsProject, QgsVectorLayer
 
-from ..core import catalog, limits, net, tuning
+from ..core import catalog, geodata_rules, limits, net, tuning
 from ..core.background import run_on_main_thread
 from ..core.data_date import from_range
 from ..core.host_platform import remove_quietly, remove_tree
+from ..core.output_paths import file_stem
 from ..core.policy import create_managed_temp_dir
 from ..core.tool_registry import ServedValueMissing, coded_fact, tool_error
 from . import volume_guard
@@ -29,7 +30,6 @@ from .data_common import (
     _OSM_RECENT,
     _OVERPASS_CONNECT_TIMEOUT,
     _TOTAL_TIMEOUT_FACTOR,
-    _USER_AGENT,
     _bbox_km2,
     _footprint_box,
     _json_object,
@@ -41,7 +41,7 @@ from .data_common import (
     _vector_source_from_features,
     _worker_layer,
 )
-from .data_inspect import _human_bytes, _safe_extract_stem
+from .data_inspect import _human_bytes
 from .data_osm_geometry import (
     _LIFTED_FAMILIES,
     _OSM_GEOMETRY_TYPES,
@@ -64,11 +64,12 @@ from .data_osm_geometry import (
     _with_overpass_settings,
 )
 from .data_overture import (
-    _OSM_ATTRIBUTION,
-    _OVERTURE_BUILDING_ATTRIBUTION,
-    _OVERTURE_LICENCES,
+    _osm_attribution,
+    _osm_licence,
+    _overture_attribution,
     _overture_call,
     _overture_layer,
+    _overture_licence,
 )
 from .data_overture_extract import _lifted_deadline, _overture_clip, continue_in_background
 
@@ -165,22 +166,13 @@ def _osm_public_mirrors(used: list) -> list:
 
 
 
-_OVERPASS_UNREACHABLE = ("502", "503", "504", "timed out", "timeout", "refused",
-                         "name or service not known", "nodename nor servname",
-                         "temporary failure in name resolution", "unreachable",
-                         "connection reset", "no route to host", "bad gateway")
-
-
-
-
-_OVERPASS_INSTANCE_FAULTS = ("invalid response from overpass api", "open64", "file_blocks_index", "dispatcher")
-
-
-_OVERPASS_NO_HISTORY = "no museum files"
+def _instance_fault(text: str) -> bool:
+    return any(marker in text for marker in geodata_rules.rule("osm", "instance_faults"))
 
 
 def _own_has_no_history(errors) -> bool:
-    return any(_OVERPASS_NO_HISTORY in str(item).lower() for item in errors or [])
+    remark = geodata_rules.rule("osm", "no_history")
+    return any(remark in str(item).lower() for item in errors or [])
 
 
 def _no_history_over_cap(area_km2: float, public_cap: float) -> dict:
@@ -209,12 +201,12 @@ def _own_overpass_unreachable(errors) -> bool:
         text = str(item).lower()
         if not host or host not in text:
             continue
-        if any(marker in text for marker in _OVERPASS_INSTANCE_FAULTS):
+        if _instance_fault(text):
             counted.append(True)
             continue
         if any(marker in text for marker in _OVERPASS_TIMEOUT_MARKERS):
             continue
-        counted.append(any(word in text for word in _OVERPASS_UNREACHABLE))
+        counted.append(any(word in text for word in geodata_rules.rule("osm", "unreachable")))
     return bool(counted) and all(counted)
 
 
@@ -321,17 +313,9 @@ def _osm_area_refusal(km2: float, box=None, args: dict | None = None) -> dict | 
 
 _FOOTPRINT_SOURCES = ("microsoft", "google", "openstreetmap", "overture")
 _FOOTPRINT_SOURCE_INPUTS = (*_FOOTPRINT_SOURCES, "osm")
-_FOOTPRINT_DEFAULT_SOURCES = ("microsoft", "openstreetmap")
-_FOOTPRINT_LABELS = {"microsoft": "Microsoft Buildings",
-                     "google": "Google Open Buildings",
-                     "openstreetmap": "OSM Buildings",
-                     "overture": "Overture Buildings"}
 
 
 
-
-
-_FOOTPRINT_MAX_SPAN_DEG = 0.5
 
 
 _FOOTPRINT_TIMEOUT = 75
@@ -349,7 +333,7 @@ def _fetch_building_footprints(args: dict) -> dict:
 
 
 
-    asked = args.get("sources") or list(_FOOTPRINT_DEFAULT_SOURCES)
+    asked = args.get("sources") or list(geodata_rules.rule("osm", "footprint_default_sources"))
     if isinstance(asked, str):
         asked = [part.strip() for part in asked.split(",")]
     asked = ["openstreetmap" if source == "osm" else source for source in asked]
@@ -360,9 +344,10 @@ def _fetch_building_footprints(args: dict) -> dict:
 
 
     span = max(east - west, north - south)
-    if span > _FOOTPRINT_MAX_SPAN_DEG:
-        return tool_error(f"Each side of the box must stay under {_FOOTPRINT_MAX_SPAN_DEG} degrees.",
-                          hint="footprint_span", max_deg=_FOOTPRINT_MAX_SPAN_DEG)
+    max_span = geodata_rules.rule("osm", "footprint_max_span_deg")
+    if span > max_span:
+        return tool_error(f"Each side of the box must stay under {max_span} degrees.",
+                          hint="footprint_span", max_deg=max_span)
     area_km2 = _bbox_km2(south, west, north, east)
     cap_km2 = volume_guard.footprints_max_km2()
     if area_km2 > cap_km2:
@@ -390,12 +375,12 @@ def _fetch_building_footprints(args: dict) -> dict:
         else:
             features = overture.get("features") or []
             if features:
-                label = _FOOTPRINT_LABELS["overture"]
+                label = geodata_rules.rule("osm", "footprint_labels", "overture")
                 name = (f"{args['layer_name']} {label}" if args.get("layer_name") and len(sources) > 1
                         else args.get("layer_name") or label)
                 planned.append(("overture", name, features,
-                                overture.get("licence") or _OVERTURE_LICENCES["buildings"],
-                                overture.get("attribution") or _OVERTURE_BUILDING_ATTRIBUTION))
+                                overture.get("licence") or _overture_licence("buildings"),
+                                overture.get("attribution") or _overture_attribution("buildings")))
             else:
                 empty.append({"source": "overture", "status": "empty"})
     service_sources = [source for source in sources if source != "overture"]
@@ -404,8 +389,7 @@ def _fetch_building_footprints(args: dict) -> dict:
 
         query = urllib.parse.urlencode({"bbox": f"{west},{south},{east},{north}",
                                         "sources": ",".join(names)})
-        request = urllib.request.Request(f"{_service('footprints')}?{query}",
-                                         headers={"User-Agent": _USER_AGENT})
+        request = urllib.request.Request(f"{_service('footprints')}?{query}")
 
 
 
@@ -475,7 +459,7 @@ def _fetch_building_footprints(args: dict) -> dict:
         source_id = entry.get("sourceId", "")
         collection = entry.get("featureCollection")
         features = (collection or {}).get("features") or []
-        label = _FOOTPRINT_LABELS.get(source_id, source_id or "Buildings")
+        label = geodata_rules.rule("osm", "footprint_labels").get(source_id, source_id or "Buildings")
         name = args.get("layer_name") or label
         if len(sources) > 1:
             name = f"{args['layer_name']} {label}" if args.get("layer_name") else label
@@ -540,7 +524,6 @@ def _fetch_building_footprints(args: dict) -> dict:
 
 
 
-_OVERPASS_REJECTED = ("400", "414")
 
 
 _OVERPASS_HTTP_PREFIX = re.compile(r"^HTTP Error \d{3}:\s*")
@@ -613,7 +596,7 @@ def _overpass_rejection(errors) -> str:
         return ""
 
 
-    if not all(any(text.startswith(f"HTTP Error {code}") for code in _OVERPASS_REJECTED)
+    if not all(any(text.startswith(f"HTTP Error {code}") for code in geodata_rules.rule("osm", "rejected_codes"))
                or "parse error" in text.lower() for text in answers):
         return ""
     return _OVERPASS_HTTP_PREFIX.sub("", answers[0])
@@ -755,14 +738,14 @@ def _fetch_osm_data(args: dict, check_only: bool = False) -> dict:
             "source_endpoint": endpoint_used,
 
 
-            "licence": "ODbL 1.0",
-            "attribution": _OSM_ATTRIBUTION,
+            "licence": _osm_licence(),
+            "attribution": _osm_attribution(),
         }
         dated = {"data_date": osm_day} if osm_day else {}
         out.update(dated)
         if several:
             for entry in added:
-                entry.update(licence="ODbL 1.0", attribution=_OSM_ATTRIBUTION, **dated)
+                entry.update(licence=_osm_licence(), attribution=_osm_attribution(), **dated)
             out["layers"] = added
             out["feature_count"] = sum(entry["feature_count"] for entry in added)
             out["geometry_mix"] = {_OSM_GEOMETRY_TYPES[f]: len(by_family[f]) for f, *_rest in planned}
@@ -837,7 +820,7 @@ def _overpass_answer(query: str, box, args: dict, area_km2: float) -> dict:
             raise ValueError("Invalid response from Overpass API") from exc
 
     def ask(url: str):
-        req = urllib.request.Request(url, data=post_data, headers={"User-Agent": _USER_AGENT})
+        req = urllib.request.Request(url, data=post_data)
         try:
             raw = net.fetch(req, timeout=budget, max_bytes=_MAX_DOWNLOAD_SIZE,
                             total_timeout=budget * _TOTAL_TIMEOUT_FACTOR,
@@ -847,7 +830,7 @@ def _overpass_answer(query: str, box, args: dict, area_km2: float) -> dict:
             answer = decode_answer(raw)
             remark = _overpass_timeout_remark(answer)
             if remark:
-                if any(marker in remark.lower() for marker in _OVERPASS_INSTANCE_FAULTS):
+                if _instance_fault(remark.lower()):
 
 
                     raise ValueError(f"Invalid response from Overpass API: {remark[:120]}")
@@ -1127,7 +1110,7 @@ def _osm_stream_load(query: str, final_query: str, args: dict, area_km2: float, 
         with open(answer_path, "rb") as head_file:
             stamp = re.search(rb'"timestamp_osm_base"\s*:\s*"([^"]+)"', head_file.read(4096))
         osm_day = from_range(stamp.group(1).decode("ascii", "replace")) if stamp else ""
-        stem = _safe_extract_stem(layer_name)
+        stem = file_stem(layer_name, "extract")
         gpkg = os.path.join(directory, f"{stem}.gpkg")
         converted = _osm_stream_convert(
             _OverpassFile(answer_path), query, final_query, gpkg, stem, check,
@@ -1171,8 +1154,8 @@ def _osm_stream_load(query: str, final_query: str, args: dict, area_km2: float, 
                     continue
                 QgsProject.instance().addMapLayer(layer)
                 added.append({"layer_name": layer.name(), "layer_id": layer.id(), "feature_count": counts[family],
-                              "geometry_type": _OSM_GEOMETRY_TYPES[family], "licence": "ODbL 1.0",
-                              "attribution": _OSM_ATTRIBUTION, **({"data_date": osm_day} if osm_day else {})})
+                              "geometry_type": _OSM_GEOMETRY_TYPES[family], "licence": _osm_licence(),
+                              "attribution": _osm_attribution(), **({"data_date": osm_day} if osm_day else {})})
             return added
 
         check()
@@ -1182,8 +1165,8 @@ def _osm_stream_load(query: str, final_query: str, args: dict, area_km2: float, 
         kept = True
         size = os.path.getsize(gpkg)
         wall = time.monotonic() - started
-        out = {"crs": "EPSG:4326", "source_endpoint": endpoint_used, "licence": "ODbL 1.0",
-               "attribution": _OSM_ATTRIBUTION, "lifted": True, "feature_count": total, "size_bytes": size,
+        out = {"crs": "EPSG:4326", "source_endpoint": endpoint_used, "licence": _osm_licence(),
+               "attribution": _osm_attribution(), "lifted": True, "feature_count": total, "size_bytes": size,
                "size": _human_bytes(size), "download_bytes": download_bytes, "wall_s": round(wall, 1),
                "path": gpkg, "box_km2": round(area_km2, 1), **({"data_date": osm_day} if osm_day else {})}
         if several:
@@ -1245,7 +1228,7 @@ def _osm_stream_fetch(final_query: str, directory: str, area_km2: float, args: d
         left = deadline - time.monotonic()
         if left <= 1:
             raise net.FetchDeadline("No time was left in this call to download the answer.")
-        request = urllib.request.Request(url, data=post_data, headers={"User-Agent": _USER_AGENT})
+        request = urllib.request.Request(url, data=post_data)
         try:
             net.fetch_to_file(request, path, timeout=query_timeout + _OSM_STREAM_SILENCE_S, max_bytes=cap,
                               total_timeout=left, connect_timeout=_OVERPASS_CONNECT_TIMEOUT)
@@ -1261,7 +1244,7 @@ def _osm_stream_fetch(final_query: str, directory: str, area_km2: float, args: d
             remove_quietly(path)
             raise
         if remark:
-            if any(marker in remark.lower() for marker in _OVERPASS_INSTANCE_FAULTS):
+            if _instance_fault(remark.lower()):
                 remove_quietly(path)
                 raise ValueError(f"Invalid response from Overpass API: {remark[:120]}")
             partial[url] = (path, remark)
@@ -1343,7 +1326,6 @@ def _osm_stream_fetch(final_query: str, directory: str, area_km2: float, args: d
 
 __all__ = [
     "QgsProject",
-    "_FOOTPRINT_DEFAULT_SOURCES",
     "_FOOTPRINT_SOURCES",
     "_FOOTPRINT_SOURCE_INPUTS",
     "_MAX_DOWNLOAD_SIZE",

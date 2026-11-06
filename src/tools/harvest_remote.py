@@ -30,7 +30,7 @@ from qgis.core import (
 )
 from qgis.PyQt.QtCore import QT_TRANSLATE_NOOP
 
-from ..core import net
+from ..core import accounts, net
 from ..core.background import delete_here, run_on_main_thread, take
 from ..core.context_layers import crs_units
 from ..core.crs_ref import crs_ref
@@ -48,7 +48,6 @@ _ARCGIS_URL_RE = re.compile(
 _ARCGIS_TIMEOUT = 15
 
 
-_USER_AGENT = net.user_agent()
 _RASTER_MEDIA = ("geotiff", "image/tiff", "image/jp2", "jpeg2000", "x-hdf", "netcdf", "zarr")
 _PREVIEW_MEDIA = ("image/png", "image/jpeg", "image/jpg", "image/webp")
 
@@ -57,6 +56,7 @@ def register_harvest_remote_tools(registry: ToolRegistry):
     registry.register(Tool(
         name="add_arcgis_rest_layer",
         danger="write",
+        own_area_rule=True, held_in_memory=True, loads_source=True,
         label=QT_TRANSLATE_NOOP("AIAgent", "Add the ArcGIS layer[ {name}]"),
         input_schema={
             "type": "object",
@@ -92,7 +92,6 @@ def register_harvest_remote_tools(registry: ToolRegistry):
     registry.register(Tool(
         name="get_stac_item_assets",
         danger="read",
-        catalog=True,
         input_schema={
             "type": "object",
             "properties": {
@@ -223,6 +222,11 @@ _TOTAL_TIMEOUT_FACTOR = 3
 _CACHE_ARCGIS_S = 300
 
 
+
+
+ARCGIS_TOKEN_HEADER = "X-Esri-Authorization"  # nosec B105
+
+
 def _arcgis_describe(url: str, token: str | None):
 
 
@@ -231,16 +235,17 @@ def _arcgis_describe(url: str, token: str | None):
         query["token"] = token
     if urllib.parse.urlparse(url).scheme not in ("http", "https"):
         return None
-    request = urllib.request.Request(
-        f"{url}?{urllib.parse.urlencode(query)}",
-        headers={"User-Agent": _USER_AGENT, "Accept": "application/json"},
-    )
+    headers = {"Accept": "application/json"}
+    address = f"{url}?{urllib.parse.urlencode(query)}"
+
+    request, signed = (urllib.request.Request(address, headers=headers), False) if token else \
+        accounts.signed(address, url, headers)
     try:
 
 
         raw = net.fetch(request, timeout=_ARCGIS_TIMEOUT, max_bytes=_ARCGIS_MAX_BYTES,
                         total_timeout=_ARCGIS_TIMEOUT * _TOTAL_TIMEOUT_FACTOR,
-                        cache_ttl=_CACHE_ARCGIS_S).body
+                        cache_ttl=0.0 if signed else _CACHE_ARCGIS_S).body
         payload = json.loads(raw)
     except net.FetchCancelled:
 
@@ -349,6 +354,12 @@ def _add_arcgis_rest_layer(args: dict) -> dict:
     root, service, layer_id, url = parsed
     url_where, url_token, url_envelope = _arcgis_query_params(str(args.get("url") or ""))
     token = str(args.get("token") or "").strip() or url_token or None
+    if not token:
+        asked = accounts.check(url, "Load an ArcGIS layer")
+        if asked:
+            return asked
+
+    authcfg = "" if token else accounts.authcfg_for(url)
     where = str(args.get("where") or "").strip() or url_where
     raw_box = args.get("bbox")
     box = _stac._parse_bbox(raw_box) if raw_box not in (None, "", [], {}) else None
@@ -397,8 +408,11 @@ def _add_arcgis_rest_layer(args: dict) -> dict:
         code = err.get("code")
         detail = "; ".join(str(d) for d in (err.get("details") or []) if d)
         message = f"The service answered {code}: {err.get('message')}" + (f" ({detail})" if detail else "")
-        return tool_error(message, "ARCGIS_REFUSED", hint="arcgis_refused",
-                          variant="token" if code in (498, 499) else "", service_code=code, url=url)
+        failure = tool_error(message, "ARCGIS_REFUSED", hint="arcgis_refused",
+                             variant="token" if code in (498, 499) else "", service_code=code, url=url)
+        if code in (498, 499) and not token:
+            return accounts.refused(url, 401, failure, "ArcGIS", token_header=ARCGIS_TOKEN_HEADER, connector="esri")
+        return failure
 
     name = _arcgis_name(args, info, root, layer_id)
     crs = str(args.get("crs") or "").strip()
@@ -416,6 +430,8 @@ def _add_arcgis_rest_layer(args: dict) -> dict:
         probe.setParam("url", url)
         if token:
             probe.setParam("token", token)
+        if authcfg:
+            probe.setAuthConfigId(authcfg)
         probe.setSql("1=0")
 
         probed = QgsVectorLayer(probe.uri(False), "probe", "arcgisfeatureserver", worker_options())
@@ -447,6 +463,8 @@ def _add_arcgis_rest_layer(args: dict) -> dict:
             uri.setParam("bbox", ",".join(repr(part) for part in _box_in(box, _native_crs(), context)))
         if token:
             uri.setParam("token", token)
+        if authcfg:
+            uri.setAuthConfigId(authcfg)
         if where:
             uri.setSql(where)
         layer = QgsVectorLayer(uri.uri(False), name, "arcgisfeatureserver", options)
@@ -491,6 +509,8 @@ def _add_arcgis_rest_layer(args: dict) -> dict:
             uri.setParam("crs", crs or "EPSG:3857")
             if token:
                 uri.setParam("token", token)
+            if authcfg:
+                uri.setAuthConfigId(authcfg)
             layer = QgsRasterLayer(uri.uri(False), name, "arcgismapserver")
 
         if not layer.isValid():

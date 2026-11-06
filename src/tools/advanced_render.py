@@ -26,12 +26,16 @@ from qgis.core import (
 from qgis.PyQt.QtCore import QSize, Qt
 from qgis.utils import iface
 
-from ..core import limits
+from ..core import layer_order
 from ..core.background import on_main_thread, run_on_main_thread
 from ..core.qt_compat import enum_member
-from ..core.security import validate_path
+from ..core.security import MAX_PATH, long_paths_ok, validate_path
 from ..core.tool_registry import coded_fact, tool_error
-from .layer_lookup import _find_layer, _layer_not_found_error
+from . import layout_ready, render_look
+from ._layers import layer_not_found, resolve_layer
+from .harvest_canvas import _labels_in_view, _labels_placed
+from .render_look import _clamp_render_size
+from .render_wait import stop_requested, wait_or_stop
 
 
 def _encode_jpeg(image, quality=70) -> bytes:
@@ -157,12 +161,11 @@ def _prepare_frame_folder(path: str, prefix: str = ""):
 
     if os.path.exists(path) and not os.path.isdir(path):
         return f"Frame out_dir is not a folder: {path}"
-    from ..core.security import _MAX_PATH, _long_paths_ok
 
     frame_len = len(path) + 1 + len(prefix) + len("000.png")
-    if frame_len >= _MAX_PATH and not _long_paths_ok():
+    if frame_len >= MAX_PATH and not long_paths_ok():
         return (f"Each frame here would be a path of {frame_len} characters and Windows stops "
-                f"this process at {_MAX_PATH}.")
+                f"this process at {MAX_PATH}.")
     try:
         os.makedirs(path, exist_ok=True)
     except OSError as exc:
@@ -363,7 +366,7 @@ def _render_pass_async(settings, budget: float = _RENDER_PASS_SECONDS):
     inline = on_main_thread()
     run_on_main_thread(start, timeout=30)
     budget = max(_RENDER_PASS_FLOOR_S, min(float(budget), _RENDER_PASS_SECONDS))
-    stopped = _wait_or_stop(done, budget)
+    stopped = wait_or_stop(done, budget)
     if stopped or not done.is_set():
         def cancel():
             try:
@@ -389,39 +392,6 @@ def _render_pass_async(settings, budget: float = _RENDER_PASS_SECONDS):
 
 _JOBS_ALIVE: dict = {}
 _STOPPED = "render stopped by the user"
-
-_STOP_POLL_S = 0.25
-
-
-def _stop_requested() -> bool:
-
-    from ..core.net_state import current_cancel_check
-
-    check = current_cancel_check()
-    try:
-        return bool(check()) if check is not None else False
-    except Exception:  # noqa: BLE001
-        return False
-
-
-def _wait_or_stop(done, budget: float) -> bool:
-
-
-
-
-
-
-    deadline = time.monotonic() + budget
-    while not done.is_set():
-        if _stop_requested():
-            return True
-        left = deadline - time.monotonic()
-        if left <= 0:
-            return False
-        done.wait(min(_STOP_POLL_S, left))
-    return False
-
-
 def _image_is_uniform(image) -> bool:
 
 
@@ -652,7 +622,6 @@ def _left_out(chosen, destination, extent) -> list:
 
 
 
-    from ..core import layer_order
 
     try:
         canvas_layers = list(iface.mapCanvas().layers())
@@ -888,7 +857,6 @@ def _label_facts(results, settings, layer_ids: list) -> list:
 
 
 
-    from .harvest_canvas import _labels_in_view, _labels_placed
 
     facts = []
     project = QgsProject.instance()
@@ -1010,8 +978,6 @@ def _layout_page(args: dict) -> dict:
 
 
 
-    from . import layout_ready, render_look
-
     started = run_on_main_thread(render_look.layout_page_start, args, timeout=30)
     if "_error" in started:
         return started
@@ -1037,7 +1003,6 @@ def _render_target(args: dict) -> dict:
 
 
 
-    from . import render_look
 
     target = str(args.get("target") or "canvas").strip().lower()
     box = render_look.crop_box(args)
@@ -1097,7 +1062,7 @@ def _render_map(args: dict) -> dict:
     if image is None and any(e.get("message") == _STOPPED for e in render_errors):
         return tool_error("The render was stopped.", "CANCELLED")
     reduced = None
-    if image is None and not _stop_requested():
+    if image is None and not stop_requested():
 
 
 
@@ -1168,34 +1133,6 @@ def _view_size(args: dict) -> tuple:
     return max(64, round((area * aspect) ** 0.5)), max(64, round((area / aspect) ** 0.5))
 
 
-def _clamp_render_size(asked_width, asked_height) -> tuple:
-
-
-
-
-
-
-
-
-
-
-
-
-
-    asked_width, asked_height = max(1, int(asked_width)), max(1, int(asked_height))
-    max_w = limits.current("MAX_RENDER_WIDTH_PX")
-    max_h = limits.current("MAX_RENDER_HEIGHT_PX")
-    width, height = min(asked_width, max_w), min(asked_height, max_h)
-    if (width, height) == (asked_width, asked_height):
-        return width, height, ""
-    shape = min(width / float(asked_width), height / float(asked_height))
-    width = max(64, min(width, int(round(asked_width * shape))))
-    height = max(64, min(height, int(round(asked_height * shape))))
-    note = coded_fact(hint="render_size_clamped", asked_width=asked_width, asked_height=asked_height,
-                      width=width, height=height, max_width=max_w, max_height=max_h)
-    return width, height, note
-
-
 def _plan_render(args: dict) -> dict:
 
     asked_width, asked_height = _view_size(args)
@@ -1244,7 +1181,7 @@ def _plan_render(args: dict) -> dict:
         layers = []
         missing = []
         for name in layer_names:
-            layer = _find_layer(name)
+            layer = resolve_layer(name)
             if layer is not None:
                 layers.append(layer)
             else:
@@ -1252,7 +1189,7 @@ def _plan_render(args: dict) -> dict:
         if missing:
 
 
-            error = _layer_not_found_error(missing[0])
+            error = layer_not_found(missing[0])
             error["_missing_layers"] = missing
             return error
         layers, order_note, order_advice = _in_project_order(layers)

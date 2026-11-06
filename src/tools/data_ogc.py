@@ -7,6 +7,7 @@ from __future__ import annotations
 import math
 import os
 import re
+import sys
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -24,10 +25,12 @@ from qgis.core import (
 )
 from qgis.PyQt.QtCore import QCoreApplication, QEvent
 
-from ..core import limits, links, machine, net, tuning
+from ..core import accounts, limits, links, machine, net, security_urls, source_rules, tuning
 from ..core.background import delete_here, hand_over, on_main_thread, run_on_main_thread, take
 from ..core.follow import view_kept
-from ..core.logger import log_warning
+from ..core.logger import log_warning, recent_wfs_line
+from ..core.numbers import as_int
+from ..core.output_paths import file_stem
 from ..core.policy import create_managed_temp_dir
 from ..core.provider_uri import crs_problem, encode_uri_url
 from ..core.qt_compat import enum_member
@@ -35,7 +38,8 @@ from ..core.quiet_credentials import hold_from_worker, no_login_prompt, release_
 from ..core.tool_registry import tool_error
 from . import elevation_style, ogc_inspect, volume_guard
 from .data_basemaps import _stacked
-from .data_common import _CACHE_CATALOG_S, _USER_AGENT, _avoid_reserved_name, built_here, worker_options
+from .data_common import _CACHE_CATALOG_S, built_here, worker_options
+from .data_wfs_extract import extract
 
 
 
@@ -121,14 +125,16 @@ def _wmts_uri(url: str, layer: str, described: dict) -> tuple[str, dict] | None:
     if not row or not row["sets"]:
         return None
 
-
-    chosen = next((name for name in row["sets"] if _wmts_epsg(row["crs"].get(name, "")) == "EPSG:3857"),
+    preferred = source_rules.table("ogc", "wmts_preferred_crs", "")
+    chosen = next((name for name in row["sets"] if _wmts_epsg(row["crs"].get(name, "")) == preferred),
                   row["sets"][0])
     crs = _wmts_epsg(row["crs"].get(chosen, ""))
     if not crs:
 
         return None, {"unresolved_crs": row["crs"].get(chosen, ""), "tile_matrix_set": chosen}
-    img_format = next((f for f in row["formats"] if f.endswith("png")), (row["formats"] or ["image/png"])[0])
+    wanted = source_rules.table("ogc", "tile_format_preference", "")
+    img_format = next((f for f in row["formats"] if wanted and f.endswith(wanted)),
+                      (row["formats"] or ["image/png"])[0])
     style = (row["styles"] or ["default"])[0]
     uri = (f"url={encode_uri_url(_wmts_capabilities_url(url))}"
            f"&layers={encode_uri_url(layer)}"
@@ -215,6 +221,10 @@ def _add_wmts_layer(url: str, layer: str, name: str) -> dict:
     described = _wmts_describe(url)
     if not described:
         return tool_error(f"No answer from the WMTS at {url} that names any layer.", hint="ogc_wmts_no_layers")
+
+    if _wms_advertises_refused_host(_wmts_body(url), url):
+        return tool_error(f"The WMTS at {url} sends its tile requests to a local or private address.",
+                          "PERMISSION_DENIED")
     built = _wmts_uri(url, layer, described)
     if built is None:
         close = [name for name in described if layer.lower() in name.lower()][:3]
@@ -373,7 +383,7 @@ def _wcs_sample_stretch(base: str, coverage: str, window: dict | None) -> dict |
     params = {"SERVICE": "WCS", "VERSION": "1.0.0", "REQUEST": "GetCoverage", "COVERAGE": coverage,
               "CRS": window["crs"], "BBOX": f"{west},{south},{east},{north}", "FORMAT": fmt,
               "WIDTH": _WCS_SAMPLE_PIXELS, "HEIGHT": _WCS_SAMPLE_PIXELS}
-    request = urllib.request.Request(ogc_inspect.with_query(base, params), headers={"User-Agent": _USER_AGENT})
+    request = urllib.request.Request(ogc_inspect.with_query(base, params))
     cap = min(4 * 1024 * 1024, limits.current("MAX_DOWNLOAD_BYTES"))
     try:
         body = net.fetch(request, timeout=_WCS_TIMEOUT_S, max_bytes=cap, total_timeout=_WCS_TIMEOUT_S).body or b""
@@ -480,7 +490,7 @@ def _wcs_extract(base: str, coverage: str, name: str, crs: str, bbox) -> dict:
         attempts.append(sized)
     body = b""
     for attempt in attempts:
-        request = urllib.request.Request(ogc_inspect.with_query(base, attempt), headers={"User-Agent": _USER_AGENT})
+        request = urllib.request.Request(ogc_inspect.with_query(base, attempt))
         try:
             answer = net.fetch(request, timeout=_WCS_TIMEOUT_S * 2, max_bytes=ceiling,
                                total_timeout=_WCS_TIMEOUT_S * 6)
@@ -500,9 +510,7 @@ def _wcs_extract(base: str, coverage: str, name: str, crs: str, bbox) -> dict:
         return tool_error(f"The service did not return a GeoTIFF for {coverage!r} over a box of about "
                           f"{int(cells_x)} x {int(cells_y)} cells: {said}",
                           hint="" if reason else "ogc_wcs_box_overlap")
-    stem = re.sub(r"[^A-Za-z0-9_.-]+", "_", str(name or coverage)).strip("_")[:60] or "coverage"
-
-    stem = _avoid_reserved_name(stem)
+    stem = file_stem(name or coverage, "coverage")
     path = os.path.join(create_managed_temp_dir("wcs"), f"{stem}.tif")
     try:
         with open(path, "wb") as handle:
@@ -551,7 +559,8 @@ def _server_words(body: bytes) -> str:
     return " ".join(text.split())[:_WMS_SERVER_TEXT_CHARS]
 
 
-def _wms_capabilities(url: str) -> tuple[bytes, str, bool]:
+def _wms_capabilities(url: str, status: list | None = None) -> tuple[bytes, str, bool]:
+
 
 
 
@@ -562,10 +571,15 @@ def _wms_capabilities(url: str) -> tuple[bytes, str, bool]:
 
     query = {"SERVICE": "WMS", "REQUEST": "GetCapabilities", "VERSION": "1.3.0"}
     probe = url + ("&" if "?" in url else "?") + urllib.parse.urlencode(query)
+
+    request, signed = accounts.signed(probe, url)
     try:
-        answer = net.fetch(probe, timeout=20, max_bytes=_WMS_CAPS_MAX_BYTES,
-                           total_timeout=25, cache_ttl=_WMS_CAPS_TTL_S)
+        answer = net.fetch(request, timeout=20,
+                           max_bytes=_WMS_CAPS_MAX_BYTES, total_timeout=25,
+                           cache_ttl=0.0 if signed else _WMS_CAPS_TTL_S)
     except urllib.error.HTTPError as exc:
+        if status is not None:
+            status.append(exc.code)
         return b"", f"it answered HTTP {exc.code} to a GetCapabilities request", True
     except Exception as exc:  # noqa: BLE001
         log_warning(f"WMS capabilities probe failed for {url}: {exc}")
@@ -573,7 +587,7 @@ def _wms_capabilities(url: str) -> tuple[bytes, str, bool]:
     return answer.body or b"", "", True
 
 
-_WMS_HREF_RE = re.compile(rb'(?i)xlink:href\s*=\s*["\']([^"\']+)["\']')
+_WMS_HREF_RE = re.compile(rb'(?i)(?:xlink:href|template)\s*=\s*["\']([^"\']+)["\']')
 
 
 def _wms_advertises_refused_host(body: bytes, service_url: str) -> bool:
@@ -584,7 +598,6 @@ def _wms_advertises_refused_host(body: bytes, service_url: str) -> bool:
 
 
 
-    from ..core import security
 
     service_host = urllib.parse.urlsplit(service_url).hostname or ""
     seen: set = set()
@@ -598,7 +611,7 @@ def _wms_advertises_refused_host(body: bytes, service_url: str) -> bool:
         if parts.scheme.lower() not in ("http", "https") or not host[0] or host in seen:
             continue
         seen.add(host)
-        if host[0] != service_host and security.validate_url(href):
+        if host[0] != service_host and security_urls.validate_url(f"{parts.scheme}://{parts.netloc}/"):
             return True
     return False
 
@@ -691,9 +704,18 @@ def _add_wms_layer(args: dict) -> dict:
 
 
 
-    body, silent_why, answered = _wms_capabilities(url)
+    asked = accounts.check(url, f"Load the WMS layer {layers}")
+    if asked:
+        return asked
+    status: list = []
+    body, silent_why, answered = _wms_capabilities(url, status)
     if not answered:
         return tool_error(f"The WMS at {url} did not load: {silent_why}.", code=net.NETWORK_ERROR)
+    if status and accounts.is_refusal(status[0]):
+        return accounts.refused(url, status[0], tool_error(
+            f"The WMS at {url} did not load: {silent_why}.", code="PERMISSION_DENIED",
+            hint="service_needs_sign_in"), "WMS")
+    uri = accounts.uri_with_auth(uri, url, "amp")
     if _wms_advertises_refused_host(body, url):
 
         uri += ("" if dimensions else "&IgnoreGetMapUrl=1") + "&IgnoreGetFeatureInfoUrl=1"
@@ -733,25 +755,14 @@ def _add_wms_layer(args: dict) -> dict:
     return made
 
 
+def _wfs_warn_features() -> int:
+
+    return source_rules.table("ogc", "wfs_warn_features", 0) or sys.maxsize
 
 
+def _wfs_bytes_per_feature() -> int:
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-WFS_WARN_FEATURES = 50_000
-WFS_WIRE_BYTES_PER_FEATURE = 150
+    return source_rules.table("ogc", "wfs_wire_bytes_per_feature", 0)
 
 
 
@@ -816,6 +827,22 @@ def _wfs_capabilities(url: str) -> tuple[bytes, str]:
     return b"", ""
 
 
+def _refusal_status(url: str, service: str) -> int:
+
+
+    probe = url + ("&" if "?" in url else "?") + urllib.parse.urlencode(
+        {"SERVICE": service, "REQUEST": "GetCapabilities"})
+    request, _ = accounts.signed(probe, url)
+    try:
+        net.fetch(request, timeout=15,
+                  max_bytes=4096, total_timeout=20)
+    except urllib.error.HTTPError as exc:
+        return exc.code if accounts.is_refusal(exc.code) else 0
+    except Exception:  # noqa: BLE001
+        return 0
+    return 0
+
+
 def _wfs_typenames(url: str) -> list[str]:
 
 
@@ -871,7 +898,6 @@ def _wfs_logged_reason(typename: str) -> str:
 
 
 
-    from ..core.logger import recent_wfs_line
 
     try:
         line = run_on_main_thread(lambda: recent_wfs_line(f"typename='{typename}'"), timeout=5) or ""
@@ -922,7 +948,7 @@ def _wfs_failure(url: str, typename: str, crs: str, qgis_message: str,
             more = "" if len(offered) <= _WFS_CRS_SHOWN else f", and {len(offered) - _WFS_CRS_SHOWN} more"
             return (f"{head} It does not publish {crs}. Its CRS are: {shown}{more}. "
                     f"add_wfs_layer with crs={offered[0]!r} loads it.")
-        if hits is not None and hits > WFS_WARN_FEATURES:
+        if hits is not None and hits > _wfs_warn_features():
             return (f"{head} The type holds {hits:,} features and the whole of it was asked for. "
                     f"The canvas zoomed to the area of interest, called again, or "
                     f"max_features up to {limits.current('MAX_FEATURES_PER_CALL'):,}, gives a sample."
@@ -959,10 +985,7 @@ def _wfs_hits(url: str, typename: str) -> int | None:
     found = _WFS_MATCHED_RE.search(answer.body or b"")
     if not found:
         return None
-    try:
-        return int(found.group(1))
-    except ValueError:
-        return None
+    return as_int(found.group(1))
 
 
 def _wfs_restrict_to_view(hits: int, max_features: int | None = None) -> bool:
@@ -979,7 +1002,7 @@ def _wfs_restrict_to_view(hits: int, max_features: int | None = None) -> bool:
 
 
 
-    return hits > WFS_WARN_FEATURES or (max_features is not None and hits > max_features)
+    return hits > _wfs_warn_features() or (max_features is not None and hits > max_features)
 
 
 def _bbox_ring_filter(west: float, south: float, east: float, north: float) -> str:
@@ -1128,6 +1151,9 @@ def _add_wfs_layer(args: dict) -> dict:
 
 
     net.check_url(url)
+    asked = accounts.check(url, f"Load the WFS type {typename}")
+    if asked:
+        return asked
 
 
 
@@ -1161,6 +1187,9 @@ def _add_wfs_layer(args: dict) -> dict:
     source.setParam("typename", typename)
     source.setParam("srsname", crs)
     source.setParam("version", "2.0.0")
+    cfg = accounts.authcfg_for(url)
+    if cfg:
+        source.setAuthConfigId(cfg)
     if not lifted:
         source.setParam("maxNumFeatures", str(max_features))
 
@@ -1173,8 +1202,6 @@ def _add_wfs_layer(args: dict) -> dict:
 
 
 
-    from .data_wfs_extract import extract
-
 
 
     whole_read = not lifted and not area and not where and not view_filter and whole is not None
@@ -1183,7 +1210,7 @@ def _add_wfs_layer(args: dict) -> dict:
     def _copy() -> dict:
         return extract(url, typename, name, source.uri(False),
                        count_at=max_features if hits is None and not lifted else None,
-                       view=(view_filter, min(WFS_WARN_FEATURES, max_features)) if where and view_filter else None,
+                       view=(view_filter, min(_wfs_warn_features(), max_features)) if where and view_filter else None,
                        budget_s=_wfs_whole_budget_s() if whole_read and not view_filter else None)
 
     out = _copy()
@@ -1208,7 +1235,9 @@ def _add_wfs_layer(args: dict) -> dict:
             out = _copy()
     if out.get("_invalid"):
         said = out.get("_qgis_message") or _wfs_logged_reason(typename)
-        return tool_error(_wfs_failure(url, typename, crs, said, hits))
+        failure = tool_error(_wfs_failure(url, typename, crs, said, hits))
+        refused = _refusal_status(url, "WFS")
+        return accounts.refused(url, refused, failure, "WFS") if refused else failure
     fields = out.pop("_fields", None)
     if out.get("_error"):
         if where and fields:
@@ -1234,7 +1263,8 @@ def _add_wfs_layer(args: dict) -> dict:
     warning = advice = ""
     if not lifted and hits is not None:
         out["features_available"] = hits
-        out["estimated_bytes"] = hits * WFS_WIRE_BYTES_PER_FEATURE
+        if _wfs_bytes_per_feature():
+            out["estimated_bytes"] = hits * _wfs_bytes_per_feature()
     if not lifted and (hits is not None or view_filter):
         out["restricted_to_view"] = bool(view_filter)
     if hits is None and not view_filter and isinstance(matched, int) and isinstance(count, int) and matched > count:

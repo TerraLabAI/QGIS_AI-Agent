@@ -35,13 +35,17 @@ from qgis.core import (
 )
 from qgis.PyQt.QtCore import QT_TRANSLATE_NOOP
 
-from ..core import output_paths, security
-from ..core.logger import log_warning
+from ..core import layer_order, output_paths, policy, security
+from ..core.background import run_on_main_thread, start_kept_thread
+from ..core.context import THREAD_PROPERTY
+from ..core.host_platform import remove_tree
+from ..core.logger import log, log_warning
 from ..core.qt_compat import enum_member
-from ..core.save_guard import temp_folder_ready
 from ..core.snapshot_files import sqlite_read_only_uri
 from ..core.tool_registry import Tool, ToolRegistry, tool_error
-from .layer_lookup import _find_layer
+from ._layers import _source_key, resolve_layer
+from .save_guard import temp_folder_ready
+from .scratch_scan import WRITING, scratch_layers
 
 
 _RASTER_CREATION = ["TILED=YES", "COMPRESS=DEFLATE", "BIGTIFF=IF_SAFER"]
@@ -135,9 +139,6 @@ def _unique(stem: str, taken: set[str]) -> str:
 
 def _target(args: dict, project) -> tuple[str, dict | None]:
 
-    from ..core import policy
-    from ._layers import _source_key
-    from .layer_tools import _default_gpkg_path
 
     asked = str(args.get("gpkg_path") or "").strip()
     if asked:
@@ -149,7 +150,7 @@ def _target(args: dict, project) -> tuple[str, dict | None]:
             return "", tool_error(f"{os.path.basename(path)} is not a GeoPackage name.", "INVALID_ARGS",
                                   hint="persist_gpkg_name", name=os.path.basename(path))
     else:
-        path = _default_gpkg_path("layers" if not project.fileName() else "")
+        path = default_gpkg_path("layers" if not project.fileName() else "")
     if _source_key(path).startswith(_source_key(policy.AGENT_TMP_DIR).rstrip("/") + "/"):
         return "", tool_error("gpkg_path is inside the agent's scratch folder, which is pruned.", "INVALID_ARGS",
                               hint="persist_gpkg_in_scratch")
@@ -313,7 +314,6 @@ def _raster(layer, gpkg: str, taken: set[str]) -> dict:
 
 
 def _make_layers_permanent(args: dict) -> dict:
-    from .layer_tools import scratch_layers
 
     project = QgsProject.instance()
     memory, temporary = scratch_layers(project)
@@ -324,10 +324,10 @@ def _make_layers_permanent(args: dict) -> dict:
     if isinstance(wanted, list) and wanted:
         chosen = []
         for ref in wanted:
-            layer = _find_layer(str(ref))
+            layer = resolve_layer(str(ref))
             if layer is None:
                 skipped.append({"name": str(ref), "skipped": "no layer by that name"})
-            elif layer.id() in _WRITING:
+            elif layer.id() in WRITING:
                 skipped.append({"name": layer.name(), "skipped": "it is being written to a GeoPackage now"})
             elif layer.id() not in kinds:
                 skipped.append({"name": layer.name(), "skipped": "already stored in a lasting file"})
@@ -413,26 +413,15 @@ _COPY_GROUP = 5000
 
 _IDLE_WAIT_MS = 2000
 _IDLE_TRIES = 900
-
-
-
-_WRITING: dict[str, tuple[str, str]] = {}
-
-
-def writing() -> dict:
-
-    return dict(_WRITING)
-
-
 def _reserved_tables(gpkg: str) -> set[str]:
     key = os.path.normcase(os.path.abspath(gpkg))
-    return {table.casefold() for path, table in list(_WRITING.values())
+    return {table.casefold() for path, table in list(WRITING.values())
             if os.path.normcase(os.path.abspath(path)) == key}
 
 
 def _release(items) -> None:
     for item in items:
-        _WRITING.pop(item["id"], None)
+        WRITING.pop(item["id"], None)
 
 
 def save_run_layers(layer_ids, busy=None) -> int:
@@ -445,7 +434,6 @@ def save_run_layers(layer_ids, busy=None) -> int:
 
 
 def _run_open() -> bool:
-    from ..core import layer_order
 
     return layer_order.current_run() is not None
 
@@ -460,11 +448,9 @@ def store_in_background(layers, busy=None, save: bool = True) -> dict:
 
     from qgis.core import QgsVectorLayerFeatureSource
 
-    from ..core.background import start_kept_thread
-
     project = QgsProject.instance()
     layers = [layer for layer in layers if isinstance(layer, QgsVectorLayer) and layer.isValid()
-              and not layer.isEditable() and layer.id() not in _WRITING]
+              and not layer.isEditable() and layer.id() not in WRITING]
     if not layers:
         return {}
     gpkg, refused = _target({}, project)
@@ -501,7 +487,7 @@ def store_in_background(layers, busy=None, save: bool = True) -> dict:
     if not plan:
         return {}
     for item in plan:
-        _WRITING[item["id"]] = (gpkg, item["table"])
+        WRITING[item["id"]] = (gpkg, item["table"])
     try:
         start_kept_thread(_write_run_layers, plan, gpkg, project.transformContext(), busy or _run_open, save,
                           name="ai-agent-layer-save")
@@ -614,10 +600,6 @@ def _write_run_layers(plan: list, gpkg: str, context, busy, save: bool = True) -
 
     from osgeo import gdal
 
-    from ..core import policy
-    from ..core.background import run_on_main_thread
-    from ..core.host_platform import remove_tree
-
     done = []
     try:
         gdal.UseExceptions()
@@ -646,8 +628,6 @@ def _write_run_layers(plan: list, gpkg: str, context, busy, save: bool = True) -
 def _repoint_when_idle(done: list, gpkg: str, busy, tries: int, save: bool = True) -> None:
 
     from qgis.PyQt.QtCore import QTimer
-
-    from ..core.logger import log
 
     if busy is not None and busy():
         if tries < _IDLE_TRIES:
@@ -687,4 +667,86 @@ def _repoint_when_idle(done: list, gpkg: str, busy, tries: int, save: bool = Tru
         + (f"; project written to {project.fileName()}" if saved else ""))
 
 
-__all__ = ["register_persist_tools", "save_run_layers", "store_in_background", "writing"]
+__all__ = ["register_persist_tools", "save_run_layers", "store_in_background"]
+
+
+def default_gpkg_path(layer_name: str = "") -> str | None:
+
+
+
+
+
+
+    fname = QgsProject.instance().fileName()
+    if not fname:
+        folder = output_paths.exports_folder()
+        stem = output_paths.safe_file_name(layer_name, "layers")
+        path, number = os.path.join(folder, f"{stem}.gpkg"), 2
+        while os.path.exists(path):
+            path, number = os.path.join(folder, f"{stem}_{number}.gpkg"), number + 1
+        os.makedirs(folder, exist_ok=True)
+        return path
+    directory = os.path.dirname(fname)
+    stem = os.path.splitext(os.path.basename(fname))[0]
+    return os.path.join(directory, f"{stem}_data.gpkg")
+
+
+def scratch_layers_summary(project: QgsProject) -> tuple[list[dict], list[dict]]:
+
+
+
+
+
+
+
+
+
+
+    def entry(layer) -> dict:
+        if not isinstance(layer, QgsVectorLayer):
+            if isinstance(layer, QgsRasterLayer):
+                return {"name": layer.name(), "layer_type": "raster"}
+            return {"name": layer.name()}
+        try:
+            count = layer.featureCount()
+        except Exception:  # noqa: BLE001
+            count = None
+        return {"name": layer.name(), "feature_count": count}
+
+    memory_layers, temporary_layers = scratch_layers(project)
+    return [entry(layer) for layer in memory_layers], [entry(layer) for layer in temporary_layers]
+
+
+def agent_layers_made_durable(project, save: bool = True, busy=None) -> dict:
+
+
+
+
+
+
+
+
+
+
+    if not project.fileName():
+        return {}
+    memory, temporary = scratch_layers(project)
+    ours = [layer for layer in memory + temporary if layer.customProperty(THREAD_PROPERTY, "")]
+    if not ours:
+        return {}
+    out: dict = {}
+    rasters = [layer.id() for layer in ours if not isinstance(layer, QgsVectorLayer)]
+    try:
+        moved = _make_layers_permanent({"layers": rasters, "save": save}) if rasters else {}
+        if isinstance(moved, dict) and moved.get("made_permanent"):
+            out = {"gpkg_path": moved.get("gpkg_path", ""),
+                   "layers": [entry.get("name") for entry in moved["made_permanent"]]}
+        sent = store_in_background([layer for layer in ours if isinstance(layer, QgsVectorLayer)], busy, save)
+    except Exception as exc:  # noqa: BLE001
+        log_warning(f"Agent layers not stored beside the project: {exc}")
+        return out
+    if sent:
+        out["gpkg_path"] = sent["gpkg_path"]
+        out["layers"] = out.get("layers", []) + sent["layers"]
+        out["writing"] = sent["layers"]
+    return out

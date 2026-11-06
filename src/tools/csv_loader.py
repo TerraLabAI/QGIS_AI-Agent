@@ -26,6 +26,7 @@ from ..core import tuning
 from ..core.background import on_main_thread, run_on_main_thread
 from ..core.text_encoding import detect_encoding
 from ..core.tool_registry import coded_fact, tool_error
+from . import crs_landing
 from .data_common import built_here, worker_options
 
 CSV_EXTENSIONS = (".csv", ".tsv", ".txt")
@@ -342,7 +343,6 @@ def _off_project(path: str, named, extent):
 
 
 
-    from . import crs_landing
 
     anchor_list = crs_landing.anchors()
     if extent.isNull() or not anchor_list:
@@ -430,7 +430,6 @@ def _projected_source(path: str, layer, info: dict, crs: str | None):
                        f"loaded in {label}, {origin}, the only one in the project whose area of use holds them. "
                        f"crs=<EPSG code> loads them in another CRS the source names.")
     named = ", ".join(f"{(c.authid() or c.description())} ({origin})" for c, origin in candidates)
-    from . import crs_landing
 
     landing = crs_landing.candidates(extent, crs_landing.anchors())
     candidate_crs = list(dict.fromkeys([c["crs"] for c in landing[:3]]

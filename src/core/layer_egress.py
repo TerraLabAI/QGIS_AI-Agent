@@ -45,7 +45,8 @@ import re
 import threading
 import urllib.parse
 
-from . import security_urls
+from . import background, security_urls
+from .layer_release import remove_layers
 from .logger import log_warning
 from .serialization import coded_like
 
@@ -153,8 +154,6 @@ def _judge_later(layer_id: str, name: str, urls: list) -> None:
                 if _judge(layer_id, name, url, run_id, deferred=False):
                     return
 
-        from . import background
-
         background.main_thread_invoker().invoke(judge)
 
     try:
@@ -176,8 +175,6 @@ def _refuse(layer_id: str, name: str, problem: str, run_id: str, deferred: bool)
     log_warning(sentence)
 
     def remove() -> None:
-        from ..tools.processing_run import remove_layers
-
         _run_layers.discard(layer_id)
         remove_layers([layer_id])
 

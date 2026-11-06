@@ -7,6 +7,7 @@ from __future__ import annotations
 import json
 import math
 import os
+import re
 import threading
 import unicodedata
 import urllib.error
@@ -22,66 +23,19 @@ from qgis.core import (
     QgsVectorLayer,
 )
 
-from ..core import background, limits, net, tuning
+from ..core import accounts, background, limits, net, tuning
 from ..core.background import breathe, gc_paused, main_qthread, on_main_thread
 from ..core.logger import log_warning
+from ..core.output_paths import file_stem
 from ..core.policy import create_managed_temp_dir
 from ..core.tool_registry import ServedValueMissing
-
-_WINDOWS_RESERVED_NAMES = (
-    {"con", "prn", "aux", "nul"}
-    | {f"com{i}" for i in range(1, 10)}
-    | {f"lpt{i}" for i in range(1, 10)}
-)
-
-_WINDOWS_FORBIDDEN_CHARS = '\\/:*?"<>|'
-_MAX_STEM_CHARS = 100
-_MAX_EXT_CHARS = 16
-
-
-def _avoid_reserved_name(stem: str) -> str:
-
-
-
-
-
-
-    first = stem.split(".", 1)[0].strip(" ").lower()
-    return f"_{stem}" if first in _WINDOWS_RESERVED_NAMES else stem
-
-
-def _safe_filename(name: str, default: str = "download") -> str:
-
-
-
-
-
-
-
-    cleaned = "".join(
-        "_" if (c in _WINDOWS_FORBIDDEN_CHARS or ord(c) < 32) else c
-        for c in (name or "")
-    ).strip(" .")
-    if not cleaned:
-        return default
-    stem, ext = os.path.splitext(cleaned)
-    if len(ext) > _MAX_EXT_CHARS:
-        stem, ext = cleaned, ""
-
-
-
-
-    stem = stem[:_MAX_STEM_CHARS].strip(" .")
-    stem = _avoid_reserved_name(stem) or default
-    return stem + ext
 
 
 def _geojson_file(geojson_str: str, layer_name: str, subdir: str = "osm") -> str:
 
 
     tmp_dir = create_managed_temp_dir(subdir)
-    safe = "".join(c if (c.isalnum() or c in "-_") else "_" for c in (layer_name or "layer"))[:60] or "layer"
-    safe = _avoid_reserved_name(safe)
+    safe = file_stem(layer_name, "layer")
     path = os.path.join(tmp_dir, f"{safe}.geojson")
     with open(path, "w", encoding="utf-8") as handle:
         handle.write(geojson_str)
@@ -210,8 +164,7 @@ def _json_object(text: str, array_key: str) -> dict:
 def _feature_collection_file(features: list, layer_name: str, subdir: str) -> str:
 
     tmp_dir = create_managed_temp_dir(subdir)
-    safe = "".join(c if (c.isalnum() or c in "-_") else "_" for c in (layer_name or "layer"))[:60] or "layer"
-    safe = _avoid_reserved_name(safe)
+    safe = file_stem(layer_name, "layer")
     path = os.path.join(tmp_dir, f"{safe}.geojson")
     with open(path, "w", encoding="utf-8") as handle, gc_paused():
         handle.write('{"type": "FeatureCollection", "features": [')
@@ -255,7 +208,61 @@ def query_sublayers(uri: str, flags=None) -> list:
 
 
 
+
+
+
+
+_SINGLE_LAYER_EXTENSIONS = (".fgb", ".geojson", ".json", ".parquet", ".pmtiles", ".shp", ".csv", ".kml")
+
+
+def raster_variables(path: str) -> list:
+
+
+
+
+
+    try:
+        from osgeo import gdal
+    except ImportError:  # nosec B110
+        return []
+    gdal.PushErrorHandler("CPLQuietErrorHandler")
+    try:
+        from .processing_paths import narrow_open_path
+
+        dataset = gdal.Open(narrow_open_path(path)[0])
+        meta = {} if dataset is None or dataset.RasterCount else (dataset.GetMetadata("SUBDATASETS") or {})
+        del dataset
+    except Exception:  # noqa: BLE001
+        meta = {}
+    finally:
+        gdal.PopErrorHandler()
+    numbered = sorted((int(key.split("_")[1]), value) for key, value in meta.items()
+                      if key.endswith("_NAME") and key.split("_")[1].isdigit())
+    return [(source, source.rsplit(":", 1)[-1].lstrip("/"), meta.get(f"SUBDATASET_{index}_DESC", ""))
+            for index, source in numbered]
+
+
+
 READ_THROUGH_MAX_BYTES = 1 << 30
+def close_dataset(dataset) -> None:
+
+
+
+
+
+
+
+
+
+    close = getattr(dataset, "Close", None)
+    if close is None:
+        return
+    try:
+        close()
+    except RuntimeError as exc:
+        log_warning(f"GeoPackage close: {exc}")
+
+
 _READ_THROUGH_CHUNK = 8 << 20
 
 
@@ -365,7 +372,6 @@ def _layer_from_geojson_str(geojson_str: str, layer_name: str, subdir: str = "os
 
 
 
-_USER_AGENT = net.user_agent()
 
 
 
@@ -493,8 +499,6 @@ _CACHE_GEOCODE_S = 600
 _CACHE_CATALOG_S = 300
 _MAX_ROUTE_WAYPOINTS = 25
 
-_VECTOR_FORMAT_HINTS = {"geojson", "json", "gpkg", "geopackage", "shp", "shapefile", "kml", "csv"}
-_SERVICE_FORMAT_HINTS = {"wfs", "wms"}
 _SOCRATA_GEOMETRY_TYPES = ("point", "multipoint", "line", "multiline", "polygon", "multipolygon", "location")
 
 
@@ -522,19 +526,17 @@ def _http_get(url: str, timeout: int = 15, cache_ttl: float = 0.0) -> bytes:
 
 
 
-    req = urllib.request.Request(url, headers={"User-Agent": _USER_AGENT})
+    req = urllib.request.Request(url)
     return net.fetch(req, timeout=timeout, max_bytes=_MAX_DOWNLOAD_SIZE,
                      total_timeout=timeout * _TOTAL_TIMEOUT_FACTOR, cache_ttl=cache_ttl).body
 
 
 def _http_fetch(url: str, timeout: int = 15, cache_ttl: float = 0.0) -> tuple[bytes, dict, str]:
-    req = urllib.request.Request(
-        url,
-        headers={
-            "User-Agent": _USER_AGENT,
-            "Accept": "application/json, application/geo+json, application/xml, text/xml;q=0.9, */*;q=0.8",
-        },
-    )
+    req, signed = accounts.signed(url, headers={
+        "Accept": "application/json, application/geo+json, application/xml, text/xml;q=0.9, */*;q=0.8",
+    })
+    if signed:
+        cache_ttl = 0.0
     answer = net.fetch(req, timeout=timeout, max_bytes=_MAX_DOWNLOAD_SIZE,
                        total_timeout=timeout * _TOTAL_TIMEOUT_FACTOR, cache_ttl=cache_ttl)
     return answer.body, answer.headers, answer.url
@@ -675,14 +677,9 @@ __all__ = [
     "_OWN_GEOCODE_TIMEOUT",
     "_PORTAL_TIMEOUT",
     "_ROUTE_TIMEOUT",
-    "_SERVICE_FORMAT_HINTS",
+    "_SINGLE_LAYER_EXTENSIONS",
     "_SOCRATA_GEOMETRY_TYPES",
     "_TOTAL_TIMEOUT_FACTOR",
-    "_USER_AGENT",
-    "_VECTOR_FORMAT_HINTS",
-    "_WINDOWS_FORBIDDEN_CHARS",
-    "_WINDOWS_RESERVED_NAMES",
-    "_avoid_reserved_name",
     "_bbox_km2",
     "_canvas_viewbox_4326",
     "_download_timeout",
@@ -700,7 +697,6 @@ __all__ = [
     "_osrm_base",
     "_overpass_timeout",
     "_project_crs_transform",
-    "_safe_filename",
     "_service",
     "_text",
     "_vector_source_from_features",
@@ -708,3 +704,40 @@ __all__ = [
     "_viewbox_bounds",
     "_viewbox_centre",
 ]
+
+
+
+_FORMAT_WORD = re.compile(r"\*?\.?([a-z0-9]{2,8})")
+
+
+def members_matching(names: list, wanted: str) -> list:
+
+
+
+
+    wanted = str(wanted or "").strip()
+    if not wanted:
+        return []
+
+    def keys(member: str) -> tuple:
+        base = os.path.basename(member.rstrip("/\\"))
+        return member, base, os.path.splitext(base)[0]
+
+    folded = wanted.casefold()
+
+
+    exact = ([member for member in names if wanted in keys(member)]
+             or [member for member in names if folded in [key.casefold() for key in keys(member)]])
+    if exact:
+        return exact[:1]
+    word = _FORMAT_WORD.fullmatch(folded)
+    if word:
+        by_format = [member for member in names if member.casefold().endswith("." + word.group(1))]
+        if by_format:
+            return by_format
+    if any(char in wanted for char in "*?["):
+        import fnmatch
+
+        return [member for member in names
+                if any(fnmatch.fnmatchcase(key.casefold(), folded) for key in keys(member))]
+    return []

@@ -13,16 +13,24 @@ from qgis.PyQt.QtCore import QTimer, QUrl
 
 from ..core import openui, telemetry
 from ..core import telemetry_events as ev
+from ..core.qt_compat import one_shot
 from ..core.snapshot_report import run_change_items
 from .bubbles import AgentBubble, StatusLine, UserBubble
 from .cards import RunSummaryCard, ToolCard
 from .chat_panel_shared import _is_nothing_changed, _Run
 from .external_links import open_local_path
+from .feedback_dialog import send_answer_words
 from .file_card import FileCardStack
-from .file_links import gis_data_path, is_safe_to_open, note_written_page, path_from_url, reveal_target
+from .file_links import (
+    SOURCE_SCHEME,
+    gis_data_path,
+    is_safe_to_open,
+    note_written_page,
+    path_from_url,
+    reveal_target,
+)
 from .layer_links import RunChangesRow, layer_id_from_url, layer_of_file, linkify_files, linkify_layers
 from .loader import user_waiting, waited_between
-from .markdown_view import SOURCE_SCHEME
 from .plan_card import PlanCard
 from .trace import RunTrace
 
@@ -86,7 +94,7 @@ class _ChatPanelRuns:
 
 
 
-                self._status = StatusLine(self.tr("Thinking"), started=run.started,
+                self._status = StatusLine(self.tr("Thinking"),
                                           reduced_motion=self._reduced_motion)
                 self.message_list.add_widget(self._status)
         return run.bubble
@@ -130,8 +138,6 @@ class _ChatPanelRuns:
                                  reduced_motion=self._reduced_motion)
             self.message_list.register_trace(run_id, run.trace)
             self._add(run.trace)
-            if not self._show_tool_details:
-                run.trace.hide()
         return run.trace
 
     def _plan_card_for(self, run_id: str) -> PlanCard:
@@ -166,7 +172,7 @@ class _ChatPanelRuns:
         self._changed_layers = []
         self._run_changes = None
         self._drop_status()
-        self._status = StatusLine(self.tr("Thinking"), started=self._run(run_id).started,
+        self._status = StatusLine(self.tr("Thinking"),
                                   reduced_motion=self._reduced_motion)
         self.message_list.add_widget(self._status)
         self.composer.set_running(True)
@@ -198,10 +204,7 @@ class _ChatPanelRuns:
             canvas = None
         if canvas is None:
             return
-        self._draw_timer = QTimer(self)
-        self._draw_timer.setSingleShot(True)
-        self._draw_timer.setInterval(500)
-        self._draw_timer.timeout.connect(lambda: self._on_long_draw(canvas))
+        self._draw_timer = one_shot(self, lambda: self._on_long_draw(canvas), 500)
         self._drawing_block = None
         canvas.renderStarting.connect(self._draw_timer.start)
         canvas.mapCanvasRefreshed.connect(self._on_draw_done)
@@ -317,8 +320,7 @@ class _ChatPanelRuns:
             self._drop_status()
             return
         if self._status is None:
-
-            self._status = StatusLine(text, started=self._run(run_id).started,
+            self._status = StatusLine(text,
                                       reduced_motion=self._reduced_motion)
             self.message_list.add_widget(self._status)
         else:
@@ -343,10 +345,6 @@ class _ChatPanelRuns:
             self._link_prev = None
             if held and held[0] == run_id and held[1]:
                 self.set_status_line(run_id, held[1])
-        hide = bool(text)
-        for widget in (self._status, run.trace):
-            if widget is not None:
-                widget.hide_clock(hide)
 
     def _block_is_tail(self, block) -> bool:
 
@@ -503,9 +501,10 @@ class _ChatPanelRuns:
 
 
         bare = not (summary or lines) and (status == "cancelled" or any(not block.is_empty() for block in blocks))
-        if not repeat and not bare and (status != "done" or (self._explain_runs and (summary or lines))):
+        if not repeat and not bare and status != "done":
             self._add(RunSummaryCard(status, summary, usage, {"lines": lines} if lines else None,
-                                     duration_s=seconds))
+                                     duration_s=seconds,
+                                     headed=any(not block.is_empty() for block in blocks)))
         last = self.message_list.last_widget(ignore=self._status)
         if run.bubble is not None and status != "done" and last is not run.bubble \
                 and last in blocks:
@@ -583,7 +582,8 @@ class _ChatPanelRuns:
         bubble.setProperty("wired", True)
         bubble.restore_clicked.connect(lambda: self._on_answer_restore(run_id))
         bubble.rated.connect(lambda rating: self.answer_rated.emit(run_id, str(rating)))
-        bubble.rating_words.connect(lambda rating, text: self._send_rating_words(bubble, run_id, rating, text))
+        bubble.rating_words.connect(
+            lambda rating, code, text: self._send_rating_words(bubble, run_id, rating, code, text))
         bubble.report_clicked.connect(lambda: self._on_report_offer(run_id))
 
     def _on_report_offer(self, run_id: str) -> None:
@@ -592,11 +592,13 @@ class _ChatPanelRuns:
         self.composer.focus_input()
         _track(ev.AGENT_REPORT_OFFER_CLICKED, run_id)
 
-    def _send_rating_words(self, bubble: AgentBubble, run_id: str, rating: str, text: str) -> None:
+    def _send_rating_words(self, bubble: AgentBubble, run_id: str, rating: str, code: str, text: str) -> None:
 
-        from .feedback_dialog import send_answer_words
 
-        if not send_answer_words(self, run_id, rating, text, bubble.words_done):
+        self.answer_reason.emit(run_id, rating, code, text)
+        if not text:
+            bubble.words_done(True)
+        elif not send_answer_words(self, run_id, rating, text, bubble.words_done):
             bubble.words_done(False)
 
     def set_sources(self, run_id: str, items) -> None:

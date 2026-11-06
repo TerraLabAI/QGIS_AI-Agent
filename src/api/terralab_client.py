@@ -34,7 +34,8 @@ from qgis.PyQt.QtCore import QByteArray, QCoreApplication, QUrl
 from qgis.PyQt.QtNetwork import QNetworkProxy, QNetworkProxyQuery, QNetworkReply, QNetworkRequest
 
 from ..core.background import on_main_thread, run_on_main_thread
-from ..core.host_platform import os_info, qgis_version
+from ..core.dev_env import dev_env
+from ..core.host_platform import os_info, plugin_version, qgis_version
 from ..core.log_scrub import scrub_secrets
 from ..core.net_hosts import retry_after_seconds
 
@@ -109,15 +110,8 @@ def _scrub_urls(text: str) -> str:
     return _URL_RE.sub("<url>", text or "")
 
 
-_plugin_version_cache: str | None = None
-
-
-def _plugin_dir() -> str:
-    return os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
-
 def terralab_base_url() -> str:
-    raw = str(os.environ.get("TERRALAB_BASE_URL") or TERRALAB_BASE_URL_DEFAULT).strip()
+    raw = str(dev_env("TERRALAB_BASE_URL") or TERRALAB_BASE_URL_DEFAULT).strip()
     if not raw:
         return TERRALAB_BASE_URL_DEFAULT
     try:
@@ -145,22 +139,6 @@ def own_cache_entry(url: str) -> str:
 
 
     return f"{url}{'&' if '?' in url else '?'}_={secrets.token_hex(6)}"
-
-
-def plugin_version() -> str:
-    global _plugin_version_cache
-    if _plugin_version_cache is None:
-        version = ""
-        try:
-            with open(os.path.join(_plugin_dir(), "metadata.txt"), encoding="utf-8") as fh:
-                for line in fh:
-                    if line.startswith("version="):
-                        version = line.strip().split("=", 1)[1].strip()
-                        break
-        except Exception:
-            version = ""
-        _plugin_version_cache = version or "unknown"
-    return _plugin_version_cache
 
 
 def config_query(product: str, lang: str = "") -> str:

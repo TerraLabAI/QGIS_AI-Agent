@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import os
 import re
+import socket
 
 from qgis.core import (
     QgsAbstractDatabaseProviderConnection,
@@ -25,7 +26,9 @@ from qgis.core import (
 from qgis.PyQt.QtCore import QT_TRANSLATE_NOOP
 from qgis.utils import iface
 
+from ..core import accounts
 from ..core.crs_ref import crs_ref
+from ..core.numbers import as_int
 from ..core.quiet_credentials import no_login_prompt
 from ..core.tool_registry import Tool, ToolRegistry, tool_error
 from ._compat import enum_value
@@ -78,8 +81,12 @@ def register_harvest_project_tools(registry: ToolRegistry):
                 "service": {"type": "string"},
             },
             "required": ["name", "connection_mode"],
+
+            "x-sign-in": True,
         },
         handler=_create_postgresql_connection,
+
+        always_confirm=lambda args: bool(args.get("auth_config_id")),
     ))
 
     registry.register(Tool(
@@ -100,6 +107,7 @@ def register_harvest_project_tools(registry: ToolRegistry):
     registry.register(Tool(
         name="add_layer_from_connection",
         danger="write",
+        loads_source=True,
         label=QT_TRANSLATE_NOOP("AIAgent", "Add {table} from {connection}"),
         input_schema={
             "type": "object",
@@ -151,7 +159,6 @@ def register_harvest_project_tools(registry: ToolRegistry):
         handler=_get_bookmarks,
     ))
 
-
     registry.register(Tool(
         name="get_map_themes",
         danger="read",
@@ -170,7 +177,6 @@ def register_harvest_project_tools(registry: ToolRegistry):
         handler=_add_map_theme,
     ))
 
-
     registry.register(Tool(
         name="apply_map_theme",
         danger="write",
@@ -181,7 +187,6 @@ def register_harvest_project_tools(registry: ToolRegistry):
         },
         handler=_apply_map_theme,
     ))
-
 
     registry.register(Tool(
         name="set_project_variable",
@@ -358,7 +363,10 @@ def _pg_settings(args: dict):
     mode = args["connection_mode"]
     needs = _PG_MODE_PARAMS[mode]
     settings = {key: "" if args.get(key) is None else str(args.get(key)).strip() for key in _PG_TEXT_ARGS}
-    missing = next((key for key in ("name", *needs) if not settings[key]), None)
+
+
+    required = tuple(key for key in needs if not (key == "auth_config_id" and "host" in needs))
+    missing = next((key for key in ("name", *required) if not settings[key]), None)
     if missing:
         return None, tool_error(f"{missing} is required for connection_mode {mode!r}", "INVALID_ARGS",
                                 hint="pg_mode_needs", mode=mode, needs=list(needs))
@@ -367,10 +375,7 @@ def _pg_settings(args: dict):
         return None, tool_error(f"{stray} is not used by connection_mode {mode!r}", "INVALID_ARGS")
     port = None
     if "port" in needs:
-        try:
-            port = int(settings["port"])
-        except ValueError:
-            port = 0
+        port = as_int(settings["port"], 0)
         if port < 1 or port > 65535:
             return None, tool_error("PostgreSQL port must be an integer from 1 to 65535", "INVALID_ARGS",
                                     hint="pg_port_default")
@@ -391,6 +396,14 @@ def _pg_settings(args: dict):
     return settings, None
 
 
+def _port_answers(host: str, port: int) -> bool:
+    try:
+        with socket.create_connection((host, int(port)), timeout=2):
+            return True
+    except (OSError, ValueError):
+        return False
+
+
 def _create_postgresql_connection(args: dict) -> dict:
     settings, refusal = _pg_settings(args)
     if refusal:
@@ -409,6 +422,18 @@ def _create_postgresql_connection(args: dict) -> dict:
 
     uri = QgsDataSourceUri()
     host, port, database, service = settings["host"], settings["port"], settings["database"], settings["service"]
+
+    address = f"postgresql://{host}:{port}/" if host and not service else ""
+    from_vault = False
+    if address and not settings["auth_config_id"]:
+
+
+        asked = accounts.check(address, f"Save the QGIS connection {name!r} to the database {database}, "
+                                        "with your sign-in kept in it")
+        if asked:
+            return asked
+        settings["auth_config_id"] = accounts.authcfg_for(address)
+        from_vault = bool(settings["auth_config_id"])
     if service:
         uri.setConnection(service, database, "", "", settings["ssl"], settings["auth_config_id"])
         where = f"service {service!r}"
@@ -428,12 +453,20 @@ def _create_postgresql_connection(args: dict) -> dict:
             opened = postgres.createConnection(uri.uri(False), {})
             opened.executeSql("SELECT 1")
     except Exception as e:
-        return tool_error(f"Failed to connect to PostgreSQL ({where}): {e}", "EXECUTION_FAILED",
-                          hint="pg_connect_failed")
+        failure = tool_error(f"Failed to connect to PostgreSQL ({where}): {e}", "EXECUTION_FAILED",
+                             hint="pg_connect_failed")
+
+
+        if address and not args.get("auth_config_id") and _port_answers(host, port):
+            return accounts.refused(address, 401, failure, "PostgreSQL")
+        return failure
     postgres.saveConnection(opened, name)
 
     answer = {"provider": "postgres", "name": name, "connection_mode": settings["mode"]}
-    answer.update((key, settings[key]) for key in ("host", "database", "auth_config_id", "service") if settings[key])
+    answer.update((key, settings[key]) for key in ("host", "database", "auth_config_id", "service")
+                  if settings[key] and not (key == "auth_config_id" and from_vault))
+    if from_vault:
+        answer["signed_in"] = "the user's saved sign-in, kept in this connection"
     if port is not None:
         answer["port"] = port
     answer.update(ssl_mode=settings["ssl_mode"], validated=True)

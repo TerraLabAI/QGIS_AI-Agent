@@ -5,21 +5,3 @@
 
 
 
-
-
-__all__ = [
-    "ExampleDetail",
-    "ExamplesDialog",
-]
-
-
-def __getattr__(name):
-    if name == "ExamplesDialog":
-        from .dialog import ExamplesDialog
-
-        return ExamplesDialog
-    if name == "ExampleDetail":
-        from .detail import ExampleDetail
-
-        return ExampleDetail
-    raise AttributeError(name)

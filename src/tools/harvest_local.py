@@ -36,9 +36,10 @@ import uuid
 from qgis.core import QgsTask
 from qgis.PyQt.QtCore import QT_TRANSLATE_NOOP
 
-from ..core import security
+from ..core import geodata_rules, security
 from ..core.context_layers import canvas_bbox_4326
 from ..core.logger import log, log_warning
+from ..core.numbers import as_int
 from ..core.settings import state_dir
 from ..core.tool_registry import Tool, ToolRegistry, tool_error
 
@@ -50,12 +51,9 @@ _TABLE_EXT = {".csv", ".tsv", ".xlsx", ".xls", ".ods"}
 _EXTENSIONS = _VECTOR_EXT | _RASTER_EXT | _TABLE_EXT
 
 _INDEX_VERSION = "2"
-_SKIP_DIRS = {
-    "library", "node_modules", ".venv", "venv", "__pycache__", "site-packages",
-    "caches", "cache", ".cache", "trash", ".trash", "applications",
 
-    "appdata", "application data", "local settings", "$recycle.bin", "system volume information",
-}
+
+_SYSTEM_DIRS = frozenset({"appdata", "application data", "local settings", "$recycle.bin", "system volume information"})
 
 
 
@@ -72,14 +70,6 @@ _SHEET_BYTES = 32 * 1024 * 1024
 _TABLE_EXTENT_BYTES = 16 * 1024 * 1024
 
 
-_X_NAMES = ("lon", "lng", "long", "longitude*", "x", "coord_x", "xcoord", "x_coord", "easting")
-_Y_NAMES = ("lat", "latitude*", "y", "coord_y", "ycoord", "y_coord", "northing")
-_ADDRESS_WORDS = (
-    "address", "adresse", "addr", "street", "rue", "voie", "direccion", "dirección", "calle", "endereco",
-    "endereço", "logradouro", "indirizzo", "strasse", "straße", "postcode", "postal", "zip", "zipcode",
-    "code_postal", "codepostal", "cp", "plz", "city", "ville", "commune", "town", "municipality",
-    "municipio", "localite", "localité", "cidade", "ciudad",
-)
 _COMMIT_EVERY = 200
 _DEFAULT_LIMIT = 12
 _MAX_LIMIT = 100
@@ -171,7 +161,7 @@ def _skip_dir(name: str) -> bool:
     lower = name.lower()
     if lower.startswith("."):
         return True
-    if lower in _SKIP_DIRS or "cache" in lower:
+    if lower in _SYSTEM_DIRS or lower in geodata_rules.rule("local_harvest", "skip_dirs") or "cache" in lower:
         return True
     return lower.endswith(_BUNDLE_SUFFIXES)
 
@@ -410,7 +400,8 @@ def _table_facts(path: str, ext: str, size: int):
     if ext in (".xlsx", ".xls", ".ods") and size > _SHEET_BYTES:
         return None, None, "table, too large to list its columns here"
     if ext in (".csv", ".tsv"):
-        options = ["X_POSSIBLE_NAMES=" + ",".join(_X_NAMES), "Y_POSSIBLE_NAMES=" + ",".join(_Y_NAMES),
+        options = ["X_POSSIBLE_NAMES=" + ",".join(geodata_rules.rule("local_harvest", "x_names")),
+                   "Y_POSSIBLE_NAMES=" + ",".join(geodata_rules.rule("local_harvest", "y_names")),
                    "AUTODETECT_TYPE=NO"]
     else:
 
@@ -428,8 +419,10 @@ def _table_facts(path: str, ext: str, size: int):
         names = [definition.GetFieldDefn(i).GetName() for i in range(definition.GetFieldCount())]
         sheets = dataset.GetLayerCount()
         detail = f"table, {len(names)} columns" + (f", {sheets} sheets" if sheets > 1 else "")
-        xs, ys = _columns_named(names, _X_NAMES), _columns_named(names, _Y_NAMES)
-        address = [n for n in names if n.strip().lower() in _ADDRESS_WORDS]
+        xs = _columns_named(names, geodata_rules.rule("local_harvest", "x_names"))
+        ys = _columns_named(names, geodata_rules.rule("local_harvest", "y_names"))
+        address_words = geodata_rules.rule("local_harvest", "address_words")
+        address = [n for n in names if n.strip().lower() in address_words]
         bbox = None
         if xs and ys:
             detail += f"; coordinates {xs[0]}/{ys[0]}"
@@ -636,19 +629,19 @@ def _scope_folders() -> list:
 
 
 
-    skip = [security._PLUGIN_RESOURCES] + list(security.temp_roots())
-    profile = security._qgis_profile_dir()
+    skip = [security.PLUGIN_RESOURCES] + list(security.temp_roots())
+    profile = security.qgis_profile_dir()
     if profile:
         skip.append(os.path.join(profile, "python", "plugins"))
     folders = []
     for root in security.read_roots():
-        if not os.path.isdir(root) or any(security._under(root, s) for s in skip):
+        if not os.path.isdir(root) or any(security.path_is_under(root, s) for s in skip):
             continue
         folders.append(os.path.normpath(root))
     folders = sorted(dict.fromkeys(folders), key=len)
     out: list = []
     for folder in folders:
-        if not any(security._under(folder, kept) for kept in out):
+        if not any(security.path_is_under(folder, kept) for kept in out):
             out.append(folder)
     return out
 
@@ -660,10 +653,7 @@ def _roots_key(roots: list) -> str:
 def _find_local_data(args: dict) -> dict:
     query = str(args.get("query") or "")
     words = [w.lower() for w in query.split() if w.strip()]
-    try:
-        limit = int(args.get("limit") or _DEFAULT_LIMIT)
-    except (TypeError, ValueError):
-        limit = _DEFAULT_LIMIT
+    limit = as_int(args.get("limit") or _DEFAULT_LIMIT, _DEFAULT_LIMIT)
     limit = max(1, min(limit, _MAX_LIMIT))
     within_canvas = bool(args.get("within_canvas"))
     refresh = bool(args.get("refresh"))

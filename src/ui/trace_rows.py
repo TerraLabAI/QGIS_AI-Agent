@@ -53,10 +53,9 @@ _RISE_PX = 8
 _LABEL_QSS = scale_qss_font_px(
     f"QLabel {{ font-size: {FONT_BODY}px; color: {INK}; background: transparent; border: none; }}"
 )
-_MEDIUM_QSS = scale_qss_font_px(
-    f"QLabel {{ font-size: {FONT_BODY}px; font-weight: 500; color: {INK};"
-    " background: transparent; border: none; }"
-)
+
+
+_VERB_QSS = _LABEL_QSS
 _SECOND_QSS = scale_qss_font_px(
     f"QLabel {{ font-size: {FONT_BODY}px; color: {INK_2}; background: transparent; border: none; }}"
 )
@@ -214,7 +213,7 @@ class Chevron(QWidget):
             painter = QPainter(self)
             painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform, True)
             colour = accent_color() if self._hot else qcolor(INK_3)
-            ratio = self.devicePixelRatioF() if hasattr(self, "devicePixelRatioF") else 1.0
+            ratio = self.devicePixelRatioF()
             pixmap = render_pixmap("chevron_down", colour, self._size, ratio)
             half = self._size / 2.0
             painter.translate(half, half)

@@ -18,9 +18,14 @@ import importlib
 import time
 from typing import Any
 
+from ...core import siblings, zone_of_interest
 from ...core.logger import log_warning
+from ...core.numbers import as_int
+from ...core.provider_uri import encode_uri_url
 from ...core.tool_registry import coded_fact, tool_error
-from .._widgets import AI_EDIT_KEYS, process_events, sibling_plugin
+from .._widgets import process_events
+from ..handoff_reads import edit_prompt, interactive_state, raster_layer
+from ..zone_facts import _to_canvas_crs, zone_from_args
 
 
 RESOLUTION_LABELS = ("1K", "2K", "4K")
@@ -32,11 +37,6 @@ DEFAULT_RESOLUTION = "2K"
 OVERLAY_POLL_MS = 1500
 OVERLAY_IDLE_TICKS = 2
 OVERLAY_WATCH_SECONDS = 1200
-
-
-def _find_plugin() -> tuple[str | None, Any]:
-
-    return sibling_plugin(AI_EDIT_KEYS)
 
 
 def _attr(inst, *names):
@@ -162,7 +162,6 @@ def _ensure_basemap_layer(name: str):
         return None
     from qgis.core import QgsProject, QgsRasterLayer
 
-    from ...core.provider_uri import encode_uri_url
 
 
 
@@ -191,7 +190,7 @@ class AiEditAccess:
         self._overlay_idle_ticks = 0
 
     def instance(self) -> tuple[str | None, Any]:
-        return _find_plugin()
+        return siblings.find(siblings.AI_EDIT)
 
     def auth(self, inst):
         return _attr(inst, "_auth_manager", "auth_manager")
@@ -223,7 +222,7 @@ class AiEditAccess:
 
     def status(self) -> dict:
 
-        key, inst = _find_plugin()
+        key, inst = siblings.find(siblings.AI_EDIT)
         if inst is None:
             return {"installed": False, "ready": False, "state": "NOT_INSTALLED"}
 
@@ -251,7 +250,7 @@ class AiEditAccess:
 
     def presets(self) -> dict:
 
-        key, inst = _find_plugin()
+        key, inst = siblings.find(siblings.AI_EDIT)
         if inst is None:
             return tool_error("AI Edit plugin is not installed.", "EXECUTION_FAILED")
 
@@ -287,7 +286,7 @@ class AiEditAccess:
 
     def credits(self) -> dict:
 
-        key, inst = _find_plugin()
+        key, inst = siblings.find(siblings.AI_EDIT)
         if inst is None:
             return tool_error("AI Edit plugin is not installed.", "EXECUTION_FAILED")
 
@@ -308,7 +307,7 @@ class AiEditAccess:
 
     def resolutions(self) -> dict:
 
-        key, inst = _find_plugin()
+        key, inst = siblings.find(siblings.AI_EDIT)
         if inst is None:
             return tool_error("AI Edit plugin is not installed.", "EXECUTION_FAILED")
 
@@ -520,11 +519,10 @@ class AiEditAccess:
 
 
         params = params or {}
-        key, inst = _find_plugin()
+        key, inst = siblings.find(siblings.AI_EDIT)
         if inst is None:
             return tool_error("AI Edit plugin is not installed.", "EXECUTION_FAILED")
 
-        from ..integration_handoff import edit_prompt, interactive_state
         try:
             draft = interactive_state(self._mcp_api(inst)) if "prompt" not in params else None
             prompt = edit_prompt(params, draft)
@@ -541,7 +539,6 @@ class AiEditAccess:
 
         source = params.get("layer_name")
         if source:
-            from ..integration_handoff import raster_layer
             setter = getattr(self._mcp_api(inst), "set_input_layer", None)
             if not callable(setter):
                 return tool_error("This AI Edit version cannot select imagery by ID.", "PLUGIN_OUTDATED",
@@ -740,7 +737,7 @@ class AiEditAccess:
         self._overlay_armed = False
         self._stop_overlay_watch()
         if inst is None:
-            _, inst = _find_plugin()
+            _, inst = siblings.find(siblings.AI_EDIT)
         if inst is None:
             return {"cleared": False, "reason": "AI Edit plugin is not installed."}
 
@@ -806,7 +803,7 @@ class AiEditAccess:
         if not self._overlay_armed:
             self._stop_overlay_watch()
             return
-        _, inst = _find_plugin()
+        _, inst = siblings.find(siblings.AI_EDIT)
         if inst is None:
             self._overlay_armed = False
             self._stop_overlay_watch()
@@ -871,7 +868,6 @@ class AiEditAccess:
         if params.get("bbox") is not None:
 
 
-            from ..cost_guard import zone_from_args
             moved = zone_from_args({"bbox": params.get("bbox"), "crs": params.get("crs")})
             if moved is None:
                 return tool_error("bbox must be 4 numbers [xmin,ymin,xmax,ymax] or {xmin,ymin,xmax,ymax}, "
@@ -879,7 +875,6 @@ class AiEditAccess:
             return QgsRectangle(moved.boundingBox())
         held = self.current_zone()
         if held is not None:
-            from ..cost_guard import _to_canvas_crs
             moved = _to_canvas_crs(*held)
             if moved is not None:
                 return QgsRectangle(moved.boundingBox())
@@ -888,7 +883,7 @@ class AiEditAccess:
 
     def current_zone(self):
 
-        _, inst = _find_plugin()
+        _, inst = siblings.find(siblings.AI_EDIT)
         if inst is None:
             return None
         from qgis.core import QgsCoordinateReferenceSystem, QgsGeometry, QgsProject, QgsRectangle
@@ -929,7 +924,6 @@ class AiEditAccess:
             held = self.current_zone()
             if held is None:
                 return False
-            from ..cost_guard import _to_canvas_crs
             geometry = _to_canvas_crs(*held)
             if geometry is None:
                 return False
@@ -956,7 +950,6 @@ class AiEditAccess:
         from qgis.core import QgsProject
         from qgis.utils import iface
 
-        from ...core import zone_of_interest
         held = zone_of_interest.read_zone()
         if held is None:
             return None
@@ -968,7 +961,7 @@ class AiEditAccess:
 
     def generation_status(self) -> dict:
 
-        key, inst = _find_plugin()
+        key, inst = siblings.find(siblings.AI_EDIT)
         if inst is None:
             return tool_error("AI Edit plugin is not installed.", "EXECUTION_FAILED")
 
@@ -1123,7 +1116,7 @@ class AiEditAccess:
 
 
 
-        key, inst = _find_plugin()
+        key, inst = siblings.find(siblings.AI_EDIT)
         if inst is None:
             return tool_error("AI Edit plugin is not installed.", "EXECUTION_FAILED")
         was_busy = self.is_busy(inst)
@@ -1163,7 +1156,7 @@ class AiEditAccess:
 
 
 
-        key, inst = _find_plugin()
+        key, inst = siblings.find(siblings.AI_EDIT)
         if inst is None:
             return tool_error("AI Edit plugin is not installed.", "EXECUTION_FAILED")
         own = getattr(self._mcp_api(inst), "list_versions", None)
@@ -1195,7 +1188,7 @@ class AiEditAccess:
 
 
 
-        key, inst = _find_plugin()
+        key, inst = siblings.find(siblings.AI_EDIT)
         if inst is None:
             return tool_error("AI Edit plugin is not installed.", "EXECUTION_FAILED")
 
@@ -1212,9 +1205,8 @@ class AiEditAccess:
             count = 0
         if count <= 0:
             return tool_error("No versions yet.", hint="ai_edit_no_versions")
-        try:
-            idx = int(index)
-        except (TypeError, ValueError):
+        idx = as_int(index)
+        if idx is None:
             return tool_error("index must be an integer.", "INVALID_ARGS")
         if idx < 0 or idx >= count:
             return {**tool_error(f"index out of range (valid 0..{count - 1}).", "INVALID_ARGS"), "count": count}
@@ -1264,7 +1256,7 @@ class AiEditAccess:
 
 
         params = params or {}
-        key, inst = _find_plugin()
+        key, inst = siblings.find(siblings.AI_EDIT)
         if inst is None:
             return tool_error("AI Edit plugin is not installed.", "EXECUTION_FAILED")
         from qgis.core import QgsProject, QgsRasterLayer
@@ -1371,7 +1363,7 @@ class AiEditAccess:
 
 
 
-        _, inst = _find_plugin()
+        _, inst = siblings.find(siblings.AI_EDIT)
         if inst is None:
             return tool_error("AI Edit plugin is not installed.", "EXECUTION_FAILED")
         api = self._mcp_api(inst)
@@ -1471,7 +1463,7 @@ class AiEditAccess:
 
 
 
-        key, inst = _find_plugin()
+        key, inst = siblings.find(siblings.AI_EDIT)
         if inst is None:
             return tool_error("AI Edit plugin is not installed.", "EXECUTION_FAILED")
         action = (action or "").strip().lower()

@@ -10,6 +10,7 @@
 
 from __future__ import annotations
 
+import html
 import re
 
 from qgis.PyQt.QtCore import QEvent, QRect, QRectF, QSize, Qt, QTimer
@@ -211,6 +212,12 @@ class Spinner(QWidget):
 _MEASURE_RE = re.compile(r"\d[\d.,]*(?:[ \u00a0]?(?:%|[^\W\d_]{1,3}\b))?")
 
 
+def plain_tip(text: str) -> str:
+
+
+    return f"<span>{html.escape(text)}</span>" if text else ""
+
+
 class ElidedLabel(QLabel):
 
 
@@ -249,7 +256,7 @@ class ElidedLabel(QLabel):
 
         width = self.contentsRect().width()
         trimmed = self.fontMetrics().horizontalAdvance(self._full) > width
-        self.setToolTip(self._full if trimmed else "")
+        self.setToolTip(plain_tip(self._full) if trimmed else "")
 
     def resizeEvent(self, event):  # noqa: N802
         super().resizeEvent(event)

@@ -49,6 +49,10 @@ from qgis.PyQt.QtWidgets import (
     QWidget,
 )
 
+from ..core.numbers import as_float
+from .external_links import open_local_path
+from .file_kinds import IMAGE_EXTS, file_type
+from .file_links import is_safe_to_open, reveal_target
 from .font_scale import scale_qss_font_px, widget_pixel_ratio
 from .icons import pixmap_for
 from .image_preview import open_image_preview
@@ -204,9 +208,8 @@ def size_words(size_bytes) -> str:
 
 
 
-    try:
-        value = float(size_bytes)
-    except (TypeError, ValueError):
+    value = as_float(size_bytes)
+    if value is None:
         return ""
     if value < 0:
         return ""
@@ -414,7 +417,6 @@ class FilePreview(QDialog):
         return head
 
     def _meta_words(self, pages: int = 0) -> str:
-        from .attachments import file_type
 
         parts = [file_type({"name": self.name})]
         if pages == 1:
@@ -511,8 +513,6 @@ class FilePreview(QDialog):
         return box
 
     def _open_outside(self) -> None:
-        from .external_links import open_local_path
-        from .file_links import is_safe_to_open, reveal_target
 
         target = self.path if is_safe_to_open(self.path) else reveal_target(self.path)
         self.close()
@@ -571,7 +571,6 @@ def open_file_preview(item: dict, anchor: QWidget | None = None):
 
     if not isinstance(item, dict):
         return None
-    from .attachments import IMAGE_EXTS
 
     path = item_path(item)
     if os.path.splitext(path)[1].lower() in IMAGE_EXTS and can_open(item):

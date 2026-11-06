@@ -31,6 +31,33 @@ from typing import Any
 _MISSING = object()
 
 
+def disconnect_quietly(owner: Any, signal: str, *slot) -> None:
+
+
+
+
+
+    try:
+        getattr(owner, signal).disconnect(*slot)
+    except Exception:  # nosec B110  # noqa: BLE001
+        pass
+
+
+def one_shot(parent: Any, slot, interval_ms: int | None = None):
+
+
+
+
+    from qgis.PyQt.QtCore import QTimer
+
+    timer = QTimer(parent)
+    timer.setSingleShot(True)
+    if interval_ms is not None:
+        timer.setInterval(interval_ms)
+    timer.timeout.connect(slot)
+    return timer
+
+
 def qgis_iface():
 
 

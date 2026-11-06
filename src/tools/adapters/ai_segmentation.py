@@ -5,16 +5,16 @@ from __future__ import annotations
 
 from typing import Any
 
-from .._widgets import AI_SEGMENT_KEYS
+from ...core import siblings
 from .base import PluginAdapter
 
 
 class AiSegmentationAdapter(PluginAdapter):
-    keys = AI_SEGMENT_KEYS
+    keys = siblings.AI_SEGMENTATION.folders
     aliases = ("ai-segmentation", "ai-segment", "aisegmentation", "ai segmentation")
 
     def display_name(self) -> str:
-        return "AI Segmentation"
+        return siblings.AI_SEGMENTATION.label
 
 
     def current_zone(self) -> tuple[Any, Any] | None:

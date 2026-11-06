@@ -31,7 +31,9 @@ from qgis.core import (
 )
 from qgis.PyQt.QtCore import QPointF, QSizeF
 
+from ..core.numbers import as_int
 from ._compat import enum_value
+from .layout_facts import _map_layers
 
 REFERENCE_DPI = 96.0
 _MM_PER_PIXEL = 25.4 / REFERENCE_DPI
@@ -82,9 +84,8 @@ def _property_names(owner) -> dict:
             if attr.startswith("_") or (strip and not attr.startswith(strip)) or attr == "Property":
                 continue
             member = getattr(source, attr, None)
-            try:
-                key = int(getattr(member, "value", member))
-            except (TypeError, ValueError):
+            key = as_int(getattr(member, "value", member))
+            if key is None:
                 continue
             names.setdefault(key, attr[len(strip):].lower())
     return names
@@ -403,8 +404,6 @@ class PixelSizeHold:
 
     def _apply(self, layout) -> None:
         from qgis.core import QgsLayoutItemMap
-
-        from .advanced_layouts import _map_layers
 
         maps = [item for sheet in _sheets(layout) for item in sheet.items() if isinstance(item, QgsLayoutItemMap)]
         layers = _with_group_children(layer for item in maps for layer in _map_layers(item))

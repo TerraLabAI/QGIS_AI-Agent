@@ -26,7 +26,6 @@
 
 from __future__ import annotations
 
-import contextlib
 import os
 import time
 
@@ -35,8 +34,15 @@ from qgis.core import QgsLayoutItemMap, QgsProject, QgsRasterLayer, QgsRectangle
 from ..core import net
 from ..core.host_platform import remove_quietly
 from ..core.logger import log, log_warning
+from ..core.numbers import as_int
 from ..core.snapshot_paths import layer_file_path
-
+from ..core.vsi import thread_options
+from ._compat import RASTER_STATS_ALL
+from ._layers import resolve_layer
+from .band_reads import hand_over
+from .elevation_style import min_max_stats
+from .georeference_tools import _build_overviews
+from .style_defaults import _RASTER_SAMPLE, _rules
 
 LARGE_RASTER_PIXELS = 25_000_000
 
@@ -110,8 +116,6 @@ def _build(path: str) -> str:
 
     from osgeo import gdal
 
-    from .georeference_tools import _build_overviews
-
     ovr = path + ".ovr"
     existed = os.path.exists(ovr)
     cancel = net.current_cancel_check()
@@ -135,14 +139,8 @@ def _build(path: str) -> str:
         if levels:
 
 
-            set_local = getattr(gdal, "SetThreadLocalConfigOption", None)
-            if callable(set_local):
-                set_local("GDAL_NUM_THREADS", "ALL_CPUS")
-            try:
+            with thread_options(gdal, GDAL_NUM_THREADS="ALL_CPUS"):
                 _build_overviews(gdal, dataset, method, levels, progress)
-            finally:
-                if callable(set_local):
-                    set_local("GDAL_NUM_THREADS", None)
 
 
             if band is None or band.GetOverviewCount() < 1:
@@ -181,8 +179,7 @@ def _work_for(wanted: dict, before: str, reads: dict | None = None):
 
         def finish() -> dict:
             if reads:
-                _READY.clear()
-                _READY[reads["layer_id"]] = answers
+                hand_over(reads["layer_id"], answers)
                 reads.pop("clone", None)
             names = []
             for layer_id in built:
@@ -226,7 +223,6 @@ def prepare_raster_style(args: dict):
     typed = args.get("min_value") is not None and args.get("max_value") is not None
     if typed and args.get("cumulative_cut") in (None, "", []) and args.get("min_max") == "min_max":
         return None
-    from ._layers import resolve_layer
 
     layer = resolve_layer(str(args.get("layer_name") or ""))
     path = _needs_overviews(layer)
@@ -236,17 +232,7 @@ def prepare_raster_style(args: dict):
     return _work_for({layer.id(): path} if path else {}, "measuring its range for the style", reads)
 
 
-
-
-
-
-
-
-
-
 _STATS_SAMPLE = 250_000
-_READY: dict = {}
-_ACTIVE: list = []
 
 
 def _bands(args: dict, count: int) -> list:
@@ -254,9 +240,8 @@ def _bands(args: dict, count: int) -> list:
     names = (("red_band", 1), ("green_band", 2), ("blue_band", 3)) if style == "multiband_color" else (("band", 1),)
     out = []
     for name, fallback in names:
-        try:
-            band = int(args.get(name, fallback))
-        except (TypeError, ValueError):
+        band = as_int(args.get(name, fallback))
+        if band is None:
             continue
         if 1 <= band <= count and band not in out:
             out.append(band)
@@ -273,8 +258,6 @@ def _plan_reads(layer, args: dict) -> dict | None:
         bands = _bands(args, provider.bandCount())
         if not bands:
             return None
-        from .style_defaults import _rules
-
         rules = _rules("stretch")
         cut = (rules.get("cut_low"), rules.get("cut_high"))
         return {"layer_id": layer.id(), "clone": provider.clone(), "bands": bands,
@@ -289,9 +272,6 @@ def _read(reads: dict, reopen: bool = False) -> dict:
 
 
 
-    from ._compat import RASTER_STATS_ALL
-    from .elevation_style import min_max_stats
-    from .style_defaults import _RASTER_SAMPLE
 
     clone, extent, answers = reads["clone"], reads["extent"], {}
     if reopen:
@@ -312,22 +292,6 @@ def _read(reads: dict, reopen: bool = False) -> dict:
         except Exception as exc:  # noqa: BLE001
             log_warning(f"Band {band} not read ahead: {exc}")
     return answers
-
-
-@contextlib.contextmanager
-def answers_for(layer):
-
-    _ACTIVE.append(_READY.pop(layer.id(), {}) if layer is not None else {})
-    try:
-        yield
-    finally:
-        _ACTIVE.pop()
-
-
-def read_ahead(key: tuple, compute):
-
-    answers = _ACTIVE[-1] if _ACTIVE else {}
-    return answers[key] if key in answers else compute()
 
 
 def prepare_render(args: dict):

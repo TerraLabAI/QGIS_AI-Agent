@@ -12,6 +12,7 @@ from ..core import limits
 from ..core.background import breathe, gc_paused
 from ..core.tool_registry import tool_error
 from .data_common import _is_number, _overpass_timeout
+from .data_outline import _ring_contains
 
 
 
@@ -772,7 +773,6 @@ def _osm_area_of(parts: list, roles: list) -> dict | None:
     inners = _osm_rings([part for part, role in zip(parts, roles) if role == "inner"])
     if not outers or inners is None:
         return None
-    from .data_overture import _ring_contains
 
     polygons = [[ring] for ring in outers]
     for hole in inners:

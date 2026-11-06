@@ -477,6 +477,40 @@ def clear_memory_notes(settings) -> None:
     memory_store.write_notes([])
 
 
+_PERSONAL_FIELDS = (
+    ("profile_name", ""), ("profile_role", ""), ("profile_about", ""), ("profile_instructions", ""),
+    ("memory_notes", []), ("memory_forgotten", []),
+)
+
+
+def bind_personal(settings, tag: str) -> None:
+
+
+
+
+
+
+
+    owner = settings.personal_owner
+    if owner == tag:
+        return
+    load_memory_notes(settings)
+    stored = settings.personal_by_account
+    if owner:
+        stored[owner] = {name: getattr(settings, name) for name, _ in _PERSONAL_FIELDS}
+        settings.personal_by_account = stored
+        for name, empty in _PERSONAL_FIELDS:
+            setattr(settings, name, empty)
+    if tag:
+        own = stored.pop(tag, None) or {}
+        for name, _ in _PERSONAL_FIELDS:
+            if own.get(name):
+                setattr(settings, name, own[name])
+        settings.personal_by_account = stored
+    settings.personal_owner = tag
+    memory_store.write_notes(settings.memory_notes)
+
+
 def notes_for_project(settings, project_path: str = "") -> list:
 
 

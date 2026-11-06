@@ -27,13 +27,16 @@ from qgis.core import (
 from qgis.PyQt.QtGui import QImage
 
 from ..core import limits
+from ..core.output_paths import FORBIDDEN_CHARS, RESERVED_NAMES, safe_file_name
 from ..core.security import expand_path, validate_path
 from ..core.serialization import CodedText
 from ..core.tool_registry import Tool, ToolRegistry, coded_fact, tool_error
+from . import layout_ready
 from ._compat import enum_value
-from .data_tools import _safe_filename
+from .export_rules import _IMAGE_FORMATS, _dpi_for_ground, _ground_per_pixel, export_flags
 from .layer_lookup import require_vector
 from .layout_elevation import camera_facts, snapshot_3d_view
+from .layout_facts import _apply_scale
 from .layout_pixel_units import PixelSizeHold
 from .layout_tools import _first_map_item, _mm_point, _mm_size, _resolve_layout, _with_new_item, place_item
 
@@ -116,7 +119,10 @@ def register_harvest_layout_tools(registry: ToolRegistry):
 
     registry.register(Tool(
         name="export_atlas",
+        long_main=True,
         danger="destructive",
+        render_size="held",
+        writes_at=("output_path",),
         input_schema={
             "type": "object",
             "x-dpi-at-ceiling": True,
@@ -140,6 +146,8 @@ def register_harvest_layout_tools(registry: ToolRegistry):
     registry.register(Tool(
         name="get_3d_screenshot",
         danger="read",
+        render_size="held",
+        writes_at=("save_path",),
         input_schema={
             "type": "object",
             "x-dpi-at-ceiling": True,
@@ -438,8 +446,6 @@ def _apply_atlas_scale(layout, wanted_scale, layout_name: str):
 
 
 
-    from .advanced_tools import _apply_scale
-
     driven = [item for item in layout.items()
               if isinstance(item, QgsLayoutItemMap) and item.atlasDriven()]
     if not driven:
@@ -482,8 +488,6 @@ def _atlas_dpi_for_ground(layout, atlas, fmt: str, metres, max_dpi: int):
 
 
 
-
-    from .advanced_tools import _IMAGE_FORMATS, _dpi_for_ground, _ground_per_pixel
 
     if fmt not in _IMAGE_FORMATS:
         return tool_error(f"meters_per_pixel sets the pixel size of an image, and {fmt} is not one.",
@@ -541,9 +545,6 @@ def atlas_view(args: dict):
 
 
 
-    from . import layout_ready
-    from .advanced_layouts import export_flags
-
     layout = QgsProject.instance().layoutManager().layoutByName(str(args.get("layout_name") or ""))
     atlas = layout.atlas() if layout is not None and hasattr(layout, "atlas") else None
     if (atlas is None or not atlas.enabled() or atlas.coverageLayer() is None
@@ -560,14 +561,10 @@ def atlas_view(args: dict):
 
 
 def _prepare_atlas(args: dict):
-    from . import layout_ready
-
-    return layout_ready.prepare_atlas(args)
+    return layout_ready.prepare_atlas(args, atlas_view(args))
 
 
 def _export_atlas(args: dict) -> dict:
-    from . import layout_ready
-
 
 
     ready = layout_ready.take("atlas:" + str(args.get("layout_name") or ""))
@@ -578,8 +575,6 @@ def _export_atlas(args: dict) -> dict:
 
 
 def _export_atlas_with(args: dict, ready) -> dict:
-    from . import layout_ready
-
     layout, error = _layout_or_error(args["layout_name"])
     if error:
         return error
@@ -713,7 +708,7 @@ def _atlas_to_folder(job: dict) -> dict:
         return refusal
     already_there = set(os.listdir(folder))
 
-    base = os.path.join(folder, _safe_filename(job["layout"].name(), "layout"))
+    base = os.path.join(folder, safe_file_name(job["layout"].name(), "layout"))
     (code, message), pixel_units = _held_export(job, _atlas_writer(job, base))
     if _export_failed(code):
         return tool_error(f"Atlas export failed: {message or code}")
@@ -744,8 +739,6 @@ def _atlas_to_folder(job: dict) -> dict:
 
 def _held_export(job: dict, run):
 
-
-    from . import layout_ready
 
     layout, dpi = job["layout"], job["dpi"]
     held = PixelSizeHold(layout, dpi)
@@ -812,7 +805,6 @@ def _atlas_page_names(atlas) -> tuple:
 
 def _bad_page_names(names: list) -> list:
 
-    from .data_tools import _WINDOWS_FORBIDDEN_CHARS, _WINDOWS_RESERVED_NAMES
 
     problems = []
     seen: dict = {}
@@ -830,11 +822,11 @@ def _bad_page_names(names: list) -> list:
         if text in (".", "..") or ".." in text.split(os.sep):
             problems.append(f"{text!r} points outside the output folder")
             continue
-        forbidden = sorted({c for c in text if c in _WINDOWS_FORBIDDEN_CHARS or ord(c) < 32})
+        forbidden = sorted({c for c in text if c in FORBIDDEN_CHARS or ord(c) < 32})
         if forbidden:
             problems.append(f"{text!r} holds {' '.join(repr(c) for c in forbidden)}, which Windows refuses")
             continue
-        if os.path.splitext(text)[0].strip(" .").lower() in _WINDOWS_RESERVED_NAMES:
+        if os.path.splitext(text)[0].strip(" .").lower() in RESERVED_NAMES:
             problems.append(f"{text!r} is a reserved device name on Windows")
             continue
         key = text.lower()

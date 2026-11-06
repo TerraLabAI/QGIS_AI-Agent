@@ -12,6 +12,8 @@ from __future__ import annotations
 import contextlib
 import os
 
+from .qt_compat import enum_member
+
 
 @contextlib.contextmanager
 def _signals_blocked(project):
@@ -71,8 +73,6 @@ def _paths_back(project, own: str) -> None:
         return
     from qgis.core import Qgis
 
-    from .qt_compat import enum_member
-
     project.setFilePathStorage(enum_member(Qgis, "FilePathType", "Absolute" if own == "absolute" else "Relative"))
 
 
@@ -97,8 +97,6 @@ def _core_sections(project) -> bytes:
         return b""
     from qgis.core import Qgis
     from qgis.PyQt.QtXml import QDomDocument
-
-    from .qt_compat import enum_member
 
     generated = _enum_int(enum_member(Qgis, "RelationshipType", "Generated"))
     doc = QDomDocument()

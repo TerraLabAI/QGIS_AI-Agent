@@ -41,7 +41,9 @@ from ..core.layer_order import feature_count_of
 from ..core.qt_compat import enum_member
 from ..core.tool_registry import Tool, ToolRegistry, coded_fact, tool_error
 from . import vector_write
+from .code_runtime import current
 from .layer_lookup import require_vector
+from .query_tools import _invalid_reasons
 
 
 _edit_sessions: dict[str, dict] = {}
@@ -67,7 +69,6 @@ def _validity(layer: QgsVectorLayer, fid) -> dict:
             return {"geometry_valid": True}
     except Exception:  # noqa: BLE001
         return {}
-    from .query_tools import _invalid_reasons
 
     out = {"geometry_valid": False}
     reasons = _invalid_reasons(geometry)
@@ -703,7 +704,6 @@ def _add_part(args: dict) -> dict:
 def _undo_saved(layer) -> dict:
 
 
-    from .code_runtime import current
 
     context = current()
     if context.restore_previous is None or not context.chat:
@@ -800,6 +800,7 @@ def register_edit_tools(registry: ToolRegistry):
     registry.register(Tool(
         name="qgis_edit_commit",
         danger="write",
+        mutates_data=True, check_shape="layer",
         input_schema={
             "type": "object",
             "x-preserve-failed-commit": True,
@@ -853,7 +854,6 @@ def register_edit_tools(registry: ToolRegistry):
         handler=_arm_tool,
     ))
 
-
     registry.register(Tool(
         name="qgis_edit_state",
         danger="read",
@@ -866,7 +866,6 @@ def register_edit_tools(registry: ToolRegistry):
         },
         handler=_edit_state,
     ))
-
 
     registry.register(Tool(
         name="qgis_translate_feature",
@@ -884,10 +883,10 @@ def register_edit_tools(registry: ToolRegistry):
         handler=_translate_feature,
     ))
 
-
     registry.register(Tool(
         name="qgis_merge_features",
         danger="write",
+        mutates_data=True,
         input_schema={
             "type": "object",
             "properties": {
@@ -898,7 +897,6 @@ def register_edit_tools(registry: ToolRegistry):
         },
         handler=_merge_features,
     ))
-
 
     registry.register(Tool(
         name="qgis_add_part",

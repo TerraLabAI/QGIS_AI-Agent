@@ -591,14 +591,6 @@
             <translation>Định vị địa lý {raster}</translation>
         </message>
         <message>
-            <source>Get a Sentinel image</source>
-            <translation>Lấy ảnh Sentinel</translation>
-        </message>
-        <message>
-            <source>Get an elevation model</source>
-            <translation>Lấy mô hình độ cao</translation>
-        </message>
-        <message>
             <source>Get {what}</source>
             <translation>Lấy {what}</translation>
         </message>
@@ -743,10 +735,6 @@
             <translation>Liệt kê các plugin</translation>
         </message>
         <message>
-            <source>List the satellite catalogs</source>
-            <translation>Liệt kê các danh mục vệ tinh</translation>
-        </message>
-        <message>
             <source>Load 3D Tiles[ from {url}]</source>
             <translation>Tải 3D Tiles[ từ {url}]</translation>
         </message>
@@ -763,20 +751,12 @@
             <translation>Xem cửa sổ QGIS</translation>
         </message>
         <message>
-            <source>Look for data on the web[ for {query}]</source>
-            <translation>Tìm dữ liệu trên web[ cho {query}]</translation>
-        </message>
-        <message>
             <source>Look for data on this computer</source>
             <translation>Tìm dữ liệu trên máy tính này</translation>
         </message>
         <message>
             <source>Look for relief anomalies[ in {lrm_layer}][ in {dem}]</source>
             <translation>Tìm các điểm bất thường của địa hình[ trong {lrm_layer}][ trong {dem}]</translation>
-        </message>
-        <message>
-            <source>Look up the place[ {query}]</source>
-            <translation>Tra cứu địa điểm[ {query}]</translation>
         </message>
         <message>
             <source>Make the temporary layers permanent[ in {gpkg_path}]</source>
@@ -967,10 +947,6 @@
             <translation>Raster hóa {INPUT}</translation>
         </message>
         <message>
-            <source>Read a NASA Earthdata collection[ {short_name}]</source>
-            <translation>Đọc một bộ sưu tập NASA Earthdata[ {short_name}]</translation>
-        </message>
-        <message>
             <source>Read a web page</source>
             <translation>Đọc một trang web</translation>
         </message>
@@ -983,16 +959,8 @@
             <translation>Đọc các đối tượng của {layer_name}</translation>
         </message>
         <message>
-            <source>Read the AI Agent documentation[ on {query}]</source>
-            <translation>Đọc tài liệu AI Agent[ về {query}]</translation>
-        </message>
-        <message>
             <source>Read the CRS of {layer_name}</source>
             <translation>Đọc HTCTĐ của {layer_name}</translation>
-        </message>
-        <message>
-            <source>Read the QGIS documentation[ on {query}]</source>
-            <translation>Đọc tài liệu QGIS[ về {query}]</translation>
         </message>
         <message>
             <source>Read the extent of {layer_name}</source>
@@ -1159,18 +1127,6 @@
             <translation>Đã lưu thành {file} trong {folder}.</translation>
         </message>
         <message>
-            <source>Search Copernicus images[ of {collection}]</source>
-            <translation>Tìm ảnh Copernicus[ của {collection}]</translation>
-        </message>
-        <message>
-            <source>Search NASA Earthdata files</source>
-            <translation>Tìm tập tin NASA Earthdata</translation>
-        </message>
-        <message>
-            <source>Search NASA Earthdata[ for {query}]</source>
-            <translation>Tìm trong NASA Earthdata[ về {query}]</translation>
-        </message>
-        <message>
             <source>Search examples</source>
             <translation>Tìm ví dụ</translation>
         </message>
@@ -1179,24 +1135,8 @@
             <translation>Tìm dữ liệu mở[ về {query}]</translation>
         </message>
         <message>
-            <source>Search satellite images</source>
-            <translation>Tìm ảnh vệ tinh</translation>
-        </message>
-        <message>
-            <source>Search statistics[ on {topic}]</source>
-            <translation>Tìm số liệu thống kê[ về {topic}]</translation>
-        </message>
-        <message>
-            <source>Search the Earth Engine catalog[ for {query}]</source>
-            <translation>Tìm trong danh mục Earth Engine[ về {query}]</translation>
-        </message>
-        <message>
             <source>Search the QGIS Hub[ for {query}]</source>
             <translation>Tìm trong QGIS Hub[ về {query}]</translation>
-        </message>
-        <message>
-            <source>Search the data catalog[ for {query}]</source>
-            <translation>Tìm trong danh mục dữ liệu[ về {query}]</translation>
         </message>
         <message>
             <source>Search the processing tools[ for {query}]</source>
@@ -1205,10 +1145,6 @@
         <message>
             <source>Search the processing tools[ for {search}]</source>
             <translation>Tìm công cụ xử lý[ về {search}]</translation>
-        </message>
-        <message>
-            <source>Search the web[ for {query}]</source>
-            <translation>Tìm trên web[ về {query}]</translation>
         </message>
         <message>
             <source>Select features in {layer_name}</source>
@@ -1814,6 +1750,38 @@ Việc xóa là không thể hoàn tác khi thời gian chờ kết thúc. Cho �
             <source>This report includes your description and the current conversation. We use it to fix issues and improve AI Agent.</source>
             <translation>Báo cáo này gồm mô tả của bạn và cuộc trò chuyện hiện tại. Chúng tôi dùng nó để khắc phục sự cố và cải thiện AI Agent.</translation>
         </message>
+        <message>
+            <source>Copy</source>
+            <translation>Sao chép</translation>
+        </message>
+        <message>
+            <source>Real tasks the AI agent does from one sentence.</source>
+            <translation>Những tác vụ thực tế mà AI agent làm được chỉ từ một câu.</translation>
+        </message>
+        <message>
+            <source>Uses</source>
+            <translation>Sử dụng</translation>
+        </message>
+        <message>
+            <source>What you type</source>
+            <translation>Bạn nhập gì</translation>
+        </message>
+        <message>
+            <source>Expired on {day}.</source>
+            <translation>Đã hết hạn vào {day}.</translation>
+        </message>
+        <message>
+            <source>Expires on {day}.</source>
+            <translation>Hết hạn vào {day}.</translation>
+        </message>
+        <message>
+            <source>Private link: its signature stays on this computer. TerraLab and the AI agent see only the site and the file name.</source>
+            <translation>Liên kết riêng tư: chữ ký của liên kết chỉ nằm trên máy tính này. TerraLab và AI agent chỉ thấy trang web và tên tệp.</translation>
+        </message>
+        <message>
+            <source>expired</source>
+            <translation>đã hết hạn</translation>
+        </message>
     </context>
     <context>
         <name>AIAgentContext</name>
@@ -2286,6 +2254,18 @@ Việc xóa là không thể hoàn tác khi thời gian chờ kết thúc. Cho �
             <source>Your AI agent inside QGIS</source>
             <translation>AI agent của bạn ngay trong QGIS</translation>
         </message>
+        <message>
+            <source>Ask it to load data, style layers, run analyses or edit features.</source>
+            <translation>Nhờ nó tải dữ liệu, tạo kiểu cho lớp, chạy phân tích hoặc chỉnh sửa đối tượng.</translation>
+        </message>
+        <message>
+            <source>Free. Opens your browser, takes about 15 seconds.</source>
+            <translation>Miễn phí. Mở trình duyệt của bạn, mất khoảng 15 giây.</translation>
+        </message>
+        <message>
+            <source>Sign in or create an account</source>
+            <translation>Đăng nhập hoặc tạo tài khoản</translation>
+        </message>
     </context>
     <context>
         <name>ActivityRow</name>
@@ -2423,6 +2403,10 @@ Việc xóa là không thể hoàn tác khi thời gian chờ kết thúc. Cho �
         <message>
             <source>Write the request for an HTML report of this analysis, with its maps and charts</source>
             <translation>Soạn yêu cầu tạo báo cáo HTML cho phân tích này, kèm bản đồ và biểu đồ</translation>
+        </message>
+        <message>
+            <source>Remove rating</source>
+            <translation>Xóa đánh giá</translation>
         </message>
     </context>
     <context>
@@ -2766,6 +2750,42 @@ Việc xóa là không thể hoàn tác khi thời gian chờ kết thúc. Cho �
         <message>
             <source>Your version of {file} could not be kept in Map history, so nothing was restored.</source>
             <translation>Không thể lưu phiên bản {file} của bạn vào Lịch sử bản đồ, nên không có gì được khôi phục.</translation>
+        </message>
+        <message>
+            <source>Not handled, the AI agent is offline: {0}</source>
+            <translation>Chưa xử lý, AI agent đang ngoại tuyến: {0}</translation>
+        </message>
+        <message>
+            <source>Nothing is kept about this project yet.</source>
+            <translation>Chưa lưu gì về dự án này.</translation>
+        </message>
+        <message>
+            <source>Project memory</source>
+            <translation>Bộ nhớ dự án</translation>
+        </message>
+        <message>
+            <source>Project memory cleared.</source>
+            <translation>Đã xóa bộ nhớ dự án.</translation>
+        </message>
+        <message>
+            <source>Watched folder: not handled, no answer from the server: {0}</source>
+            <translation>Thư mục theo dõi: chưa xử lý, máy chủ không phản hồi: {0}</translation>
+        </message>
+        <message>
+            <source>Watched folder: not handled, the AI agent is offline: {0}</source>
+            <translation>Thư mục theo dõi: chưa xử lý, AI agent đang ngoại tuyến: {0}</translation>
+        </message>
+        <message>
+            <source>Clear what the AI agent remembers about this project?</source>
+            <translation>Xóa những gì AI Agent nhớ về dự án này?</translation>
+        </message>
+        <message>
+            <source>Save the project first: its memory is kept under the project file.</source>
+            <translation>Hãy lưu dự án trước: bộ nhớ của dự án được lưu cùng với tệp dự án.</translation>
+        </message>
+        <message>
+            <source>The AI agent is not connected. Try again in a moment.</source>
+            <translation>AI Agent chưa được kết nối. Hãy thử lại sau giây lát.</translation>
         </message>
     </context>
     <context>
@@ -3144,6 +3164,14 @@ Việc xóa là không thể hoàn tác khi thời gian chờ kết thúc. Cho �
         <message>
             <source>Make an HTML report of this analysis, with its maps, charts and method.</source>
             <translation>Tạo một báo cáo HTML cho phân tích này, kèm bản đồ, biểu đồ và phương pháp.</translation>
+        </message>
+        <message>
+            <source>Pay to get Pro back</source>
+            <translation>Thanh toán để dùng lại Pro</translation>
+        </message>
+        <message>
+            <source>Task ended</source>
+            <translation>Tác vụ đã kết thúc</translation>
         </message>
     </context>
     <context>
@@ -3530,6 +3558,34 @@ Việc xóa là không thể hoàn tác khi thời gian chờ kết thúc. Cho �
             <source>Your own account with the provider: it will ask for a key.</source>
             <translation>Tài khoản riêng của bạn với nhà cung cấp: sẽ yêu cầu một khóa.</translation>
         </message>
+        <message>
+            <source>All %n</source>
+            <translation>Tất cả %n</translation>
+        </message>
+        <message>
+            <source>Examples with this source</source>
+            <translation>Ví dụ với nguồn này</translation>
+        </message>
+        <message>
+            <source>Fewer</source>
+            <translation>Ít hơn</translation>
+        </message>
+        <message>
+            <source>More</source>
+            <translation>Thêm</translation>
+        </message>
+        <message>
+            <source>More in {shelf}</source>
+            <translation>Thêm trong {shelf}</translation>
+        </message>
+        <message>
+            <source>{first} and %n more licences</source>
+            <translation>{first} và %n giấy phép khác</translation>
+        </message>
+        <message>
+            <source>Use in chat</source>
+            <translation>Dùng trong chat</translation>
+        </message>
     </context>
     <context>
         <name>ConnectorsPage</name>
@@ -3592,6 +3648,14 @@ Việc xóa là không thể hoàn tác khi thời gian chờ kết thúc. Cho �
         <message>
             <source>sources</source>
             <translation>nguồn</translation>
+        </message>
+        <message>
+            <source>Search sources, datasets or a country</source>
+            <translation>Tìm nguồn, bộ dữ liệu hoặc quốc gia</translation>
+        </message>
+        <message>
+            <source>{sources} sources the AI agent finds and loads by itself: {datasets} datasets in {countries} countries.</source>
+            <translation>{sources} nguồn mà AI agent tự tìm và tải: {datasets} bộ dữ liệu ở {countries} quốc gia.</translation>
         </message>
     </context>
     <context>
@@ -3730,8 +3794,8 @@ Việc xóa là không thể hoàn tác khi thời gian chờ kết thúc. Cho �
             <translation>Chúng ta làm gì hôm nay?</translation>
         </message>
         <message>
-            <source>You are talking to an AI system. It can be wrong: check its changes.</source>
-            <translation>Bạn đang trò chuyện với một hệ thống AI. Nó có thể sai: hãy kiểm tra các thay đổi của nó.</translation>
+            <source>AI can make mistakes. Check its changes.</source>
+            <translation>AI có thể mắc lỗi. Hãy kiểm tra các thay đổi của AI.</translation>
         </message>
     </context>
     <context>
@@ -4081,6 +4145,14 @@ Nhấn để hiện trong bảng Lớp.</translation>
             <source>Videos and guides to get started. They open in your browser.</source>
             <translation>Video và hướng dẫn để bắt đầu. Chúng mở trong trình duyệt của bạn.</translation>
         </message>
+        <message>
+            <source>Learn</source>
+            <translation>Tìm hiểu</translation>
+        </message>
+        <message>
+            <source>Videos, guides and the other TerraLab plugins. Links open in your browser.</source>
+            <translation>Video, hướng dẫn và các plugin khác của TerraLab. Liên kết mở trong trình duyệt của bạn.</translation>
+        </message>
     </context>
     <context>
         <name>LibraryRail</name>
@@ -4360,6 +4432,46 @@ Nhấn để hiện trong bảng Lớp.</translation>
         <message>
             <source>{n} actions wait for your approval.</source>
             <translation>{n} hành động đang chờ bạn phê duyệt.</translation>
+        </message>
+        <message>
+            <source>Adds: {}</source>
+            <translation>Thêm: {}</translation>
+        </message>
+        <message>
+            <source>Also covers the next calls of this kind in this answer</source>
+            <translation>Cũng áp dụng cho các lệnh gọi tiếp theo cùng loại trong câu trả lời này</translation>
+        </message>
+        <message>
+            <source>Changes: {}</source>
+            <translation>Thay đổi: {}</translation>
+        </message>
+        <message>
+            <source>Deletes files: {}</source>
+            <translation>Xóa tệp: {}</translation>
+        </message>
+        <message>
+            <source>Deletes: {}</source>
+            <translation>Xóa: {}</translation>
+        </message>
+        <message>
+            <source>Not in this project: {}</source>
+            <translation>Không có trong dự án này: {}</translation>
+        </message>
+        <message>
+            <source>Other effects the preview could not read: {}</source>
+            <translation>Các tác động khác mà bản xem trước không đọc được: {}</translation>
+        </message>
+        <message>
+            <source>Reads: {}</source>
+            <translation>Đọc: {}</translation>
+        </message>
+        <message>
+            <source>Runs: {}</source>
+            <translation>Chạy: {}</translation>
+        </message>
+        <message>
+            <source>Writes files: {}</source>
+            <translation>Ghi tệp: {}</translation>
         </message>
     </context>
     <context>
@@ -4677,6 +4789,26 @@ Nhấn để hiện trong bảng Lớp.</translation>
             <source>{n} free tasks left</source>
             <translation>Còn {n} tác vụ miễn phí</translation>
         </message>
+        <message>
+            <source>Pay now</source>
+            <translation>Thanh toán ngay</translation>
+        </message>
+        <message>
+            <source>Pay {amount} now</source>
+            <translation>Thanh toán {amount} ngay</translation>
+        </message>
+        <message>
+            <source>Pro is off until it's paid. You're on the free plan for now.</source>
+            <translation>Pro bị tắt cho đến khi bạn thanh toán. Hiện bạn đang dùng gói miễn phí.</translation>
+        </message>
+        <message>
+            <source>Your Pro payment failed</source>
+            <translation>Thanh toán gói Pro của bạn không thành công</translation>
+        </message>
+        <message>
+            <source>Your payment of {amount} failed</source>
+            <translation>Khoản thanh toán {amount} của bạn không thành công</translation>
+        </message>
     </context>
     <context>
         <name>QuotaPauseCard</name>
@@ -4908,6 +5040,10 @@ Nhấn để hiện trong bảng Lớp.</translation>
             <source>{n} steps</source>
             <translation>{n} bước</translation>
         </message>
+        <message>
+            <source>Thought</source>
+            <translation>Suy nghĩ</translation>
+        </message>
     </context>
     <context>
         <name>RunsLeftLine</name>
@@ -5095,8 +5231,8 @@ Nhấn để hiện trong bảng Lớp.</translation>
             <translation>Nhận Pro</translation>
         </message>
         <message>
-            <source>Help improve AI Agent</source>
-            <translation>Giúp cải thiện AI Agent</translation>
+            <source>Allow chat review</source>
+            <translation>Cho phép xem lại cuộc trò chuyện</translation>
         </message>
         <message>
             <source>How it should work. Example: always answer in French, name new layers in snake_case, never delete a layer without asking.</source>
@@ -5143,12 +5279,12 @@ Nhấn để hiện trong bảng Lớp.</translation>
             <translation>Tên lớp</translation>
         </message>
         <message>
-            <source>Lets us read a chat only to fix a bug. Chats are kept 30 days.</source>
-            <translation>Cho phép chúng tôi đọc một cuộc trò chuyện chỉ để sửa lỗi. Các cuộc trò chuyện được giữ 30 ngày.</translation>
+            <source>We may read a chat only to fix a bug, never to train AI. Chats are kept 30 days.</source>
+            <translation>Chúng tôi chỉ có thể đọc một cuộc trò chuyện để sửa lỗi, không bao giờ để huấn luyện AI. Cuộc trò chuyện được lưu 30 ngày.</translation>
         </message>
         <message>
-            <source>Lets us read a chat only to fix a wrong answer or a bug.</source>
-            <translation>Cho phép chúng tôi đọc một cuộc trò chuyện chỉ để sửa một câu trả lời sai hoặc một lỗi.</translation>
+            <source>We may read a chat only to fix a wrong answer or a bug, never to train AI.</source>
+            <translation>Chúng tôi chỉ có thể đọc một cuộc trò chuyện để sửa câu trả lời sai hoặc lỗi, không bao giờ để huấn luyện AI.</translation>
         </message>
         <message>
             <source>Loading account info...</source>
@@ -5513,6 +5649,95 @@ Nhấn để hiện trong bảng Lớp.</translation>
         <message>
             <source>Send feedback</source>
             <translation>Gửi phản hồi</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_dialog.py" />
+            <source>See usage</source>
+            <translation>Xem mức sử dụng</translation>
+        </message>
+        <message>
+            <source>Always answer in French, never delete a layer without asking</source>
+            <translation>Luôn trả lời bằng tiếng Pháp, không bao giờ xóa lớp mà không hỏi</translation>
+        </message>
+        <message>
+            <source>Choose folder...</source>
+            <translation>Chọn thư mục...</translation>
+        </message>
+        <message>
+            <source>Clear project memory</source>
+            <translation>Xóa bộ nhớ dự án</translation>
+        </message>
+        <message>
+            <source>Connected accounts</source>
+            <translation>Tài khoản đã kết nối</translation>
+        </message>
+        <message>
+            <source>Folder to watch</source>
+            <translation>Thư mục cần theo dõi</translation>
+        </message>
+        <message>
+            <source>Instructions</source>
+            <translation>Hướng dẫn</translation>
+        </message>
+        <message>
+            <source>Job</source>
+            <translation>Công việc</translation>
+        </message>
+        <message>
+            <source>Learn</source>
+            <translation>Tìm hiểu</translation>
+        </message>
+        <message>
+            <source>Name</source>
+            <translation>Tên</translation>
+        </message>
+        <message>
+            <source>No folder chosen</source>
+            <translation>Chưa chọn thư mục</translation>
+        </message>
+        <message>
+            <source>Pro reads both before every run.</source>
+            <translation>Pro đọc cả hai trước mỗi lần chạy.</translation>
+        </message>
+        <message>
+            <source>Proactive triggers</source>
+            <translation>Kích hoạt chủ động</translation>
+        </message>
+        <message>
+            <source>Project memory</source>
+            <translation>Bộ nhớ dự án</translation>
+        </message>
+        <message>
+            <source>Read by the AI agent at the start of every conversation.</source>
+            <translation>AI agent đọc vào đầu mỗi cuộc trò chuyện.</translation>
+        </message>
+        <message>
+            <source>Saved notes · {n}</source>
+            <translation>Ghi chú đã lưu · {n}</translation>
+        </message>
+        <message>
+            <source>Show project memory</source>
+            <translation>Hiện bộ nhớ dự án</translation>
+        </message>
+        <message>
+            <source>The AI agent looks at new data files in this folder and at the schedules you ask for, only while QGIS is open. Nothing runs when QGIS is closed.</source>
+            <translation>AI agent xem các tệp dữ liệu mới trong thư mục này và các lịch bạn yêu cầu, chỉ khi QGIS đang mở. Không có gì chạy khi QGIS đã đóng.</translation>
+        </message>
+        <message>
+            <source>Urban planner at the city of Lyon, cadastre and PLU layers in EPSG:2154</source>
+            <translation>Quy hoạch viên đô thị tại thành phố Lyon, các lớp địa chính và PLU trong EPSG:2154</translation>
+        </message>
+        <message>
+            <source>Watch a folder and run my schedules while QGIS is open</source>
+            <translation>Theo dõi một thư mục và chạy các lịch của tôi khi QGIS đang mở</translation>
+        </message>
+        <message>
+            <source>What Pro adds: {points}</source>
+            <translation>Pro bổ sung: {points}</translation>
+        </message>
+        <message>
+            <source>commercial use, more tasks, memory, your instructions and higher effort</source>
+            <translation>dùng cho mục đích thương mại, nhiều tác vụ hơn, bộ nhớ, hướng dẫn của bạn và mức nỗ lực cao hơn</translation>
         </message>
     </context>
     <context>
@@ -5897,6 +6122,22 @@ Nhấn để hiện trong bảng Lớp.</translation>
             <source>{what} on '{layer}' whose CRS {crs} is geographic: the distance would be in degrees, not meters.</source>
             <translation>{what} trên '{layer}' có HTCTĐ {crs} là hệ địa lý: khoảng cách sẽ tính bằng độ, không phải mét.</translation>
         </message>
+        <message>
+            <source>Access to {host}</source>
+            <translation>Quyền truy cập vào {host}</translation>
+        </message>
+        <message>
+            <source>Allowed for this conversation</source>
+            <translation>Đã cho phép trong cuộc trò chuyện này</translation>
+        </message>
+        <message>
+            <source>Allowed once</source>
+            <translation>Đã cho phép một lần</translation>
+        </message>
+        <message>
+            <source>Signed in</source>
+            <translation>Đã đăng nhập</translation>
+        </message>
     </context>
     <context>
         <name>UpdateBanner</name>
@@ -5915,6 +6156,14 @@ Nhấn để hiện trong bảng Lớp.</translation>
         <message>
             <source>{product} {version} is out</source>
             <translation>{product} {version} đã ra mắt</translation>
+        </message>
+        <message>
+            <source>Download</source>
+            <translation>Tải xuống</translation>
+        </message>
+        <message>
+            <source>This QGIS has no plugin repository turned on. Download the ZIP, then use Install from ZIP in Plugins &gt; Manage and Install Plugins.</source>
+            <translation>QGIS này chưa bật kho plugin nào. Hãy tải tệp ZIP, rồi dùng Cài đặt từ ZIP trong Plugin &gt; Quản lý và Cài đặt Plugin.</translation>
         </message>
     </context>
     <context>
@@ -6308,6 +6557,1320 @@ Nhấn để hiện trong bảng Lớp.</translation>
         <message>
             <source>Thanks for the feedback</source>
             <translation>Cảm ơn bạn đã phản hồi</translation>
+        </message>
+    </context>
+    <context>
+        <name>ToolDetails</name>
+        <message>
+            <source>Copied</source>
+            <translation>Đã sao chép</translation>
+        </message>
+        <message>
+            <source>Copy as Python</source>
+            <translation>Sao chép dưới dạng Python</translation>
+        </message>
+        <message>
+            <source>Open in Processing</source>
+            <translation>Mở trong Xử lý</translation>
+        </message>
+        <message>
+            <source>Open this algorithm's dialog with the same settings, to check them or run it again. The output goes to a new temporary layer.</source>
+            <translation>Mở hộp thoại của thuật toán này với cùng thiết lập, để kiểm tra hoặc chạy lại. Kết quả được đưa vào một lớp tạm thời mới.</translation>
+        </message>
+        <message>
+            <source>Show less</source>
+            <translation>Thu gọn</translation>
+        </message>
+        <message>
+            <source>Show {n} more</source>
+            <translation>Xem thêm {n}</translation>
+        </message>
+        <message>
+            <source>The processing.run line, ready for the QGIS Python console</source>
+            <translation>Dòng processing.run, sẵn sàng cho bảng điều khiển Python của QGIS</translation>
+        </message>
+        <message>
+            <source>Fewer</source>
+            <translation>Ít hơn</translation>
+        </message>
+        <message>
+            <source>{n} more</source>
+            <translation>Thêm {n}</translation>
+        </message>
+    </context>
+    <context>
+        <name>AccountCard</name>
+        <message>
+            <source>Add keys</source>
+            <translation>Thêm khóa</translation>
+        </message>
+        <message>
+            <source>Add token</source>
+            <translation>Thêm token</translation>
+        </message>
+        <message>
+            <source>Allow</source>
+            <translation>Cho phép</translation>
+        </message>
+        <message>
+            <source>Allow for this conversation</source>
+            <translation>Cho phép trong cuộc trò chuyện này</translation>
+        </message>
+        <message>
+            <source>Allowed for this conversation</source>
+            <translation>Đã cho phép trong cuộc trò chuyện này</translation>
+        </message>
+        <message>
+            <source>Allowed once</source>
+            <translation>Đã cho phép một lần</translation>
+        </message>
+        <message>
+            <source>Connect your {label} account</source>
+            <translation>Kết nối tài khoản {label} của bạn</translation>
+        </message>
+        <message>
+            <source>Connected</source>
+            <translation>Đã kết nối</translation>
+        </message>
+        <message>
+            <source>Continue with your {label} account</source>
+            <translation>Tiếp tục với tài khoản {label} của bạn</translation>
+        </message>
+        <message>
+            <source>Deny</source>
+            <translation>Từ chối</translation>
+        </message>
+        <message>
+            <source>Keys refused</source>
+            <translation>Khóa bị từ chối</translation>
+        </message>
+        <message>
+            <source>Needs your answer</source>
+            <translation>Cần câu trả lời của bạn</translation>
+        </message>
+        <message>
+            <source>Not allowed</source>
+            <translation>Không được phép</translation>
+        </message>
+        <message>
+            <source>Replace keys</source>
+            <translation>Thay khóa</translation>
+        </message>
+        <message>
+            <source>Replace token</source>
+            <translation>Thay token</translation>
+        </message>
+        <message>
+            <source>Sent to {host} only.</source>
+            <translation>Chỉ gửi đến {host}.</translation>
+        </message>
+        <message>
+            <source>Sign in</source>
+            <translation>Đăng nhập</translation>
+        </message>
+        <message>
+            <source>Sign in again</source>
+            <translation>Đăng nhập lại</translation>
+        </message>
+        <message>
+            <source>Sign in to {host}</source>
+            <translation>Đăng nhập vào {host}</translation>
+        </message>
+        <message>
+            <source>Sign-in refused</source>
+            <translation>Đăng nhập bị từ chối</translation>
+        </message>
+        <message>
+            <source>Skip</source>
+            <translation>Bỏ qua</translation>
+        </message>
+        <message>
+            <source>Skipped</source>
+            <translation>Đã bỏ qua</translation>
+        </message>
+        <message>
+            <source>Stored encrypted in QGIS on this computer. Never sent to TerraLab or the AI agent.</source>
+            <translation>Được lưu mã hóa trong QGIS trên máy tính này. Không bao giờ gửi cho TerraLab hay AI agent.</translation>
+        </message>
+        <message>
+            <source>TerraLab's shared access is used up. A free token keeps you going.</source>
+            <translation>Quyền truy cập dùng chung của TerraLab đã hết. Một token miễn phí giúp bạn tiếp tục.</translation>
+        </message>
+        <message>
+            <source>TerraLab's shared access is used up. Free S3 keys keep you going.</source>
+            <translation>Quyền truy cập dùng chung của TerraLab đã hết. Khóa S3 miễn phí giúp bạn tiếp tục.</translation>
+        </message>
+        <message>
+            <source>This service answers only a signed-in user.</source>
+            <translation>Dịch vụ này chỉ phản hồi người dùng đã đăng nhập.</translation>
+        </message>
+        <message>
+            <source>Token refused</source>
+            <translation>Token bị từ chối</translation>
+        </message>
+        <message>
+            <source>Use your {label} access?</source>
+            <translation>Dùng quyền truy cập {label} của bạn?</translation>
+        </message>
+        <message>
+            <source>{host} opens with a token or an API key from your account.</source>
+            <translation>{host} mở được bằng token hoặc khóa API từ tài khoản của bạn.</translation>
+        </message>
+        <message>
+            <source>{host} refused your saved access ({user}).</source>
+            <translation>{host} đã từ chối quyền truy cập bạn lưu ({user}).</translation>
+        </message>
+        <message>
+            <source>{host} refused your saved access.</source>
+            <translation>{host} đã từ chối quyền truy cập bạn lưu.</translation>
+        </message>
+        <message>
+            <source>{label} answers only a signed-in user.</source>
+            <translation>{label} chỉ phản hồi người dùng đã đăng nhập.</translation>
+        </message>
+        <message>
+            <source>{label} refused your saved S3 keys.</source>
+            <translation>{label} đã từ chối khóa S3 bạn lưu.</translation>
+        </message>
+        <message>
+            <source>{label} refused your saved token.</source>
+            <translation>{label} đã từ chối token bạn lưu.</translation>
+        </message>
+        <message>
+            <source>{service} needs a token</source>
+            <translation>{service} cần một token</translation>
+        </message>
+        <message>
+            <source>Sign in with {name}</source>
+            <translation>Đăng nhập bằng {name}</translation>
+        </message>
+        <message>
+            <source>TerraLab's shared access is used up. Your free account keeps you going.</source>
+            <translation>Lượt truy cập dùng chung của TerraLab đã hết. Tài khoản miễn phí của bạn vẫn giúp bạn tiếp tục.</translation>
+        </message>
+        <message>
+            <source>Try again</source>
+            <translation>Thử lại</translation>
+        </message>
+        <message>
+            <source>Use S3 keys instead</source>
+            <translation>Dùng khóa S3 thay thế</translation>
+        </message>
+        <message>
+            <source>{name} no longer accepts your saved sign-in.</source>
+            <translation>{name} không còn chấp nhận thông tin đăng nhập đã lưu của bạn.</translation>
+        </message>
+        <message>
+            <source>Keys expired</source>
+            <translation>Khóa đã hết hạn</translation>
+        </message>
+        <message>
+            <source>Sign-in expired</source>
+            <translation>Đăng nhập đã hết hạn</translation>
+        </message>
+        <message>
+            <source>Token expired</source>
+            <translation>Token đã hết hạn</translation>
+        </message>
+        <message>
+            <source>{host} no longer accepts your saved access.</source>
+            <translation>{host} không còn chấp nhận quyền truy cập bạn đã lưu.</translation>
+        </message>
+        <message>
+            <source>{label} no longer accepts your saved S3 keys.</source>
+            <translation>{label} không còn chấp nhận khóa S3 bạn đã lưu.</translation>
+        </message>
+        <message>
+            <source>{label} no longer accepts your saved token.</source>
+            <translation>{label} không còn chấp nhận token bạn đã lưu.</translation>
+        </message>
+        <message>
+            <source>Your {name} sign-in expired.</source>
+            <translation>Phiên đăng nhập {name} của bạn đã hết hạn.</translation>
+        </message>
+        <message>
+            <source>Details</source>
+            <translation>Chi tiết</translation>
+        </message>
+        <message>
+            <source>File: {value}</source>
+            <translation>Tệp: {value}</translation>
+        </message>
+        <message>
+            <source>Only this file is read with it; nothing is written.</source>
+            <translation>Chỉ tệp này được đọc bằng khóa đó; không có gì được ghi.</translation>
+        </message>
+        <message>
+            <source>Saved access: {value}</source>
+            <translation>Quyền truy cập đã lưu: {value}</translation>
+        </message>
+        <message>
+            <source>Sent to: {value}</source>
+            <translation>Gửi đến: {value}</translation>
+        </message>
+        <message>
+            <source>Choose in Google Drive</source>
+            <translation>Chọn trong Google Drive</translation>
+        </message>
+    </context>
+    <context>
+        <name>ConnectedAccountsPage</name>
+        <message>
+            <source>API key</source>
+            <translation>Khóa API</translation>
+        </message>
+        <message>
+            <source>Connected accounts</source>
+            <translation>Tài khoản đã kết nối</translation>
+        </message>
+        <message>
+            <source>Kept in QGIS's encrypted vault, on this computer. Neither TerraLab nor the AI agent sees them.</source>
+            <translation>Được giữ trong kho mã hóa của QGIS, trên máy tính này. TerraLab và AI agent đều không thấy chúng.</translation>
+        </message>
+        <message>
+            <source>No account yet. When a source asks you to sign in, the AI agent shows a card, and the access you save appears here.</source>
+            <translation>Chưa có tài khoản. Khi một nguồn yêu cầu bạn đăng nhập, AI agent sẽ hiện một thẻ, và quyền truy cập bạn lưu sẽ xuất hiện ở đây.</translation>
+        </message>
+        <message>
+            <source>Remove</source>
+            <translation>Xóa</translation>
+        </message>
+        <message>
+            <source>Remove the access to {host}</source>
+            <translation>Xóa quyền truy cập vào {host}</translation>
+        </message>
+        <message>
+            <source>S3 keys</source>
+            <translation>Khóa S3</translation>
+        </message>
+        <message>
+            <source>The sign-ins the AI agent may use, each only after you allow it.</source>
+            <translation>Các đăng nhập mà AI agent có thể dùng, mỗi cái chỉ sau khi bạn cho phép.</translation>
+        </message>
+        <message>
+            <source>Token</source>
+            <translation>Token</translation>
+        </message>
+        <message>
+            <source>Username and password</source>
+            <translation>Tên người dùng và mật khẩu</translation>
+        </message>
+        <message>
+            <source>Google account</source>
+            <translation>Tài khoản Google</translation>
+        </message>
+        <message>
+            <source>No project picked</source>
+            <translation>Chưa chọn dự án</translation>
+        </message>
+        <message>
+            <source>Project {project}</source>
+            <translation>Dự án {project}</translation>
+        </message>
+        <message>
+            <source>Change project…</source>
+            <translation>Đổi dự án…</translation>
+        </message>
+        <message>
+            <source>Google sign-in</source>
+            <translation>Đăng nhập Google</translation>
+        </message>
+        <message>
+            <source>Signed in with the browser</source>
+            <translation>Đã đăng nhập bằng trình duyệt</translation>
+        </message>
+        <message>
+            <source>Add account</source>
+            <translation>Thêm tài khoản</translation>
+        </message>
+        <message>
+            <source>Expired</source>
+            <translation>Đã hết hạn</translation>
+        </message>
+        <message>
+            <source>Expires on {day}</source>
+            <translation>Hết hạn vào {day}</translation>
+        </message>
+        <message>
+            <source>More actions for {label}</source>
+            <translation>Thêm thao tác cho {label}</translation>
+        </message>
+        <message>
+            <source>QGIS deletes it from its vault. Layers loaded with it stop loading, and the AI agent asks you to sign in again the next time {host} needs it.</source>
+            <translation>QGIS sẽ xóa nó khỏi kho mã hóa của mình. Các lớp được tải bằng nó sẽ ngừng tải, và AI agent sẽ yêu cầu bạn đăng nhập lại vào lần tới khi {host} cần đến.</translation>
+        </message>
+        <message>
+            <source>Refused at its last use</source>
+            <translation>Bị từ chối ở lần dùng gần nhất</translation>
+        </message>
+        <message>
+            <source>Remove your {label} access?</source>
+            <translation>Xóa quyền truy cập {label} của bạn?</translation>
+        </message>
+        <message>
+            <source>Remove…</source>
+            <translation>Xóa…</translation>
+        </message>
+        <message>
+            <source>Replace…</source>
+            <translation>Thay…</translation>
+        </message>
+        <message>
+            <source>Storage keys</source>
+            <translation>Khóa lưu trữ</translation>
+        </message>
+        <message>
+            <source>Choose files…</source>
+            <translation>Chọn tệp…</translation>
+        </message>
+        <message>
+            <source>{name} sign-in</source>
+            <translation>Đăng nhập {name}</translation>
+        </message>
+    </context>
+    <context>
+        <name>KeysDialog</name>
+        <message>
+            <source>Access key</source>
+            <translation>Khóa truy cập</translation>
+        </message>
+        <message>
+            <source>Cancel</source>
+            <translation>Hủy</translation>
+        </message>
+        <message>
+            <source>Connect</source>
+            <translation>Kết nối</translation>
+        </message>
+        <message>
+            <source>Connect {label}</source>
+            <translation>Kết nối {label}</translation>
+        </message>
+        <message>
+            <source>Connected</source>
+            <translation>Đã kết nối</translation>
+        </message>
+        <message>
+            <source>Header name</source>
+            <translation>Tên header</translation>
+        </message>
+        <message>
+            <source>Hide</source>
+            <translation>Ẩn</translation>
+        </message>
+        <message>
+            <source>Key</source>
+            <translation>Khóa</translation>
+        </message>
+        <message>
+            <source>Not saved. Fill in the fields, and unlock QGIS's vault with its master password when QGIS asks.</source>
+            <translation>Chưa lưu. Điền các trường, và mở khóa kho của QGIS bằng mật khẩu chính khi QGIS yêu cầu.</translation>
+        </message>
+        <message>
+            <source>Not saved. Paste both keys, and unlock QGIS's vault with its master password when QGIS asks.</source>
+            <translation>Chưa lưu. Dán cả hai khóa, và mở khóa kho của QGIS bằng mật khẩu chính khi QGIS yêu cầu.</translation>
+        </message>
+        <message>
+            <source>Open {host}</source>
+            <translation>Mở {host}</translation>
+        </message>
+        <message>
+            <source>Password</source>
+            <translation>Mật khẩu</translation>
+        </message>
+        <message>
+            <source>Secret key</source>
+            <translation>Khóa bí mật</translation>
+        </message>
+        <message>
+            <source>Show</source>
+            <translation>Hiện</translation>
+        </message>
+        <message>
+            <source>Sign in</source>
+            <translation>Đăng nhập</translation>
+        </message>
+        <message>
+            <source>Sign in to {host}</source>
+            <translation>Đăng nhập vào {host}</translation>
+        </message>
+        <message>
+            <source>Sign in with a free account, add a credential and paste both keys here.</source>
+            <translation>Đăng nhập bằng tài khoản miễn phí, thêm một thông tin xác thực và dán cả hai khóa vào đây.</translation>
+        </message>
+        <message>
+            <source>Stored encrypted in QGIS on this computer, behind your QGIS master password. Never sent to TerraLab or the AI agent.</source>
+            <translation>Được lưu mã hóa trong QGIS trên máy tính này, sau mật khẩu chính QGIS của bạn. Không bao giờ gửi cho TerraLab hay AI agent.</translation>
+        </message>
+        <message>
+            <source>Use a username and password instead</source>
+            <translation>Dùng tên người dùng và mật khẩu thay thế</translation>
+        </message>
+        <message>
+            <source>Use an API key instead</source>
+            <translation>Dùng khóa API thay thế</translation>
+        </message>
+        <message>
+            <source>Username</source>
+            <translation>Tên người dùng</translation>
+        </message>
+        <message>
+            <source>the S3 keys manager</source>
+            <translation>trình quản lý khóa S3</translation>
+        </message>
+        <message>
+            <source>Checking…</source>
+            <translation>Đang kiểm tra…</translation>
+        </message>
+        <message>
+            <source>QGIS will ask you to choose a master password. It locks every sign-in saved in QGIS and cannot be recovered, so keep it somewhere safe.</source>
+            <translation>QGIS sẽ yêu cầu bạn chọn một mật khẩu chính. Mật khẩu này khóa mọi thông tin đăng nhập được lưu trong QGIS và không thể khôi phục, vì vậy hãy cất giữ ở nơi an toàn.</translation>
+        </message>
+        <message>
+            <source>{host} refused these details. Check them and try again.</source>
+            <translation>{host} đã từ chối các thông tin này. Hãy kiểm tra và thử lại.</translation>
+        </message>
+    </context>
+    <context>
+        <name>ProLock</name>
+        <message>
+            <source>Pro</source>
+            <translation>Pro</translation>
+        </message>
+    </context>
+    <context>
+        <name>ProNote</name>
+        <message>
+            <source>Get Pro</source>
+            <translation>Nhận Pro</translation>
+        </message>
+    </context>
+    <context>
+        <name>SectionHead</name>
+        <message>
+            <source>See all</source>
+            <translation>Xem tất cả</translation>
+        </message>
+    </context>
+    <context>
+        <name>SiblingRow</name>
+        <message>
+            <source>Install</source>
+            <translation>Cài đặt</translation>
+        </message>
+        <message>
+            <source>Installed</source>
+            <translation>Đã cài đặt</translation>
+        </message>
+        <message>
+            <source>Open</source>
+            <translation>Mở</translation>
+        </message>
+        <message>
+            <source>Opens the QGIS plugin manager on this plugin.</source>
+            <translation>Mở trình quản lý plugin của QGIS tại plugin này.</translation>
+        </message>
+        <message>
+            <source>Show the plugin's panel.</source>
+            <translation>Hiện bảng của plugin.</translation>
+        </message>
+    </context>
+    <context>
+        <name>SiblingsSection</name>
+        <message>
+            <source>Edit your imagery with a single sentence.</source>
+            <translation>Chỉnh sửa ảnh của bạn chỉ bằng một câu.</translation>
+        </message>
+        <message>
+            <source>Other TerraLab plugins</source>
+            <translation>Các plugin khác của TerraLab</translation>
+        </message>
+        <message>
+            <source>Turn buildings, trees or water into polygons.</source>
+            <translation>Biến tòa nhà, cây cối hoặc mặt nước thành đa giác.</translation>
+        </message>
+    </context>
+    <context>
+        <name>SignInDialog</name>
+        <message>
+            <source>Cancel</source>
+            <translation>Hủy</translation>
+        </message>
+        <message>
+            <source>Connect</source>
+            <translation>Kết nối</translation>
+        </message>
+        <message>
+            <source>Connected</source>
+            <translation>Đã kết nối</translation>
+        </message>
+        <message>
+            <source>Header name</source>
+            <translation>Tên header</translation>
+        </message>
+        <message>
+            <source>Hide</source>
+            <translation>Ẩn</translation>
+        </message>
+        <message>
+            <source>Key</source>
+            <translation>Khóa</translation>
+        </message>
+        <message>
+            <source>Not saved. Fill in the fields, and unlock QGIS's vault with its master password when QGIS asks.</source>
+            <translation>Chưa lưu. Điền các trường, và mở khóa kho của QGIS bằng mật khẩu chính khi QGIS yêu cầu.</translation>
+        </message>
+        <message>
+            <source>Open {host}</source>
+            <translation>Mở {host}</translation>
+        </message>
+        <message>
+            <source>Password</source>
+            <translation>Mật khẩu</translation>
+        </message>
+        <message>
+            <source>Show</source>
+            <translation>Hiện</translation>
+        </message>
+        <message>
+            <source>Sign in</source>
+            <translation>Đăng nhập</translation>
+        </message>
+        <message>
+            <source>Sign in to {host}</source>
+            <translation>Đăng nhập vào {host}</translation>
+        </message>
+        <message>
+            <source>Stored encrypted in QGIS on this computer, behind your QGIS master password. Never sent to TerraLab or the AI agent.</source>
+            <translation>Được lưu mã hóa trong QGIS trên máy tính này, sau mật khẩu chính QGIS của bạn. Không bao giờ gửi cho TerraLab hay AI agent.</translation>
+        </message>
+        <message>
+            <source>Use a username and password instead</source>
+            <translation>Dùng tên người dùng và mật khẩu thay thế</translation>
+        </message>
+        <message>
+            <source>Use an API key instead</source>
+            <translation>Dùng khóa API thay thế</translation>
+        </message>
+        <message>
+            <source>Username</source>
+            <translation>Tên người dùng</translation>
+        </message>
+        <message>
+            <source>Checking…</source>
+            <translation>Đang kiểm tra…</translation>
+        </message>
+        <message>
+            <source>QGIS will ask you to choose a master password. It locks every sign-in saved in QGIS and cannot be recovered, so keep it somewhere safe.</source>
+            <translation>QGIS sẽ yêu cầu bạn chọn một mật khẩu chính. Mật khẩu này khóa mọi thông tin đăng nhập được lưu trong QGIS và không thể khôi phục, vì vậy hãy cất giữ ở nơi an toàn.</translation>
+        </message>
+        <message>
+            <source>{host} refused these details. Check them and try again.</source>
+            <translation>{host} đã từ chối các thông tin này. Hãy kiểm tra và thử lại.</translation>
+        </message>
+    </context>
+    <context>
+        <name>TasksPanel</name>
+        <message>
+            <source>Done</source>
+            <translation>Xong</translation>
+        </message>
+        <message>
+            <source>Failed</source>
+            <translation>Thất bại</translation>
+        </message>
+        <message>
+            <source>Paused</source>
+            <translation>Đã tạm dừng</translation>
+        </message>
+        <message>
+            <source>Queued</source>
+            <translation>Đang chờ</translation>
+        </message>
+        <message>
+            <source>Stopped</source>
+            <translation>Đã dừng</translation>
+        </message>
+        <message>
+            <source>Stopping...</source>
+            <translation>Đang dừng...</translation>
+        </message>
+        <message>
+            <source>Tasks</source>
+            <translation>Tác vụ</translation>
+        </message>
+        <message>
+            <source>Working</source>
+            <translation>Đang làm việc</translation>
+        </message>
+    </context>
+    <context>
+        <name>TokenDialog</name>
+        <message>
+            <source>A token or an API key from your {service} account. Sent to {host} only.</source>
+            <translation>Một token hoặc khóa API từ tài khoản {service} của bạn. Chỉ gửi đến {host}.</translation>
+        </message>
+        <message>
+            <source>Cancel</source>
+            <translation>Hủy</translation>
+        </message>
+        <message>
+            <source>Connect</source>
+            <translation>Kết nối</translation>
+        </message>
+        <message>
+            <source>Connect {label}</source>
+            <translation>Kết nối {label}</translation>
+        </message>
+        <message>
+            <source>Connect {service}</source>
+            <translation>Kết nối {service}</translation>
+        </message>
+        <message>
+            <source>Connected</source>
+            <translation>Đã kết nối</translation>
+        </message>
+        <message>
+            <source>Header name</source>
+            <translation>Tên header</translation>
+        </message>
+        <message>
+            <source>Hide</source>
+            <translation>Ẩn</translation>
+        </message>
+        <message>
+            <source>Key</source>
+            <translation>Khóa</translation>
+        </message>
+        <message>
+            <source>Not saved. Fill in the fields, and unlock QGIS's vault with its master password when QGIS asks.</source>
+            <translation>Chưa lưu. Điền các trường, và mở khóa kho của QGIS bằng mật khẩu chính khi QGIS yêu cầu.</translation>
+        </message>
+        <message>
+            <source>Not saved. Paste the token, and unlock QGIS's vault with its master password when QGIS asks.</source>
+            <translation>Chưa lưu. Dán token, và mở khóa kho của QGIS bằng mật khẩu chính khi QGIS yêu cầu.</translation>
+        </message>
+        <message>
+            <source>Open {host}</source>
+            <translation>Mở {host}</translation>
+        </message>
+        <message>
+            <source>Password</source>
+            <translation>Mật khẩu</translation>
+        </message>
+        <message>
+            <source>Paste your token</source>
+            <translation>Dán token của bạn</translation>
+        </message>
+        <message>
+            <source>Show</source>
+            <translation>Hiện</translation>
+        </message>
+        <message>
+            <source>Sign in</source>
+            <translation>Đăng nhập</translation>
+        </message>
+        <message>
+            <source>Sign in to {host}</source>
+            <translation>Đăng nhập vào {host}</translation>
+        </message>
+        <message>
+            <source>Sign in with a free account, choose Generate Token, copy it and paste it here.</source>
+            <translation>Đăng nhập bằng tài khoản miễn phí, chọn Generate Token, sao chép rồi dán vào đây.</translation>
+        </message>
+        <message>
+            <source>Stored encrypted in QGIS on this computer, behind your QGIS master password. Never sent to TerraLab or the AI agent.</source>
+            <translation>Được lưu mã hóa trong QGIS trên máy tính này, sau mật khẩu chính QGIS của bạn. Không bao giờ gửi cho TerraLab hay AI agent.</translation>
+        </message>
+        <message>
+            <source>Token</source>
+            <translation>Token</translation>
+        </message>
+        <message>
+            <source>Token for {host}</source>
+            <translation>Token cho {host}</translation>
+        </message>
+        <message>
+            <source>Use a username and password instead</source>
+            <translation>Dùng tên người dùng và mật khẩu thay thế</translation>
+        </message>
+        <message>
+            <source>Use an API key instead</source>
+            <translation>Dùng khóa API thay thế</translation>
+        </message>
+        <message>
+            <source>Username</source>
+            <translation>Tên người dùng</translation>
+        </message>
+        <message>
+            <source>Checking…</source>
+            <translation>Đang kiểm tra…</translation>
+        </message>
+        <message>
+            <source>QGIS will ask you to choose a master password. It locks every sign-in saved in QGIS and cannot be recovered, so keep it somewhere safe.</source>
+            <translation>QGIS sẽ yêu cầu bạn chọn một mật khẩu chính. Mật khẩu này khóa mọi thông tin đăng nhập được lưu trong QGIS và không thể khôi phục, vì vậy hãy cất giữ ở nơi an toàn.</translation>
+        </message>
+        <message>
+            <source>{host} refused these details. Check them and try again.</source>
+            <translation>{host} đã từ chối các thông tin này. Hãy kiểm tra và thử lại.</translation>
+        </message>
+    </context>
+    <context>
+        <name>_TaskRow</name>
+        <message>
+            <source>Stop</source>
+            <translation>Dừng</translation>
+        </message>
+    </context>
+    <context>
+        <name>EarthEngineConnect</name>
+        <message>
+            <source>A non-commercial Earth Engine project is not for commercial work.</source>
+            <translation>Dự án Earth Engine phi thương mại không dùng cho công việc thương mại.</translation>
+        </message>
+        <message>
+            <source>Cancel</source>
+            <translation>Hủy</translation>
+        </message>
+        <message>
+            <source>Change project</source>
+            <translation>Đổi dự án</translation>
+        </message>
+        <message>
+            <source>Choose project</source>
+            <translation>Chọn dự án</translation>
+        </message>
+        <message>
+            <source>Choose your Earth Engine project</source>
+            <translation>Chọn dự án Earth Engine của bạn</translation>
+        </message>
+        <message>
+            <source>Connect</source>
+            <translation>Kết nối</translation>
+        </message>
+        <message>
+            <source>Connect Earth Engine</source>
+            <translation>Kết nối Earth Engine</translation>
+        </message>
+        <message>
+            <source>Connected</source>
+            <translation>Đã kết nối</translation>
+        </message>
+        <message>
+            <source>Earth Engine needs Google's earthengine-api package. It installs into QGIS in about a minute, then you sign in with Google.</source>
+            <translation>Earth Engine cần gói earthengine-api của Google. Gói này được cài vào QGIS trong khoảng một phút, sau đó bạn đăng nhập bằng Google.</translation>
+        </message>
+        <message>
+            <source>Earth Engine refused your project {project}.</source>
+            <translation>Earth Engine đã từ chối dự án {project} của bạn.</translation>
+        </message>
+        <message>
+            <source>Earth Engine runs on one of your Google Cloud projects.</source>
+            <translation>Earth Engine chạy trên một trong các dự án Google Cloud của bạn.</translation>
+        </message>
+        <message>
+            <source>Finish signing in to Google in your browser.</source>
+            <translation>Hãy hoàn tất đăng nhập Google trong trình duyệt của bạn.</translation>
+        </message>
+        <message>
+            <source>Google refused the sign-in ({error}).</source>
+            <translation>Google đã từ chối đăng nhập ({error}).</translation>
+        </message>
+        <message>
+            <source>Google refused your saved sign-in.</source>
+            <translation>Google đã từ chối thông tin đăng nhập đã lưu của bạn.</translation>
+        </message>
+        <message>
+            <source>Install</source>
+            <translation>Cài đặt</translation>
+        </message>
+        <message>
+            <source>Installing earthengine-api...</source>
+            <translation>Đang cài earthengine-api...</translation>
+        </message>
+        <message>
+            <source>No Earth Engine project on this account yet. Registering one is free for noncommercial use.</source>
+            <translation>Tài khoản này chưa có dự án Earth Engine nào. Đăng ký một dự án là miễn phí cho mục đích phi thương mại.</translation>
+        </message>
+        <message>
+            <source>Not saved: QGIS's vault stayed locked. Connect again and set the master password when QGIS asks.</source>
+            <translation>Chưa lưu: kho thông tin xác thực của QGIS vẫn bị khóa. Hãy kết nối lại và đặt mật khẩu chính khi QGIS yêu cầu.</translation>
+        </message>
+        <message>
+            <source>Open the sign-in page again</source>
+            <translation>Mở lại trang đăng nhập</translation>
+        </message>
+        <message>
+            <source>Pick the Cloud project Earth Engine runs on.</source>
+            <translation>Chọn dự án Cloud mà Earth Engine chạy trên đó.</translation>
+        </message>
+        <message>
+            <source>Project refused</source>
+            <translation>Dự án bị từ chối</translation>
+        </message>
+        <message>
+            <source>Reading your Cloud projects...</source>
+            <translation>Đang đọc các dự án Cloud của bạn...</translation>
+        </message>
+        <message>
+            <source>Refresh</source>
+            <translation>Làm mới</translation>
+        </message>
+        <message>
+            <source>Register a project</source>
+            <translation>Đăng ký dự án</translation>
+        </message>
+        <message>
+            <source>Sign in again</source>
+            <translation>Đăng nhập lại</translation>
+        </message>
+        <message>
+            <source>Sign in with Google</source>
+            <translation>Đăng nhập bằng Google</translation>
+        </message>
+        <message>
+            <source>Sign in with Google and pick your own Cloud project.</source>
+            <translation>Đăng nhập bằng Google và chọn dự án Cloud của riêng bạn.</translation>
+        </message>
+        <message>
+            <source>Sign-in didn't finish ({error}).</source>
+            <translation>Đăng nhập chưa hoàn tất ({error}).</translation>
+        </message>
+        <message>
+            <source>Sign-in didn't finish within 5 minutes.</source>
+            <translation>Đăng nhập chưa hoàn tất trong vòng 5 phút.</translation>
+        </message>
+        <message>
+            <source>Sign-in didn't finish. You can close this window and return to QGIS.</source>
+            <translation>Đăng nhập chưa hoàn tất. Bạn có thể đóng cửa sổ này và quay lại QGIS.</translation>
+        </message>
+        <message>
+            <source>Sign-in expired</source>
+            <translation>Đăng nhập đã hết hạn</translation>
+        </message>
+        <message>
+            <source>The Earth Engine API is off in your project {project}.</source>
+            <translation>API Earth Engine đang tắt trong dự án {project} của bạn.</translation>
+        </message>
+        <message>
+            <source>Try again</source>
+            <translation>Thử lại</translation>
+        </message>
+        <message>
+            <source>Turn on the Earth Engine API</source>
+            <translation>Bật API Earth Engine</translation>
+        </message>
+        <message>
+            <source>Use this project</source>
+            <translation>Dùng dự án này</translation>
+        </message>
+        <message>
+            <source>You're signed in. You can close this window and return to QGIS.</source>
+            <translation>Bạn đã đăng nhập. Bạn có thể đóng cửa sổ này và quay lại QGIS.</translation>
+        </message>
+        <message>
+            <source>Your Cloud projects could not be read ({error}).</source>
+            <translation>Không thể đọc các dự án Cloud của bạn ({error}).</translation>
+        </message>
+        <message>
+            <source>Your Earth Engine sign-in expired.</source>
+            <translation>Đăng nhập Earth Engine của bạn đã hết hạn.</translation>
+        </message>
+        <message>
+            <source>Your Google sign-in stays in QGIS's encrypted vault on this computer. Never sent to TerraLab or the AI agent.</source>
+            <translation>Thông tin đăng nhập Google của bạn nằm trong kho thông tin xác thực được mã hóa của QGIS trên máy tính này. Không bao giờ gửi cho TerraLab hay AI agent.</translation>
+        </message>
+        <message>
+            <source>Your browser opens Google's sign-in. Earth Engine then runs on your own Google Cloud project, under that project's terms.</source>
+            <translation>Trình duyệt của bạn sẽ mở trang đăng nhập của Google. Sau đó Earth Engine chạy trên dự án Google Cloud của riêng bạn, theo điều khoản của dự án đó.</translation>
+        </message>
+        <message>
+            <source>Your project {project} is not registered for Earth Engine.</source>
+            <translation>Dự án {project} của bạn chưa được đăng ký cho Earth Engine.</translation>
+        </message>
+        <message>
+            <source>earthengine-api did not install: {error}</source>
+            <translation>Không cài được earthengine-api: {error}</translation>
+        </message>
+        <message>
+            <source>{count} other projects do not have Earth Engine.</source>
+            <translation>{count} dự án khác không có Earth Engine.</translation>
+        </message>
+        <message>
+            <source>QGIS will ask you to choose a master password. It locks every sign-in saved in QGIS and cannot be recovered, so keep it somewhere safe.</source>
+            <translation>QGIS sẽ yêu cầu bạn chọn một mật khẩu chính. Mật khẩu này khóa mọi thông tin đăng nhập đã lưu trong QGIS và không thể khôi phục, vì vậy hãy cất giữ ở nơi an toàn.</translation>
+        </message>
+    </context>
+    <context>
+        <name>BrowserWait</name>
+        <message>
+            <source>Cancel</source>
+            <translation>Hủy</translation>
+        </message>
+        <message>
+            <source>Check that the page shows the code {code}, then sign in.</source>
+            <translation>Hãy kiểm tra trang hiển thị mã {code}, rồi đăng nhập.</translation>
+        </message>
+        <message>
+            <source>Connecting…</source>
+            <translation>Đang kết nối…</translation>
+        </message>
+        <message>
+            <source>Finish signing in to {name} in your browser.</source>
+            <translation>Hoàn tất đăng nhập vào {name} trong trình duyệt của bạn.</translation>
+        </message>
+        <message>
+            <source>Not saved. Unlock QGIS's vault with its master password when QGIS asks.</source>
+            <translation>Chưa được lưu. Hãy mở khóa cơ sở dữ liệu xác thực của QGIS bằng mật khẩu chính khi QGIS yêu cầu.</translation>
+        </message>
+        <message>
+            <source>Open the page again</source>
+            <translation>Mở lại trang</translation>
+        </message>
+        <message>
+            <source>Opening your browser…</source>
+            <translation>Đang mở trình duyệt của bạn…</translation>
+        </message>
+        <message>
+            <source>Sign-in didn't finish.</source>
+            <translation>Đăng nhập chưa hoàn tất.</translation>
+        </message>
+        <message>
+            <source>The sign-in was declined in the browser.</source>
+            <translation>Đăng nhập đã bị từ chối trong trình duyệt.</translation>
+        </message>
+        <message>
+            <source>{label} did not answer. Check your connection.</source>
+            <translation>{label} không phản hồi. Hãy kiểm tra kết nối của bạn.</translation>
+        </message>
+        <message>
+            <source>{label} did not create the S3 keys.</source>
+            <translation>{label} đã không tạo khóa S3.</translation>
+        </message>
+        <message>
+            <source>{label} refused the sign-in.</source>
+            <translation>{label} đã từ chối đăng nhập.</translation>
+        </message>
+        <message>
+            <source>Send this approval link to your IT admin: {link}</source>
+            <translation>Hãy gửi liên kết phê duyệt này cho quản trị viên CNTT của bạn: {link}</translation>
+        </message>
+        <message>
+            <source>Your organization lets only an admin approve TerraLab AI Agent for {label}.</source>
+            <translation>Tổ chức của bạn chỉ cho phép quản trị viên phê duyệt TerraLab AI Agent cho {label}.</translation>
+        </message>
+    </context>
+    <context>
+        <name>CloudKeysDialog</name>
+        <message>
+            <source>Access key ID</source>
+            <translation>ID khóa truy cập</translation>
+        </message>
+        <message>
+            <source>Account key</source>
+            <translation>Khóa tài khoản</translation>
+        </message>
+        <message>
+            <source>Cancel</source>
+            <translation>Hủy</translation>
+        </message>
+        <message>
+            <source>Checking…</source>
+            <translation>Đang kiểm tra…</translation>
+        </message>
+        <message>
+            <source>Connect</source>
+            <translation>Kết nối</translation>
+        </message>
+        <message>
+            <source>Connect {label}</source>
+            <translation>Kết nối {label}</translation>
+        </message>
+        <message>
+            <source>Connect {store}</source>
+            <translation>Kết nối {store}</translation>
+        </message>
+        <message>
+            <source>Connected</source>
+            <translation>Đã kết nối</translation>
+        </message>
+        <message>
+            <source>Endpoint, empty for Amazon S3</source>
+            <translation>Điểm cuối, để trống với Amazon S3</translation>
+        </message>
+        <message>
+            <source>For {address}. A read-only key is enough: the AI agent only reads from it.</source>
+            <translation>Cho {address}. Khóa chỉ đọc là đủ: AI Agent chỉ đọc dữ liệu từ đó.</translation>
+        </message>
+        <message>
+            <source>HMAC access key</source>
+            <translation>Khóa truy cập HMAC</translation>
+        </message>
+        <message>
+            <source>HMAC secret</source>
+            <translation>Khóa bí mật HMAC</translation>
+        </message>
+        <message>
+            <source>Header name</source>
+            <translation>Tên tiêu đề</translation>
+        </message>
+        <message>
+            <source>Hide</source>
+            <translation>Ẩn</translation>
+        </message>
+        <message>
+            <source>JSON key (*.json)</source>
+            <translation>Khóa JSON (*.json)</translation>
+        </message>
+        <message>
+            <source>Key</source>
+            <translation>Khóa</translation>
+        </message>
+        <message>
+            <source>Keys expired</source>
+            <translation>Khóa đã hết hạn</translation>
+        </message>
+        <message>
+            <source>Keys refused</source>
+            <translation>Khóa bị từ chối</translation>
+        </message>
+        <message>
+            <source>Not saved. Fill in the fields, and unlock QGIS's vault with its master password when QGIS asks.</source>
+            <translation>Chưa lưu. Hãy điền các trường, và mở khóa kho của QGIS bằng mật khẩu chính khi QGIS yêu cầu.</translation>
+        </message>
+        <message>
+            <source>Open {host}</source>
+            <translation>Mở {host}</translation>
+        </message>
+        <message>
+            <source>Password</source>
+            <translation>Mật khẩu</translation>
+        </message>
+        <message>
+            <source>QGIS will ask you to choose a master password. It locks every sign-in saved in QGIS and cannot be recovered, so keep it somewhere safe.</source>
+            <translation>QGIS sẽ yêu cầu bạn chọn một mật khẩu chính. Mật khẩu này khóa mọi thông tin đăng nhập đã lưu trong QGIS và không thể khôi phục, vì vậy hãy cất ở nơi an toàn.</translation>
+        </message>
+        <message>
+            <source>Region (optional)</source>
+            <translation>Khu vực (không bắt buộc)</translation>
+        </message>
+        <message>
+            <source>SAS token</source>
+            <translation>Mã thông báo SAS</translation>
+        </message>
+        <message>
+            <source>Secret access key</source>
+            <translation>Khóa truy cập bí mật</translation>
+        </message>
+        <message>
+            <source>Service account key (JSON file)</source>
+            <translation>Khóa tài khoản dịch vụ (tệp JSON)</translation>
+        </message>
+        <message>
+            <source>Show</source>
+            <translation>Hiện</translation>
+        </message>
+        <message>
+            <source>Sign in</source>
+            <translation>Đăng nhập</translation>
+        </message>
+        <message>
+            <source>Sign in to {host}</source>
+            <translation>Đăng nhập vào {host}</translation>
+        </message>
+        <message>
+            <source>Storage account name</source>
+            <translation>Tên tài khoản lưu trữ</translation>
+        </message>
+        <message>
+            <source>Stored encrypted in QGIS on this computer, behind your QGIS master password. Never sent to TerraLab or the AI agent.</source>
+            <translation>Được lưu mã hóa trong QGIS trên máy tính này, sau mật khẩu chính QGIS của bạn. Không bao giờ gửi cho TerraLab hay AI Agent.</translation>
+        </message>
+        <message>
+            <source>The keys could not be checked: {error}</source>
+            <translation>Không thể kiểm tra các khóa: {error}</translation>
+        </message>
+        <message>
+            <source>This bucket opens only with a service account key.</source>
+            <translation>Bucket này chỉ mở được bằng khóa tài khoản dịch vụ.</translation>
+        </message>
+        <message>
+            <source>This bucket opens only with your access keys.</source>
+            <translation>Bucket này chỉ mở được bằng khóa truy cập của bạn.</translation>
+        </message>
+        <message>
+            <source>This container opens only with your account key or a SAS token.</source>
+            <translation>Container này chỉ mở được bằng khóa tài khoản hoặc mã thông báo SAS.</translation>
+        </message>
+        <message>
+            <source>This file is not a service account key. In the Google Cloud console, open the service account, then Keys, Add key, JSON.</source>
+            <translation>Tệp này không phải khóa tài khoản dịch vụ. Trong Bảng điều khiển Google Cloud, hãy mở tài khoản dịch vụ, rồi chọn Khóa, Thêm khóa, JSON.</translation>
+        </message>
+        <message>
+            <source>Use a SAS token instead</source>
+            <translation>Dùng mã thông báo SAS thay thế</translation>
+        </message>
+        <message>
+            <source>Use a service account key instead</source>
+            <translation>Dùng khóa tài khoản dịch vụ thay thế</translation>
+        </message>
+        <message>
+            <source>Use a username and password instead</source>
+            <translation>Dùng tên người dùng và mật khẩu thay thế</translation>
+        </message>
+        <message>
+            <source>Use an API key instead</source>
+            <translation>Dùng khóa API thay thế</translation>
+        </message>
+        <message>
+            <source>Use an HMAC key instead</source>
+            <translation>Dùng khóa HMAC thay thế</translation>
+        </message>
+        <message>
+            <source>Use the account key instead</source>
+            <translation>Dùng khóa tài khoản thay thế</translation>
+        </message>
+        <message>
+            <source>Username</source>
+            <translation>Tên người dùng</translation>
+        </message>
+        <message>
+            <source>{host} refused these details. Check them and try again.</source>
+            <translation>{host} đã từ chối các thông tin này. Hãy kiểm tra và thử lại.</translation>
+        </message>
+        <message>
+            <source>{store} no longer accepts your saved keys.</source>
+            <translation>{store} không còn chấp nhận các khóa đã lưu của bạn.</translation>
+        </message>
+        <message>
+            <source>{store} refused your saved keys.</source>
+            <translation>{store} đã từ chối các khóa đã lưu của bạn.</translation>
+        </message>
+        <message>
+            <source>{where} refused these keys.</source>
+            <translation>{where} đã từ chối các khóa này.</translation>
+        </message>
+    </context>
+    <context>
+        <name>AccountDrive</name>
+        <message>
+            <source>Allow SharePoint sites</source>
+            <translation>Cho phép các trang SharePoint</translation>
+        </message>
+        <message>
+            <source>Cancel</source>
+            <translation>Hủy</translation>
+        </message>
+        <message>
+            <source>Choose this file in Google Drive</source>
+            <translation>Chọn tệp này trong Google Drive</translation>
+        </message>
+        <message>
+            <source>Connect Google Drive</source>
+            <translation>Kết nối Google Drive</translation>
+        </message>
+        <message>
+            <source>Connect OneDrive and SharePoint</source>
+            <translation>Kết nối OneDrive và SharePoint</translation>
+        </message>
+        <message>
+            <source>Connect SharePoint</source>
+            <translation>Kết nối SharePoint</translation>
+        </message>
+        <message>
+            <source>Read with your account, only for this request.</source>
+            <translation>Đọc bằng tài khoản của bạn, chỉ cho yêu cầu này.</translation>
+        </message>
+        <message>
+            <source>Read-only: the AI agent can open your files, never change or delete them.</source>
+            <translation>Chỉ đọc: trợ lý AI có thể mở tệp của bạn, không bao giờ sửa hay xóa chúng.</translation>
+        </message>
+        <message>
+            <source>Reading SharePoint sites needs one more permission. Your organization's admin may have to approve it.</source>
+            <translation>Đọc các trang SharePoint cần thêm một quyền. Quản trị viên tổ chức của bạn có thể phải phê duyệt quyền này.</translation>
+        </message>
+        <message>
+            <source>Sign in again</source>
+            <translation>Đăng nhập lại</translation>
+        </message>
+        <message>
+            <source>Sign in with {name}</source>
+            <translation>Đăng nhập bằng {name}</translation>
+        </message>
+        <message>
+            <source>The AI agent sees only the files you pick. Pick this one to let it open it.</source>
+            <translation>Trợ lý AI chỉ thấy các tệp bạn chọn. Hãy chọn tệp này để cho phép nó mở tệp.</translation>
+        </message>
+        <message>
+            <source>Try again</source>
+            <translation>Thử lại</translation>
+        </message>
+        <message>
+            <source>Use your {label} access?</source>
+            <translation>Dùng quyền truy cập {label} của bạn?</translation>
+        </message>
+        <message>
+            <source>You pick the files the AI agent may open. It sees nothing else in your Drive.</source>
+            <translation>Bạn chọn các tệp mà trợ lý AI được phép mở. Nó không thấy gì khác trong Drive của bạn.</translation>
+        </message>
+        <message>
+            <source>Your sign-in stays in QGIS's encrypted vault on this computer. Never sent to TerraLab or the AI agent.</source>
+            <translation>Thông tin đăng nhập của bạn nằm trong kho mã hóa của QGIS trên máy tính này. Không bao giờ gửi cho TerraLab hay trợ lý AI.</translation>
+        </message>
+        <message>
+            <source>{name} no longer accepts your saved sign-in.</source>
+            <translation>{name} không còn chấp nhận thông tin đăng nhập đã lưu của bạn.</translation>
+        </message>
+    </context>
+    <context>
+        <name>RatingCard</name>
+        <message>
+            <source>Add details (optional)</source>
+            <translation>Thêm chi tiết (không bắt buộc)</translation>
+        </message>
+        <message>
+            <source>Close</source>
+            <translation>Đóng</translation>
+        </message>
+        <message>
+            <source>Could not send. Try again.</source>
+            <translation>Không gửi được. Hãy thử lại.</translation>
+        </message>
+        <message>
+            <source>Not what I asked</source>
+            <translation>Không đúng yêu cầu của tôi</translation>
+        </message>
+        <message>
+            <source>Send</source>
+            <translation>Gửi</translation>
+        </message>
+        <message>
+            <source>Tell us more (optional)</source>
+            <translation>Cho chúng tôi biết thêm (không bắt buộc)</translation>
+        </message>
+        <message>
+            <source>Thanks for the feedback</source>
+            <translation>Cảm ơn bạn đã phản hồi</translation>
+        </message>
+        <message>
+            <source>Too slow</source>
+            <translation>Quá chậm</translation>
+        </message>
+        <message>
+            <source>What went wrong?</source>
+            <translation>Đã xảy ra lỗi gì?</translation>
+        </message>
+        <message>
+            <source>What worked well?</source>
+            <translation>Điều gì hoạt động tốt?</translation>
+        </message>
+        <message>
+            <source>Wrong result</source>
+            <translation>Kết quả sai</translation>
+        </message>
+        <message>
+            <source>Your words are sent with this chat and recent logs.</source>
+            <translation>Nội dung bạn viết sẽ được gửi cùng cuộc trò chuyện này và nhật ký gần đây.</translation>
         </message>
     </context>
 </TS>

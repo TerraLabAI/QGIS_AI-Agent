@@ -345,9 +345,8 @@ class ChatSidebar(QWidget):
         self._nav_row("new_chat", self.tr("New chat"), self.new_thread_requested)
         self._nav_row("search", self.tr("Search chats"), self.search_requested)
         self._rows.addSpacing(_PAD)
-        self._recents_label = QLabel(self.tr("Recents").upper(), self._host)
+        self._recents_label = QLabel(self.tr("Recents"), self._host)
         self._recents_label.setObjectName("sidebarMicro")
-        self._recents_label.setFont(self._micro_font())
         self._rows.addWidget(self._recents_label)
         self._copy.append(self._recents_label)
         self._recents_at = self._rows.count()
@@ -360,7 +359,7 @@ class ChatSidebar(QWidget):
         self._rule.setFrameShape(QFrame.Shape.NoFrame)
         col.addWidget(self._rule)
         col.addSpacing(_PAD)
-        self._upgrade_row = _Row("sparkles", self.tr("Get Pro"), "sidebarUpgrade", self, accent_color())
+        self._upgrade_row = _Row("gem", self.tr("Get Pro"), "sidebarUpgrade", self, accent_color())
         self._upgrade_row.clicked.connect(self.upgrade_requested.emit)
         self._copy.append(self._upgrade_row)
         col.addWidget(self._upgrade_row)
@@ -384,13 +383,6 @@ class ChatSidebar(QWidget):
         from qgis.PyQt.QtCore import QSize
 
         return QSize(_GLYPH, _GLYPH)
-
-    def _micro_font(self):
-        from qgis.PyQt.QtGui import QFont
-
-        font = QFont(self.font())
-        font.setLetterSpacing(QFont.SpacingType.PercentageSpacing, 104)
-        return font
 
     def _nav_row(self, glyph: str, text: str, signal) -> _Row:
         row = _Row(glyph, text, "sidebarNav", self._host)

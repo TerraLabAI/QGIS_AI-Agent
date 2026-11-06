@@ -46,17 +46,16 @@
 
 
 
-
 from __future__ import annotations
 
 from qgis.PyQt.QtCore import QEvent, QRectF, QSize, Qt, pyqtSignal
-from qgis.PyQt.QtGui import QColor, QFont, QFontMetrics, QIcon, QKeySequence, QPainter, QPixmap, QTextOption
+from qgis.PyQt.QtGui import QColor, QFont, QFontMetrics, QKeySequence, QPainter, QPixmap, QTextOption
 from qgis.PyQt.QtWidgets import QHBoxLayout, QLabel, QPushButton, QVBoxLayout, QWidget
 
 from .checkpoint_sheet import CheckpointSheet, history_rows, row_target
 from .font_scale import scale_px_length, widget_pixel_ratio
 from .history_popup import HistoryPopup
-from .icons import icon_for, logo_pixmap, logo_size
+from .icons import logo_pixmap, logo_size
 from .quota_card import trial_cta
 from .shared import CHECKPOINTS_KEYS
 from .style import (
@@ -67,7 +66,6 @@ from .style import (
     PRO_PILL_PX,
     RADIUS_CONTROL,
     SPACE_CARD,
-    accent_color,
     repolish,
 )
 from .styles import BRAND_GREEN
@@ -80,7 +78,6 @@ HEADER_HEIGHT = 36
 _MARK = 20
 _MARK_GAP = 6
 _AVATAR_PX = 22
-_PRO_GLYPH = 14
 
 
 def letter_badge(widget, letter: str, diameter: int = _AVATAR_PX) -> QPixmap:
@@ -180,8 +177,6 @@ class Header(QWidget):
         self._pro_pill.setStyleSheet(
             _BTN_PRO_PILL + f"QPushButton#hdrProPill {{ border-radius: {min(RADIUS_CONTROL, pill_px // 2)}px; }}")
         self._pro_pill.setFixedHeight(pill_px)
-        self._pro_pill.setIcon(icon_for(self._pro_pill, "sparkles", _PRO_GLYPH, accent_color()))
-        self._pro_pill.setIconSize(QSize(_PRO_GLYPH, _PRO_GLYPH))
         self._pro_pill.setCursor(Qt.CursorShape.PointingHandCursor)
 
         self._pro_pill.setFocusPolicy(Qt.FocusPolicy.TabFocus)
@@ -192,7 +187,7 @@ class Header(QWidget):
         self._pro_pill.clicked.connect(self.pro_pill_clicked.emit)
         self._pro_pill.hide()
         self._pro_pill_wanted = False
-        self._pro_pill_full_width = self._pro_pill.sizeHint().width()
+        self._pro_pill_full_width = self._full_pill_width()
         row.addWidget(self._pro_pill, 0, Qt.AlignmentFlag.AlignVCenter)
 
 
@@ -286,9 +281,7 @@ class Header(QWidget):
         self._pro_pill.setText(label)
         self._pro_pill.setToolTip(tip)
         self._pro_pill.setAccessibleName(tip)
-
-        compact = bool(self._pro_pill.property("compact"))
-        self._pro_pill_full_width = self._pro_pill.sizeHint().width() + (_PRO_GLYPH + 4 if compact else 0)
+        self._pro_pill_full_width = self._full_pill_width()
         self._fit_pro_pill()
 
     def resizeEvent(self, event):  # noqa: N802
@@ -296,9 +289,6 @@ class Header(QWidget):
         self._fit_pro_pill()
 
     def _fit_pro_pill(self) -> None:
-
-
-
 
 
 
@@ -321,19 +311,19 @@ class Header(QWidget):
         if bool(self._pro_pill.property("compact")) == compact:
             return
         self._pro_pill.setProperty("compact", compact)
-        self._pro_pill.setIcon(QIcon() if compact
-                               else icon_for(self._pro_pill, "sparkles", _PRO_GLYPH, accent_color()))
         repolish(self._pro_pill)
 
-    def _compact_pill_width(self) -> int:
+    def _full_pill_width(self) -> int:
 
+        return QFontMetrics(self._pro_pill.font()).horizontalAdvance(self._pro_pill.text()) + 16
+
+    def _compact_pill_width(self) -> int:
 
         font = QFont(self._pro_pill.font())
         if font.pixelSize() > 0:
             font.setPixelSize(max(1, round(font.pixelSize() * FONT_HINT / FONT_BODY)))
         else:
             font.setPointSizeF(font.pointSizeF() * FONT_HINT / FONT_BODY)
-        font.setWeight(QFont.Weight.Medium)
         return QFontMetrics(font).horizontalAdvance(self._pro_pill.text()) + 8
 
     def _toggle_floating(self) -> None:

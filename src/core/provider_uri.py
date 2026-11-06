@@ -91,7 +91,9 @@ _URL_QUERY_SUFFIX_RE = _re.compile(
 
 
 
-_URL_USERINFO_RE = _re.compile(r"(?i)\b([a-z][a-z0-9+.-]*://[^/\s:@]+):([^/\s?#]+)@")
+
+
+_URL_USERINFO_RE = _re.compile(r"(?<=[a-zA-Z0-9+.-])(://[^/\s:@]+):([^/\s?#]+)@")
 REDACTED = "***"
 
 

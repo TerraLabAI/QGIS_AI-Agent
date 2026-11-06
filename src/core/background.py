@@ -34,8 +34,8 @@ from typing import Any, Callable
 
 from qgis.PyQt.QtCore import QCoreApplication, QObject, pyqtSignal, pyqtSlot
 
-from . import net
 from .logger import log_warning
+from .net_state import current_cancel_check, set_cancel_check
 
 
 
@@ -619,7 +619,7 @@ def run_on_main_thread(fn, *args, timeout=10):
         return fn(*args)
 
     result_queue: queue.Queue = queue.Queue()
-    cancel_check = net.current_cancel_check()
+    cancel_check = current_cancel_check()
     caller = current_call()
     wait = _Wait(cancel_check)
 
@@ -824,7 +824,7 @@ def _task_class():
 
 
 
-            net.set_cancel_check(self.isCanceled)
+            set_cancel_check(self.isCanceled)
 
 
 
@@ -837,7 +837,7 @@ def _task_class():
                         raise InterruptedError("Background work cancelled before it started")
                     self._result = self._work()
             finally:
-                net.set_cancel_check(None)
+                set_cancel_check(None)
                 _task_ended(id(self))
                 _CURRENT.entry = None
             return True

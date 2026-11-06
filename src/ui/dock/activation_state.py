@@ -12,6 +12,7 @@
 
 
 
+
 from __future__ import annotations
 
 from qgis.PyQt.QtCore import Qt, pyqtSignal
@@ -29,7 +30,6 @@ from qgis.PyQt.QtWidgets import (
 
 from ..font_scale import scale_px_length, scale_qss_font_px
 from ..header import letter_badge
-from ..icons import logo_pixmap, logo_size, pixmap_for
 from ..style import (
     _BTN_AVATAR,
     _BTN_DANGER_GHOST,
@@ -41,22 +41,20 @@ from ..style import (
     FONT_BASE,
     FONT_HINT,
     HAIRLINE,
+    INK_2,
     MUTED,
     RADIUS_CARD,
     SPACE_CARD,
     SPACE_OUTER,
 )
-from ..styles import _CARD_MARGINS, _msg_label_qss
+from ..styles import _msg_label_qss
 from ..widgets import Spinner
 
 
 _TITLE_QSS = (scale_qss_font_px(f"font-weight: 600; font-size: {FONT_BASE + 3}px; color: palette(text);"
               " background: transparent; border: none;"))
-_HINT_CARD_QSS = (
-    f"QFrame#signinHintCard {{ background: palette(base); border: 1px solid {HAIRLINE};"
-    f" border-radius: {RADIUS_CARD}px; }}"
-    "QLabel { background: transparent; border: none; }"
-)
+_PITCH_QSS = scale_qss_font_px(
+    f"font-size: {FONT_BASE}px; color: {INK_2}; background: transparent; border: none;")
 
 
 _TOP_MARGIN = 18
@@ -91,23 +89,17 @@ class ActivationCard(QWidget):
         outer.addLayout(col)
         outer.addStretch(2)
 
-
-
-        head = QHBoxLayout()
-        head.setContentsMargins(0, 0, 0, 0)
-        head.setSpacing(7)
-        head.addStretch(1)
         title = QLabel(self.tr("Your AI agent inside QGIS"), self)
         title.setStyleSheet(_TITLE_QSS)
-        head.addWidget(title, 0, Qt.AlignmentFlag.AlignVCenter)
-        mark = QLabel(self)
-        mark.setFixedSize(logo_size(18))
-        mark.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        mark.setPixmap(logo_pixmap(self, 18))
-        mark.setStyleSheet("background: transparent; border: none;")
-        head.addWidget(mark, 0, Qt.AlignmentFlag.AlignVCenter)
-        head.addStretch(1)
-        col.addLayout(head)
+        title.setWordWrap(True)
+        title.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        col.addWidget(title)
+        self._pitch = QLabel(
+            self.tr("Ask it to load data, style layers, run analyses or edit features."), self)
+        self._pitch.setStyleSheet(_PITCH_QSS)
+        self._pitch.setWordWrap(True)
+        self._pitch.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        col.addWidget(self._pitch)
         self._subtitle = QLabel(self)
         self._subtitle.setStyleSheet(_HINT_QSS)
         self._subtitle.setWordWrap(True)
@@ -128,7 +120,7 @@ class ActivationCard(QWidget):
         self._reason.setStyleSheet(_msg_label_qss("warning"))
         self._reason.hide()
         connect_col.addWidget(self._reason)
-        self._connect_btn = QPushButton(self.tr("Sign in / Sign up to start"), self._connect_section)
+        self._connect_btn = QPushButton(self.tr("Sign in or create an account"), self._connect_section)
         self._connect_btn.setToolTip(self.tr("Sign in via your browser to start using AI Agent"))
         self._connect_btn.setFixedHeight(BTN_PRIMARY_WIDE_PX)
         self._connect_btn.setCursor(Qt.CursorShape.PointingHandCursor)
@@ -137,30 +129,13 @@ class ActivationCard(QWidget):
         self._connect_btn.clicked.connect(self.sign_in_requested.emit)
         connect_col.addWidget(self._connect_btn)
 
-        hint_card = self._hint_card = QFrame(self._connect_section)
-        hint_card.setObjectName("signinHintCard")
-        hint_card.setStyleSheet(_HINT_CARD_QSS)
-        hint_col = QVBoxLayout(hint_card)
-        hint_col.setContentsMargins(*_CARD_MARGINS)
-        hint_col.setSpacing(5)
-        for text in (
-            self.tr("Signing up is free and takes 15 seconds, in your browser."),
-            self.tr("Then ask the AI for anything: load data, style layers, run analyses, edit features."),
-        ):
-            row = QHBoxLayout()
-            row.setSpacing(7)
-            check = QLabel(hint_card)
-            check.setFixedSize(14, 16)
-            check.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            check.setPixmap(pixmap_for(hint_card, "check", 12))
-            row.addWidget(check, 0, Qt.AlignmentFlag.AlignTop)
-            label = QLabel(text, hint_card)
-            label.setWordWrap(True)
-            label.setStyleSheet(scale_qss_font_px("font-size: 11px; color: palette(text); border: none;"
-                                                  " background: transparent;"))
-            row.addWidget(label, 1)
-            hint_col.addLayout(row)
-        connect_col.addWidget(hint_card)
+        self._hint = QLabel(self.tr("Free. Opens your browser, takes about 15 seconds."),
+                            self._connect_section)
+        self._hint.setStyleSheet(_HINT_QSS)
+        self._hint.setWordWrap(True)
+        self._hint.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        connect_col.addSpacing(4)
+        connect_col.addWidget(self._hint)
         col.addWidget(self._connect_section)
 
         self._wait_section = QWidget(self)
@@ -298,9 +273,10 @@ class ActivationCard(QWidget):
         self.clear_message()
         self._reason.setText(message or "")
         self._reason.setVisible(bool(message))
-        self._hint_card.setVisible(not message)
+        self._hint.setVisible(not message)
+        self._pitch.setVisible(not message)
         self._connect_btn.setText(self.tr("Sign in again") if message
-                                  else self.tr("Sign in / Sign up to start"))
+                                  else self.tr("Sign in or create an account"))
 
     def show_pairing_waiting(self, code: str = "", url: str = "") -> None:
         self.pairing_code = code or ""
@@ -308,6 +284,7 @@ class ActivationCard(QWidget):
             self._hide_code_input()
         self.state = "pairing"
         self._connect_section.hide()
+        self._pitch.hide()
         self._account_section.hide()
         self._message.hide()
         self._wait_section.show()
@@ -353,21 +330,19 @@ class ActivationCard(QWidget):
         self.state = "activated"
         self._spinner.stop()
         self._connect_section.hide()
+        self._pitch.hide()
         self._wait_section.hide()
         self._message.hide()
         self._email_label.setText(email or "")
         letter = (email or "?").strip()[:1].upper() or "?"
         self._avatar_btn.setIcon(QIcon(letter_badge(self, letter, self._avatar_diameter)))
         if avatar_url:
-            try:
-                from ..account_avatar import cached_avatar_pixmap, is_avatar_url_usable
+            from ..account_avatar import cached_avatar_pixmap, is_avatar_url_usable
 
-                if is_avatar_url_usable(avatar_url):
-                    pixmap = cached_avatar_pixmap(avatar_url, self._avatar_diameter)
-                    if pixmap is not None:
-                        self._avatar_btn.setIcon(QIcon(pixmap))
-            except ImportError:
-                pass
+            if is_avatar_url_usable(avatar_url):
+                pixmap = cached_avatar_pixmap(avatar_url, self._avatar_diameter)
+                if pixmap is not None:
+                    self._avatar_btn.setIcon(QIcon(pixmap))
         self._account_section.show()
         self._set_subtitle(self.tr("You are signed in."))
 

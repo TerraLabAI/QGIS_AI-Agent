@@ -7,7 +7,6 @@ from __future__ import annotations
 import datetime
 import email.utils
 import math
-import os
 import random
 import threading
 import time
@@ -15,6 +14,7 @@ import urllib.error
 from collections import namedtuple
 
 from . import tuning
+from .host_platform import plugin_version
 from .net_failure import FetchCancelled, FetchDeadline
 from .net_state import is_cancelled
 
@@ -53,29 +53,11 @@ PROJECT_URL = "https://terra-lab.ai/ai-agent"
 _UA_CACHE: str | None = None
 
 
-def _plugin_version() -> str:
-
-
-
-
-
-
-    root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-    try:
-        with open(os.path.join(root, "metadata.txt"), encoding="utf-8") as fh:
-            for line in fh:
-                if line.startswith("version="):
-                    return line.split("=", 1)[1].strip() or "unknown"
-    except OSError:
-        pass
-    return "unknown"
-
-
 def user_agent() -> str:
 
     global _UA_CACHE
     if _UA_CACHE is None:
-        _UA_CACHE = f"QGIS-AI-Agent/{_plugin_version()} (+{PROJECT_URL})"
+        _UA_CACHE = f"QGIS-AI-Agent/{plugin_version()} (+{PROJECT_URL})"
     return _UA_CACHE
 
 

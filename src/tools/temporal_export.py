@@ -47,25 +47,25 @@ from qgis.PyQt.QtCore import QSize
 
 from ..core import limits, output_paths, security
 from ..core.host_platform import remove_quietly, retry_file_op
+from ..core.layer_release import PROCESSING_TASKS, sweep_consumed_tasks
 from ..core.logger import log_warning
 from ..core.tool_registry import coded_fact, tool_error
+from .advanced_render import _apply_quality_flags, _prepare_frame_folder, _safe_frame_prefix
+from .processing_run import _POLL_INTERVAL_S
+from .temporal_time import _DAY_MS, _canvas_and_controller, _fmt, _moment, _navigation_mode
 
 TOOL = "export_animation_frames"
 _DIGITS = 4
-_DAY_MS = 86_400_000
 
 
 def running_export() -> str | None:
 
-    from .processing_run import _PROCESSING_TASKS
-
-    return next((task_id for task_id, entry in _PROCESSING_TASKS.items()
+    return next((task_id for task_id, entry in PROCESSING_TASKS.items()
                  if isinstance(entry.get("sequence"), FrameExport) and entry.get("status") == "running"), None)
 
 
 def _animation(controller) -> dict:
 
-    from .temporal_tools import _fmt, _moment, _navigation_mode
 
     layers = [layer.name() for layer in QgsProject.instance().mapLayers().values()
               if layer.temporalProperties() is not None and layer.temporalProperties().isActive()]
@@ -138,7 +138,6 @@ def _name(prefix: str, frame: int) -> str:
 
 def _folder(args: dict, layer: str, prefix: str, first: int, last: int):
 
-    from .advanced_tools import _prepare_frame_folder
 
     asked = str(args.get("out_dir") or "").strip()
     if asked:
@@ -195,8 +194,6 @@ def _decorations() -> list:
 
 def export_animation_frames(args: dict) -> dict:
 
-    from .advanced_tools import _apply_quality_flags, _safe_frame_prefix
-    from .temporal_tools import _canvas_and_controller
 
     running = running_export()
     if running:
@@ -274,13 +271,12 @@ class FrameExport:
         return os.path.join(self.folder, _name(self.prefix, frame))
 
     def start(self) -> dict:
-        from .processing_run import _POLL_INTERVAL_S, _PROCESSING_TASKS, _sweep_consumed_tasks
 
-        _sweep_consumed_tasks()
-        _PROCESSING_TASKS[self.task_id] = self.entry
+        sweep_consumed_tasks()
+        PROCESSING_TASKS[self.task_id] = self.entry
         self.advance()
         if self.entry["status"] != "running":
-            _PROCESSING_TASKS.pop(self.task_id, None)
+            PROCESSING_TASKS.pop(self.task_id, None)
             return tool_error(self.error or "The first frame could not start.", "EXECUTION_FAILED",
                               hint="animation_first_frame_failed")
 

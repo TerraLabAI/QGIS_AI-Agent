@@ -12,7 +12,9 @@ import json
 import math
 from typing import Any
 
+from . import link_vault, tasks_mode
 from .log_scrub import scrub_result
+from .numbers import as_int
 from .serialization import dump_json
 
 
@@ -86,11 +88,17 @@ class FrameType:
 
     SEND_MANIFEST = "send_manifest"
 
-    CLIENT = frozenset({HELLO, USER_MESSAGE, TOOL_RESULT, TOOL_ERROR, PERMISSION_RESPONSE, CANCEL, PING, FEEDBACK,
-                        BUSY, UPLOAD, STEER, UNSTEER, EFFORT, FUNNEL, MANIFEST, PROJECT_STATE})
+    PROJECT_MEMORY = "project_memory"
+
+
+    TASK_UPDATE = "task_update"
+    TASK_RESULT = "task_result"
+    TASK_STOP = "task_stop"
+
     SERVER = frozenset(
         {SESSION, TOKEN, PLAN, PLAN_UPDATE, TOOL_CALL, RUN_END, ERROR, USAGE, PONG, THREAD_TITLE, STATUS_LINE,
-         POLICY, MEMORY_NOTE, FOLLOWUPS, SOURCES, COUNTS, SERVER_TOOL, STEER_ACK, SEND_MANIFEST}
+         POLICY, MEMORY_NOTE, FOLLOWUPS, SOURCES, COUNTS, SERVER_TOOL, STEER_ACK, SEND_MANIFEST,
+         PROJECT_MEMORY, TASK_UPDATE, TASK_RESULT}
     )
 
 
@@ -243,7 +251,9 @@ def hello(activation_key: str, device_hash: str, plugin_version: str, qgis_versi
 
 
 
-        "renders": ["openui", "memory_silent", "ask_round"],
+
+
+        "renders": ["openui", "memory_silent", "ask_round", "link_handles"] + (["tasks"] if tasks_mode.on() else []),
     }
     if tool_manifest is not None:
         frame["tool_manifest"] = tool_manifest
@@ -305,7 +315,7 @@ def manifest_upload(tool_manifest_hash: str, tool_manifest: list) -> dict:
 
 CATALOG_FIELDS = ("connectors", "qgis_plugins", "qgis_plugins_hidden", "basemaps", "basemaps_reset",
                   "overpass_mirrors", "connector_shelves", "source_licences", "plugin_roster", "use_cases",
-                  "use_case_groups")
+                  "use_case_groups", "tool_lines")
 
 
 
@@ -355,12 +365,16 @@ def user_message(run_id: str, thread_id: str, text: str, attachments: list | Non
                  analytics_session: str = "") -> dict:
     clean = [a for a in (normalize_attachment(x) for x in (attachments or [])) if a]
     effort = effort if effort in Effort.ALL else Effort.LOW
+
+    link_vault.note_run(run_id, thread_id)
+    text = link_vault.hide_links(thread_id, text)
     frame = {
         "type": FrameType.USER_MESSAGE,
         "run_id": run_id,
         "thread_id": thread_id,
         "text": text,
         "attachments": clean,
+
 
 
 
@@ -380,7 +394,9 @@ def user_message(run_id: str, thread_id: str, text: str, attachments: list | Non
     if earlier_turns:
 
 
-        frame["earlier_turns"] = earlier_turns
+        frame["earlier_turns"] = [dict(turn, user=link_vault.hide_links(thread_id, str(turn.get("user") or "")),
+                                       answer=link_vault.hide_links(thread_id, str(turn.get("answer") or "")))
+                                  if isinstance(turn, dict) else turn for turn in earlier_turns]
     if analytics_session:
 
 
@@ -455,44 +471,12 @@ def _with_code_class(frame: dict, code_class: str) -> dict:
     return frame
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-RETRYABLE_CODES = frozenset({
-    ClientErrorCode.EXECUTION_FAILED, ClientErrorCode.NETWORK_ERROR,
-})
-FIXABLE_CODES = frozenset({
-    ClientErrorCode.INVALID_ARGS, ClientErrorCode.LAYER_NOT_FOUND, ClientErrorCode.CRS_GUARD,
-    ClientErrorCode.TOOL_NOT_FOUND,
-})
-
-
-def error_disposition(code: str) -> str:
-
-    if code in RETRYABLE_CODES:
-        return "retry"
-    if code in FIXABLE_CODES:
-        return "fix"
-    return "stop"
-
-
 def tool_error(tool_call_id: str, run_id: str, code: str, message: str, suggestion: str = "",
                code_class: str = "", detail: str = "", run_stalls: dict | None = None) -> dict:
 
 
     frame = _with_code_class({"type": FrameType.TOOL_ERROR, "tool_call_id": tool_call_id, "run_id": run_id,
-                              "code": code, "message": message, "suggestion": suggestion or "",
-                              "retryable": error_disposition(code) == "retry",
-                              "disposition": error_disposition(code)}, code_class)
+                              "code": code, "message": message, "suggestion": suggestion or ""}, code_class)
     if detail:
         frame["detail"] = str(detail)
     return _with_stalls(frame, run_stalls)
@@ -520,9 +504,23 @@ def cancel(run_id: str, reason: str = "") -> dict:
     return frame
 
 
-def feedback(run_id: str, up: bool) -> dict:
+def task_stop(task_id: str) -> dict:
+    return {"type": FrameType.TASK_STOP, "task_id": task_id}
 
-    return {"type": FrameType.FEEDBACK, "run_id": run_id, "up": bool(up)}
+
+
+FEEDBACK_REASONS = ("wrong_result", "not_what_i_asked", "too_slow")
+
+
+def feedback(run_id: str, up: bool, reason_code: str = "", reason: str = "") -> dict:
+
+
+    frame = {"type": FrameType.FEEDBACK, "run_id": run_id, "up": bool(up)}
+    if reason_code in FEEDBACK_REASONS:
+        frame["reason_code"] = reason_code
+    if reason.strip():
+        frame["reason"] = reason.strip()[:500]
+    return frame
 
 
 def unsteer(run_id: str, steer_id: str) -> dict:
@@ -532,7 +530,8 @@ def unsteer(run_id: str, steer_id: str) -> dict:
 
 def steer(run_id: str, steer_id: str, text: str) -> dict:
 
-    return {"type": FrameType.STEER, "run_id": run_id, "steer_id": steer_id, "text": text}
+    return {"type": FrameType.STEER, "run_id": run_id, "steer_id": steer_id,
+            "text": link_vault.hide_links(link_vault.thread_of_run(run_id), text)}
 
 
 def effort_switch(run_id: str, effort: str) -> dict:
@@ -563,6 +562,10 @@ def upload(upload_id: str, name: str, seq: int, total: int, data_base64: str) ->
 
     return {"type": FrameType.UPLOAD, "upload_id": str(upload_id), "name": str(name)[:512],
             "seq": int(seq), "total": int(total), "data_base64": data_base64}
+
+
+def project_memory_request(action: str, project_key: str) -> dict:
+    return {"type": FrameType.PROJECT_MEMORY, "action": action, "project_key": project_key}
 
 
 def busy(seconds: float, where: str, calls: str, ended: bool = False) -> dict:
@@ -634,9 +637,8 @@ def recommended_index(value, options: list) -> int:
     if not text:
         return -1
     if text.lstrip("-").isdigit():
-        try:
-            index = int(text)
-        except ValueError:
+        index = as_int(text)
+        if index is None:
             return -1
         return index if 0 <= index < len(options) else -1
     lowered = [str(o).strip().lower() for o in options]

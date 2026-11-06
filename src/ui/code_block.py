@@ -33,7 +33,7 @@ from __future__ import annotations
 import math
 import re
 
-from qgis.PyQt.QtCore import QRect, QSize, Qt, QTimer, pyqtSignal
+from qgis.PyQt.QtCore import QRect, QSize, Qt, pyqtSignal
 from qgis.PyQt.QtGui import (
     QFont,
     QPainter,
@@ -55,6 +55,7 @@ from qgis.PyQt.QtWidgets import (
     QWidget,
 )
 
+from ..core.qt_compat import one_shot
 from .card_base import mono_font
 from .font_scale import scale_px_length, scale_qss_font_px
 from .icons import pixmap_for
@@ -80,6 +81,7 @@ from .style import (
     RED_TINT,
     qcolor,
 )
+from .transcript import fence
 from .widgets import ElidedLabel
 
 _HEAD_PX = 40
@@ -570,9 +572,7 @@ class CodeBlock(QFrame):
         self._copy.setIconSize(QSize(11, 11))
         self._copy.setText(self.tr("Copy"))
         self._copy.clicked.connect(self._on_copy)
-        self._copied_timer = QTimer(self)
-        self._copied_timer.setSingleShot(True)
-        self._copied_timer.timeout.connect(lambda: self._copy.setText(self.tr("Copy")))
+        self._copied_timer = one_shot(self, lambda: self._copy.setText(self.tr("Copy")))
         head.addWidget(self._copy, 0, Qt.AlignmentFlag.AlignVCenter)
         col.addWidget(self._head)
 
@@ -661,7 +661,6 @@ class CodeBlock(QFrame):
         self._copied_timer.start(_COPIED_MS)
 
     def to_markdown(self) -> str:
-        from .transcript import fence
 
         return fence(self._text, "python" if self._highlighter is not None
                      and self._highlighter.language == "python" else "")

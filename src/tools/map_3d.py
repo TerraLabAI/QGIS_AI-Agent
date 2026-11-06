@@ -66,9 +66,11 @@ from qgis.core import (
 from qgis.PyQt.QtCore import QT_TRANSLATE_NOOP
 from qgis.utils import iface
 
+from ..core import output_paths, security
 from ..core.tool_registry import Tool, ToolRegistry, tool_error
+from . import style_3d
 from ._compat import enum_value
-from .layer_lookup import _find_layer
+from ._layers import resolve_layer
 
 TOOL = "configure_3d_map_view"
 _DEFAULT_TILE_RESOLUTION = 256
@@ -161,7 +163,7 @@ def _configure_3d_map_view(args: dict) -> dict:
     create, terrain_type, flat_type = api
     dem = None
     if args.get("dem_layer"):
-        dem = _find_layer(str(args["dem_layer"]))
+        dem = resolve_layer(str(args["dem_layer"]))
         if dem is None:
             return tool_error(f"DEM layer {args.get('dem_layer')!r} was not found.", "LAYER_NOT_FOUND",
                               hint="map3d_dem_not_found", dem_layer=str(args["dem_layer"]))
@@ -272,7 +274,6 @@ def _configure_3d_map_view(args: dict) -> dict:
     scene = _scene_facts(settings) if any(args.get(key) is not None for key in _SCENE_KEYS) else None
     if scene and "scene" in waits:
         scene.update({key: bool(args[key]) for key in ("shadows", "ambient_occlusion") if args.get(key) is not None})
-    from . import style_3d
 
     moved = style_3d.refloat_labels(settings.layers()) if _annotations_3d() else []
 
@@ -369,8 +370,6 @@ def _terrain_in_project_crs(dem):
             return layer, {"from": dem.crs().authid() or dem.crs().description(), "to": target.authid(),
                            "file": layer.source(), "reused": True}
     from osgeo import gdal
-
-    from ..core import output_paths, security
 
     folder = output_paths.default_folder()
     os.makedirs(folder, exist_ok=True)

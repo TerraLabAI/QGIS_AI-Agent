@@ -10,7 +10,7 @@
 from __future__ import annotations
 
 from qgis.PyQt.QtCore import QRectF, Qt, pyqtSignal
-from qgis.PyQt.QtGui import QColor, QFont, QFontMetrics, QIcon, QPainter, QPalette
+from qgis.PyQt.QtGui import QColor, QFont, QFontMetrics, QPainter, QPalette
 from qgis.PyQt.QtWidgets import (
     QAbstractButton,
     QButtonGroup,
@@ -21,16 +21,17 @@ from qgis.PyQt.QtWidgets import (
     QPushButton,
     QScrollArea,
     QSizePolicy,
-    QToolButton,
     QVBoxLayout,
     QWidget,
 )
 
 from ..core.profile import MEMORY_NOTE_MAX_CHARS
+from ..core.settings import state_dir
 from .icons import ink_of, pixmap_for
 from .style import (
     ACCENT,
     ACCENT_DARK,
+    ACCENT_INK,
     FIELD,
     HOVER_ON,
     INK_2,
@@ -38,10 +39,8 @@ from .style import (
     LINE,
     LINE_STRONG,
     ON_ACCENT,
-    RADIUS_CARD,
     RED,
     RED_TINT,
-    SURFACE,
 )
 from .styles import INK_HOVER_FILL, INK_PRESSED_FILL
 from .widgets import IconButton
@@ -58,21 +57,17 @@ ACCENT_TINT = "rgba(67, 160, 71, 0.10)"
 ACCENT_TINT_ON = "rgba(67, 160, 71, 0.20)"
 ACCENT_BORDER = "rgba(67, 160, 71, 0.45)"
 
-PAGE_TITLE_QSS = "font-size: 16px; font-weight: 600; color: palette(text); background: transparent;"
+PAGE_TITLE_QSS = "font-size: 20px; font-weight: 600; color: palette(text); background: transparent;"
 PAGE_SUBTITLE_QSS = f"font-size: 12px; color: {MUTED}; background: transparent;"
 ROW_TITLE_QSS = "font-size: 13px; color: palette(text); background: transparent;"
 ROW_NOTE_QSS = f"font-size: 11px; color: {MUTED}; background: transparent;"
 SAVED_HINT_QSS = f"font-size: 11px; color: {MUTED}; background: transparent;"
-GROUP_TITLE_QSS = "font-size: 12px; font-weight: 600; color: palette(text); background: transparent;"
+GROUP_TITLE_QSS = "font-size: 13px; font-weight: 600; color: palette(text); background: transparent;"
 
 
 
-GROUP_QSS = (
-    f"QFrame#settingsGroup {{ background: {SURFACE};"
-    f" border: 1px solid {LINE}; border-radius: {RADIUS_CARD}px; }}"
-    "QFrame#settingsGroup > QFrame#settingsRow { border: none; background: transparent; }"
-)
-GROUP_FLAT_QSS = (
+
+GROUP_QSS = GROUP_FLAT_QSS = (
     "QFrame#settingsGroup { background: transparent; border: none; }"
     "QFrame#settingsGroup > QFrame#settingsRow { border: none; background: transparent; }"
 )
@@ -87,8 +82,8 @@ def nav_qss(name: str) -> str:
         " padding: 4px 6px; font-size: 13px; }"
         f"QListWidget#{name}::item {{ padding: 7px 8px; border-radius: 8px; color: palette(text);"
         " margin: 1px 0; }"
-        f"QListWidget#{name}::item:hover {{ background: {ACCENT_TINT}; }}"
-        f"QListWidget#{name}::item:selected {{ background: {ACCENT_TINT_ON}; }}"
+        f"QListWidget#{name}::item:hover {{ background: {TINT_HOVER}; }}"
+        f"QListWidget#{name}::item:selected {{ background: {TINT_HOVER}; color: palette(text); }}"
     )
 
 
@@ -100,7 +95,8 @@ def sidebar_qss(name: str) -> str:
     )
 
 
-ROW_DIVIDER_QSS = (f"QFrame {{ background: {HAIRLINE}; border: none;"
+
+ROW_DIVIDER_QSS = (f"QFrame {{ background: {HAIRLINE}; border: none; margin: 0 14px;"
                    " max-height: 1px; min-height: 1px; }")
 
 PRIMARY_BTN_QSS = (
@@ -129,11 +125,6 @@ GET_PRO_BTN_QSS = (
     " border-radius: 8px; padding: 7px 14px; font-size: 12px; font-weight: 600; }"
     f"QPushButton:hover {{ background: {ACCENT_DARK}; }}"
 )
-DISCLOSURE_QSS = (
-    f"QToolButton {{ background: transparent; border: none; color: {MUTED};"
-    " font-size: 11px; padding: 2px 0; }"
-    "QToolButton:hover { color: palette(text); }"
-)
 COMBO_QSS = (
     f"QComboBox {{ color: palette(text); background: palette(base); border: 1px solid {HAIRLINE};"
     " border-radius: 8px; padding: 5px 28px 5px 10px; font-size: 12px; min-height: 18px; }"
@@ -154,8 +145,6 @@ def combo_qss(widget) -> str:
 
 def _chevron_rule(widget) -> str:
     import os
-
-    from ..core.settings import state_dir
 
     ink = QColor(ink_of(widget))
     ink.setAlphaF(0.8)
@@ -236,8 +225,9 @@ class Switch(QAbstractButton):
         rect = QRectF(self.rect()).adjusted(0.5, 0.5, -0.5, -0.5)
         ink = QColor(ink_of(self))
         on = self.isChecked()
-        track = QColor(ink)
-        track.setAlphaF(0.85 if on else 0.28)
+        track = QColor(ACCENT) if on else QColor(ink)
+        if not on:
+            track.setAlphaF(0.28)
         if not self.isEnabled():
             track.setAlphaF(0.18)
         painter.setPen(Qt.PenStyle.NoPen)
@@ -253,6 +243,31 @@ class Switch(QAbstractButton):
         painter.setBrush(knob)
         painter.drawEllipse(QRectF(x, rect.top() + 3, knob_d, knob_d))
         painter.end()
+
+
+class SkeletonRow(QWidget):
+
+
+
+
+    def __init__(self, parent=None, spoken: str = ""):
+        super().__init__(parent)
+        self.setAccessibleName(spoken)
+        self.setFixedHeight(64)
+
+    def paintEvent(self, _event):  # noqa: N802
+        painter = QPainter(self)
+        try:
+            painter.setRenderHint(QPainter.RenderHint.Antialiasing, True)
+            painter.setPen(Qt.PenStyle.NoPen)
+            painter.setBrush(QColor(FIELD))
+            mid = self.height() / 2
+            painter.drawEllipse(QRectF(14, mid - 16, 32, 32))
+            width = max(80, self.width() - 60)
+            painter.drawRoundedRect(QRectF(58, mid - 11, width * 0.32, 9), 4.5, 4.5)
+            painter.drawRoundedRect(QRectF(58, mid + 4, width * 0.2, 8), 4, 4)
+        finally:
+            painter.end()
 
 
 class SettingRow(QFrame):
@@ -354,7 +369,7 @@ class SectionCard(QFrame):
         self.setStyleSheet(GROUP_QSS)
         self.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Maximum)
         self._col = QVBoxLayout(self)
-        self._col.setContentsMargins(12, 12, 12, 10)
+        self._col.setContentsMargins(12, 8, 12, 8)
         self._col.setSpacing(8)
 
     def add(self, widget: QWidget) -> QWidget:
@@ -493,12 +508,16 @@ class NoteRow(QFrame):
 
 
 
-PRO_CARD_QSS = (
-    f"QFrame#proCard {{ background: {ACCENT_TINT}; border: 1px solid {ACCENT_BORDER};"
-    " border-radius: 10px; }"
-    "QFrame#proCard QLabel { background: transparent; border: none; }"
+PRO_LOCK_QSS = (
+    f"QFrame#proLock {{ background: {FIELD}; border: none; border-radius: 8px; }}"
+    f"QFrame#proLock QLabel {{ background: transparent; color: {INK_2}; font-size: 11px;"
+    " font-weight: 500; }"
 )
-PRO_CARD_TITLE_QSS = "font-size: 12px; font-weight: 600; color: palette(text); background: transparent;"
+TEXT_LINK_QSS = (
+    f"QPushButton {{ background: transparent; border: none; color: {ACCENT_INK};"
+    " font-size: 12px; font-weight: 600; padding: 2px 0; }"
+    "QPushButton:hover { text-decoration: underline; }"
+)
 
 
 
@@ -540,49 +559,23 @@ def set_section_locked(*widgets, locked: bool = True) -> None:
             continue
 
 
-class Disclosure(QWidget):
+class ProLock(QFrame):
 
 
-
-
-
-    toggled = pyqtSignal(bool)
-
-    def __init__(self, label: str, body: QWidget, parent=None, expanded: bool = False):
+    def __init__(self, parent=None):
         super().__init__(parent)
-        col = QVBoxLayout(self)
-        col.setContentsMargins(0, 0, 0, 0)
-        col.setSpacing(6)
-        self.button = QToolButton(self)
-        self.button.setText(label)
-        self.button.setCheckable(True)
-        self.button.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.button.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
-        self.button.setStyleSheet(DISCLOSURE_QSS)
-        self.button.setAutoRaise(True)
-        self.button.toggled.connect(self.set_expanded)
-        col.addWidget(self.button, 0, Qt.AlignmentFlag.AlignLeft)
-        self.body = body
-        body.setParent(self)
-        col.addWidget(body)
-        self.set_expanded(expanded)
-
-    def set_expanded(self, on: bool) -> None:
-        on = bool(on)
-        if self.button.isChecked() != on:
-            self.button.blockSignals(True)
-            self.button.setChecked(on)
-            self.button.blockSignals(False)
-        self.button.setIcon(QIcon(pixmap_for(self, "chevron_down" if on else "chevron_right", 10)))
-        self.body.setVisible(on)
-        self.toggled.emit(on)
-
-    def is_expanded(self) -> bool:
-        return self.button.isChecked()
+        self.setObjectName("proLock")
+        self.setStyleSheet(PRO_LOCK_QSS)
+        line = QHBoxLayout(self)
+        line.setContentsMargins(8, 3, 9, 3)
+        line.setSpacing(5)
+        glyph = QLabel(self)
+        glyph.setPixmap(pixmap_for(self, "lock", 11, QColor(INK_2)))
+        line.addWidget(glyph, 0, Qt.AlignmentFlag.AlignVCenter)
+        line.addWidget(QLabel(self.tr("Pro"), self), 0, Qt.AlignmentFlag.AlignVCenter)
 
 
-class ProCard(QFrame):
-
+class ProNote(QWidget):
 
 
 
@@ -591,39 +584,31 @@ class ProCard(QFrame):
 
     upgrade_requested = pyqtSignal()
 
-    def __init__(self, title: str, note: str = "", parent=None):
+    def __init__(self, reason: str, parent=None):
         super().__init__(parent)
-        self.setObjectName("proCard")
-        self.setStyleSheet(PRO_CARD_QSS)
-        self.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Maximum)
-        outer = QVBoxLayout(self)
-        outer.setContentsMargins(14, 10, 14, 10)
-        outer.setSpacing(4)
-        row = QHBoxLayout()
-        row.setContentsMargins(0, 0, 0, 0)
-        row.setSpacing(12)
-        name = QLabel(title, self)
-        name.setStyleSheet(PRO_CARD_TITLE_QSS)
-        name.setWordWrap(True)
-        row.addWidget(name, 1, Qt.AlignmentFlag.AlignVCenter)
-        button = QPushButton(self.tr("Get Pro"), self)
-        button.setStyleSheet(GET_PRO_BTN_QSS)
-        button.setCursor(Qt.CursorShape.PointingHandCursor)
-        button.setAutoDefault(False)
-        button.clicked.connect(self.upgrade_requested.emit)
-        row.addWidget(button, 0, Qt.AlignmentFlag.AlignVCenter)
-        outer.addLayout(row)
-        self.button = button
-        self.details = None
-        if note:
-            body = QLabel(note)
-            body.setStyleSheet(ROW_NOTE_QSS)
-            body.setWordWrap(True)
-            self.details = Disclosure(self.tr("What Pro adds"), body, self)
-            outer.addWidget(self.details)
+        line = QHBoxLayout(self)
+        line.setContentsMargins(2, 0, 2, 0)
+        line.setSpacing(12)
+        words = QLabel(reason, self)
+        words.setStyleSheet(ROW_NOTE_QSS)
+        words.setWordWrap(True)
+        line.addWidget(words, 1, Qt.AlignmentFlag.AlignVCenter)
+        self.link = QPushButton(self.tr("Get Pro"), self)
+        self.link.setStyleSheet(TEXT_LINK_QSS)
+        self.link.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.link.setAutoDefault(False)
+        self.link.clicked.connect(self.upgrade_requested.emit)
+        line.addWidget(self.link, 0, Qt.AlignmentFlag.AlignVCenter)
+
+    def set_trial(self, label: str) -> None:
+        self.link.setText(label or self.tr("Get Pro"))
 
 
 class Page(QWidget):
+
+
+
+
 
 
     def __init__(self, title: str, subtitle: str, parent=None):
@@ -632,7 +617,7 @@ class Page(QWidget):
         outer.setContentsMargins(0, 0, 0, 0)
         outer.setSpacing(0)
         head = QVBoxLayout()
-        head.setContentsMargins(24, 22, 24, 12)
+        head.setContentsMargins(24, 24, 24, 10)
         head.setSpacing(3)
         self.title_label = QLabel(title, self)
         self.title_label.setStyleSheet(PAGE_TITLE_QSS)
@@ -640,7 +625,8 @@ class Page(QWidget):
         self.subtitle_label = QLabel(subtitle, self)
         self.subtitle_label.setStyleSheet(PAGE_SUBTITLE_QSS)
         self.subtitle_label.setWordWrap(True)
-        head.addWidget(self.subtitle_label)
+        self.subtitle_label.hide()
+        self.setAccessibleDescription(subtitle)
         outer.addLayout(head)
 
         self._scroll = QScrollArea(self)
@@ -650,8 +636,9 @@ class Page(QWidget):
         self._scroll.setStyleSheet(SCROLL_QSS)
         self._body = QWidget(self._scroll)
         self.body = QVBoxLayout(self._body)
-        self.body.setContentsMargins(24, 4, 24, 20)
-        self.body.setSpacing(14)
+
+        self.body.setContentsMargins(10, 4, 10, 24)
+        self.body.setSpacing(8)
         self.body.addStretch(1)
         self._scroll.setWidget(self._body)
         outer.addWidget(self._scroll, 1)
@@ -661,18 +648,30 @@ class Page(QWidget):
         self.body.insertWidget(self.body.count() - 1, widget)
         return widget
 
-    def add_group_title(self, text: str) -> QLabel:
+    def add_group_title(self, text: str, aside: QWidget | None = None) -> QLabel:
+
         label = QLabel(text, self._body)
         label.setStyleSheet(GROUP_TITLE_QSS)
-        label.setContentsMargins(2, 4, 0, 0)
-        return self.add(label)
+
+        label.setContentsMargins(14, 18, 0, 2)
+        if aside is None:
+            return self.add(label)
+        row = QWidget(self._body)
+        line = QHBoxLayout(row)
+        line.setContentsMargins(0, 0, 0, 0)
+        line.addWidget(label, 1, Qt.AlignmentFlag.AlignBottom)
+        aside.setParent(row)
+        line.addWidget(aside, 0, Qt.AlignmentFlag.AlignBottom)
+        self.add(row)
+        return label
 
 
 
 USAGE_KEYS = ("runs_used", "runs_limit", "period_end", "reset_date", "is_subscriber", "is_free_tier")
+
 PROGRESS_QSS = (
-    "QProgressBar { background: rgba(128,128,128,0.18); border: none; border-radius: 3px;"
-    " max-height: 6px; min-height: 6px; }"
-    "QProgressBar::chunk { background: palette(text); border-radius: 3px; }"
+    "QProgressBar { background: rgba(128,128,128,0.18); border: none; border-radius: 2px;"
+    " max-height: 4px; min-height: 4px; }"
+    f"QProgressBar::chunk {{ background: {ACCENT}; border-radius: 2px; }}"
 )
 

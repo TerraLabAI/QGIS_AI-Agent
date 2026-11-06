@@ -26,15 +26,17 @@ from qgis.core import (
 )
 
 from ..core import limits
+from ..core.numbers import as_finite
 from ..core.qt_compat import enum_member, field_type
 from ..core.tool_registry import tool_error
-from .layer_lookup import _find_layer, _layer_not_found_error
+from ._layers import layer_not_found, resolve_layer
+from .elevation_style import apply_elevation_style, apply_ramp_style
 
 
 def _dem_facts(dem_name: str) -> dict:
-    layer = _find_layer(dem_name)
+    layer = resolve_layer(dem_name)
     if layer is None:
-        return _layer_not_found_error(dem_name)
+        return layer_not_found(dem_name)
     if not isinstance(layer, QgsRasterLayer):
         return tool_error(f"{layer.name()} is not a raster layer.", "INVALID_ARGS",
                           hint="hydrology_dem_not_raster", layer=layer.name())
@@ -55,14 +57,6 @@ def _dem_facts(dem_name: str) -> dict:
 
 def _outlet_error(message: str) -> dict:
     return tool_error(message, "INVALID_ARGS", hint="hydrology_outlet_forms")
-
-
-def _finite(value) -> float | None:
-    try:
-        number = float(value)
-    except (TypeError, ValueError):
-        return None
-    return number if math.isfinite(number) else None
 
 
 def _parse_crs(text):
@@ -101,9 +95,9 @@ def _guessed_crs(point: QgsPointXY):
 
 
 def _outlet_from_layer(name: str, feature_id) -> dict:
-    layer = _find_layer(name)
+    layer = resolve_layer(name)
     if layer is None:
-        return _layer_not_found_error(name)
+        return layer_not_found(name)
     if not isinstance(layer, QgsVectorLayer):
         return _outlet_error(f"{layer.name()} is not a point layer.")
     kind = QgsWkbTypes.displayString(layer.wkbType()) or "unknown"
@@ -168,13 +162,13 @@ def _resolve_outlet(outlet, dem_crs_wkt: str) -> dict:
             return _outlet_error(f"wkt is not a single point: {str(outlet['wkt'])[:60]}")
         picked = {"point": point, "crs": given or _guessed_crs(point), "from": "wkt", "assumed": given is None}
     elif outlet.get("lon") is not None or outlet.get("lat") is not None:
-        lon, lat = _finite(outlet.get("lon")), _finite(outlet.get("lat"))
+        lon, lat = as_finite(outlet.get("lon")), as_finite(outlet.get("lat"))
         if lon is None or lat is None or not (-180.0 <= lon <= 180.0 and -90.0 <= lat <= 90.0):
             return _outlet_error("outlet lon and lat must both be degrees, lon within 180 and lat within 90.")
         picked = {"point": QgsPointXY(lon, lat), "crs": QgsCoordinateReferenceSystem("EPSG:4326"),
                   "from": "lon/lat", "assumed": False}
     elif outlet.get("x") is not None or outlet.get("y") is not None:
-        x, y = _finite(outlet.get("x")), _finite(outlet.get("y"))
+        x, y = as_finite(outlet.get("x")), as_finite(outlet.get("y"))
         if x is None or y is None:
             return _outlet_error("outlet x and y must both be numbers.")
         point = QgsPointXY(x, y)
@@ -207,9 +201,9 @@ def _resolve_outlet(outlet, dem_crs_wkt: str) -> dict:
 
 def _mask_geometry(name: str, dem_crs_wkt: str, argument: str = "mask_layer") -> dict:
 
-    layer = _find_layer(name)
+    layer = resolve_layer(name)
     if layer is None:
-        return _layer_not_found_error(name)
+        return layer_not_found(name)
     if not isinstance(layer, QgsVectorLayer):
         return tool_error(f"{layer.name()} is not a polygon layer.", "INVALID_ARGS",
                           hint="hydrology_mask_not_polygon", layer=layer.name(), argument=argument)
@@ -397,7 +391,6 @@ def _add_watershed_layer(wkb: bytes, crs_wkt: str, name: str, attributes: dict) 
 
 def _style_dem(layer_id: str, stretch: dict) -> dict:
 
-    from .elevation_style import apply_elevation_style
 
     layer = QgsProject.instance().mapLayer(layer_id)
     if layer is None:
@@ -412,7 +405,6 @@ def _style_dem(layer_id: str, stretch: dict) -> dict:
 def _add_ramp_raster(path: str, name: str, low: float, high: float, what: str) -> dict:
 
 
-    from .elevation_style import apply_ramp_style
 
     layer = QgsRasterLayer(path, name, "gdal")
     if not layer.isValid():

@@ -31,8 +31,11 @@ import itertools
 import math
 
 from ..core.background import run_on_main_thread
+from ..core.context_layers import canvas_bbox_4326, view_bbox_4326
 from ..core.logger import log
+from ..core.numbers import as_int
 from ..core.tool_registry import Tool, ToolRegistry, tool_error
+from ._layers import resolve_layer
 from .deps_tools import OPTIONAL_DEPENDENCIES
 
 SYSTEMS = ("geohash", "olc", "h3", "s2")
@@ -272,9 +275,8 @@ def _h3_call(module, names: tuple, *args, **kwargs):
 
 def _validate_resolution(system: str, resolution) -> tuple:
 
-    try:
-        value = int(resolution)
-    except (TypeError, ValueError):
+    value = as_int(resolution)
+    if value is None:
         return None, tool_error(f"resolution must be a whole number, got {resolution!r}", code="BAD_RESOLUTION")
     if system == "geohash":
         if not GEOHASH_MIN_PRECISION <= value <= GEOHASH_MAX_PRECISION:
@@ -582,10 +584,8 @@ def _crosses_dateline(west: float, east: float) -> bool:
 def _layer_bbox_4326(layer_name: str):
 
 
-    from ..core.context_layers import view_bbox_4326
-    from .layer_lookup import _find_layer
 
-    layer = _find_layer(layer_name)
+    layer = resolve_layer(layer_name)
     if layer is None:
         return None
     return view_bbox_4326(layer.extent(), layer.crs()) or []
@@ -610,8 +610,6 @@ def _resolve_extent(args: dict) -> tuple:
         bbox, error = _read_bbox(raw)
         return (None, None, error) if error else (bbox, f"layer:{layer_name}", None)
 
-    from ..core.context_layers import canvas_bbox_4326
-
     raw = run_on_main_thread(canvas_bbox_4326, timeout=30)
     if not raw:
         return None, None, tool_error(
@@ -626,6 +624,7 @@ def register_grid_tools(registry: ToolRegistry):
     registry.register(Tool(
         name="create_grid_layer",
         danger="write",
+        own_area_rule=True,
         input_schema={
             "type": "object",
             "properties": {
@@ -688,9 +687,8 @@ def _create_grid_layer(args: dict) -> dict:
     if error:
         return error
 
-    try:
-        limit = int(args.get("max_cells") or DEFAULT_MAX_CELLS)
-    except (TypeError, ValueError):
+    limit = as_int(args.get("max_cells") or DEFAULT_MAX_CELLS)
+    if limit is None:
         return tool_error("max_cells must be a whole number", code="BAD_ARGUMENT")
     limit = max(1, min(limit, HARD_MAX_CELLS))
 

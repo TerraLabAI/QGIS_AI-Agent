@@ -22,7 +22,8 @@ import contextlib
 
 from qgis.PyQt.QtCore import QObject, QTimer
 
-from ..core import tuning
+from ..core import telemetry, telemetry_events, tuning
+from ..core.qt_compat import one_shot
 from .shared import tr
 
 UPDATE_RESULT_INSTALLED = "installed"
@@ -77,9 +78,7 @@ class PluginSelfUpdate(QObject):
         except Exception:  # noqa: BLE001
             self._give_up()
             return
-        self._timer = QTimer(self)
-        self._timer.setSingleShot(True)
-        self._timer.timeout.connect(self._give_up)
+        self._timer = one_shot(self, self._give_up)
         self._timer.start(1000 * int(tuning.threshold(
             "update_fetch_timeout_s", _FETCH_TIMEOUT_S, *_FETCH_TIMEOUT_S_RANGE)))
 
@@ -216,7 +215,6 @@ def one_click_result_tracker(version: str):
 
 
 
-    from ..core import telemetry, telemetry_events
 
     names = (telemetry.__name__, telemetry_events.__name__)
 

@@ -38,8 +38,7 @@ from ..core import tuning
 from ..core.feature_requests import feature_request, first_feature
 from ..core.qt_compat import enum_member
 from ..core.tool_registry import Tool, ToolRegistry, tool_error
-from ._layers import unique_layer_name
-from .layer_lookup import _find_layer, _layer_not_found_error
+from ._layers import layer_not_found, resolve_layer, unique_layer_name
 
 
 
@@ -99,9 +98,9 @@ def _azimuth(dx: float, dy: float) -> float:
 
 def _reference_azimuth(args: dict, calc_crs):
 
-    reference = _find_layer(str(args["reference_layer"]))
+    reference = resolve_layer(str(args["reference_layer"]))
     if reference is None:
-        return None, _layer_not_found_error(str(args["reference_layer"]))
+        return None, layer_not_found(str(args["reference_layer"]))
     if not isinstance(reference, QgsVectorLayer) or \
             QgsWkbTypes.geometryType(reference.wkbType()) != enum_member(Qgis, "GeometryType", "Line"):
         return None, tool_error(f"'{reference.name()}' is not a line layer.", "INVALID_ARGS",
@@ -186,9 +185,9 @@ def _calc_crs(layer_crs):
 
 
 def _split_parcel(args: dict) -> dict:
-    layer = _find_layer(str(args.get("layer") or ""))
+    layer = resolve_layer(str(args.get("layer") or ""))
     if layer is None:
-        return _layer_not_found_error(str(args.get("layer") or ""))
+        return layer_not_found(str(args.get("layer") or ""))
     if not isinstance(layer, QgsVectorLayer) or QgsWkbTypes.geometryType(layer.wkbType()) != enum_member(
         Qgis, "GeometryType", "Polygon"
     ):

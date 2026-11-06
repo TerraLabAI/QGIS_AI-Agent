@@ -1,0 +1,1182 @@
+# SPDX-FileCopyrightText: 2026 TerraLab <yvann.barbot@terra-lab.ai>
+# SPDX-License-Identifier: GPL-2.0-or-later
+
+
+
+
+
+from __future__ import annotations
+
+import contextlib
+import copy
+import threading
+import time
+from collections import deque
+
+from qgis.core import QgsProject
+from qgis.PyQt.QtCore import QCoreApplication, QTimer
+
+from ..core import accounts, background, link_vault, same_page, security, security_urls, stalls
+from ..core.log_scrub import DETAIL_CHARS, scrub_result, scrub_secrets, strip_paths
+from ..core.logger import log, log_warning
+from ..core.plan import autopilot_allowed
+from ..core.protocol import Approval, Danger, Decision, Mode, recommended_index
+from ..core.protocol import ClientErrorCode as Err
+from ..core.serialization import DETAILS_MARKER, CodedText, cut_string, dump_json, error_details
+from ..core.tool_registry import coded_fact, spec
+from ..tools import code_guard, cost_guard, guards
+from ..tools._layers import pin_layer_names
+from .executor_code import CODE_TOOL
+from .run_report import VERIFY_RUN, build_report
+
+
+_HOSTS_AHEAD = 32
+
+
+
+
+
+TURN_WAIT_S = 15.0
+
+
+CHAT_FILES_THREADS = 64
+CHAT_FILES_MAX = 2000
+
+
+
+
+_NOT_FACTS = frozenset({"error", "suggestion", "code", "isError", "destructive", "overwrites", "creates",
+                        "sentence", "slow_only", "inputs"})
+
+
+def _refusal_facts(refusal: dict) -> dict:
+
+
+    facts = {k: v for k, v in refusal.items() if k not in _NOT_FACTS}
+    error = refusal.get("error")
+    if isinstance(error, CodedText) and not facts.get("hint") and not refusal.get("suggestion"):
+        facts = {**error.facts, **facts, "hint": error.hint}
+    return facts
+
+
+def _coded(refusal: dict) -> str:
+
+
+    return error_details(_refusal_facts(refusal))
+
+
+def tr(text: str) -> str:
+    return QCoreApplication.translate("ToolExecutor", text)
+
+
+def _shown_value(value):
+
+    if isinstance(value, str):
+        return cut_string(value, 300)
+    if isinstance(value, (dict, list)):
+        text = dump_json(value)
+        return value if len(text) <= 300 else cut_string(text, 300)
+    return value
+
+
+class _ExecutorCalls:
+
+    def handle_tool_call(self, call: dict, looked_up: bool = False, in_turn: bool = False) -> None:
+        if self._closed or not isinstance(call, dict):
+            return
+        self._wake_watchdog()
+
+        self._when_main_free("call", call, self._take_call, call, looked_up, in_turn)
+
+    def _take_call(self, call: dict, looked_up: bool, in_turn: bool) -> None:
+        tool_call_id = str(call.get("tool_call_id") or "")
+        run_id = str(call.get("run_id") or "")
+        name = str(call.get("name") or "")
+        if not self._table.ready and getattr(QCoreApplication, "instance", lambda: None)() is not None:
+
+
+
+
+            if tool_call_id not in self._waiting_for_history:
+                if len(self._waiting_for_history) >= 128:
+                    self._session.send_tool_error(tool_call_id, run_id, Err.EXECUTION_FAILED,
+                                                  "The saved tool history is still loading, briefly.", "")
+                    return
+                self._waiting_for_history[tool_call_id] = dict(call)
+            return
+        if not tool_call_id:
+            log_warning("tool_call without tool_call_id dropped")
+            return
+        entry = self._table.get(tool_call_id)
+        if entry is not None:
+            self._replay(entry, tool_call_id, run_id)
+            return
+        if tool_call_id in self._pending or tool_call_id in self._questions:
+
+
+
+
+            self._session.send_permission_response(tool_call_id, run_id, Decision.PENDING)
+            return
+        if (tool_call_id in self._executing or tool_call_id in self._resolving
+                or any(tool_call_id in queue for queue in self._queued.values())):
+            return
+        args = call.get("args") if isinstance(call.get("args"), dict) else {}
+
+
+        args, unknown_links, expired_links, embedded_links = link_vault.resolve(self._threads.get(run_id, ""), args)
+        call = dict(call, args=args)
+        if unknown_links:
+            self._fail(call, Err.INVALID_ARGS,
+                       f"{', '.join(unknown_links)} is not a link this QGIS holds: links stay in memory only, so "
+                       "they are gone after a QGIS restart or once the chat is deleted.",
+                       "Ask the user to paste the link again.",
+                       details=error_details(coded_fact(hint="link_handle_unknown", handles=unknown_links)))
+            return
+        if embedded_links:
+            self._fail(call, Err.INVALID_ARGS,
+                       f"{', '.join(embedded_links)} is written inside other text. A link the user pasted opens "
+                       "only from an argument that holds its handle alone, behind /vsi prefixes, or as a QGIS "
+                       "URI's url= value; a snippet reads the layer loaded from it, never the link.",
+                       "Load it with add_data or read it with inspect_data_source, then work on that layer.",
+                       details=error_details(coded_fact(hint="link_handle_embedded", handles=embedded_links)))
+            return
+        if expired_links:
+
+            self._fail(call, Err.INVALID_ARGS,
+                       "; ".join(f"{h} expired on {when}" for h, when in expired_links.items())
+                       + ": the storage provider refuses a signed link after that time.",
+                       "The user makes a new link from their storage and pastes it.",
+                       details=error_details(coded_fact(hint="link_expired", handles=sorted(expired_links),
+                                                        expired=expired_links)))
+            return
+        if run_id in self._cancelled:
+            self._fail(call, Err.CANCELLED, tr("The run was cancelled by the user."),
+                       "The user stopped the run.")
+            return
+        if run_id not in self._run_mode:
+
+
+            self._fail(call, Err.CANCELLED,
+                       tr("This run has ended; the call was not executed."),
+                       "The run is over.")
+            return
+        if self._registry.get_tool(name) is None:
+            self._fail(call, Err.TOOL_NOT_FOUND, f"Unknown tool: {name}",
+                       "search_tools finds a tool by description; call_tool then takes the exact name.")
+            return
+        if not (looked_up or in_turn) and self._waits_its_turn(call, name, args):
+            return
+        if not looked_up and self._look_up_hosts_first(call, args):
+            return
+        declared = spec(name)
+        if getattr(declared, "waits_on_user", False):
+            self._ask_user(call)
+            return
+        if name == VERIFY_RUN:
+            self._verify_run(call)
+            return
+        self._resolve_output_paths(name, args)
+        own_files = self._own_files_of(run_id)
+        danger = self._danger_for(name, args, call.get("danger"), own_files)
+        if name == CODE_TOOL:
+
+            danger = self._code_plan(call, args, danger)
+        self._drop_unused_bbox(name, args)
+        loose = self._pin_loose_names(call, danger)
+        if loose is not None:
+            self._fail(call, *loose, details=error_details(call.pop("refusal_facts", None) or {}))
+            return
+        removes = getattr(declared, "removes_layer_at", "")
+        if removes and danger == Danger.DESTRUCTIVE and self._added_this_run(run_id, args.get(removes)):
+
+
+
+            danger = Danger.WRITE
+        verdict = self._guard_check(name, args, own_files)
+        if verdict.get("error"):
+            self._fail(call, verdict.get("code") or Err.INVALID_ARGS, verdict["error"], verdict.get("suggestion", ""),
+                       details=_coded(verdict))
+            return
+        if verdict.get("destructive"):
+            danger = Danger.DESTRUCTIVE
+        call["danger"] = danger
+        call["overwrites"] = verdict.get("overwrites") or []
+        call["creates"] = verdict.get("creates") or []
+        self._drop_unknown_flags(name, args)
+
+
+
+
+
+        mode = self._run_mode.get(run_id, (self._settings.mode, ""))[0]
+        approval = self._approval_now()
+        if mode == Mode.ASK and danger != Danger.READ:
+            self._fail(call, Err.READ_ONLY_MODE,
+                       tr("Question mode is read only: {tool} would modify the project.").format(tool=name), "",
+                       details=error_details(coded_fact(hint="question_mode_read_only")))
+            return
+        budget = self._budgets.get(run_id)
+        over = budget.charge(poll=bool(call.get("poll"))) if budget is not None else None
+        if over:
+            self._fail(call, Err.RUN_BUDGET, over, "This run allows no further tool call.")
+            return
+        held = self._blocked_reason(run_id, danger)
+        if held:
+
+
+
+
+
+            self._fail(call, Err.RUN_BUDGET, held + " This call did not run and nothing changed.", "",
+                       details=error_details(coded_fact(hint="spent_hold_retry", hold_spent=True)))
+            return
+        if name == CODE_TOOL:
+
+
+            refused = code_guard.refusal_for(str(args.get("code") or ""))
+            if refused:
+                self._fail(call, refused["code"], refused["error"], refused["suggestion"], details=_coded(refused))
+                return
+
+
+
+
+
+
+
+
+
+
+
+        unvouched = guards.unvouched_urls(name, args, call.get("listed_urls") or ())
+        if name == CODE_TOOL:
+            unvouched = guards.unvouched_code_urls(args.get("code"))
+        if unvouched:
+            call["unvouched"] = unvouched
+        costly = self._costly_check(name, args)
+        if costly.get("error"):
+
+
+            self._fail(call, costly.get("code") or Err.EXECUTION_FAILED,
+                       costly["error"], costly.get("suggestion", ""), details=_coded(costly))
+            return
+        if costly:
+
+
+            call["_refused_key"] = self._costly_key(name, args, costly.get("inputs"))
+        if costly and call["_refused_key"] in self._refused_costly.get(run_id, ()):
+            self._fail(call, Err.PERMISSION_DENIED,
+                       f"The user already refused this exact {costly['label']} run in this answer.", "",
+                       details=error_details(coded_fact(hint="costly_run_refused_again", label=costly["label"])))
+            return
+        if costly and approval == Approval.AUTO and costly.get("slow_only") and not unvouched:
+
+
+            costly = {}
+        if costly:
+            if self._refused_before_card(call):
+                return
+            if not self._preflight_before_card(call, costly):
+                self._costly_card(call, costly)
+            return
+        always = guards.always_confirm(name, args)
+        if name == CODE_TOOL:
+            always = self._code_always(call, always, approval)
+        if unvouched:
+            always = True
+        asks = always or self._asks(approval, danger)
+
+
+        per_answer = not always
+        if asks and per_answer and name in self._run_denied.get(run_id, ()):
+
+            self._fail(call, Err.PERMISSION_DENIED,
+                       f"The user declined {name} for this answer.",
+                       "Further calls of it in this answer are refused the same way.")
+            return
+        if asks and per_answer and self._allowed_for_answer(run_id, name, danger):
+
+
+            log(f"ALLOW {name} (the user allowed it for this answer)")
+            self._session.send_permission_response(tool_call_id, run_id, Decision.ALLOW)
+            self._execute(call)
+            return
+        if asks:
+            if not always and (self._settings.is_allowed(self._project_path(), name)
+                               or (name == CODE_TOOL and self._code_class_allowed(call))):
+                self._session.send_permission_response(tool_call_id, run_id, Decision.ALLOW_PROJECT)
+                self._execute(call)
+                return
+            if self._refused_before_card(call):
+                return
+            if name == CODE_TOOL and self._code_refused_before_card(call):
+                return
+            call["always"] = always
+            self._pending[tool_call_id] = call
+            sentence = str(call.get("sentence") or tr("Run {tool}").format(tool=name))
+
+
+            call["per_answer"] = per_answer or (name == CODE_TOOL and self._code_grantable(call))
+            self._session.send_permission_response(tool_call_id, run_id, Decision.PENDING)
+            self.permission_needed.emit(tool_call_id, run_id, sentence, args)
+            return
+        self._execute(call)
+
+
+    def _waits_its_turn(self, call: dict, name: str, args: dict) -> bool:
+
+
+
+
+
+
+
+
+
+
+
+
+
+        run_id = str(call.get("run_id") or "")
+        if call.get("poll") is True or not (self._queued.get(run_id) or self._behind_changes(call, name, args)):
+            return False
+        tool_call_id = str(call.get("tool_call_id"))
+        self._queued.setdefault(run_id, {})[tool_call_id] = (call, time.monotonic())
+        log(f"WAIT {name} until the run's earlier calls have changed the project")
+        return True
+
+    def _behind_changes(self, call: dict, name: str, args: dict) -> bool:
+
+
+
+        run_id = str(call.get("run_id") or "")
+        earlier = [entry[2] for entry in self._background.values() if entry[0] == run_id]
+        earlier += [c for c in self._resolving.values() if str(c.get("run_id") or "") == run_id]
+        if not any(c.get("danger", Danger.READ) != Danger.READ for c in earlier):
+            return False
+        return call.get("danger", Danger.READ) == Danger.READ or not self._background_ok(name, args)
+
+    def _turn_over(self, *_answer) -> None:
+
+        if self._queued and not self._closed:
+            QTimer.singleShot(0, self._take_turns)
+
+    def _take_turns(self, now: float | None = None) -> None:
+
+
+
+
+
+
+
+        self._when_main_free("turns", None, self._start_turns, now)
+
+    def _start_turns(self, now: float | None) -> None:
+        now = time.monotonic() if now is None else float(now)
+        for run_id in list(self._queued):
+            queue = self._queued.get(run_id) or {}
+            while queue and not self._closed:
+                tool_call_id, (call, arrived) = next(iter(queue.items()))
+                name, args = str(call.get("name") or ""), call.get("args") or {}
+                if now - arrived < TURN_WAIT_S and self._behind_changes(call, name, args):
+                    break
+                queue.pop(tool_call_id, None)
+                self._take_call(call, False, True)
+            if not queue:
+                self._queued.pop(run_id, None)
+
+    def _take_history(self) -> None:
+
+
+        waiting, self._waiting_for_history = self._waiting_for_history, {}
+        for call in waiting.values():
+            if not self._closed:
+                self._take_call(call, False, False)
+
+    def _drop_queued(self, run_id: str) -> None:
+
+        for call, _arrived in (self._queued.pop(run_id, None) or {}).values():
+            self._fail(call, Err.CANCELLED, tr("The run was cancelled by the user."), "The user stopped the run.")
+
+
+    @contextlib.contextmanager
+    def _main_entry(self):
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        self._main_depth += 1
+        try:
+            yield
+        finally:
+            self._main_depth -= 1
+            if not self._main_depth:
+                self._resume_main_line()
+
+    def _when_main_free(self, kind: str, call: dict | None, fn, *args) -> None:
+
+        def start() -> None:
+            with self._main_entry():
+                fn(*args)
+
+        if not self._join_main_line(kind, call, start):
+            start()
+
+    def _main_callback(self, call: dict, done):
+
+        return lambda *answer: self._when_main_free("callback", call, done, *answer)
+
+    def _join_main_line(self, kind: str, call: dict | None, start) -> bool:
+
+
+
+
+
+
+        if not (self._main_depth or self._main_line):
+            return False
+        tool_call_id = str((call or {}).get("tool_call_id") or "")
+        for waiting_kind, waiting_call, _start in self._main_line:
+            if waiting_kind == kind and kind != "callback" and (
+                    call is None or str((waiting_call or {}).get("tool_call_id") or "") == tool_call_id):
+                return True
+        self._main_line.append((kind, call, start))
+        if kind == "call":
+            log(f"WAIT {call.get('name')} until the call running on the main thread has returned")
+        self._resume_main_line()
+        return True
+
+    def _resume_main_line(self) -> None:
+
+        if self._main_line and not (self._main_depth or self._main_line_due or self._closed):
+            self._main_line_due = True
+            QTimer.singleShot(0, self._next_in_line)
+
+    def _next_in_line(self) -> None:
+
+        self._main_line_due = False
+        if self._closed or self._main_depth or not self._main_line:
+            return
+        kind, call, start = self._main_line.popleft()
+        try:
+            start()
+        except Exception as exc:  # noqa: BLE001
+            log_warning(f"{kind} {(call or {}).get('name') or ''} failed after waiting for the main thread: {exc}")
+        self._resume_main_line()
+
+    def _drop_main_line(self, run_id: str) -> None:
+
+
+
+
+        stopped = [entry for entry in self._main_line
+                   if entry[0] in ("call", "decision") and str((entry[1] or {}).get("run_id") or "") == run_id]
+        if not stopped:
+            return
+        gone = {id(entry) for entry in stopped}
+        self._main_line = deque(entry for entry in self._main_line if id(entry) not in gone)
+        for kind, call, _start in stopped:
+            if kind == "call":
+                self._fail(call, Err.CANCELLED, tr("The run was cancelled by the user."), "The user stopped the run.")
+
+    def covers_answer(self, tool_call_id: str) -> bool:
+
+
+        call = self._pending.get(str(tool_call_id or "")) or {}
+        return bool(call.get("per_answer"))
+
+    def unvouched_for(self, tool_call_id: str) -> list[str]:
+
+        call = self._pending.get(str(tool_call_id or "")) or {}
+        return list(call.get("unvouched") or [])
+
+    def pending_name(self, tool_call_id: str) -> str:
+        return str((self._pending.get(str(tool_call_id or "")) or {}).get("name") or "")
+
+    def code_preview_for(self, tool_call_id: str) -> dict:
+
+
+
+
+        call = self._pending.get(str(tool_call_id or "")) or {}
+        found = call.get("code_preview")
+        return dict(found) if isinstance(found, dict) else {}
+
+    def card_group(self, tool_call_id: str) -> str:
+
+
+
+
+
+
+
+
+
+        call = self._pending.get(str(tool_call_id or "")) or {}
+        name = str(call.get("name") or "")
+        if not call or call.get("costly") or name == CODE_TOOL:
+            return ""
+        if guards.always_confirm(name, call.get("args") or {}):
+            return ""
+        return str(call.get("run_id") or "")
+
+    def _costly_card(self, call: dict, costly: dict) -> None:
+
+
+        tool_call_id, run_id = str(call.get("tool_call_id")), str(call.get("run_id") or "")
+        call["danger"] = Danger.DESTRUCTIVE
+        call["sentence"] = costly["sentence"]
+        call["costly"] = True
+        call.pop("_costly_inputs", None)
+        guard = cost_guard
+        if costly.get("outline_wkt"):
+
+
+            try:
+
+                follower = getattr(self, "follower", None)
+                if follower is not None:
+                    follower.chose_view()
+                prior = guard.show_outline(call.setdefault("args", {}), costly)
+                if "_prior_zone" not in call:
+
+
+                    call["_prior_zone"] = prior
+                    call["_zone_proposed"] = bool(costly.get("zone_proposed"))
+            except Exception as exc:  # noqa: BLE001
+                log_warning(f"cost_guard could not draw the zone for {call.get('name')}: {exc}")
+        if "inputs" in costly:
+
+
+            call["_costly_inputs"] = copy.deepcopy(costly["inputs"])
+        self._pending[tool_call_id] = call
+        self._session.send_permission_response(tool_call_id, run_id, Decision.PENDING)
+        self.permission_needed.emit(tool_call_id, run_id, costly["sentence"], call.get("args") or {})
+
+    def _card_closed_unallowed(self, call: dict) -> None:
+
+
+
+        if call.get("costly"):
+            cost_guard.stop_framing()
+        proposed = call.pop("_zone_proposed", False) and "_prior_zone" in call
+        prior = call.pop("_prior_zone", None)
+        if prior is not None:
+            cost_guard.restore_zone(prior)
+        elif proposed:
+
+            cost_guard.mark_declined()
+
+    def _costly_key(self, name: str, args: dict, inputs) -> str:
+
+
+
+
+
+
+        ground = (inputs or {}).get("zone_wkt") if isinstance(inputs, dict) else None
+        return self._call_key(name, {**args, "_ground": ground})
+
+    def _hold_changed_costly_inputs(self, call: dict) -> bool:
+
+
+
+
+
+        if "_costly_inputs" not in call:
+            return False
+        name = str(call.get("name") or "")
+        args = call.setdefault("args", {})
+        current = self._costly_check(name, args)
+        if current.get("error"):
+
+
+
+            current = self._confirmed_by_card(name, args) or current
+        if current.get("error") or "inputs" not in current:
+            self._session.send_permission_response(str(call.get("tool_call_id")),
+                                                   str(call.get("run_id") or ""), Decision.DENY)
+            self._fail(call, current.get("code") or Err.EXECUTION_FAILED,
+                       current.get("error") or "The prepared inputs could not be checked, so the call was not run.",
+                       current.get("suggestion") or "",
+                       details="" if current.get("suggestion")
+                       else error_details(coded_fact(hint="prepared_inputs_unchecked")))
+            return True
+        if current["inputs"] == call["_costly_inputs"] and current.get("sentence") == call.get("sentence"):
+            return False
+
+
+
+        self._executing.discard(str(call.get("tool_call_id")))
+        call.pop("recard", None)
+        log(f"ASK AGAIN {name}: the prepared inputs changed")
+        if not self._refused_before_card(call) and not self._preflight_before_card(call, current):
+            self._costly_card(call, current)
+        return True
+
+    def _refused_before_card(self, call: dict) -> bool:
+
+
+
+
+
+
+        error = self._registry.check_arguments(str(call.get("name") or ""), call.get("args") or {})
+        refused = self._error_of(error)
+        if refused is None:
+            return False
+        log(f"REFUSED BEFORE CARD {call.get('name')}: {refused[1][:120]}")
+        self._fail(call, *refused, details=error_details(error))
+        return True
+
+    def _preflight_before_card(self, call: dict, costly: dict) -> bool:
+
+
+
+
+
+
+
+
+
+
+
+        name = str(call.get("name") or "")
+        check = getattr(self._registry.get_tool(name), "preflight", None)
+        if not callable(check):
+            return False
+        tool_call_id, run_id = str(call.get("tool_call_id")), str(call.get("run_id") or "")
+
+
+        args = copy.deepcopy(call.get("args") or {})
+
+        def done(result, error_text: str) -> None:
+            self._background.pop(tool_call_id, None)
+            self._inflight.pop(tool_call_id, None)
+            self._executing.discard(tool_call_id)
+            if self._closed or tool_call_id in self._answered:
+                return
+            if run_id in self._cancelled or run_id not in self._run_mode:
+                self._fail(call, Err.CANCELLED, tr("The run was cancelled by the user."),
+                           "The user stopped the run.")
+                return
+            if error_text:
+                log_warning(f"preflight for {name} failed: {error_text.splitlines()[0]}")
+            refused = None if error_text else self._error_of(result)
+            if refused is not None:
+                log(f"REFUSED BEFORE CARD {name}: {refused[1][:120]}")
+                self._fail(call, *refused, details=error_details(scrub_result(result)))
+                return
+            self._costly_card(call, costly)
+
+
+        self._executing.add(tool_call_id)
+        task = None
+        if self._background_ok(name, call.get("args") or {}):
+            task = background.run_off_thread(f"AI Agent: check {name}", lambda: check(args),
+                                             self._main_callback(call, done))
+        if task is None:
+            try:
+                result, error_text = check(args), ""
+            except Exception as exc:  # noqa: BLE001
+                result, error_text = None, f"{type(exc).__name__}: {exc}"
+            done(result, error_text)
+            return True
+
+        self._background[tool_call_id] = (run_id, task, call)
+        self._inflight[tool_call_id] = (run_id, name, time.monotonic(), True)
+        return True
+
+
+    def _ask_user(self, call: dict) -> None:
+
+        tool_call_id, run_id, args = str(call.get("tool_call_id")), str(call.get("run_id") or ""), call["args"]
+        question = str(args.get("question") or "").strip()
+        if not question:
+            self._fail(call, Err.INVALID_ARGS, "ask_user needs a question.", "",
+                       details=error_details(coded_fact(hint="ask_user_question_missing", missing="question")))
+            return
+        raw = args.get("options") if isinstance(args.get("options"), list) else []
+        raw_details = args.get("details") if isinstance(args.get("details"), list) else []
+        pairs = [(str(o).strip(), " ".join(str(raw_details[i]).split())[:120] if i < len(raw_details) else "")
+                 for i, o in enumerate(raw) if str(o).strip()][:6]
+        options = [option for option, _ in pairs]
+
+
+        args["details"] = [detail for _, detail in pairs]
+        args["header"] = " ".join(str(args.get("header") or "").split())[:12].strip()
+        free_text = True
+        recommended = recommended_index(args.get("recommended"), options)
+        why = " ".join(str(args.get("why") or "").split())[:120]
+        call["sentence"] = question
+        self._questions[tool_call_id] = call
+
+        self._session.send_permission_response(tool_call_id, run_id, Decision.PENDING)
+        self.question_needed.emit(tool_call_id, run_id, question, options, free_text, recommended, why)
+        self._watch_segmentation_review(tool_call_id)
+
+    def _watch_segmentation_review(self, tool_call_id: str) -> None:
+
+
+
+        try:
+            from ..tools import aiseg_review
+            if not aiseg_review.review_open():
+                return
+        except Exception:  # noqa: BLE001
+            return
+        timer = QTimer(self)
+        timer.setInterval(1000)
+
+        def _tick():
+            if tool_call_id not in self._questions:
+                timer.stop()
+                timer.deleteLater()
+                return
+            try:
+                still_open = aiseg_review.review_open()
+            except Exception:  # noqa: BLE001
+                still_open = False
+            if still_open:
+                return
+            timer.stop()
+            timer.deleteLater()
+            layer = aiseg_review.last_saved_layer()
+            answer = (f"The user saved the result from the AI Segmentation panel as layer '{layer}'."
+                      if layer else "The user closed the AI Segmentation review from its panel.")
+            self.question_answered_elsewhere.emit(tool_call_id, answer)
+
+        timer.timeout.connect(_tick)
+        timer.start()
+
+    def on_question_answered(self, tool_call_id: str, answer: str, attachments=None) -> None:
+        call = self._questions.pop(tool_call_id, None)
+        if call is None:
+            return
+        run_id = str(call.get("run_id") or "")
+        answer = (answer or "").strip()
+        if not answer:
+            self._fail(call, Err.CANCELLED, tr("The user dismissed the question."),
+                       "The user gave no answer.")
+            self.question_resolved.emit(tool_call_id, "")
+            return
+
+        security.remember_user_text(answer)
+        result = {"answer": link_vault.hide_links(self._threads.get(run_id, ""), answer)}
+        if attachments:
+
+            result["attachments"] = list(attachments)
+            security.remember_user_text(" ".join(str(a.get("path") or "") for a in attachments))
+        self._table.put(tool_call_id, "result", result)
+        self._session.send_tool_result(tool_call_id, run_id, result)
+        log(f"ANSWER {tool_call_id}: {result['answer'][:80]}")
+        self.tool_finished.emit(tool_call_id, True, answer, 0.0, "", result)
+        self.question_resolved.emit(tool_call_id, answer)
+
+    def _verify_run(self, call: dict) -> None:
+
+
+        tool_call_id, run_id = str(call.get("tool_call_id")), str(call.get("run_id") or "")
+        with stalls.probe("run_report.build"):
+            report = scrub_result(build_report(self._snapshots.get(run_id), self._written.get(run_id, ()),
+                                               call_warnings=self._call_warnings.get(run_id, ()),
+                                               working_copies=self.scratch.working_copies(),
+                                               hidden=self.scratch.hidden_ids()))
+        self._table.put(tool_call_id, "result", report)
+        self._session.send_tool_result(tool_call_id, run_id, report)
+        log(f"VERIFY_RUN {run_id[:8]}: {len(report.get('warnings') or [])} warnings")
+
+    def _added_this_run(self, run_id: str, layer) -> bool:
+
+
+        snapshot = self._snapshots.get(run_id)
+        if snapshot is None or not snapshot.captured:
+            return False
+        value = str(layer or "")
+        project = QgsProject.instance()
+        layer = project.mapLayer(value) if value else None
+        found = [layer] if layer is not None else (project.mapLayersByName(value) if value else [])
+        return bool(found) and all(each.id() not in snapshot.layer_ids for each in found)
+
+    def _own_files_of(self, run_id: str) -> frozenset:
+
+
+
+        chat = self._chat_files.get(self._threads.get(run_id, ""), ())
+        return frozenset(self._own_files.get(run_id, ())) | frozenset(chat)
+
+    def _keep_one_page(self, run_id: str, created) -> dict:
+
+
+        own = self._own_files_of(run_id)
+        if not created or not own:
+            return {}
+        folded = same_page.fold_pages(created, own)
+        if folded:
+            log(f"PAGE_KEPT {run_id[:8]}: {len(folded)} page(s) moved over the earlier page of the same title")
+        return folded
+
+    def _note_own_files(self, run_id: str, paths) -> None:
+
+        paths = [path for path in paths or () if path]
+        if not paths:
+            return
+        self._own_files.setdefault(run_id, set()).update(paths)
+        thread_id = self._threads.get(run_id, "")
+        if not thread_id:
+            return
+        kept = self._chat_files.pop(thread_id, set())
+        kept.update(paths[:max(0, CHAT_FILES_MAX - len(kept))])
+        self._chat_files[thread_id] = kept
+        while len(self._chat_files) > CHAT_FILES_THREADS:
+            self._chat_files.popitem(last=False)
+
+    def _approval_now(self) -> str:
+
+        approval = self._settings.approval
+        if approval == Approval.AUTO and not autopilot_allowed():
+            return Approval.ASK
+        return approval
+
+    def _allowed_for_answer(self, run_id: str, name: str, danger: str) -> bool:
+
+        granted = self._run_allowed.get(run_id, {}).get(name)
+        return granted is not None and Danger.RANK.get(danger, 2) <= Danger.RANK[granted]
+
+    @staticmethod
+    def _asks(approval: str, danger: str) -> bool:
+        return ((approval == Approval.CAREFUL and danger != Danger.READ)
+                or (approval == Approval.ASK and danger == Danger.DESTRUCTIVE))
+
+    def open_cards(self) -> int:
+
+
+
+        return len(self._pending)
+
+    def on_permission_decided(self, tool_call_id: str, decision: str, edits: dict | None = None) -> None:
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        waiting = self._pending.get(tool_call_id) or {"tool_call_id": tool_call_id}
+        self._when_main_free("decision", waiting, self._decide, tool_call_id, decision, edits)
+
+    def _decide(self, tool_call_id: str, decision: str, edits: dict | None) -> None:
+        call = self._pending.pop(tool_call_id, None)
+        if call is None:
+            return
+        run_id = str(call.get("run_id") or "")
+        name = str(call.get("name") or "")
+        if decision not in (Decision.ALLOW, Decision.DENY):
+
+
+            log_warning(f"Permission decision {decision!r} for {name} is not one of "
+                        "allow/deny; the card is left open.")
+            self._pending[tool_call_id] = call
+            return
+        if call.get("costly"):
+
+            cost_guard.stop_framing()
+        if decision == Decision.DENY:
+            self._session.send_permission_response(tool_call_id, run_id, Decision.DENY)
+            self._table.put(tool_call_id, "deny", {})
+            if call.get("costly"):
+                self._refused_costly.setdefault(run_id, set()).add(
+                    call.get("_refused_key")
+                    or self._costly_key(name, call.get("args") or {}, call.get("_costly_inputs")))
+            elif run_id and name and not call.get("always"):
+                self._run_denied.setdefault(run_id, set()).add(name)
+            self._card_closed_unallowed(call)
+            log(f"DENY {name} (user)")
+            return
+        problem = self._apply_edits(call, edits)
+        if problem is not None:
+            self._card_closed_unallowed(call)
+            self._session.send_permission_response(tool_call_id, run_id, Decision.DENY)
+
+            edited = {"edited_by_user": {"values": call["user_edits"]}} if call.get("user_edits") else {}
+            edited.update(call.pop("refusal_facts", None) or {})
+            self._fail(call, problem[0], problem[1], problem[2], 0.0, details=error_details(edited))
+            return
+        if self._hold_changed_costly_inputs(call):
+            return
+        recard = call.pop("recard", None)
+        if recard:
+
+
+            log(f"ASK AGAIN {name}: the edit changed what the card priced")
+            if not self._preflight_before_card(call, recard):
+                self._costly_card(call, recard)
+            return
+        if (run_id and name and not edits and not call.get("costly")
+                and not call.get("always")):
+
+
+
+
+            granted = self._run_allowed.setdefault(run_id, {})
+            granted[name] = Danger.most_dangerous(granted.get(name), call.get("danger"))
+        if call.get("unvouched") and not edits:
+
+
+            security_urls.vouch_for_urls(call["unvouched"])
+        if name == CODE_TOOL:
+            self._code_decided(call)
+        self._session.send_permission_response(tool_call_id, run_id, decision)
+
+
+
+
+        call.pop("clock_from", None)
+        self._execute(call)
+
+    def _pin_loose_names(self, call: dict, danger: str) -> tuple[str, str, str] | None:
+
+
+
+
+
+
+
+
+
+        name = str(call.get("name") or "")
+        args = call.get("args") if isinstance(call.get("args"), dict) else {}
+        if not (danger == Danger.DESTRUCTIVE or guards.mutates_data(name)):
+            return None
+        pins: dict = {}
+        loose = pin_layer_names(args, name, pins)
+        call["layer_pins"] = pins
+        if loose:
+
+            call["refusal_facts"] = {k: v for k, v in loose.items() if k not in ("_error", "code")}
+            return (Err.LAYER_NOT_FOUND, loose["_error"], "")
+        return None
+
+    def _look_up_hosts_first(self, call: dict, args: dict) -> bool:
+
+
+
+
+
+
+
+
+
+
+        try:
+            hosts = [host for host in guards.url_hosts(args)[:_HOSTS_AHEAD] if security_urls.look_up_ahead(host)]
+        except Exception as exc:  # noqa: BLE001
+            log_warning(f"Host names not looked up ahead: {exc}")
+            return False
+        if not hosts:
+            return False
+        tool_call_id = str(call.get("tool_call_id"))
+        invoker = background.main_thread_invoker()
+
+        def wait() -> None:
+            for host in hosts:
+                security_urls.resolve_host(host)
+            invoker.invoke(lambda: self._take_back(tool_call_id))
+
+        self._resolving[tool_call_id] = call
+        try:
+            threading.Thread(target=wait, name="ai-agent-dns-wait", daemon=True).start()
+        except RuntimeError:
+            self._resolving.pop(tool_call_id, None)
+            return False
+        return True
+
+    def _take_back(self, tool_call_id: str) -> None:
+
+        call = self._resolving.pop(tool_call_id, None)
+        if call is not None and not self._closed:
+            self.handle_tool_call(call, looked_up=True)
+
+    def _apply_edits(self, call: dict, edits: dict | None) -> tuple[str, str, str] | None:
+
+
+
+
+
+
+        if not isinstance(edits, dict) or not edits:
+            return None
+        name = str(call.get("name") or "")
+        args = call.get("args") if isinstance(call.get("args"), dict) else {}
+        known = (getattr(self._registry.get_tool(name), "input_schema", None) or {}).get("properties") or {}
+        taken = {key: value for key, value in edits.items() if key in known}
+        if not taken:
+            return None
+        asked = args
+        args = dict(args)
+        args.update(taken)
+        self._resolve_output_paths(name, args)
+        self._drop_unknown_flags(name, args)
+        self._drop_unused_bbox(name, args)
+        call["args"] = args
+        log(f"EDITED {name}: {', '.join(sorted(taken))}")
+
+
+        changed = {key: {"before": _shown_value(asked.get(key)), "after": _shown_value(args.get(key))}
+                   for key in taken if asked.get(key) != args.get(key)}
+        if changed:
+            call["user_edits"] = changed
+
+
+        loose = self._pin_loose_names(call, str(call.get("danger") or Danger.READ))
+        if loose is not None:
+            return loose
+        verdict = self._guard_check(name, args, self._own_files_of(str(call.get("run_id") or "")))
+        if verdict.get("error"):
+
+            call["refusal_facts"] = _refusal_facts(verdict)
+            return (str(verdict.get("code") or Err.INVALID_ARGS), str(verdict["error"]),
+                    str(verdict.get("suggestion") or ("" if call["refusal_facts"].get("hint")
+                                                      else "The guards refuse this value.")))
+
+
+        call["overwrites"] = verdict.get("overwrites") or []
+        call["creates"] = verdict.get("creates") or []
+        if verdict.get("destructive"):
+            call["danger"] = Danger.DESTRUCTIVE
+        crs = self._crs_guard(name, args)
+        if crs:
+            call["refusal_facts"] = crs[2]
+            return (Err.CRS_GUARD, crs[0], crs[1])
+
+
+        costly = self._costly_check(name, args)
+        if costly.get("error") and "confirm_area_km2" in known:
+            costly = self._confirmed_by_card(name, args) or costly
+        if costly.get("error"):
+
+            call["refusal_facts"] = _refusal_facts(costly)
+            return (str(costly.get("code") or Err.EXECUTION_FAILED), str(costly["error"]),
+                    str(costly.get("suggestion") or ("" if call["refusal_facts"].get("hint")
+                                                     else "The guards refuse this value.")))
+        if (costly and (not call.get("costly") or costly.get("sentence") != call.get("sentence"))
+                and self._registry.check_arguments(name, args) is None):
+
+
+
+
+
+            call["recard"] = costly
+        return None
+
+    def _confirmed_by_card(self, name: str, args: dict) -> dict:
+
+
+
+
+
+
+
+
+        guard = cost_guard
+        try:
+            label = guard.costly_label(name, args)
+            area = guard.zone_area_km2(args, label) if label else None
+        except Exception as exc:  # noqa: BLE001
+            log_warning(f"cost_guard could not measure the edited {name}: {exc}")
+            return {}
+        if area is None:
+            return {}
+        trial = dict(args, confirm_area_km2=round(float(area), 1))
+        verdict = self._costly_check(name, trial)
+        if not verdict or verdict.get("error"):
+            return {}
+        args["confirm_area_km2"] = trial["confirm_area_km2"]
+        return verdict
+
+    @staticmethod
+    def _project_path() -> str:
+        return QgsProject.instance().fileName() or "(unsaved)"
+
+    def _replay(self, entry: dict, tool_call_id: str, run_id: str) -> None:
+        kind, payload = entry.get("kind"), entry.get("payload")
+        log(f"Replaying stored answer for {tool_call_id} ({kind})")
+        if kind == "result":
+            self._session.send_tool_result(tool_call_id, run_id, payload)
+        elif kind == "error" and isinstance(payload, dict):
+            self._session.send_tool_error(tool_call_id, run_id, payload.get("code", Err.EXECUTION_FAILED),
+                                          payload.get("message", ""), payload.get("suggestion", ""))
+        else:
+            self._session.send_permission_response(tool_call_id, run_id, Decision.DENY)
+
+    def remember_answer(self, tool_call_id: str, result=None, error: dict | None = None) -> None:
+
+
+
+
+
+
+
+
+        tool_call_id = str(tool_call_id or "")
+        if not tool_call_id or self._closed or not self._table.ready:
+            return
+        if isinstance(error, dict):
+            self._table.put(tool_call_id, "error", {
+                "code": str(error.get("code") or Err.CANCELLED),
+                "message": scrub_secrets(str(error.get("message") or "")),
+                "suggestion": scrub_secrets(str(error.get("suggestion") or ""))})
+        else:
+            self._table.put(tool_call_id, "result", scrub_result(result))
+
+    def _fail(self, call: dict, code: str, message: str, suggestion: str, duration: float = 0.0,
+              detail: str = "", details: str = "", hint: str = "") -> None:
+
+
+
+
+
+
+        tool_call_id, run_id = str(call.get("tool_call_id")), str(call.get("run_id") or "")
+        message, suggestion, detail = scrub_secrets(message), scrub_secrets(suggestion), scrub_secrets(detail)
+        wire = f"{message}{DETAILS_MARKER}{scrub_secrets(details)}" if details else message
+        self._table.put(tool_call_id, "error", {"code": code, "message": wire, "suggestion": suggestion})
+        self._executing.discard(tool_call_id)
+        accounts.release_call(tool_call_id)
+        if detail:
+
+
+            self._session.send_tool_error(tool_call_id, run_id, code, wire, suggestion, self._code_class_of(call),
+                                          detail=strip_paths(detail, DETAIL_CHARS))
+        else:
+            self._session.send_tool_error(tool_call_id, run_id, code, wire, suggestion, self._code_class_of(call))
+        log_warning(f"{code} {call.get('name')}: {message[:200]}")
+
+        self.tool_finished.emit(tool_call_id, False, f"{code}: {message}", duration, detail or suggestion,
+                                {"hint": hint} if hint else None)

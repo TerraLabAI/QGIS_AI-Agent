@@ -223,6 +223,14 @@ def _draw_dash(p: QPainter, c: QColor) -> None:
     p.drawLine(QPointF(6, 10), QPointF(14, 10))
 
 
+def _draw_more(p: QPainter, c: QColor) -> None:
+
+    p.setPen(Qt.PenStyle.NoPen)
+    p.setBrush(c)
+    for x in (4.5, 10.0, 15.5):
+        p.drawEllipse(QPointF(x, 10), 1.6, 1.6)
+
+
 def _draw_checklist(p: QPainter, c: QColor) -> None:
 
     p.setPen(_pen(c, 1.6))
@@ -957,6 +965,16 @@ def _draw_chart(p: QPainter, c: QColor) -> None:
     p.drawLine(QPointF(3.2, 16.2), QPointF(16.8, 16.2))
 
 
+def _draw_trending(p: QPainter, c: QColor) -> None:
+
+    p.setPen(_pen(c, 1.6))
+    p.setBrush(Qt.BrushStyle.NoBrush)
+    p.drawPolyline(QPolygonF([
+        QPointF(3.0, 14.6), QPointF(7.8, 9.8), QPointF(10.8, 12.8), QPointF(16.6, 7.0),
+    ]))
+    p.drawPolyline(QPolygonF([QPointF(12.6, 7.0), QPointF(16.6, 7.0), QPointF(16.6, 11.0)]))
+
+
 def _draw_download(p: QPainter, c: QColor) -> None:
 
     p.setPen(_pen(c, 1.6))
@@ -1229,6 +1247,7 @@ _GLYPHS = {
     "warning": _draw_warning,
     "circle": _draw_circle,
     "dash": _draw_dash,
+    "more": _draw_more,
     "checklist": _draw_checklist,
     "eye": _draw_eye,
     "pencil": _draw_pencil,
@@ -1282,6 +1301,7 @@ _GLYPHS = {
     "isochrone": _draw_isochrone,
     "hexgrid": _draw_hexgrid,
     "chart": _draw_chart,
+    "trending": _draw_trending,
     "download": _draw_download,
     "satellite": _draw_satellite,
     "funnel": _draw_funnel,
@@ -1442,6 +1462,50 @@ def theme_pixmap(widget, name: str, size: int = 18) -> QPixmap | None:
     except Exception:  # noqa: BLE001
         pixmap = None
     _THEME_CACHE[key] = pixmap
+    return pixmap
+
+
+_SIBLING_LOGO_CACHE: dict = {}
+
+
+def sibling_logo_pixmap(widget, tool_name: str, size: int = 16) -> QPixmap | None:
+
+
+
+
+
+
+    name = str(tool_name or "")
+    which = "ai_segment" if name.startswith("ai_segment") else "ai_edit" if name.startswith("ai_edit") else ""
+    if not which:
+        return None
+    ratio = widget_pixel_ratio(widget)
+    key = (which, int(size), round(float(ratio), 2))
+    if key in _SIBLING_LOGO_CACHE:
+        return _SIBLING_LOGO_CACHE[key]
+    pixmap = None
+    try:
+        import os
+
+        from qgis.utils import pluginDirectory, pluginMetadata
+
+        from ..core import siblings
+
+        plugin_key, _ = siblings.find(siblings.AI_SEGMENTATION if which == "ai_segment" else siblings.AI_EDIT)
+        if plugin_key:
+            icon_path = os.path.join(pluginDirectory(plugin_key), str(pluginMetadata(plugin_key, "icon") or ""))
+            if os.path.isfile(icon_path):
+                physical = max(1, int(round(size * ratio)))
+                candidate = QIcon(icon_path).pixmap(physical, physical)
+                if not candidate.isNull():
+                    side = max(candidate.width(), candidate.height())
+                    candidate.setDevicePixelRatio(max(1.0, side / float(size)))
+                    pixmap = candidate
+    except Exception:  # noqa: BLE001
+        pixmap = None
+
+    if pixmap is not None:
+        _SIBLING_LOGO_CACHE[key] = pixmap
     return pixmap
 
 

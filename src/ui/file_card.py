@@ -46,7 +46,10 @@ from qgis.PyQt.QtWidgets import (
     QWidget,
 )
 
+from . import run_objects
 from .attach_card import HoverReveal
+from .file_links import suffix_of
+from .icons import theme_pixmap
 from .layer_links import _MoreChip
 from .shared import event_pos
 from .style import FILE_BADGES, FONT_MICRO, HOVER, INK_2, RADIUS_CHIP, ROW_PX, repolish
@@ -111,14 +114,12 @@ def file_kind(path: str, declared: str = "") -> str:
 
     if declared in _KINDS:
         return declared
-    from .file_links import suffix_of
 
     return _BY_SUFFIX.get(suffix_of(path), "other")
 
 
 def file_family(path: str) -> str:
 
-    from .file_links import suffix_of
 
     return _FAMILY.get(suffix_of(path), "other")
 
@@ -128,7 +129,6 @@ def _loadable(path: str, kind: str) -> bool:
         return False
     if kind != "table":
         return True
-    from .file_links import suffix_of
 
     return suffix_of(path) in _LOADABLE_TABLES
 
@@ -284,7 +284,6 @@ class FileOutputCard(QWidget):
         self._buttons.append(button)
 
     def _badge_text(self) -> str:
-        from .file_links import suffix_of
 
         return (suffix_of(self.path) or self.tr("File")).upper()
 
@@ -329,8 +328,6 @@ class FileOutputCard(QWidget):
         tip = self.path if self.on_disk else self.tr(
             "{path}\nThis file is no longer where the run wrote it.").format(path=self.path)
         self.setAccessibleDescription(tip)
-        for widget in (self, self._frame, self._name_label, self._badge):
-            widget.setToolTip(tip)
 
     def follow_disk(self) -> None:
 
@@ -408,7 +405,6 @@ class ObjectRow(QWidget):
 
     def __init__(self, entry: dict, parent=None):
         super().__init__(parent)
-        from ..core import run_objects
 
         self._objects = run_objects
         self.entry = dict(entry)
@@ -432,7 +428,6 @@ class ObjectRow(QWidget):
         slot = QLabel(frame)
         slot.setFixedSize(max(BADGE_W, QFontMetrics(font).horizontalAdvance(BADGE_WIDEST) + 8), BADGE_H)
         slot.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
-        from .icons import theme_pixmap
 
         for icon in _OBJECT_ICONS.get(kind, ()):
             pixmap = theme_pixmap(slot, icon, OBJECT_ICON)
@@ -605,11 +600,6 @@ class FileCardStack(QWidget):
 
     def cards(self) -> list:
         return list(self._cards)
-
-    def show_all(self) -> None:
-
-        self._all = True
-        self._fold()
 
     def _add_card(self, rows, entry: dict) -> None:
         card = FileOutputCard(entry, self._group)

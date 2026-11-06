@@ -30,6 +30,9 @@ from __future__ import annotations
 import re
 from contextlib import contextmanager
 
+from . import tuning
+from .background import current_call
+
 
 
 WEB_SERVICE_PROVIDERS = frozenset({"wfs", "oapif", "arcgisfeatureserver"})
@@ -433,6 +436,74 @@ def _paints_fill(layer) -> bool:
     return False
 
 
+def _outline_fill(layer) -> bool:
+
+
+
+
+    try:
+        from qgis.core import QgsRenderContext, QgsSimpleFillSymbolLayer
+        from qgis.PyQt.QtCore import Qt
+
+        renderer = layer.renderer()
+        for symbol in (renderer.symbols(QgsRenderContext()) if renderer is not None else []):
+            for symbol_layer in symbol.symbolLayers():
+                if not isinstance(symbol_layer, QgsSimpleFillSymbolLayer):
+                    continue
+                colour = symbol_layer.fillColor()
+                symbol_layer.setBrushStyle(Qt.BrushStyle.NoBrush)
+                if symbol_layer.strokeStyle() == Qt.PenStyle.NoPen or symbol_layer.strokeColor().alpha() == 0:
+                    colour.setAlpha(255)
+                    symbol_layer.setStrokeColor(colour)
+                    symbol_layer.setStrokeStyle(Qt.PenStyle.SolidLine)
+                    symbol_layer.setStrokeWidth(max(symbol_layer.strokeWidth(), 0.6))
+        layer.triggerRepaint()
+        layer.emitStyleChanged()
+    except Exception:  # noqa: BLE001
+        return False
+    return not _paints_fill(layer)
+
+
+def outline_fills_over(layer, root=None) -> list:
+
+
+
+
+
+
+
+
+
+    if root is None:
+        root = _root()
+    if root is None or layer is None or stack_kind(layer) != "raster" or _layer_id(layer) not in _RECENT_IDS:
+        return []
+    try:
+        from qgis.core import QgsCoordinateReferenceSystem
+
+        nodes = drawn_nodes(root)
+        index = next((i for i, node in enumerate(nodes) if node.layerId() == layer.id()), None)
+        wgs84 = QgsCoordinateReferenceSystem("EPSG:4326")
+        ground = drawn_extent(layer, wgs84)
+    except Exception:  # noqa: BLE001
+        return []
+    outlined = []
+    for node in nodes[:index or 0]:
+        other = _node_layer(node)
+        try:
+            if (other is None or stack_kind(other) != "polygon" or not node.isVisible()
+                    or not _ancestors_visible(node) or not _paints_fill(other)):
+                continue
+            over = drawn_extent(other, wgs84)
+            if ground is not None and over is not None and not ground.intersects(over):
+                continue
+        except Exception:  # nosec B112
+            continue
+        if _outline_fill(other):
+            outlined.append(other.name())
+    return outlined
+
+
 def _root():
     try:
         from qgis.core import QgsProject
@@ -455,7 +526,6 @@ def _root():
 
 
 def _stack_rules() -> dict:
-    from . import tuning
 
     return tuning.service_doc("stack_rules") or {}
 
@@ -1051,7 +1121,6 @@ class Stacker:
                     return
             except Exception:  # noqa: BLE001
                 return
-        from .background import current_call
 
         caller = current_call()
         for layer in layers or ():
@@ -1222,3 +1291,48 @@ class Stacker:
                 _move_into_group(group, node, number)
                 self._grouped[layer.name()] = group.name()
             _lift_over_backdrops(group, root)
+
+
+def canvas_view():
+
+    try:
+        import qgis.utils
+
+        iface = getattr(qgis.utils, "iface", None)
+        canvas = iface.mapCanvas() if iface is not None else None
+        if canvas is None:
+            return None
+        return canvas.extent(), canvas.mapSettings().destinationCrs()
+    except Exception:  # noqa: BLE001
+        return None
+
+
+def in_view(layer, extent, view) -> bool | None:
+
+
+
+
+
+
+
+    from qgis.core import QgsCoordinateTransform, QgsProject
+
+    try:
+        if extent is None or extent.isNull():
+            return None
+        view_extent, view_crs = view
+        layer_crs = layer.crs()
+        if layer_crs != view_crs and layer_crs.isValid() and view_crs.isValid():
+            transform = QgsCoordinateTransform(layer_crs, view_crs, QgsProject.instance())
+            extent = transform.transformBoundingBox(extent)
+        return bool(extent.intersects(view_extent))
+    except Exception:  # noqa: BLE001
+        return None
+
+
+def switched_on(node) -> bool | None:
+
+    try:
+        return bool(node.isVisible())
+    except Exception:  # noqa: BLE001
+        return None

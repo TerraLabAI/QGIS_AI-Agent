@@ -42,8 +42,16 @@ import re
 
 from qgis.PyQt.QtCore import QT_TRANSLATE_NOOP, QCoreApplication
 
+from ..core import link_vault, security
+from ..core.catalog import tool_line
+from ..core.links import open_data_chip
+from ..core.numbers import as_int
+from ..core.served_state import MAX_TOOL_LABELS, served_label_map
 from ..core.tool_registry import spec
+from ..tools.danger import processing_output_params
+from ..tools.guards import file_part, gpkg_has_table, gpkg_table_target, write_targets
 from .card_base import humanise_tool_name
+from .source_marks import readable_host, source_host
 
 
 
@@ -61,24 +69,6 @@ _MAX_VALUE = 48
 
 
 
-_SERVER_TEMPLATES = {
-    "search_stac_items": QT_TRANSLATE_NOOP("AIAgent", "Search satellite images"),
-    "list_stac_collections": QT_TRANSLATE_NOOP("AIAgent", "List the satellite catalogs"),
-    "search_earthdata_collections": QT_TRANSLATE_NOOP("AIAgent", "Search NASA Earthdata[ for {query}]"),
-    "search_earthdata_granules": QT_TRANSLATE_NOOP("AIAgent", "Search NASA Earthdata files"),
-    "search_web": QT_TRANSLATE_NOOP("AIAgent", "Search the web[ for {query}]"),
-    "find_data_on_web": QT_TRANSLATE_NOOP("AIAgent", "Look for data on the web[ for {query}]"),
-    "qgis_docs": QT_TRANSLATE_NOOP("AIAgent", "Read the QGIS documentation[ on {query}]"),
-    "terralab_docs": QT_TRANSLATE_NOOP("AIAgent", "Read the AI Agent documentation[ on {query}]"),
-    "find_datasets": QT_TRANSLATE_NOOP("AIAgent", "Search the data catalog[ for {query}]"),
-    "get_earthdata_collection_info": QT_TRANSLATE_NOOP("AIAgent", "Read a NASA Earthdata collection[ {short_name}]"),
-    "search_gee_catalog": QT_TRANSLATE_NOOP("AIAgent", "Search the Earth Engine catalog[ for {query}]"),
-    "search_copernicus_items": QT_TRANSLATE_NOOP("AIAgent", "Search Copernicus images[ of {collection}]"),
-    "get_sentinel_image": QT_TRANSLATE_NOOP("AIAgent", "Get a Sentinel image"),
-    "get_dem": QT_TRANSLATE_NOOP("AIAgent", "Get an elevation model"),
-    "resolve_place": QT_TRANSLATE_NOOP("AIAgent", "Look up the place[ {query}]"),
-    "find_statistic": QT_TRANSLATE_NOOP("AIAgent", "Search statistics[ on {topic}]"),
-}
 
 _OPTIONAL_RE = re.compile(r"\[([^\[\]]*)\]")
 _KEY_RE = re.compile(r"\{([a-z_]+)\}")
@@ -127,9 +117,6 @@ def _host(value) -> str:
 
     from qgis.PyQt.QtCore import QUrl
 
-    from ..core.links import open_data_chip
-    from .source_marks import source_host
-
     text = str(value or "")
     own = open_data_chip(text)
     if own:
@@ -140,7 +127,7 @@ def _host(value) -> str:
     segments = {part.lower().replace("-", "").replace("_", "")
                 for part in QUrl(text).path().split("/") if part}
     try:
-        from .shared import get_connectors
+        from ..core.served_state import get_connectors
 
         connectors = get_connectors()
     except Exception:  # noqa: BLE001
@@ -165,7 +152,8 @@ _QUERY_NOISE_RE = re.compile(r"""(?x)
   | (?:^|\s)-\S+                 # an excluded term
   | \b\w+_\w+\b                  # an identifier, fetch_osm_data
   | (?:^|\s)(?:OR|AND|NOT)(?=\s|$)
-  | ["'`]
+  | ["`]
+  | (?<!\w)'|'(?!\w)           # a quote mark, never the apostrophe inside Lac d'Annecy
 """)
 
 
@@ -499,6 +487,9 @@ def _with_layer_names(args: dict) -> dict:
 
 
 
+
+    if any(isinstance(v, str) and "link:" in v for v in args.values()):
+        args = {k: link_vault.shown(v) if isinstance(v, str) else v for k, v in args.items()}
     if not any(key in args for key in _LAYER_KEYS):
 
 
@@ -532,14 +523,15 @@ def _template_for(name: str, args: dict) -> str | None:
 
 
 
-    template = _english_template(name, args)
-    return tr(template) if template else None
+    declared = _english_template(name, args)
+    if declared:
+        return tr(declared)
+    return tool_line(name) or None
 
 
 def _tool_head(name: str) -> str:
 
 
-    from .shared import MAX_TOOL_LABELS, served_label_map
 
     return served_label_map("tool_labels", MAX_TOOL_LABELS).get(name) or humanise_tool_name(name)
 
@@ -563,7 +555,7 @@ def _english_template(name: str, args: dict) -> str | None:
     chosen = declared.label_for(args) if declared is not None and declared.label_for is not None else ""
     if chosen:
         return chosen
-    return declared.label if declared is not None and declared.label else _SERVER_TEMPLATES.get(name)
+    return declared.label if declared is not None and declared.label else None
 
 
 def describe_tool_call(name: str, args, resolved: dict | None = None) -> str:
@@ -630,20 +622,17 @@ def card_effect(name: str, args) -> str:
 
 
 def _processing_effect(name: str, args: dict) -> str:
-    from ..core import security
-    from ..tools.danger import _processing_output_params
-    from ..tools.guards import _file_part, _write_targets
 
-    outputs = _processing_output_params(str(args.get("algorithm_id") or args.get("algorithm") or ""))
+    outputs = processing_output_params(str(args.get("algorithm_id") or args.get("algorithm") or ""))
     params = args.get("parameters") if isinstance(args.get("parameters"), dict) else {}
-    inputs = [security.expand_path(_file_part(str(v))) for k, v in params.items()
+    inputs = [security.expand_path(file_part(str(v))) for k, v in params.items()
               if (outputs is None or k not in outputs) and isinstance(v, str) and os.path.isfile(
-                  security.expand_path(_file_part(v)))]
+                  security.expand_path(file_part(v)))]
     if outputs is not None and not outputs:
         return tr("This algorithm has no output of its own: it changes its input in place.")
     parts = []
     replaces_input = False
-    for target in _write_targets(name, args):
+    for target in write_targets(name, args):
         path = security.expand_path(target)
 
         if outputs is not None and any(_same_file(path, source) for source in inputs):
@@ -663,7 +652,6 @@ def _processing_effect(name: str, args: dict) -> str:
 
 def _page_effect(raw: str) -> str:
 
-    from ..core import security
 
     if not raw.strip():
         return ""
@@ -676,8 +664,6 @@ def _page_effect(raw: str) -> str:
 
 
 def _gpkg_effect(name: str, args: dict) -> str:
-    from ..core import security
-    from ..tools.guards import _gpkg_has_table, _gpkg_table_target
 
     raw = str(args.get("gpkg_path") or "").strip()
     if not raw:
@@ -687,7 +673,7 @@ def _gpkg_effect(name: str, args: dict) -> str:
         shown = _path_text(path)
         if not os.path.isfile(path):
             where = tr("It creates the GeoPackage {path}.").format(path=shown)
-        elif _gpkg_has_table(path, _gpkg_table_target(name, args)):
+        elif gpkg_has_table(path, gpkg_table_target(name, args)):
             where = tr("It replaces the layer's table in the existing GeoPackage {path}.").format(path=shown)
         else:
             where = tr("It adds the layer to the existing GeoPackage {path}.").format(path=shown)
@@ -841,7 +827,6 @@ FAMILY_PLUGIN = "plugin"
 FAMILY_QGIS = "qgis"
 COLOUR_CONNECTOR = "accent_ink"
 COLOUR_PLUGIN = "orange"
-COLOUR_QGIS = "ink_2"
 
 
 _PLUGIN_TOOL_NAMES = frozenset({
@@ -849,57 +834,305 @@ _PLUGIN_TOOL_NAMES = frozenset({
     "search_plugin_repository", "set_plugin_enabled", "open_plugin_panel",
     "reload_plugin", "trigger_plugin_action", "trigger_menu_action",
 })
-_PLUGIN_PREFIXES = ("plugin_", "qgis_plugin", "ai_edit_", "ai_segment_")
+
+_PLUGIN_PREFIXES = ("plugin_", "qgis_plugin", "ai_edit", "ai_segment")
+
+
+
+
+
+
+
+TONE_FIND = "tag_info"
+TONE_DATA = "tag_success"
+TONE_ANALYSIS = "tag_purple"
+TONE_MAP = "tag_alert"
+TONE_DELETE = "tag_danger"
+
+
+
+TONE_VIEW = "tag_teal"
+TONE_LABEL = "tag_orange"
+TONE_EXPORT = TONE_DATA
+TONE_PLAIN = "tag_neutral"
+
+
+TONE_GEOMETRY = TONE_ANALYSIS
+TONE_RASTER = TONE_DATA
+TONE_TABLE = TONE_PLAIN
+TONE_SELECTION = TONE_VIEW
+G, R, T, S, M, D = (TONE_GEOMETRY, TONE_RASTER, TONE_TABLE, TONE_SELECTION, TONE_MAP,
+                    TONE_DELETE)
+
+
+
+_TOOL_GLYPHS = {
+    "resolve_place": ("map-pin", G), "find_statistic": ("chart-column", T),
+    "find_data_on_web": ("globe", G), "qgis_docs": ("book-open", G),
+    "terralab_docs": ("book-open", G), "search_stac_items": ("satellite", R),
+    "list_stac_collections": ("satellite", R), "search_earthdata_collections": ("satellite", R),
+    "search_earthdata_granules": ("satellite", R), "get_earthdata_collection_info": ("satellite", R),
+    "search_gee_catalog": ("satellite", R), "search_copernicus_items": ("satellite", R),
+    "get_sentinel_image": ("satellite", R),
+    "run_model": ("workflow", G), "create_processing_model": ("workflow", G),
+    "list_processing_models": ("workflow", G), "get_processing_providers": ("list", G),
+    "aggregate_by_zone": ("sigma", T), "call_tool": ("plug", G), "cancel_task": ("circle-stop", D),
+    "compare_raster_compatibility": ("git-compare", R), "configure_relations": ("link", T),
+    "get_debug_info": ("bug", S), "get_dem": ("mountain", R), "get_message_log": ("scroll-text", G),
+    "get_provider_capabilities": ("list-checks", G), "get_task_status": ("hourglass", G),
+    "list_tasks": ("hourglass", G), "import_qgis_hub_resource": ("download", G),
+    "initialize_earth_engine": ("earth", R), "install_dependency": ("download", G),
+    "install_dependency_status": ("hourglass", G), "check_optional_dependencies": ("list-checks", S),
+    "qgis_arm_tool": ("mouse-pointer-click", G), "qgis_undo": ("undo-2", G), "qgis_redo": ("redo-2", G),
+    "qgis_translate_feature": ("move", G), "raster_calculator": ("calculator", R),
+    "raster_sample": ("pipette", R), "sample_rasters_at_points": ("pipette", R),
+    "schedule_prompt": ("calendar-clock", G),
+    "split_parcel": ("split", G), "trigger_menu_action": ("menu", G), "verify_run": ("circle-check", R),
+    "zone": ("square-dashed", S),
+    "add_data": ("file-plus", G), "add_vector_layer": ("file-plus", G),
+    "create_layer_group": ("folder-plus", G), "move_layer_to_group": ("folder-input", G),
+    "create_memory_layer": ("layers", G), "create_new_project": ("file-plus", G),
+    "load_project": ("folder-open", G), "duplicate_layer": ("copy", G),
+    "get_layer_info": ("info", G), "get_project_info": ("info", G), "get_project_context": ("info", G),
+    "get_layer_tree": ("list-tree", G), "list_layers": ("list-tree", G), "manage_layers": ("layers", G),
+    "repair_layer_paths": ("wrench", S), "set_layer_filter": ("list-filter", S),
+    "set_layer_legend_image": ("image", M), "set_layer_metadata": ("file-text", G),
+    "set_layer_order": ("arrow-up-down", G), "set_layer_property": ("sliders-horizontal", G),
+    "set_layer_temporal": ("clock", G), "set_layer_visibility": ("eye", G),
+    "set_layers_visibility": ("eye", G), "set_project_variable": ("variable", T),
+    "add_layout_3d_map": ("box", M), "add_layout_coordinate_grid": ("grid-3x3", M),
+    "add_layout_label": ("type", M), "add_layout_legend": ("list", M), "add_layout_map": ("map", M),
+    "add_layout_north_arrow": ("navigation", M), "add_layout_picture": ("image", M),
+    "add_layout_scalebar": ("ruler", M), "add_layout_table": ("table-2", M),
+    "configure_atlas": ("book-copy", M), "create_print_layout": ("layout-template", M),
+    "create_report": ("file-text", M), "get_layout_info": ("layout-template", M),
+    "list_layouts": ("layout-template", M), "lock_layout_item": ("lock", M),
+    "remove_print_layout": ("trash-2", D), "write_html_report": ("file-code", M),
+    "fetch_building_footprints": ("building-2", G),
+    "add_points_from_json": ("map-pin-plus", G), "create_coordinate_feature": ("map-pin-plus", G),
+    "qgis_add_part": ("square-plus", G), "qgis_edit_begin": ("pencil", G),
+    "qgis_edit_commit": ("save", G), "qgis_edit_restore_aids": ("rotate-ccw", G),
+    "qgis_edit_rollback": ("undo-2", G), "qgis_edit_state": ("pencil", G),
+    "qgis_set_snapping_config": ("magnet", G), "set_raster_nodata": ("paint-bucket", R),
+    "update_feature_geometry": ("pen-tool", G),
+    "add_arcgis_rest_layer": ("server", G), "add_cog_layer": ("image", R),
+    "add_gee_dataset": ("satellite", R), "add_stac_layer": ("satellite", R),
+    "get_stac_item_assets": ("satellite", R), "add_vector_from_url": ("link", G),
+    "add_wfs_layer": ("server", G), "add_wms_layer": ("map", G), "add_xyz_layer": ("map", G),
+    "list_xyz_sources": ("map", G), "fetch_json": ("braces", T), "fetch_osm_data": ("map", G),
+    "fetch_overture": ("building-2", G), "gee_compute_index": ("leaf", R),
+    "add_features": ("square-plus", T), "add_field": ("between-vertical-start", T),
+    "add_table_join": ("merge", T), "spatial_join": ("merge", G),
+    "configure_attribute_form": ("clipboard-list", T), "get_features": ("table-2", T),
+    "get_ign_features": ("map", G), "get_unique_values": ("list", T),
+    "open_attribute_table": ("sheet", T), "qgis_merge_features": ("combine", G),
+    "rename_field": ("text-cursor-input", T), "set_field_aliases": ("tag", T),
+    "update_features": ("pen-line", T),
+    "export_3d_model": ("box", M), "export_atlas": ("book-copy", M),
+    "export_document_report": ("file-text", M), "export_layout": ("printer", M),
+    "make_layers_permanent": ("save", M), "package_project": ("package", M),
+    "save_custom_crs": ("earth", G), "save_layer_to_gpkg": ("save", M), "save_project": ("save", M),
+    "save_style_qml": ("palette", M),
+    "add_map_theme": ("swatch-book", M), "apply_map_theme": ("swatch-book", M),
+    "get_map_themes": ("swatch-book", M), "set_layer_symbology": ("shapes", M),
+    "set_raster_class_style": ("paintbrush", R), "set_raster_style": ("paintbrush", R),
+    "configure_3d_map_view": ("box", R), "configure_3d_tiles": ("boxes", R),
+    "create_hillshade": ("sun", R), "delineate_watershed": ("droplets", R),
+    "map_drainage": ("droplets", R), "detect_terrain_anomalies": ("scan-search", R),
+    "extract_stream_network": ("waves", R), "set_layer_elevation": ("arrow-up-from-line", R),
+    "flash_features": ("zap", G), "get_canvas_extent": ("frame", G), "set_canvas_extent": ("frame", G),
+    "get_layer_extent": ("square-dashed", G), "set_canvas_decoration": ("image", M),
+    "zoom_to_layer": ("zoom-in", G), "zoom_to_selected": ("zoom-in", S),
+    "create_chart": ("chart-column", T), "elevation_profile": ("chart-spline", R),
+    "get_field_statistics": ("sigma", T), "get_statistics": ("sigma", T),
+    "get_raster_band_stats": ("chart-column", R), "zonal_statistics": ("chart-column", R),
+    "spatial_statistics": ("chart-scatter", T), "map_statistic": ("chart-line", T),
+    "find_datasets": ("database", G), "find_local_data": ("folder-search", G),
+    "list_algorithms": ("list", G), "search_web": ("globe", G),
+    "clear_selection": ("square-x", S), "identify_features": ("mouse-pointer-click", S),
+    "export_animation_frames": ("film", M), "make_animation": ("clapperboard", M),
+    "render_map": ("image", M), "reverse_geocode": ("map-pinned", G), "get_bookmarks": ("bookmark", G),
+    "load_gtfs": ("bus", G), "get_isochrone": ("timer", G), "create_flow_lines": ("waypoints", G),
+    "inspect_data_source": ("file-search", G), "set_layer_crs": ("earth", G),
+    "set_project_crs": ("earth", G), "get_layer_crs": ("earth", G),
+}
 
 
 
 
 
 _GLYPH_RULES = (
-    (("ask_user",), "message-circle-question"),
-    (("execute_code", "run_code", "run_python"), "square-terminal"),
-    (("python",), "square-terminal"),
-    (("evaluate_expression", "validate_expression"), "braces"),
-    (("sql", "postgis", "connection"), "database"),
-    (("field_calculator",), "calculator"),
-    (("search_", "find_", "list_algorithms", "qgis_docs", "search_tools"), "search"),
-    (("geocode", "bookmark"), "map-pin"),
-    (("processing", "run_model", "batch", "algorithm"), "cog"),
-    (("canvas", "zoom", "flash_features", "pan_", "extent"), "locate-fixed"),
-    (("render_map", "screenshot", "snapshot", "animation"), "camera"),
-    (("export_", "package_project", "save_", "make_layers_permanent"), "file-down"),
-    (("layout", "atlas", "report", "print"), "layout-template"),
-    (("label",), "tag"),
-    (("style", "symbology", "renderer", "theme", "qml", "colour", "color"), "palette"),
-    (("statistic", "chart", "profile", "band_stats"), "chart-column"),
-    (("measure",), "ruler"),
-    (("route", "isochrone", "gtfs", "flow_lines"), "route"),
-    (("crs", "transform_coordinates", "georeference"), "crosshair"),
-    (("hillshade", "terrain", "watershed", "drainage", "stream", "elevation", "3d"), "mountain"),
-    (("grid",), "grid-3x3"),
-    (("selection", "select_", "identify_features"), "square-dashed-mouse-pointer"),
-    (("delete_", "remove_", "forget"), "trash-2"),
-    (("features", "attribute", "unique_values", "field", "table", "join"), "table-2"),
-    (("read_document", "fetch_text", "inspect_data_source", "document"), "file-text"),
+    (("ask_user",), "message-circle-question", TONE_TABLE),
+    (("execute_code",), "square-terminal", TONE_TABLE),
+    (("evaluate_expression", "validate_expression"), "braces", TONE_TABLE),
+    (("sql", "postgis", "connection"), "database", TONE_TABLE),
+    (("field_calculator",), "calculator", TONE_TABLE),
+    (("algorithm_help",), "book-open", TONE_GEOMETRY),
+    (("search_", "find_", "list_algorithms", "qgis_docs", "search_tools"), "search", TONE_GEOMETRY),
+    (("geocode", "bookmark"), "map-pin", TONE_GEOMETRY),
+    (("processing", "run_model", "batch", "algorithm"), "cog", TONE_GEOMETRY),
+    (("canvas", "zoom", "flash_features", "pan_", "extent"), "locate-fixed", TONE_GEOMETRY),
+    (("render_map", "screenshot", "snapshot", "animation"), "camera", TONE_MAP),
+    (("export_", "package_project", "save_", "make_layers_permanent"), "file-down", TONE_MAP),
+    (("layout", "atlas", "report", "print"), "layout-template", TONE_MAP),
+    (("label",), "tag", TONE_MAP),
+    (("style", "symbology", "renderer", "theme", "qml", "colour", "color"), "palette", TONE_MAP),
+    (("statistic", "chart", "profile", "band_stats"), "chart-column", TONE_TABLE),
+    (("measure",), "ruler", TONE_GEOMETRY),
+    (("route", "isochrone", "gtfs", "flow_lines"), "route", TONE_GEOMETRY),
+    (("crs", "transform_coordinates", "georeference"), "crosshair", TONE_GEOMETRY),
+    (("hillshade", "terrain", "watershed", "drainage", "stream", "elevation", "3d"), "mountain",
+     TONE_RASTER),
+    (("grid",), "grid-3x3", TONE_GEOMETRY),
+    (("selection", "select_", "identify_features"), "square-dashed-mouse-pointer", TONE_SELECTION),
+    (("delete_", "remove_", "forget"), "trash-2", TONE_DELETE),
+    (("features", "attribute", "unique_values", "field", "table", "join"), "table-2", TONE_TABLE),
+    (("read_document", "fetch_text", "inspect_data_source", "document"), "file-text", TONE_GEOMETRY),
     (("fetch_", "url", "wms", "wfs", "xyz", "arcgis", "stac", "cog_layer", "pmtiles",
-      "gee", "overture", "osm", "web"), "globe"),
-    (("topology", "validity", "check_", "diagnose"), "triangle-alert"),
-    (("layer", "project", "add_data", "group"), "layers"),
+      "gee", "overture", "osm", "web"), "globe", TONE_GEOMETRY),
+    (("topology", "validity", "check_", "diagnose"), "triangle-alert", TONE_SELECTION),
+    (("layer", "project", "add_data", "group"), "layers", TONE_GEOMETRY),
     (("add_", "create_", "update_", "edit", "set_", "rename_", "move_", "apply_",
-      "duplicate_"), "pencil"),
+      "duplicate_"), "pencil", TONE_GEOMETRY),
 )
 
 
-def base_tool_glyph(name: str) -> str:
+
+
+_ALGORITHM_RULES = (
+
+    (("cliprasterby", "extractbymask"), "scissors", TONE_RASTER),
+    (("rastercalc",), "calculator", TONE_RASTER),
+    (("rasterlayerstat", "rasterstat", "zonal"), "chart-column", TONE_RASTER),
+    (("buildvirtual", "vrt", "gdal:merge"), "layers", TONE_RASTER),
+    (("hillshade",), "sun", TONE_RASTER),
+    (("slope",), "triangle-right", TONE_RASTER),
+    (("aspect",), "compass", TONE_RASTER),
+    (("contour",), "waves", TONE_RASTER),
+    (("viewshed", "visibility"), "eye", TONE_RASTER),
+    (("fillnodata", "nodata"), "paint-bucket", TONE_RASTER),
+    (("watershed", "fillsinks", "flow", "drainage", "channel"), "droplets", TONE_RASTER),
+    (("ruggedness", "roughness", "relief", "terrain", "dem"), "mountain", TONE_RASTER),
+    (("drape", "setz", "setm", "zvalue"), "mountain-snow", TONE_RASTER),
+    (("heatmap", "kerneldensity"), "flame", TONE_RASTER),
+    (("idw", "tininterp", "interpolat", "gridnearest", "griddata"), "chart-area", TONE_RASTER),
+    (("reclass",), "list-ordered", TONE_RASTER),
+    (("polygonize", "pixelstopolygons"), "shapes", TONE_RASTER),
+    (("rasterize",), "grid-2x2", TONE_RASTER),
+    (("proximity",), "radar", TONE_RASTER),
+    (("gdal:translate", "warp", "convertformat", "gdal:"), "arrow-right-left", TONE_RASTER),
+
+    (("selectby", "select"), "square-dashed-mouse-pointer", TONE_SELECTION),
+    (("extractvertices", "extractspecificvertices"), "chart-scatter", TONE_GEOMETRY),
+    (("extractbylocation", "extractwithindistance"), "map-pinned", TONE_SELECTION),
+    (("extractbyattribute", "extractbyexpression", "filter"), "list-filter", TONE_SELECTION),
+    (("extract", "randomextract", "randomselection"), "filter", TONE_SELECTION),
+
+    (("shortestpath",), "route", TONE_GEOMETRY),
+    (("servicearea", "isochrone"), "timer", TONE_GEOMETRY),
+    (("joinbynearest", "nearest", "distancematrix", "distancetonearesthub", "hub"), "radar",
+     TONE_GEOMETRY),
+
+    (("countpoints",), "hash", TONE_TABLE),
+    (("fieldcalc", "geometrybyexpression", "calculat"), "calculator", TONE_TABLE),
+    (("joinattributesbylocation", "joinbylocation"), "merge", TONE_GEOMETRY),
+    (("join",), "merge", TONE_TABLE),
+    (("addfield", "addautoincrement", "adduniquevalue"), "list-plus", TONE_TABLE),
+    (("deletecolumn", "retainfields", "dropfield"), "list-minus", TONE_TABLE),
+    (("renametablefield", "rename"), "text-cursor-input", TONE_TABLE),
+    (("statistic", "basicstat", "aggregate", "summar"), "sigma", TONE_TABLE),
+    (("orderby", "sort"), "arrow-down-wide-narrow", TONE_TABLE),
+    (("lengths", "addgeometry", "geometrycolumns", "measure"), "ruler", TONE_TABLE),
+    (("createpointslayerfromtable", "pointstopath"), "map-pinned", TONE_GEOMETRY),
+    (("truncate",), "eraser", TONE_TABLE),
+    (("refactor", "dropgeometr", "table"), "table-2", TONE_TABLE),
+
+    (("multiringbuffer", "wedge", "buffer", "offsetcurve", "singlesided"), "circle-dashed",
+     TONE_GEOMETRY),
+    (("clip",), "scissors", TONE_GEOMETRY),
+    (("symmetricaldifference",), "squares-exclude", TONE_GEOMETRY),
+    (("difference", "erase"), "squares-subtract", TONE_GEOMETRY),
+    (("lineintersection",), "git-fork", TONE_GEOMETRY),
+    (("intersect",), "squares-intersect", TONE_GEOMETRY),
+    (("union",), "squares-unite", TONE_GEOMETRY),
+    (("dissolve",), "blend", TONE_GEOMETRY),
+    (("centroid", "pointonsurface", "poleofinaccessibility"), "circle-dot", TONE_GEOMETRY),
+    (("randompoint", "pointsalong", "regularpoint", "pixelstopoints", "generatepoints"),
+     "chart-scatter", TONE_GEOMETRY),
+    (("dbscan", "kmeans", "cluster"), "boxes", TONE_GEOMETRY),
+    (("voronoi", "hexagon"), "hexagon", TONE_GEOMETRY),
+    (("delaunay", "triangulat"), "triangle", TONE_GEOMETRY),
+    (("creategrid", "grid"), "grid-3x3", TONE_GEOMETRY),
+    (("convexhull", "concavehull", "hull", "linestopolygons"), "pentagon", TONE_GEOMETRY),
+    (("boundingbox", "minimumbounding", "orientedminimum", "extent", "envelope"),
+     "square-dashed", TONE_GEOMETRY),
+    (("multiparttosingle", "explode", "split", "subdivide"), "split", TONE_GEOMETRY),
+    (("collect", "promotetomulti", "aggregategeom"), "group", TONE_GEOMETRY),
+    (("merge",), "combine", TONE_GEOMETRY),
+    (("simplify", "densify"), "waypoints", TONE_GEOMETRY),
+    (("smooth", "polygonstolines", "line"), "spline", TONE_GEOMETRY),
+    (("fixgeometr", "makevalid", "repair", "checkvalidity", "validity"), "wrench", TONE_SELECTION),
+    (("duplicate",), "copy-x", TONE_GEOMETRY),
+    (("snap",), "magnet", TONE_GEOMETRY),
+    (("translategeometry", "translate", "move", "shift"), "move", TONE_GEOMETRY),
+    (("rotate",), "rotate-cw", TONE_GEOMETRY),
+    (("reproject", "assignprojection", "transform", "crs"), "earth", TONE_GEOMETRY),
+
+    (("spatialindex", "index"), "zap", TONE_EXPORT),
+    (("topdf", "toimage", "layout", "atlas", "print"), "printer", TONE_EXPORT),
+    (("package", "savefeatures", "save", "export"), "file-down", TONE_EXPORT),
+)
+
+
+def algorithm_glyph(algorithm_id: str) -> tuple[str, str]:
+
+
+
+    algorithm = str(algorithm_id or "").lower()
+    for words, glyph, tone in _ALGORITHM_RULES:
+        if any(word in algorithm for word in words):
+            return f"lu.{glyph}", tone
+    return "lu.cog", TONE_GEOMETRY
 
 
 
 
-    name = str(name or "").lower()
-    for words, glyph in _GLYPH_RULES:
+
+_TONE_RULES = (
+    (("get_", "list_", "search", "find_", "inspect", "resolve_", "geocode", "read_",
+      "fetch_text", "_docs", "help", "describe", "identify", "check_", "diagnose", "verify",
+      "compare_", "sample"), TONE_FIND),
+    (("style", "symbology", "theme", "qml", "colour", "color", "legend", "decoration"), TONE_MAP),
+    (("export", "save", "package", "permanent"), TONE_EXPORT),
+    (("label", "layout", "report", "atlas", "print_"), TONE_LABEL),
+    (("render", "zoom", "canvas", "visib", "animation", "screenshot", "extent", "flash",
+      "select", "3d", "order", "map_view"), TONE_VIEW),
+    (("add_features", "add_field", "add_table_join", "add_part", "add_points"), TONE_PLAIN),
+    (("add_", "load_", "fetch_", "import_", "create_memory", "earth_engine", "gee", "download",
+      "install", "basemap", "xyz", "wms", "wfs"), TONE_DATA),
+)
+
+
+def _tone(name: str, hinted: str) -> str:
+
+
+    if hinted in (TONE_DATA, TONE_DELETE):
+        return hinted
+    for words, tone in _TONE_RULES:
         if any(word in name for word in words):
-            return f"lu.{glyph}"
-    return "lu.cog"
+            return tone
+    return TONE_PLAIN if hinted == TONE_PLAIN else TONE_ANALYSIS
+
+
+def _base_glyph(name: str) -> tuple[str, str]:
+    name = str(name or "").lower()
+    if name in _TOOL_GLYPHS:
+        glyph, tone = _TOOL_GLYPHS[name]
+        return f"lu.{glyph}", _tone(name, tone)
+    for words, glyph, tone in _GLYPH_RULES:
+        if any(word in name for word in words):
+            return f"lu.{glyph}", _tone(name, tone)
+    return "lu.cog", _tone(name, TONE_ANALYSIS)
 
 
 def is_plugin_tool(name) -> bool:
@@ -921,7 +1154,7 @@ def tool_family(name: str, args=None) -> str:
     if is_plugin_tool(name):
         return FAMILY_PLUGIN
     try:
-        from .shared import connector_for_call
+        from ..core.served_state import connector_for_call
 
         if connector_for_call(name, args) is not None:
             return FAMILY_CONNECTOR
@@ -938,6 +1171,7 @@ def tool_glyph(name: str, args=None) -> tuple[str, str, str]:
 
 
 
+
     family = tool_family(name, args)
     if family == FAMILY_PLUGIN:
         name = str(name or "")
@@ -946,7 +1180,12 @@ def tool_glyph(name: str, args=None) -> tuple[str, str, str]:
         return glyph, COLOUR_PLUGIN, family
     if family == FAMILY_CONNECTOR:
         return "lu.globe", COLOUR_CONNECTOR, family
-    return base_tool_glyph(name), COLOUR_QGIS, family
+    algorithm = args.get("algorithm_id") or args.get("algorithm") if isinstance(args, dict) else ""
+    if algorithm and is_processing_call(name):
+        glyph, tone = algorithm_glyph(algorithm)
+        return glyph, tone, family
+    glyph, tone = _base_glyph(name)
+    return glyph, tone, family
 
 
 
@@ -1045,9 +1284,8 @@ def result_facts(summary) -> dict:
         raw = facts.get(key)
         if raw is None:
             continue
-        try:
-            count = int(str(raw).replace(",", "").replace(" ", ""))
-        except ValueError:
+        count = as_int(str(raw).replace(",", "").replace(" ", ""))
+        if count is None:
             continue
         break
     layer = ""
@@ -1169,7 +1407,6 @@ EMPTY_SUMMARY_RE = re.compile(
     re.IGNORECASE)
 
 
-_PYTHON_TOOL_NAMES = ("execute_code", "run_code", "run_python", "python")
 _SOURCE_ARG_KEYS = ("code", "script", "source")
 _SCRATCH_OUTPUTS = frozenset({"", "TEMPORARY_OUTPUT", "MEMORY:", "MEMORY"})
 _MAX_SENTENCE = 200
@@ -1182,7 +1419,7 @@ def source_text(name: str, args) -> tuple[str, str]:
 
     args = args if isinstance(args, dict) else {}
     name = str(name or "")
-    if name in _PYTHON_TOOL_NAMES or name.endswith("_code"):
+    if name == "execute_code":
         for key in _SOURCE_ARG_KEYS:
             value = args.get(key)
             if isinstance(value, str) and value.strip():
@@ -1279,8 +1516,8 @@ def failure_reason(summary) -> str:
 
 def _tool_words(name: str) -> str:
 
-    template = _english_template(name, {})
-    words = _fill(tr(template), {}) if template else ""
+    template = _template_for(name, {})
+    words = _fill(template, {}) if template else ""
     words = words or _tool_head(name)
     return words[:1].lower() + words[1:] if words else name
 
@@ -1294,14 +1531,13 @@ def failure_short(summary) -> str:
     if not text:
         return ""
     first = _SENTENCE_END_RE.split(text, 1)[0]
-    from .source_marks import readable_host
 
 
     first = _URL_RE.sub(lambda m: _host(m.group(0)) or readable_host(m.group(0)) or m.group(0), first)
 
     def words(match) -> str:
         name = match.group(1)
-        known = spec(name) is not None or name in _SERVER_TEMPLATES
+        known = spec(name) is not None or bool(tool_line(name))
         return _tool_words(name) if known else match.group(0)
 
     return _short(_IDENTIFIER_RE.sub(words, first), _MAX_FIRST_SENTENCE)

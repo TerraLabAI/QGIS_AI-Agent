@@ -63,19 +63,25 @@ from qgis.PyQt.QtGui import (
 )
 from qgis.PyQt.QtWidgets import QAbstractScrollArea, QSizePolicy, QWidget
 
+from ...core.background import run_off_thread
 from ...core.logger import log_warning
 from ..font_scale import widget_pixel_ratio
+from ..icons import contrast_ratio, render_pixmap
 from ..image_guard import read_bounded_image
 from ..shared import tr
-
-
-def _thumbs():
-
-
-
-    from .. import learn_page
-
-    return learn_page
+from ..thumbnail_cache import (
+    HTTP_STATUS,
+    NETWORK_NO_ERROR,
+    NO_LESS_SAFE,
+    REDIRECT_POLICY,
+    is_thumbnail_url_usable,
+    store_thumbnail,
+    thumbnail_cache_path,
+)
+from ..tokens import TAGS_DARK, TAGS_LIGHT
+from . import common
+from . import common as C
+from .common import MEDIUM
 
 
 
@@ -99,7 +105,7 @@ _DECODE_CHUNK = 6
 
 
 def usable(url) -> bool:
-    return _thumbs().is_thumbnail_url_usable(url)
+    return is_thumbnail_url_usable(url)
 
 
 def _decode(data: bytes, width: int):
@@ -117,9 +123,8 @@ def _decode(data: bytes, width: int):
 
 
 def _read_file(url: str):
-    thumbs = _thumbs()
     try:
-        path = thumbs.thumbnail_cache_path(url)
+        path = thumbnail_cache_path(url)
         if os.path.getsize(path) > _MAX_BYTES:
             return b""
         with open(path, "rb") as handle:
@@ -130,7 +135,7 @@ def _read_file(url: str):
 
 def cached_on_disk(url: str) -> bool:
     try:
-        return os.path.isfile(_thumbs().thumbnail_cache_path(url))
+        return os.path.isfile(thumbnail_cache_path(url))
     except (OSError, TypeError, ValueError):
         return False
 
@@ -214,7 +219,7 @@ class PictureStore(QObject):
         if not usable(url) or url in self._failed:
             return ""
         if cached_on_disk(url):
-            return _thumbs().thumbnail_cache_path(url)
+            return thumbnail_cache_path(url)
         self._files_only.add(url)
         self._fetch(url, 0)
         return ""
@@ -233,13 +238,12 @@ class PictureStore(QObject):
             self._start_fetch(url)
 
     def _start_fetch(self, url: str) -> None:
-        thumbs = _thumbs()
         try:
             from qgis.core import QgsNetworkAccessManager
             from qgis.PyQt.QtNetwork import QNetworkRequest
 
             request = QNetworkRequest(QUrl(url))
-            request.setAttribute(thumbs._REDIRECT_POLICY, thumbs._NO_LESS_SAFE)
+            request.setAttribute(REDIRECT_POLICY, NO_LESS_SAFE)
             reply = QgsNetworkAccessManager.instance().get(request)
         except Exception as exc:  # noqa: BLE001
             log_warning(f"Example picture not fetched: {exc}")
@@ -266,14 +270,13 @@ class PictureStore(QObject):
                     pass
 
     def _on_finished(self, url: str) -> None:
-        thumbs = _thumbs()
         reply = self._fetching.pop(url, None)
         data = b""
         if reply is not None:
             try:
-                status = reply.attribute(thumbs._HTTP_STATUS)
+                status = reply.attribute(HTTP_STATUS)
                 served = int(status) if status is not None else 200
-                if reply.error() == thumbs._NETWORK_NO_ERROR and served == 200:
+                if reply.error() == NETWORK_NO_ERROR and served == 200:
                     data = bytes(reply.readAll())
             except (RuntimeError, TypeError, ValueError):
                 data = b""
@@ -282,7 +285,7 @@ class PictureStore(QObject):
             except RuntimeError:
                 pass
         if data and len(data) <= _MAX_BYTES:
-            thumbs.store_thumbnail(url, data)
+            store_thumbnail(url, data)
         if not cached_on_disk(url):
             self._failed.add(url)
             self.ready.emit(url)
@@ -314,8 +317,6 @@ class PictureStore(QObject):
                 data = _read_file(url)
                 out.append((url, full, _decode(data, 0 if full else THUMB_W) if data else None))
             return out
-
-        from ...core.background import run_off_thread
 
         task = run_off_thread("Example pictures", work,
                               lambda results, error, b=tuple(batch): self._on_decoded(results, error, b))
@@ -684,7 +685,6 @@ class PictureView(QWidget):
         super().resizeEvent(event)
 
     def paintEvent(self, _event):  # noqa: N802
-        from . import common
 
         palette = common.T
         painter = QPainter(self)
@@ -777,7 +777,6 @@ class PictureView(QWidget):
 
 
 
-        from . import common as C
 
         if rect.width() < C.px(260):
             return
@@ -807,7 +806,6 @@ class PictureView(QWidget):
             return
         font = QFont(self.font())
         font.setPixelSize(max(11, round(self._label_px * min(1.6, max(0.8, rect.width() / 260)))))
-        from .common import MEDIUM
 
         font.setWeight(QFont.Weight.DemiBold if MEDIUM >= 600 else QFont.Weight.Medium)
         painter.setFont(font)
@@ -861,12 +859,47 @@ def mark_urls(row: dict) -> list:
     return [url] if url else flag_urls(row)[:2]
 
 
+
+
+_CATEGORY_TONES = {
+    "worldwide": "info", "national": "info", "imagery": "purple", "terrain": "alert",
+    "nature": "success", "people": "danger", "catalogs": "neutral",
+}
+
+
+def _qcolor(text: str, fallback: QColor) -> QColor:
+
+    text = str(text or "")
+    if text.startswith("rgba(") and text.endswith(")"):
+        parts = [p.strip() for p in text[5:-1].split(",")]
+        try:
+            r, g, b = (int(float(v)) for v in parts[:3])
+            return QColor(r, g, b, int(round(float(parts[3]) * 255)))
+        except (ValueError, IndexError):
+            return fallback
+    colour = QColor(text)
+    return colour if colour.isValid() else fallback
+
+
 def neutral_tile_pixmap(row: dict, side: int, ratio: float = 1.0, radius: float = 0.0) -> QPixmap:
 
 
 
-    from ..icons import render_pixmap
-    from . import common as C
+
+    tone = _CATEGORY_TONES.get(str((row or {}).get("category") or ""))
+    tags = TAGS_DARK if C.T is C.DARK_PALETTE else TAGS_LIGHT
+    ground = QColor(C.T.tile)
+    ink = QColor(C.T.text_2)
+    if tone in tags:
+        tint = _qcolor(tags[tone][0], ground)
+        if tint.alpha() < 255:
+            a = tint.alphaF()
+            ground = QColor(int(tint.red() * a + ground.red() * (1 - a)),
+                            int(tint.green() * a + ground.green() * (1 - a)),
+                            int(tint.blue() * a + ground.blue() * (1 - a)))
+        else:
+            ground = tint
+        ink = _qcolor(tags[tone][1], ink)
 
     ratio = max(1.0, float(ratio or 1.0))
     radius = float(radius or (side / 3.0 + 2))
@@ -876,12 +909,12 @@ def neutral_tile_pixmap(row: dict, side: int, ratio: float = 1.0, radius: float 
     shape = QPainterPath()
     shape.addRoundedRect(QRectF(0.5, 0.5, side - 1, side - 1), radius, radius)
     glyph_px = max(18, int(side * 0.36)) if side > 40 else min(18, max(10, int(side * 0.6)))
-    glyph = render_pixmap(C.category_glyph((row or {}).get("category")),
-                          QColor(C.T.text_2), glyph_px, ratio)
+    glyph = render_pixmap(C.line_glyph(C.category_glyph((row or {}).get("category"))),
+                          ink, glyph_px, ratio)
     painter = QPainter(pixmap)
     try:
         painter.setRenderHint(QPainter.RenderHint.Antialiasing, True)
-        painter.fillPath(shape, QColor(C.T.tile))
+        painter.fillPath(shape, ground)
         painter.drawPixmap(int((side - glyph_px) / 2), int((side - glyph_px) / 2), glyph)
         painter.setPen(QPen(_hairline(), 1))
         painter.setBrush(Qt.BrushStyle.NoBrush)
@@ -919,7 +952,6 @@ _MIN_INK_SHARE = 0.25
 def _ink_share(image: QImage, ground: QColor) -> float:
 
 
-    from ..icons import contrast_ratio
 
     small = image.scaled(48, 48, Qt.AspectRatioMode.KeepAspectRatio,
                          Qt.TransformationMode.SmoothTransformation)
@@ -949,7 +981,6 @@ def readable_logo(image: QImage, side: int, inset: float, ground: QColor) -> boo
 def _hairline() -> QColor:
 
 
-    from . import common as C
 
     text = str(C.T.hairline or "")
     if text.startswith("rgba(") and text.endswith(")"):
@@ -973,7 +1004,6 @@ def square_mark_pixmap(row: dict, accent: str, side: int, ratio: float = 1.0,
 
 
 
-    from . import common as C
 
     ratio = max(1.0, float(ratio or 1.0))
     url = str((row or {}).get("logo_url") or "")
@@ -1047,11 +1077,11 @@ def _flag_pair_pixmap(row: dict, urls: list, side: int, ratio: float, radius: fl
 
 
 
-    from . import common as C
 
+
+    paths = [store().want_file(url) for url in urls]
     images = []
-    for url in urls:
-        path = store().want_file(url)
+    for path in paths:
         image = QImage(str(path)) if path else QImage()
         if image.isNull():
             return neutral_tile_pixmap(row, side, ratio, radius)

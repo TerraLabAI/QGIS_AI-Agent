@@ -43,6 +43,7 @@ from ..core import limits
 from ..core.context_layers import crs_units
 from ..core.qt_compat import enum_member
 from ..core.tool_registry import tool_error
+from .layer_files import discard_staged_write, publish_staged_write, release_layers_at_path, staging_path
 
 
 
@@ -186,12 +187,6 @@ def _readback(path: str) -> dict:
 
 def export_dxf(layer, path: str, args: dict) -> dict:
 
-    from .layer_io_tools import (
-        _discard_staged_write,
-        _publish_staged_write,
-        _release_layers_at_path,
-        _staging_path,
-    )
 
     asked = str(args.get("encoding") or "").strip()
     codec = code_page(asked) if asked else None
@@ -258,18 +253,18 @@ def export_dxf(layer, path: str, args: dict) -> dict:
     body, found = _CODEPAGE_LINE.subn(lambda m: m.group(1) + CODE_PAGES[chosen].encode("ascii"), body, count=1)
 
     os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
-    released = _release_layers_at_path(path, skip_ids={layer.id()})
-    staging = _staging_path(path)
+    released = release_layers_at_path(path, skip_ids={layer.id()})
+    staging = staging_path(path)
     try:
         with open(staging, "wb") as handle:
             handle.write(body)
     except OSError as exc:
-        _discard_staged_write(staging)
+        discard_staged_write(staging)
         return tool_error(f"Could not write {path}: {exc}", "EXECUTION_FAILED",
                           hint="cad_write_failed")
-    publish_error = _publish_staged_write(staging, path)
+    publish_error = publish_staged_write(staging, path)
     if publish_error:
-        _discard_staged_write(staging)
+        discard_staged_write(staging)
         return tool_error(f"The DXF was written but could not be put in place at {path}: {publish_error}",
                           "EXECUTION_FAILED", hint="cad_publish_failed")
 

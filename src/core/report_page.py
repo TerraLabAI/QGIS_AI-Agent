@@ -51,16 +51,20 @@ MAX_IMAGE_BYTES = 8 * 1024 * 1024
 MAX_PAGE_BYTES = 16 * 1024 * 1024
 FIGURE_ID = re.compile(r"^[A-Za-z0-9_-]{1,64}$")
 
-_IMG_SRC = re.compile(r"""(<img\b[^>]*?\bsrc\s*=\s*)(["'])(.*?)\2""", re.IGNORECASE | re.DOTALL)
-_HEAD_OPEN = re.compile(r"<head\b[^>]*>", re.IGNORECASE)
+_IMG_OPEN = re.compile(r"<img(?=[ \t\n\f\r/>])", re.IGNORECASE)
+
+_HEAD_OPEN = re.compile(r"<head\b[^<>]*>", re.IGNORECASE)
 _BODY_CLOSE = re.compile(r"</body\s*>", re.IGNORECASE)
 _HTML_CLOSE = re.compile(r"</html\s*>", re.IGNORECASE)
-_HAS_CHARSET = re.compile(r"<meta\b[^>]*\bcharset\s*=", re.IGNORECASE)
-_HAS_VIEWPORT = re.compile(r"<meta\b[^>]*\bname\s*=\s*[\"']viewport[\"']", re.IGNORECASE)
+_HAS_CHARSET = re.compile(r"<meta\b[^<>]*\bcharset\s*=", re.IGNORECASE)
+_HAS_VIEWPORT = re.compile(r"<meta\b[^<>]*\bname\s*=\s*[\"']viewport[\"']", re.IGNORECASE)
 _HAS_TITLE = re.compile(r"<title\b", re.IGNORECASE)
 _HAS_DOCTYPE = re.compile(r"^\s*<!doctype\b", re.IGNORECASE)
 _HAS_HTML = re.compile(r"<html\b", re.IGNORECASE)
 _LEADING_DOCTYPE = re.compile(r"^\s*<!doctype\b[^>]*>", re.IGNORECASE)
+
+_ATTRIBUTE = re.compile(r"[ \t\n\f\r/]*([^ \t\n\f\r/>][^ \t\n\f\r/>=]*)[ \t\n\f\r]*(=[ \t\n\f\r]*)?")
+_UNQUOTED_END = re.compile(r"[ \t\n\f\r>]")
 
 
 
@@ -85,11 +89,65 @@ def data_uri(mime: str, raw: bytes) -> str:
     return f"data:{mime};base64,{base64.b64encode(raw).decode('ascii')}"
 
 
+class _Walk:
+
+
+
+
+    def __init__(self):
+        self.read: set[int] = set()
+        self.run = (0, 0)
+
+
+def _attributes(text: str, index: int, walk: _Walk):
+
+
+
+    while index not in walk.read:
+        attribute = _ATTRIBUTE.match(text, index)
+        if attribute is None:
+            break
+        walk.read.add(index)
+        name, start = attribute.group(1).lower(), attribute.end()
+        if attribute.group(2) is None:
+            index = start
+            yield name, start, start, False
+        elif text[start:start + 1] in ('"', "'"):
+            close = text.find(text[start], start + 1)
+            index = close + 1 if close >= 0 else len(text)
+            yield name, start + 1, close if close >= 0 else index, close >= 0
+        else:
+            if not walk.run[0] <= start < walk.run[1]:
+                stop = _UNQUOTED_END.search(text, start)
+                walk.run = (start, stop.start() if stop else len(text))
+            index = walk.run[1]
+            yield name, start, index, False
+
+
+def _img_sources(page: str) -> list[tuple[int, int]]:
+
+    spans: list[tuple[int, int]] = []
+    walk = _Walk()
+    cursor = 0
+    while True:
+        start = _IMG_OPEN.search(page, cursor)
+        if start is None:
+            break
+        cursor = start.end()
+        for name, value_start, value_end, quoted in _attributes(page, cursor, walk):
+            if name == "src":
+                if quoted:
+                    spans.append((value_start, value_end))
+                    cursor = value_end
+                break
+    return spans
+
+
 def figure_ids(page: str) -> list[str]:
 
     seen: list[str] = []
-    for match in _IMG_SRC.finditer(page):
-        src = match.group(3).strip()
+    for start, end in _img_sources(page):
+        src = page[start:end].strip()
         if src.lower().startswith("figure:"):
             name = src[len("figure:"):].strip()
             if name and name not in seen:
@@ -111,8 +169,7 @@ def embed_images(page: str, figures: dict[str, tuple[str, bytes]], base_dir: str
 
     report = {"figures_placed": [], "figures_missing": [], "files_embedded": [], "files_skipped": []}
 
-    def _swap(match: re.Match) -> str:
-        head, quote, src = match.group(1), match.group(2), match.group(3)
+    def _swap(src: str) -> str:
         text = src.strip()
         lower = text.lower()
         if lower.startswith("figure:"):
@@ -121,47 +178,119 @@ def embed_images(page: str, figures: dict[str, tuple[str, bytes]], base_dir: str
                 mime, raw = figures[name]
                 if name not in report["figures_placed"]:
                     report["figures_placed"].append(name)
-                return f"{head}{quote}{data_uri(mime, raw)}{quote}"
+                return data_uri(mime, raw)
             if name not in report["figures_missing"]:
                 report["figures_missing"].append(name)
-            return match.group(0)
+            return src
         if not text or lower.startswith(("data:", "http://", "https://", "//", "blob:", "#")):
-            return match.group(0)
+            return src
         candidate = _html.unescape(text)
         if candidate.lower().startswith("file:"):
             candidate = _file_url_path(candidate)
         path = candidate if os.path.isabs(candidate) else os.path.join(base_dir, candidate)
         mime = IMAGE_MIME.get(os.path.splitext(path)[1].lower())
         if not mime:
-            return match.group(0)
+            return src
         refused = refusal(path) if refusal is not None else None
         if refused:
             report["files_skipped"].append({"src": text, "why": refused})
-            return match.group(0)
+            return src
         if not os.path.isfile(path):
             report["files_skipped"].append({"src": text, "why": "no such file"})
-            return match.group(0)
+            return src
         try:
             size = os.path.getsize(path)
             if size > MAX_IMAGE_BYTES:
                 report["files_skipped"].append({"src": text, "why": f"{size} bytes, over {MAX_IMAGE_BYTES}"})
-                return match.group(0)
+                return src
             with open(path, "rb") as stream:
                 raw = stream.read()
         except OSError as exc:
             report["files_skipped"].append({"src": text, "why": str(exc)[:120]})
-            return match.group(0)
+            return src
         report["files_embedded"].append(path)
-        return f"{head}{quote}{data_uri(mime, raw)}{quote}"
+        return data_uri(mime, raw)
 
-    return _IMG_SRC.sub(_swap, page), report
+    pieces, position = [], 0
+    for start, end in _img_sources(page):
+        pieces += [page[position:start], _swap(page[start:end])]
+        position = end
+    return "".join(pieces) + page[position:], report
 
 
-_META_REFRESH = re.compile(r"<meta\b[^>]*\bhttp-equiv\s*=\s*[\"']?refresh\b[^>]*>", re.IGNORECASE)
-_SCRIPT_BODY = re.compile(r"<script\b[^>]*>(.*?)</script\s*>", re.IGNORECASE | re.DOTALL)
+_TAG_OPEN = re.compile(r"<(meta|link)(?=[ \t\n\f\r/>]|\Z)", re.IGNORECASE)
+_RESOURCE_HINT = re.compile(r"\b(?:dns-prefetch|preconnect|prefetch|prerender)\b", re.IGNORECASE)
+
+def _leaves_the_page(kind: str, name: str, value: str) -> bool:
+    value = _html.unescape(value)
+    if kind == "meta":
+        return name == "http-equiv" and "refresh" in value.lower()
+    return name == "rel" and _RESOURCE_HINT.search(value) is not None
+
+
+def _leaving_tag_end(text: str, index: int, kind: str, walk: _Walk) -> int | None:
+
+
+
+
+    if not any(_leaves_the_page(kind, name, text[start:end]) for name, start, end, _ in _attributes(text, index, walk)):
+        return None
+    end = index
+    for _, _, end, quoted in _attributes(text, index, _Walk()):
+        end += quoted
+    close = text.find(">", end)
+    return close + 1 if close >= 0 else len(text)
+
+
+def _without_refresh(text: str) -> str:
+
+
+
+
+
+
+
+
+
+    while True:
+        kept, position, cursor, walks = [], 0, 0, {"meta": _Walk(), "link": _Walk()}
+        while True:
+            start = _TAG_OPEN.search(text, cursor)
+            if start is None:
+                break
+            cursor = start.end()
+            kind = start.group(1).lower()
+            end = _leaving_tag_end(text, cursor, kind, walks[kind])
+            if end is not None:
+                kept.append(text[position:start.start()])
+                position = cursor = end
+        if not position:
+            return text
+        kept.append(text[position:])
+        text = "".join(kept)
+
+
+_SCRIPT_OPEN = re.compile(r"<script\b", re.IGNORECASE)
+_SCRIPT_CLOSE = re.compile(r"</script\s*>", re.IGNORECASE)
 _HANDLER_ATTR = re.compile(r"""\son[a-z]+\s*=\s*(["'])(.*?)\1""", re.IGNORECASE | re.DOTALL)
 _JS_URL_ATTR = re.compile(r"""\b(?:href|src|action)\s*=\s*(["'])\s*javascript:(.*?)\1""", re.IGNORECASE | re.DOTALL)
 _ADDRESS = re.compile(r"""https?://[^\s"'`<>\\)]+""", re.IGNORECASE)
+
+
+def _script_bodies(text: str) -> list[str]:
+
+    bodies, cursor = [], 0
+    while True:
+        start = _SCRIPT_OPEN.search(text, cursor)
+        if start is None:
+            break
+        opened = text.find(">", start.end())
+        close = _SCRIPT_CLOSE.search(text, opened + 1) if opened >= 0 else None
+        if close is None:
+            break
+        bodies.append(text[opened + 1:close.start()])
+        cursor = close.end()
+    return bodies
 
 
 def active_urls(page: str) -> list[str]:
@@ -172,7 +301,7 @@ def active_urls(page: str) -> list[str]:
 
 
     text = str(page or "")
-    code = [m.group(1) for m in _SCRIPT_BODY.finditer(text)]
+    code = _script_bodies(text)
     code += [m.group(2) for m in _HANDLER_ATTR.finditer(text)]
     code += [m.group(2) for m in _JS_URL_ATTR.finditer(text)]
     found: list[str] = []
@@ -190,7 +319,7 @@ def as_document(page: str, title: str) -> str:
 
 
 
-    text = _META_REFRESH.sub("", page.lstrip("\ufeff"))
+    text = _without_refresh(page.lstrip("\ufeff"))
     if not _HAS_HTML.search(text):
         text = (f'<html lang="en"><head><title>{_html.escape(title)}</title></head>'
                 f"<body>{text}</body></html>")
@@ -210,7 +339,7 @@ def as_document(page: str, title: str) -> str:
             text = text[:match.end()] + insert + text[match.end():]
         else:
             match = _HAS_HTML.search(text)
-            end = text.index(">", match.start()) + 1
+            end = text.find(">", match.start()) + 1
             text = text[:end] + "<head>" + insert + "</head>" + text[end:]
     return text
 

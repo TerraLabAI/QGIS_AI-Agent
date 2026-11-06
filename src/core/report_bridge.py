@@ -32,6 +32,7 @@
 
 
 
+
 from __future__ import annotations
 
 import hmac
@@ -53,10 +54,21 @@ PAIRING_PATH = "/terralab/signed-in"
 MAX_REQUEST_BYTES = 4096
 _TOKEN_FILE = os.path.join(AGENT_HOME, "report-bridge-token")
 _HEADERS = ("HTTP/1.1 {status}\r\nContent-Type: application/json; charset=utf-8\r\n"
-            "Access-Control-Allow-Origin: *\r\nCache-Control: no-store\r\nConnection: close\r\n"
+            "Access-Control-Allow-Origin: null\r\nCache-Control: no-store\r\nConnection: close\r\n"
             "Content-Length: {length}\r\n\r\n")
 _STATUS = {200: "200 OK", 400: "400 Bad Request", 403: "403 Forbidden", 404: "404 Not Found",
            405: "405 Method Not Allowed", 413: "413 Payload Too Large"}
+
+
+def _origin(request: bytes) -> str | None:
+
+    for raw in request.split(b"\n")[1:]:
+        name, sep, value = raw.decode("latin-1", "replace").partition(":")
+        if not sep:
+            continue
+        if name.strip().lower() == "origin":
+            return value.strip()
+    return None
 
 
 def token() -> str:
@@ -163,6 +175,11 @@ class ReportBridge(QObject):
                 return
             if url.path != "/qgis":
                 self._reply(socket, 404, {"ok": False, "error": "unknown path"})
+                return
+
+
+            if _origin(data) not in (None, "null"):
+                self._reply(socket, 403, {"ok": False, "error": "file pages only"})
                 return
             query = {k: v[0] for k, v in parse_qs(url.query, keep_blank_values=True).items()}
             given = str(query.get("token") or "")

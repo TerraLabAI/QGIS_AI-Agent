@@ -49,7 +49,6 @@ from qgis.core import (
     QgsProject,
     QgsRasterLayer,
     QgsRasterLayerTemporalProperties,
-    QgsTemporalNavigationObject,
     QgsUnitTypes,
     QgsVectorLayer,
     QgsVectorLayerTemporalProperties,
@@ -61,11 +60,21 @@ from ..core.background import run_on_main_thread
 from ..core.context import _temporal_range
 from ..core.qt_compat import enum_member
 from ..core.tool_registry import Tool, ToolRegistry, tool_error
-from .layer_lookup import _field_not_found_error, _find_layer, _is_qgis_null, _layer_not_found_error
+from ._layers import layer_not_found, resolve_layer
+from .layer_lookup import _field_not_found_error, _is_qgis_null
 from .query_tools import STATS_CHUNK
+from .temporal_export import export_animation_frames
+from .temporal_time import (
+    _DAY_MS,
+    _canvas_and_controller,
+    _fmt,
+    _from_date,
+    _moment,
+    _navigation_mode,
+    _to_date,
+)
 
 UNITS = ("seconds", "minutes", "hours", "days", "weeks", "months", "years", "decades", "centuries")
-_DAY_MS = 86_400_000
 _FIXED_MS = {"seconds": 1_000, "minutes": 60_000, "hours": 3_600_000, "days": _DAY_MS, "weeks": 7 * _DAY_MS}
 _MONTHS_IN = {"months": 1, "years": 12, "decades": 120, "centuries": 1200}
 _APPROX_MS = {**_FIXED_MS, "months": 30.436875 * _DAY_MS, "years": 365.2425 * _DAY_MS,
@@ -81,8 +90,6 @@ _MAX_DERIVED_FRAMES = 500
 _DISTINCT_KEPT = 100_000
 
 _PARSE_CACHE = 50_000
-
-_JD_TO_ORDINAL = 1_721_425
 _UNIT_MEMBERS = {
     "seconds": ("Seconds", "TemporalSeconds"), "minutes": ("Minutes", "TemporalMinutes"),
     "hours": ("Hours", "TemporalHours"), "days": ("Days", "TemporalDays"), "weeks": ("Weeks", "TemporalWeeks"),
@@ -97,6 +104,7 @@ def register_temporal_tools(registry: ToolRegistry):
     registry.register(Tool(
         name="set_layer_temporal",
         danger="write",
+        check_shape="layer",
         label=QT_TRANSLATE_NOOP("AIAgent", "Animate {layer_name} over time[ by {field}]"),
         input_schema={
             "type": "object",
@@ -155,21 +163,7 @@ def register_temporal_tools(registry: ToolRegistry):
 
 
 def _export_animation_frames(args: dict) -> dict:
-    from .temporal_export import export_animation_frames
-
     return export_animation_frames(args)
-
-
-
-
-
-
-def _to_date(moment: int) -> datetime.date:
-    return datetime.date.fromordinal(moment // _DAY_MS - _JD_TO_ORDINAL)
-
-
-def _from_date(day: datetime.date, ms_of_day: int = 0) -> int:
-    return (day.toordinal() + _JD_TO_ORDINAL) * _DAY_MS + ms_of_day
 
 
 def _shift(moment: int, count: float, unit: str) -> int:
@@ -240,14 +234,6 @@ def derive_step(distinct, first: int, last: int, inclusive: bool) -> tuple[int, 
             break
         index += 1
     return _LADDER[index]
-
-
-def _fmt(moment: int, with_time: bool) -> str:
-    day = _to_date(moment)
-    if not with_time:
-        return day.isoformat()
-    ms = moment % _DAY_MS
-    return f"{day.isoformat()}T{ms // 3_600_000:02d}:{ms // 60_000 % 60:02d}:{ms // 1000 % 60:02d}"
 
 
 def _plural(count: float, unit: str) -> str:
@@ -337,10 +323,6 @@ def _iso():
     return enum_member(Qt, "DateFormat", "ISODate")
 
 
-def _moment(value: QDateTime) -> int:
-    return value.date().toJulianDay() * _DAY_MS + value.time().msecsSinceStartOfDay()
-
-
 def _qdt(moment: int) -> QDateTime:
 
 
@@ -361,17 +343,6 @@ def _vector_mode(member: str):
     return enum_member(QgsVectorLayerTemporalProperties, "TemporalMode", "Mode" + member)
 
 
-def _navigation_mode(member: str):
-    found = enum_member(Qgis, "TemporalNavigationMode", member, None)
-    if found is not None:
-        return found
-
-
-
-    old = {"Disabled": "NavigationOff"}.get(member, member)
-    return enum_member(QgsTemporalNavigationObject, "NavigationMode", old)
-
-
 def _show_panel() -> str:
 
     from qgis.PyQt.QtCore import QObject
@@ -385,17 +356,6 @@ def _show_panel() -> str:
         return "already open"
     action.trigger()
     return "opened"
-
-
-def _canvas_and_controller():
-
-    from qgis.utils import iface
-
-    canvas = iface.mapCanvas() if iface is not None else None
-    controller = canvas.temporalController() if canvas is not None else None
-    if controller is None or not hasattr(controller, "setFrameDuration"):
-        return canvas, None
-    return canvas, controller
 
 
 def _bound(text: str, is_end: bool):
@@ -459,9 +419,9 @@ def _expression_source(text: str, context) -> dict:
 def _open(args: dict, plan: dict) -> dict:
 
     ref = str(args.get("layer_name") or "").strip()
-    layer = _find_layer(ref)
+    layer = resolve_layer(ref)
     if layer is None:
-        return _layer_not_found_error(ref)
+        return layer_not_found(ref)
     state = {"layer_id": layer.id(), "layer_name": layer.name(), "plan": plan, "total": 0}
     if isinstance(layer, QgsVectorLayer):
         state["kind"] = "vector"
@@ -824,7 +784,7 @@ def _drive_controller(layer, setting: dict) -> dict:
 def _switch_off(state: dict) -> dict:
     layer = QgsProject.instance().mapLayer(state["layer_id"])
     if layer is None:
-        return _layer_not_found_error(state["layer_name"])
+        return layer_not_found(state["layer_name"])
     layer.temporalProperties().setIsActive(False)
     layer.triggerRepaint()
     others = [other.name() for other in QgsProject.instance().mapLayers().values()

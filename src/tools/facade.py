@@ -26,21 +26,19 @@ import urllib.parse
 from qgis.core import QgsProject, QgsRasterLayer, QgsVectorLayer
 from qgis.PyQt.QtCore import QT_TRANSLATE_NOOP
 
-from ..core import dataset_docs, ground, links, net
-from ..core.background import run_on_main_thread
+from ..core import accounts, dataset_docs, ground, links, net, siblings
+from ..core.background import on_main_thread, run_on_main_thread
 from ..core.context_layers import crs_units
 from ..core.crs_ref import crs_ref
 from ..core.layer_order import feature_count_of, is_remote_vector
 from ..core.logger import log_warning
 from ..core.qt_compat import enum_member
 from ..core.tool_registry import Tool, ToolRegistry, tool_error
-from . import data_tools as _data
+from . import cloud_data, data_basemaps, data_inspect, data_ogc, ogc_inspect
 from . import integration_tools as _integration
 from . import layer_io_tools as _layer_io
-from . import ogc_inspect
 from . import sibling_setup as _setup
 from . import stac_tools as _stac
-from ._widgets import AI_EDIT_KEYS, sibling_plugin
 from .adapters.ai_edit_access import ACCESS as _AIEDIT
 from .crs_at_load import check_loaded
 from .csv_loader import CSV_EXTENSIONS
@@ -109,6 +107,7 @@ def register_facade_tools(registry: ToolRegistry):
     registry.register(Tool(
         name="add_data",
         danger="write",
+        own_area_rule=True, loads_source=True, check_shape="arrives",
         visible=5,
         label=QT_TRANSLATE_NOOP("AIAgent", "Add {name}[ from {source}]"),
         input_schema={
@@ -170,6 +169,9 @@ def register_facade_tools(registry: ToolRegistry):
             "x-zip-listing": True,
 
             "x-kind-from-header": True,
+
+
+            "x-own-drives": True,
         },
         handler=_add_data,
         background=_add_data_off_main,
@@ -178,6 +180,7 @@ def register_facade_tools(registry: ToolRegistry):
 
     registry.register(Tool(
         name="ai_edit",
+        long_main=True,
         danger="write",
         visible=11,
         label=QT_TRANSLATE_NOOP("AIAgent", "AI Edit: {action}"),
@@ -237,6 +240,7 @@ def register_facade_tools(registry: ToolRegistry):
 
     registry.register(Tool(
         name="ai_segment",
+        long_main=True,
         danger="write",
         visible=12,
         label=QT_TRANSLATE_NOOP("AIAgent", "AI Segmentation[: detect {object_class}][ ({action})]"),
@@ -317,6 +321,7 @@ def register_facade_tools(registry: ToolRegistry):
             "x-interactive-prepare": True,
         },
         handler=_ai_segment,
+        background=_integration.aiseg_points_off_main,
         action_danger=AI_SEGMENT_ACTION_DANGER,
         argument_check=_integration.aiseg_argument_refusal,
     ))
@@ -588,9 +593,9 @@ def _dispatch_add(kind: str, args: dict) -> dict:
 
             if _oapif_collection(source) is not None:
                 return _add_oapif_layer({"url": source, "name": name, "bbox": bbox})
-            return _data._add_vector_from_url({"url": source.replace("/vsicurl/", "", 1),
-                                               "layer_name": name, "layer": layer, "bbox": bbox, "crs": crs,
-                                               "full_extent": args.get("full_extent")})
+            return data_inspect._add_vector_from_url({"url": source.replace("/vsicurl/", "", 1),
+                                                      "layer_name": name, "layer": layer, "bbox": bbox, "crs": crs,
+                                                      "full_extent": args.get("full_extent")})
         return _layer_io._add_vector_layer({"path": source, "name": name, "crs": crs, "layer": layer})
     if kind == "raster":
         if _is_url(source):
@@ -601,8 +606,8 @@ def _dispatch_add(kind: str, args: dict) -> dict:
             if urllib.parse.urlsplit(address).path.lower().endswith(".zip"):
 
 
-                return _data._add_vector_from_url({"url": address, "layer_name": name, "layer": layer,
-                                                   "crs": crs})
+                return data_inspect._add_vector_from_url({"url": address, "layer_name": name, "layer": layer,
+                                                          "crs": crs})
             streamed = _stac._add_cog_layer({"url": address, "name": name, "bbox": bbox})
 
 
@@ -640,8 +645,8 @@ def _dispatch_add(kind: str, args: dict) -> dict:
         return _add_point_cloud_layer({"path": source, "name": name})
     if kind == "xyz":
 
-        return _data._add_xyz_layer({"source": source, "name": name, "bbox": bbox or args.get("bbox"),
-                                     "zmin": args.get("zmin"), "zmax": args.get("zmax")})
+        return data_basemaps._add_xyz_layer({"source": source, "name": name, "bbox": bbox or args.get("bbox"),
+                                             "zmin": args.get("zmin"), "zmax": args.get("zmax")})
     if kind == "vectortile":
         return _add_vector_tile_layer({
             "url": source, "name": name, "style": args.get("style"),
@@ -662,7 +667,7 @@ def _dispatch_add(kind: str, args: dict) -> dict:
         wms_args = {"url": source, "layers": layer, "name": name}
         if crs:
             wms_args["crs"] = crs
-        return _data._add_wms_layer(wms_args)
+        return data_ogc._add_wms_layer(wms_args)
     if kind == "wfs":
         if not layer:
             return tool_error(
@@ -676,7 +681,7 @@ def _dispatch_add(kind: str, args: dict) -> dict:
                     "max_features": args.get("max_features"), "full_extent": args.get("full_extent")}
         if crs:
             wfs_args["crs"] = crs
-        return _data._add_wfs_layer(wfs_args)
+        return data_ogc._add_wfs_layer(wfs_args)
     if kind == "wcs":
         if not layer:
             return tool_error(
@@ -782,7 +787,7 @@ def _add_data_is_remote(args: dict) -> bool:
     source = str(args.get("source") or "").strip()
     if not source:
         return False
-    if _remote_zip_member(source):
+    if _remote_zip_member(source) or cloud_data.ref_of(source):
         return True
     kind = deduce_kind(source, args.get("kind"), open_file=False)
     if kind in _REMOTE_KINDS:
@@ -802,11 +807,10 @@ def _merge_crs_check(described: dict, found: dict) -> None:
 
 
 
+
     described["crs_check"] = found["crs_check"]
-    earlier = described.get("warning") or ""
-    if earlier == NO_CRS_WARNING:
-        earlier = ""
-    described["warning"] = " ".join(filter(None, (earlier, found["warning"])))
+    if described.get("warning") == NO_CRS_WARNING:
+        del described["warning"]
 
 
 def _add_data(args: dict) -> dict:
@@ -836,6 +840,19 @@ def _add_data(args: dict) -> dict:
     if refusal:
         return tool_error(refusal, "INVALID_ARGS", hint="add_data_withdrawn_source")
 
+    cloud = cloud_data.ref_of(source)
+    if cloud is not None:
+        handled = cloud_data.add(cloud, args)
+        if handled is not None:
+            kind, result = handled
+            if not isinstance(result, dict) or result.get("_error") is not None or accounts.MARK in result:
+                return result
+            return _finished_add(result, kind, args, source)
+        public = cloud_data.public_address(cloud)
+        if public:
+            source = public
+            args = dict(args, source=source)
+
 
 
 
@@ -849,6 +866,8 @@ def _add_data(args: dict) -> dict:
             args = dict(args, source=source)
     kind = deduce_kind(source, args.get("kind"))
     result = _dispatch_add(kind, args)
+    if cloud is not None and isinstance(result, dict) and (result.get("_error") is not None or accounts.MARK in result):
+        return cloud_data.after_failure(cloud, result)
     if not isinstance(result, dict) or result.get("_error") is not None:
         return result
     if resolved_from:
@@ -857,6 +876,11 @@ def _add_data(args: dict) -> dict:
 
     if _add_data_is_remote(args):
         dataset_docs.attach(result, source)
+    return _finished_add(result, kind, args, source)
+
+
+def _finished_add(result: dict, kind: str, args: dict, source: str) -> dict:
+
 
     def _finish():
         layer_id = result.get("layer_id")
@@ -885,6 +909,10 @@ def _add_data(args: dict) -> dict:
             "window",
 
             "where",
+
+
+            "truncated", "features_available", "feature_ceiling", "restricted_to_view", "coverage",
+            "suggestion_hint",
 
 
             "dataset_notes",
@@ -939,10 +967,6 @@ def _signed_out(tool: str, label: str) -> dict:
     )
 
 
-def _loaded(keys) -> bool:
-    return sibling_plugin(keys)[1] is not None
-
-
 def _aiseg_not_running(presence: dict) -> dict:
 
 
@@ -969,8 +993,8 @@ def _ai_edit(args: dict) -> dict:
     if action == "prepare":
         from .integration_handoff import prepare
         return prepare("ai_edit", args)
-    if not _loaded(AI_EDIT_KEYS):
-        found = _setup.presence(AI_EDIT_KEYS)
+    if siblings.find(siblings.AI_EDIT)[1] is None:
+        found = _setup.presence(siblings.AI_EDIT)
         if found["state"] == "absent":
             return _plugin_missing("AI Edit by TerraLab", "ai_edit")
         return tool_error(
@@ -978,7 +1002,7 @@ def _ai_edit(args: dict) -> dict:
             hint="sibling_disabled" if found["state"] == "disabled" else "sibling_not_started",
             tool="ai_edit",
         )
-    if _setup.outdated("ai_edit", _setup.presence(AI_EDIT_KEYS)["plugin"]):
+    if _setup.outdated("ai_edit", _setup.presence(siblings.AI_EDIT)["plugin"]):
         return tool_error(
             "AI Edit by TerraLab is older than this agent supports.", "PLUGIN_OUTDATED",
             hint="ai_edit_outdated",
@@ -988,8 +1012,8 @@ def _ai_edit(args: dict) -> dict:
             return tool_error(
                 "The supplied prompt is empty.", "INVALID_ARGS", hint="ai_edit_prompt_missing",
             )
-        if _setup.signed_in("ai_edit", _setup.presence(AI_EDIT_KEYS)["plugin"]) is False:
-            return _signed_out("ai_edit", "AI Edit")
+        if _setup.signed_in("ai_edit", _setup.presence(siblings.AI_EDIT)["plugin"]) is False:
+            return _signed_out("ai_edit", siblings.AI_EDIT.label)
         return _integration._aiedit_generate(args)
     if action == "generation_status":
         return _AIEDIT.generation_status()
@@ -1039,12 +1063,14 @@ def _ai_segment(args: dict) -> dict:
     if action == "prepare":
         from .integration_handoff import prepare
         return prepare("ai_segment", args)
+    if action == "detect_points" and not on_main_thread():
+        return _integration.aiseg_detect_points_waiting(args)
     presence = _integration.aiseg_presence()
     if presence["plugin"] is None:
         return _aiseg_not_running(presence)
     if action == "detect_auto":
         if _setup.signed_in("ai_segment", presence["plugin"]) is False:
-            return _signed_out("ai_segment", "AI Segmentation")
+            return _signed_out("ai_segment", siblings.AI_SEGMENTATION.label)
         return _integration._aiseg_detect_auto(args)
     if action == "detect_points":
         return _integration._aiseg_detect_points(args)
@@ -1063,7 +1089,7 @@ def _ai_segment(args: dict) -> dict:
 _LAYER_EXT = _VECTOR_EXT | _RASTER_EXT
 
 
-def wrap_run_processing(registry: ToolRegistry):
+def complete_facade_tools(registry: ToolRegistry):
 
 
 

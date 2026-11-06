@@ -23,24 +23,31 @@
 
 
 
+
 from __future__ import annotations
 
-from qgis.PyQt.QtCore import QEvent, Qt, pyqtSignal
+from qgis.PyQt.QtCore import QEvent, QSize, Qt, QTimer, pyqtSignal
+from qgis.PyQt.QtGui import QColor
 from qgis.PyQt.QtWidgets import (
+    QApplication,
     QFrame,
     QHBoxLayout,
     QLabel,
+    QPushButton,
     QScrollArea,
     QVBoxLayout,
     QWidget,
 )
 
+from ..icons import icon_for
 from ..shared import tr
+from ..widgets import FlowLayout
 from . import common as C
 from .common import escape, link_html, source_rows
-from .parts import Breadcrumb, InfoTable, PageHeader, UserBubble, label, primary_button, section_title
+from .parts import Breadcrumb, InfoTable, PageHeader, label, primary_button, section_title
 from .pictures import wear_square_mark
 from .pressable import Pressable, labels_through
+from .slider import SliderView
 
 
 class SourceChip(Pressable):
@@ -59,6 +66,77 @@ class SourceChip(Pressable):
                       Qt.AlignmentFlag.AlignVCenter)
         labels_through(self)
         self.setFixedHeight(C.px(28))
+
+
+
+_CARD_SOURCES = 3
+
+_HERO_RATIO = 0.5
+_COPIED_MS = 1500
+
+
+class PromptCard(QFrame):
+
+
+    connector_requested = pyqtSignal(str)
+
+    def __init__(self, prompt: str, sources: list, use: QPushButton, parent=None):
+        super().__init__(parent)
+        self.setObjectName("promptCard")
+        self.setStyleSheet(
+            f"QFrame#promptCard {{ background: transparent; border: 1px solid {C.T.border};"
+            f" border-radius: {C.px(C.RADIUS_HERO)}px; }}")
+        self._prompt = str(prompt or "")
+        col = QVBoxLayout(self)
+        col.setContentsMargins(C.px(C.SPACE_2), C.px(C.SPACE_2), C.px(C.SPACE_2), C.px(C.SPACE_2))
+        col.setSpacing(C.px(C.SPACE_1))
+        col.addWidget(label(self, tr("What you type"), C.SMALL_PX, C.T.text_2, C.MEDIUM))
+        text = label(self, self._prompt, C.READ_PX, C.T.text, wrap=True)
+        text.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+        col.addWidget(text)
+        col.addSpacing(C.px(4))
+        row = QHBoxLayout()
+        row.setContentsMargins(0, 0, 0, 0)
+        row.setSpacing(C.px(4))
+        if sources:
+            row.addWidget(label(self, tr("Uses"), C.BODY_PX, C.T.text_2), 0, Qt.AlignmentFlag.AlignVCenter)
+            for source in sources[:_CARD_SOURCES]:
+                chip = SourceChip(source, self)
+                chip.clicked.connect(lambda k=chip.key: self.connector_requested.emit(k))
+                row.addWidget(chip, 0, Qt.AlignmentFlag.AlignVCenter)
+        row.addStretch(1)
+        self._copy = QPushButton(tr("Copy"), self)
+        self._copy.setCursor(Qt.CursorShape.PointingHandCursor)
+        self._copy.setAutoDefault(False)
+        self._copy.setIconSize(QSize(16, 16))
+        self._copy.setStyleSheet(C.qss(
+            f"QPushButton {{ background: transparent; border: none; border-radius: {C.px(8)}px;"
+            f" padding: 6px 10px; font-size: {C.BODY_PX}px; color: {C.T.text_2}; }}"
+            f"QPushButton:hover {{ background: {C.T.hover}; color: {C.T.text}; }}"
+            "QPushButton:focus { outline: none; }"))
+        self._copy.clicked.connect(self._on_copy)
+        self._set_copy_look(False)
+        row.addWidget(self._copy, 0, Qt.AlignmentFlag.AlignVCenter)
+        use.setParent(self)
+        row.addSpacing(C.px(4))
+        row.addWidget(use, 0, Qt.AlignmentFlag.AlignVCenter)
+        col.addLayout(row)
+
+    def _set_copy_look(self, copied: bool) -> None:
+
+        self._copy.setText(tr("Copied") if copied else tr("Copy"))
+        self._copy.setIcon(icon_for(self._copy, C.line_glyph("check" if copied else "copy"), 16, QColor(C.T.text_2)))
+
+    def _on_copy(self) -> None:
+        QApplication.clipboard().setText(self._prompt)
+        self._set_copy_look(True)
+        QTimer.singleShot(_COPIED_MS, self._reset_copy)
+
+    def _reset_copy(self) -> None:
+        try:
+            self._set_copy_look(False)
+        except RuntimeError:
+            pass
 
 
 class ExampleDetail(QWidget):
@@ -127,7 +205,9 @@ class ExampleDetail(QWidget):
         self._page.setContentsMargins(side, 0, side, C.px(C.SPACE_5))
         if self._hero is not None:
             try:
-                self._hero.setFixedHeight(self._hero.heightForWidth(max(1, width)))
+                width = max(1, width - 2 * C.px(C.EDGE))
+                self._hero.setFixedHeight(min(self._hero.heightForWidth(width),
+                                              round(width * _HERO_RATIO)))
             except RuntimeError:
                 self._hero = None
 
@@ -157,11 +237,8 @@ class ExampleDetail(QWidget):
             return
         self._crumbs.set_trail([root or tr("Examples"), group_label or str(case.group or "")])
         self._scroll.verticalScrollBar().setValue(0)
-        header = PageHeader(self._column, str(case.title or ""), str(case.outcome or ""), self._use)
-        self._use.show()
-        self._col.addWidget(header)
+        self._col.addWidget(PageHeader(self._column, str(case.title or ""), str(case.outcome or "")))
         self._col.addSpacing(C.px(C.SPACE_3))
-        from .slider import SliderView
 
         small = case.pair(small=True)
         self._hero = SliderView(case.image, parent=self._column, radius=C.RADIUS_HERO,
@@ -170,12 +247,18 @@ class ExampleDetail(QWidget):
                                 fallback=small if small[0] else (case.image_small,))
         self._hero.setAccessibleName(str(case.outcome or ""))
         self._col.addWidget(self._edged(self._hero))
-        self._col.addSpacing(C.px(C.SPACE_3))
-        self._col.addWidget(self._edged(UserBubble(str(case.prompt or ""), self._column)))
-        self._col.addSpacing(C.px(C.SPACE_5))
-        self._col.addWidget(section_title(self._column, tr("Information")))
-        self._col.addSpacing(C.px(12))
-        self._col.addWidget(self._edged(self._information(case)))
+        self._col.addSpacing(C.px(C.SPACE_2))
+        sources = source_rows(case)
+        card = PromptCard(str(case.prompt or ""), sources, self._use, self._column)
+        card.connector_requested.connect(self.connector_requested.emit)
+        self._use.show()
+        self._col.addWidget(self._edged(card))
+        information = self._information(case, sources)
+        if information.rows():
+            self._col.addSpacing(C.px(C.SPACE_5))
+            self._col.addWidget(section_title(self._column, tr("Information")))
+            self._col.addSpacing(C.px(12))
+            self._col.addWidget(self._edged(information))
         self._centre()
         self._use.setFocus()
         self._hero.play_intro()
@@ -190,7 +273,7 @@ class ExampleDetail(QWidget):
         lay.addWidget(widget)
         return holder
 
-    def _information(self, case) -> QWidget:
+    def _information(self, case, sources: list) -> InfoTable:
         table = InfoTable(self._column)
         table.link_activated.connect(self._on_link)
         samples = tuple(getattr(case, "samples", ()) or ())
@@ -202,8 +285,7 @@ class ExampleDetail(QWidget):
                     bit += f' <span style="color: {C.T.text_2};">{escape(sample.licence)}</span>'
                 parts.append(bit)
             table.add(tr("Sample file"), "<br>".join(parts), rich=True)
-        sources = source_rows(case)
-        if sources:
+        if len(sources) > _CARD_SOURCES:
             table.add(tr("Data sources"), self._source_chips(sources))
         steps = [str(s) for s in (getattr(case, "steps", ()) or ()) if str(s)]
         if steps:
@@ -216,7 +298,6 @@ class ExampleDetail(QWidget):
         return table
 
     def _source_chips(self, rows: list) -> QWidget:
-        from ..widgets import FlowLayout
 
         host = QWidget(self._column)
         lay = FlowLayout(host, C.px(4), C.px(4))

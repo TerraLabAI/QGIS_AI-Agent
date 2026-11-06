@@ -60,14 +60,15 @@ from qgis.PyQt.QtWidgets import (
     QWidget,
 )
 
+from ..core.numbers import as_float
 from ..core.plan import effort_name, efforts_allowed, efforts_stated, efforts_trial_locked, efforts_trial_note
+from ..core.served_state import get_effort_text
 from .font_scale import scale_qss_font_px
 from .icons import pixmap_for
 from .permission_chip import select_qss
 from .quota_card import pro_price_per_month
 from .shared import (
     event_pos,
-    get_effort_text,
     keep_on_screen,
     paint_styled_ground,
     round_popup_corners,
@@ -80,8 +81,8 @@ from .style import (
     DARK,
     FIELD,
     FONT_BODY,
+    FONT_HINT,
     FONT_MICRO,
-    FONT_PROSE,
     INK,
     INK_2,
     INK_3,
@@ -137,8 +138,6 @@ _CHIP_QSS = select_qss("effortChip")
 _POPOVER_QSS = scale_qss_font_px(
     f"QFrame#effortPopover {{ background: {SURFACE};"
     f" border: 1px solid {LINE_STRONG}; border-radius: {RADIUS_CARD}px; }}"
-    f"QLabel#effortTitle {{ font-size: {FONT_PROSE}px; font-weight: 600;"
-    f" color: {INK}; background: transparent; border: none; }}"
     f"QLabel#effortNote {{ font-size: {FONT_BODY}px; color: {INK_2};"
     " background: transparent; border: none; }"
     f"QLabel#effortRunNote {{ font-size: {FONT_BODY}px; color: {INK_3};"
@@ -153,8 +152,8 @@ _POPOVER_QSS = scale_qss_font_px(
     f"QPushButton#effortCta:pressed {{ background: {ACCENT_DARK}; }}"
 
 
-    f"QLabel#effortHead {{ font-size: {FONT_MICRO}px; font-weight: 600;"
-    f" letter-spacing: 0.7px; color: {INK_3}; background: transparent; border: none; }}"
+    f"QLabel#effortHead {{ font-size: {FONT_HINT}px; font-weight: 500;"
+    f" color: {INK_3}; background: transparent; border: none; }}"
     "QLabel { background: transparent; border: none; }"
 )
 
@@ -780,13 +779,19 @@ class _StopNames(QWidget):
     def paintEvent(self, event):  # noqa: N802
         painter = QPainter(self)
         try:
-            metrics = QFontMetrics(self.font())
+            plain = QFont(self.font())
+            strong = QFont(self.font())
+            strong.setWeight(QFont.Weight.DemiBold)
             for index, name in enumerate(self._names):
+
+                here = index == self._slider._preview
+                painter.setFont(strong if here else plain)
+                metrics = QFontMetrics(strong if here else plain)
                 width = metrics.horizontalAdvance(name)
                 x = self._slider._stop_x(index) - width / 2
                 x = max(0.0, min(float(self.width() - width), x))
                 locked = index >= self._slider._locked_from
-                painter.setPen(qcolor(INK_3 if locked else INK_2))
+                painter.setPen(qcolor(INK if here and not locked else INK_3 if locked else INK_2))
                 painter.drawText(int(round(x)), metrics.ascent() + 1, name)
                 if EFFORTS[index] in self.trial:
                     painter.setRenderHint(QPainter.RenderHint.Antialiasing, True)
@@ -827,15 +832,16 @@ class EffortPopover(QFrame):
         self._dip.setEasingCurve(QEasingCurve.Type.InOutSine)
         self._dip.valueChanged.connect(self._on_dip)
         self._pending: tuple[str, str] | None = None
-        self._head = QLabel(QCoreApplication.translate("EffortChip", "Effort").upper(), self)
-        self._head.setObjectName("effortHead")
-        col.addWidget(self._head)
+
+
+        self._name = ""
         head = QHBoxLayout()
         head.setContentsMargins(0, 0, 0, 0)
         head.setSpacing(8)
-        self._title = QLabel(self)
-        self._title.setObjectName("effortTitle")
-        head.addWidget(self._title, 0, Qt.AlignmentFlag.AlignVCenter)
+        self._head = QLabel(QCoreApplication.translate("EffortChip", "Effort"), self)
+        self._head.setObjectName("effortHead")
+        self._head.setFixedHeight(_CTA_PX)
+        head.addWidget(self._head, 0, Qt.AlignmentFlag.AlignVCenter)
         head.addStretch(1)
 
 
@@ -848,7 +854,6 @@ class EffortPopover(QFrame):
         self._cta.clicked.connect(self._on_upgrade)
         self._cta.hide()
         head.addWidget(self._cta, 0, Qt.AlignmentFlag.AlignVCenter)
-        self._title.setFixedHeight(_CTA_PX)
         words.addLayout(head)
         self._note = QLabel(self)
         self._note.setObjectName("effortNote")
@@ -866,7 +871,7 @@ class EffortPopover(QFrame):
         self._price.hide()
         words.addWidget(self._price)
         col.addWidget(self._words)
-        col.addSpacing(6)
+        col.addSpacing(2)
         self.slider = EffortSlider(self)
         self.slider.setFixedWidth(_TEXT_WIDTH)
         self.slider.previewed.connect(self._show)
@@ -944,7 +949,7 @@ class EffortPopover(QFrame):
     def _show(self, effort: str) -> None:
         self._sync_run_note(effort)
         name, note = self._texts.get(normalize_effort(effort), ("", ""))
-        if self.isVisible() and (name != self._title.text() or note != self._note.text()):
+        if self.isVisible() and (name != self._name or note != self._note.text()):
             self._pending = (name, note, effort)
             if self._dip.state() != QVariantAnimation.State.Running:
                 self._dip.setStartValue(0.0)
@@ -957,8 +962,9 @@ class EffortPopover(QFrame):
 
         trial = normalize_effort(effort) in self._trial
         upsell = self.slider.is_locked(effort) and not trial
-        self._title.setText(name)
+        self._name = name
         self._note.setText(note)
+        self._stops.update()
         self._cta.setVisible(upsell)
         self._price.setText(self._price_text() if upsell else self._trial_text() if trial else "")
         if upsell and visible:
@@ -976,9 +982,8 @@ class EffortPopover(QFrame):
                 else QCoreApplication.translate("EffortChip", "Included in Pro"))
 
     def _on_dip(self, value) -> None:
-        try:
-            t = float(value)
-        except (TypeError, ValueError):
+        t = as_float(value)
+        if t is None:
             return
         if t >= 0.5 and self._pending is not None:
             name, note, effort = self._pending
@@ -1078,9 +1083,6 @@ class EffortChip(QToolButton):
             self._popover.set_current(self._effort)
         self._paint()
 
-    def is_paid(self) -> bool:
-        return self._paid
-
     def set_running(self, running: bool) -> None:
 
 
@@ -1121,9 +1123,6 @@ class EffortChip(QToolButton):
             return
         self._compact = compact
         self._paint()
-
-    def is_compact(self) -> bool:
-        return self._compact
 
     def width_for(self, compact: bool) -> int:
 

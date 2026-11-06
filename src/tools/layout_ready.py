@@ -77,6 +77,7 @@ import uuid
 
 from qgis.core import (
     Qgis,
+    QgsGroupLayer,
     QgsLayoutItemLegend,
     QgsLayoutItemMap,
     QgsLayoutItemMapItem,
@@ -99,9 +100,12 @@ from qgis.PyQt.QtCore import QPoint, QPointF, QRectF, QSizeF, Qt, QTimer
 from qgis.PyQt.QtGui import QBrush, QColor, QImage, QPainter, QPainterPath
 from qgis.PyQt.QtWidgets import QGraphicsItem, QStyleOptionGraphicsItem
 
-from ..core.background import run_on_main_thread
+from ..core import limits, net
+from ..core.background import on_main_thread, run_on_main_thread
 from ..core.logger import log_warning
 from ..core.qt_compat import enum_member
+from . import raster_overviews
+from .render_wait import wait_or_stop
 
 
 
@@ -154,10 +158,6 @@ def _style_hash(layer, override, cache: dict | None = None) -> str:
 
 
 def _is_group(layer) -> bool:
-    try:
-        from qgis.core import QgsGroupLayer
-    except ImportError:
-        return False
     return isinstance(layer, QgsGroupLayer)
 
 
@@ -807,8 +807,6 @@ def wait(plan: dict, budget_s: float) -> dict:
 
 
 
-    from ..core.background import on_main_thread
-    from .advanced_render import _wait_or_stop
 
     pictures = (plan or {}).get("pictures") or []
     if not pictures:
@@ -820,7 +818,7 @@ def wait(plan: dict, budget_s: float) -> dict:
         left = deadline - time.monotonic()
         if left <= 0:
             break
-        if _wait_or_stop(picture["done"], left):
+        if wait_or_stop(picture["done"], left):
             plan["stopped"] = True
             break
         _keep(picture, plan.get("spill"))
@@ -1234,7 +1232,6 @@ def _held_for(name: str, plan, note):
 
 
 def _waited(plan) -> None:
-    from ..core import limits
 
     try:
         wait(plan, limits.current("CALL_MAX_SECONDS_BACKGROUND") * _WAIT_SHARE)
@@ -1243,7 +1240,7 @@ def _waited(plan) -> None:
         raise
 
 
-def prepare_export(args: dict):
+def prepare_export(args: dict, view):
 
 
 
@@ -1253,12 +1250,9 @@ def prepare_export(args: dict):
 
 
 
-    from . import raster_overviews
-    from .advanced_layouts import export_view
 
     overviews = raster_overviews.prepare_layout(args)
     name = str(args.get("layout_name") or "")
-    view = export_view(args)
     if view is None:
         return overviews
     if view[3] == "report":
@@ -1291,7 +1285,6 @@ def plan_iterator(walker, dpi: int, flags=None) -> dict:
 
 
 
-    from ..core import net
 
     plan = new_plan(dpi)
     state = {"started": False, "done": False, "pixels": 0}
@@ -1418,18 +1411,15 @@ def _walked_for(key: str, walker, view: tuple, overviews):
     return work
 
 
-def prepare_atlas(args: dict):
+def prepare_atlas(args: dict, view):
 
 
 
 
 
-    from . import raster_overviews
-    from .harvest_layout import atlas_view
 
     overviews = raster_overviews.prepare_layout(args)
     name = str(args.get("layout_name") or "")
-    view = atlas_view(args)
     if view is None:
         return overviews
     return _walked_for("atlas:" + name, _AtlasWalk(name, view[2]), view, overviews)

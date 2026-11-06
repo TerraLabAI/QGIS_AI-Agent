@@ -69,25 +69,6 @@ CALL_MAX_SECONDS_MAIN_LONG = 90.0
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-_LONG_MAIN_CALLS = frozenset({"export_layout", "export_atlas", "get_isochrone", "execute_code",
-                              "ai_segment", "ai_edit", "load_project"})
-
-
-
-
-
 ISOCHRONE_MAX_ROADS = 150_000
 
 
@@ -445,16 +426,6 @@ def current(name: str):
     from . import machine, tuning
 
     return machine.scale(name, tuning.number("limits", name.lower(), globals()[name]))
-
-
-def main_budget(name: str) -> float:
-
-
-
-
-
-    return current("CALL_MAX_SECONDS_MAIN_LONG" if name in _LONG_MAIN_CALLS
-                   else "CALL_MAX_SECONDS_MAIN")
 
 
 _KM_PER_DEGREE = 111.32

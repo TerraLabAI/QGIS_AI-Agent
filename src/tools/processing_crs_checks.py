@@ -23,10 +23,10 @@ from qgis.core import (
     QgsRasterLayer,
 )
 
-from ..core import ground, tuning
+from ..core import ground, tool_rules, tuning
 from ..core.tool_registry import tool_error
 from ._compat import enum_value
-from .layer_lookup import _find_layer
+from ._layers import resolve_layer
 
 
 def _rules(section: str):
@@ -42,16 +42,21 @@ def _distance_names() -> frozenset:
 
 
 
+def _checks(key: str):
 
 
+    return tool_rules.section("crs_checks").get(key)
 
-_PERCENTAGE_PARAMETERS = frozenset({("native:voronoipolygons", "BUFFER"), ("gdal:pointsalonglines", "DISTANCE")})
+
+def _percentage_parameters() -> frozenset:
+
+    return frozenset((alg, name) for alg, name in _checks("percentage_parameters") or ())
+
+
 
 
 
 _INTEGER = enum_value((Qgis, "ProcessingNumberParameterType.Integer"), (QgsProcessingParameterNumber, "Integer"))
-
-_DEGREES_ALLOWED = 0.01
 
 
 
@@ -148,7 +153,7 @@ def _geographic_distance_check(alg, parameters: dict, confirmed: bool) -> tuple[
     notes: list[str] = []
     for definition in alg.parameterDefinitions():
         name = definition.name()
-        if (str(alg.id() or "").casefold(), name.upper()) in _PERCENTAGE_PARAMETERS:
+        if (str(alg.id() or "").casefold(), name.upper()) in _percentage_parameters():
             continue
         try:
             typed_distance = definition.type() == "distance"
@@ -158,8 +163,9 @@ def _geographic_distance_check(alg, parameters: dict, confirmed: bool) -> tuple[
         if counted or (not typed_distance and name.upper() not in _distance_names()):
             continue
         value = parameters.get(name)
-        degrees_allowed = tuning.threshold("processing_degrees_allowed", _DEGREES_ALLOWED, 0.001, 0.1)
-        if isinstance(value, bool) or not isinstance(value, (int, float)) or abs(float(value)) < degrees_allowed:
+        degrees_allowed = _checks("degrees_allowed")
+        if degrees_allowed is None or isinstance(value, bool) or not isinstance(value, (int, float)) \
+                or abs(float(value)) < degrees_allowed:
             continue
         parent = ""
         if hasattr(definition, "parentParameterName"):
@@ -168,7 +174,7 @@ def _geographic_distance_check(alg, parameters: dict, confirmed: bool) -> tuple[
             except Exception:  # nosec B110
                 parent = ""
         source = parameters.get(parent or "INPUT")
-        layer = _find_layer(source) if isinstance(source, str) else None
+        layer = resolve_layer(source) if isinstance(source, str) else None
         if layer is None or not hasattr(layer, "crs"):
             continue
         if name.upper() == "INTERVAL" and not typed_distance and isinstance(layer, QgsRasterLayer):
@@ -222,7 +228,7 @@ def _terrain_on_degrees_check(algorithm_id: str, parameters: dict) -> dict | Non
     if algorithm_id not in tuning.check_algs("terrain_by_cell", _TERRAIN_BY_CELL):
         return None
     source = parameters.get("INPUT")
-    layer = source if hasattr(source, "crs") else (_find_layer(source) if isinstance(source, str) else None)
+    layer = source if hasattr(source, "crs") else (resolve_layer(source) if isinstance(source, str) else None)
     if layer is None or not hasattr(layer, "crs"):
         return None
     crs = layer.crs()
@@ -249,7 +255,7 @@ def _interpolation_source(value):
     if not isinstance(value, str) or not value:
         return None
     first = value.split("::|::", 1)[0].split("::~::", 1)[0]
-    return _find_layer(first) if first else None
+    return resolve_layer(first) if first else None
 
 
 def _metric_grid_on_degrees_check(algorithm_id: str, parameters: dict, confirmed: bool) -> dict | None:
@@ -261,7 +267,7 @@ def _metric_grid_on_degrees_check(algorithm_id: str, parameters: dict, confirmed
     always, key = bool(row.get("always")), str(row.get("source") or "")
     if confirmed and not always:
         return None
-    layer = _find_layer(parameters.get(key)) if key and isinstance(parameters.get(key), str) else (
+    layer = resolve_layer(parameters.get(key)) if key and isinstance(parameters.get(key), str) else (
         _interpolation_source(parameters.get("INTERPOLATION_DATA")) if not key else None)
     if layer is None or not hasattr(layer, "crs"):
         return None
@@ -333,7 +339,7 @@ def _flow_dem(alg, algorithm_id: str, parameters: dict):
     for definition in alg.parameterDefinitions():
         try:
             if definition.type() == "raster" and not definition.isDestination():
-                layer = _find_layer(parameters.get(definition.name())) \
+                layer = resolve_layer(parameters.get(definition.name())) \
                     if isinstance(parameters.get(definition.name()), str) else None
                 break
         except Exception:  # noqa: BLE001  # nosec B112
@@ -388,7 +394,6 @@ _DEGREE_MAX_X = 360.0
 _DEGREE_BOUND_Y = 90.0
 
 
-_HALF_CELL_MAX = 2.5
 
 
 def degree_slack(layer) -> tuple[float, float]:
@@ -397,8 +402,8 @@ def degree_slack(layer) -> tuple[float, float]:
         if isinstance(layer, QgsRasterLayer):
             half_x = abs(float(layer.rasterUnitsPerPixelX())) / 2.0
             half_y = abs(float(layer.rasterUnitsPerPixelY())) / 2.0
-            half_max = tuning.threshold("processing_half_cell_max", _HALF_CELL_MAX, 1.0, 5.0)
-            if half_x <= half_max and half_y <= half_max:
+            half_max = _checks("half_cell_max")
+            if half_max is not None and half_x <= half_max and half_y <= half_max:
                 return half_x, half_y
     except Exception:  # noqa: BLE001  # nosec B110
         pass
@@ -458,8 +463,6 @@ def crs_plausibility(layer, new_crs) -> dict | None:
 
 
 
-_AREA_OF_USE_MARGIN = 2.0
-
 
 def _centre_in_area_of_use(crs, point) -> bool | None:
 
@@ -476,7 +479,9 @@ def _centre_in_area_of_use(crs, point) -> bool | None:
         if crs.isGeographic() and x > 180.0:
 
             x -= 360.0
-        m = tuning.threshold("processing_area_of_use_margin", _AREA_OF_USE_MARGIN, 0.5, 10.0)
+        m = _checks("area_of_use_margin")
+        if m is None:
+            return None
         return (bounds.xMinimum() - m <= x <= bounds.xMaximum() + m
                 and bounds.yMinimum() - m <= y <= bounds.yMaximum() + m)
     except Exception:  # noqa: BLE001
@@ -505,3 +510,12 @@ def _outside_area_of_use(layer, new_crs, extent) -> dict | None:
         f"{new_crs.authid()} they fall outside the area that CRS covers, so declaring it would move the layer.",
         "CRS_GUARD", hint="crs_declared_outside_area", crs=new_crs.authid(),
     )
+
+
+def is_metric(crs) -> bool:
+    try:
+        from qgis.core import Qgis
+
+        return crs.mapUnits() == Qgis.DistanceUnit.Meters
+    except Exception:  # noqa: BLE001
+        return False

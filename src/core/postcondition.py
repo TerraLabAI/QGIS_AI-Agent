@@ -32,7 +32,9 @@
 
 from __future__ import annotations
 
-from .layer_order import feature_count_of
+from . import tuning
+from .layer_order import canvas_view, feature_count_of, in_view, switched_on
+from .tool_registry import spec
 
 
 
@@ -44,50 +46,7 @@ _FIELD_SAMPLE = 20
 
 
 
-_SHAPES: dict[str, str] = {
-    "add_vector_layer": "arrives",
-    "add_data": "arrives",
-    "add_cog_layer": "arrives",
-    "add_xyz_layer": "arrives",
-    "add_wms_layer": "arrives",
-    "add_wfs_layer": "arrives",
-    "add_vector_from_url": "arrives",
-    "add_points_from_json": "arrives",
-    "create_memory_layer": "arrives",
-    "fetch_osm_data": "arrives",
-    "fetch_building_footprints": "arrives",
-    "fetch_overture": "arrives",
-    "get_route": "arrives",
-    "get_isochrone": "arrives",
-    "delineate_watershed": "arrives",
-    "extract_stream_network": "arrives",
-    "map_drainage": "arrives",
-    "terrain_visualisation": "arrives",
-    "detect_terrain_anomalies": "arrives",
-    "georeference_raster": "arrives",
-    "save_layer_to_gpkg": "arrives",
-    "import_csv": "arrives",
-    "load_csv": "arrives",
-    "set_layer_crs": "layer",
-    "set_layer_style": "layer",
-    "set_layer_symbology": "layer",
-    "set_layer_labels": "layer",
-    "set_layer_temporal": "layer",
-    "add_features": "layer",
-    "update_feature_geometry": "layer",
-    "select_features": "layer",
-    "select_by_attribute": "layer",
-    "select_by_geometry": "layer",
-    "add_table_join": "layer",
-    "qgis_edit_commit": "layer",
-    "repair_layer_paths": "layer",
-    "add_field": "field",
-    "field_calculator": "field",
-    "rename_field": "field",
-    "update_features": "field",
-    "remove_layer": "removed",
-    "delete_features": "layer",
-}
+
 
 
 
@@ -219,14 +178,13 @@ def _placement(layer, project, view) -> dict:
 
 
 
-    from .run_report import _in_view, _switched_on
 
     out = {}
     try:
         node = project.layerTreeRoot().findLayer(layer.id()) if project is not None else None
     except Exception:  # noqa: BLE001
         node = None
-    shown = _switched_on(node) if node is not None else None
+    shown = switched_on(node) if node is not None else None
     if shown is not None:
         out["visible"] = shown
     if view is not None:
@@ -234,16 +192,10 @@ def _placement(layer, project, view) -> dict:
             extent = layer.extent()
         except Exception:  # noqa: BLE001
             extent = None
-        seen = _in_view(layer, extent, view)
+        seen = in_view(layer, extent, view)
         if seen is not None:
             out["in_view"] = seen
     return out
-
-
-def _canvas_view():
-    from .run_report import _view
-
-    return _view()
 
 
 def _extent(layer) -> list[float] | None:
@@ -366,7 +318,6 @@ def _schema(layer) -> dict:
 
 
 
-    from . import tuning
 
     if not tuning.flag("results", "layer_facts", False) or not hasattr(layer, "fields"):
         return {}
@@ -428,7 +379,6 @@ def _band_range(layer) -> dict:
 
 
 
-    from . import tuning
 
     if not tuning.flag("results", "layer_facts", False):
         return {}
@@ -476,7 +426,6 @@ def read_ahead(layer) -> None:
 
 
 
-    from . import tuning
 
     if not tuning.flag("results", "layer_facts", False):
         return
@@ -558,7 +507,7 @@ def describe(result, placed: bool = True) -> None:
     try:
         project = _project()
         own = _text(result.get("layer_id")) if isinstance(result.get("verified"), dict) else ""
-        view = _canvas_view() if placed else None
+        view = canvas_view() if placed else None
         for entry in _listed(result):
             lid = _entry_id(entry)
             if not lid or lid == own or project is None:
@@ -595,7 +544,8 @@ def verify(name: str, args, result) -> dict | None:
 
     if not isinstance(result, dict) or "_error" in result or "checks" in result:
         return None
-    shape = _SHAPES.get(str(name))
+    declared = spec(str(name))
+    shape = declared.check_shape if declared is not None and declared.check_shape else None
     args = args if isinstance(args, dict) else {}
     if shape is None:
         return _index_range(args, result)
@@ -632,7 +582,7 @@ def _verify(shape: str, args: dict, result: dict) -> dict | None:
         out["extent"] = extent
     if shape == "arrives" and "fields" not in result and _one_layer(result):
         out.update(_schema(layer))
-    out.update(_placement(layer, _project(), _canvas_view()))
+    out.update(_placement(layer, _project(), canvas_view()))
     warning = ""
     if count == 0:
         warning = f"{layer.name()!r} is in the project with 0 features."
@@ -664,12 +614,12 @@ def _index_range(args: dict, result: dict) -> dict | None:
 
 
     try:
-        from .invariants import index_range, normalised_difference
+        from .invariants import index_range, normalised_difference, normalised_difference_range
 
         if not normalised_difference(args.get("expression")):
             return None
         layer, _ref, _strong, _shared = _resolve(args, result)
-        found = index_range(layer, (-1.0, 1.0, "a normalised difference index")) if layer is not None else None
+        found = index_range(layer, normalised_difference_range())
         if not found or not found.get("warning"):
             return None
         return {"layer": layer.name(), "present": True, "value_range": found,

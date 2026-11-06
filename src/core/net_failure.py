@@ -132,7 +132,6 @@ def _transient(exc: BaseException) -> bool:
 NETWORK_ERROR = "NETWORK_ERROR"
 
 
-NETWORK_HINT = "network_failed"
 NETWORK_SUGGESTION = ""
 
 
@@ -189,31 +188,6 @@ def _hostname(url: str) -> str:
         return (urllib.parse.urlsplit(str(url)).hostname or "").strip("[]").lower()
     except ValueError:
         return ""
-
-
-def _warn_if_on_main_thread() -> None:
-
-
-
-
-
-
-
-
-
-    try:
-        from .background import on_main_thread
-
-        if not on_main_thread():
-            return
-        from qgis.core import QgsApplication
-
-        if QgsApplication.instance() is None:
-            return
-    except Exception:  # noqa: BLE001
-        return
-    log_warning("net.fetch called on the Qt main thread: QGIS is blocked for the "
-                "length of this request. The tool should declare background=True.")
 
 
 def _inflate(body: bytes, encoding: str, max_bytes: int) -> bytes:

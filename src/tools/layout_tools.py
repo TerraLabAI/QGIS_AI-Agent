@@ -58,7 +58,6 @@ from qgis.core import (
     QgsLayoutItemRegistry,
     QgsLayoutItemScaleBar,
     QgsLayoutItemShape,
-    QgsLayoutMeasurementConverter,
     QgsLayoutPoint,
     QgsLayoutSize,
     QgsPrintLayout,
@@ -79,12 +78,14 @@ from qgis.PyQt.QtCore import QT_TRANSLATE_NOOP
 from qgis.PyQt.QtGui import QFont, QFontInfo
 from qgis.utils import iface
 
-from ..core import tuning
+from ..core import security, tuning
 from ..core.qt_compat import enum_member
 from ..core.tool_registry import Tool, ToolRegistry, coded_fact, tool_error
-from ._layers import resolve_layer_note
+from ._layers import layer_not_found, resolve_layer_note
 from .colour_text import hex_from_qcolor, qcolor_from_text
-from .layer_lookup import _layer_not_found_error
+from .layout_facts import _apply_scale, _layout_credits, _page_summary
+from .layout_reads import layout_reads
+from .report_read import report_summary
 
 
 def _layout_rules(section: str) -> dict:
@@ -104,16 +105,6 @@ def _placement(name: str, neutral: float) -> float:
 
 
 _PAGE_SIZES = ["A4", "A3", "A2", "A1", "A0", "Letter"]
-
-
-_KNOWN_SIZES_MM = {
-    "A4": (210, 297),
-    "A3": (297, 420),
-    "A2": (420, 594),
-    "A1": (594, 841),
-    "A0": (841, 1189),
-    "Letter": (216, 279),
-}
 
 
 def _create_layout_label(args: dict) -> str:
@@ -140,6 +131,7 @@ def _edit_label(template: str):
 def register_layout_tools(registry: ToolRegistry):
     registry.register(Tool(
         name="create_print_layout",
+        layer_use="keep",
         danger="write",
         label_for=_create_layout_label,
         builds_layout_at="name",
@@ -172,6 +164,7 @@ def register_layout_tools(registry: ToolRegistry):
 
     registry.register(Tool(
         name="add_layout_map",
+        layer_use="keep",
         danger="write",
         builds_layout_at="layout_name",
         label_for=_edit_label(QT_TRANSLATE_NOOP("AIAgent", "Change a map of the layout {layout_name}")),
@@ -265,6 +258,7 @@ def register_layout_tools(registry: ToolRegistry):
 
     registry.register(Tool(
         name="add_layout_legend",
+        layer_use="keep",
         danger="write",
         label_for=_legend_label,
         builds_layout_at="layout_name",
@@ -1192,27 +1186,6 @@ def _set_page(layout, page_size, orientation) -> bool:
     return True
 
 
-def _page_summary(layout) -> dict:
-    page = layout.pageCollection().page(0)
-    try:
-        conv = QgsLayoutMeasurementConverter()
-        size_mm = conv.convert(page.pageSize(), enum_member(QgsUnitTypes, "LayoutUnit", "LayoutMillimeters"))
-        w, h = round(size_mm.width(), 1), round(size_mm.height(), 1)
-    except Exception:
-        w = h = None
-
-    orientation = None
-    page_name = None
-    if w is not None and h is not None:
-        orientation = "landscape" if w > h else "portrait"
-        lo, hi = sorted((w, h))
-        for name, (pw, ph) in _KNOWN_SIZES_MM.items():
-            if abs(lo - pw) <= 2 and abs(hi - ph) <= 2:
-                page_name = name
-                break
-    return {"page_size": page_name, "orientation": orientation, "width_mm": w, "height_mm": h}
-
-
 def _item_summary(item) -> dict:
     rect = item.sceneBoundingRect()
     summary = {
@@ -1252,8 +1225,6 @@ def _layout_summary(layout) -> dict:
         "items": items,
     }
 
-
-    from .advanced_layouts import _layout_credits
 
     try:
         missing = _layout_credits(layout)
@@ -1849,7 +1820,7 @@ def _subject(args: dict):
     if layer_name:
         layer, _note = resolve_layer_note(layer_name)
         if layer is None:
-            return None, "", _layer_not_found_error(layer_name)
+            return None, "", layer_not_found(layer_name)
         project = QgsProject.instance()
         rect = QgsRectangle(layer.extent())
         if layer.crs().isValid() and project.crs().isValid() and layer.crs() != project.crs():
@@ -1957,7 +1928,6 @@ def _layout_from_template(name: str, args: dict) -> dict:
     from qgis.core import QgsReadWriteContext
     from qgis.PyQt.QtXml import QDomDocument
 
-    from ..core import security
     from ..ui.file_links import path_from_url
 
     path = str(args["template_path"]).strip()
@@ -2113,8 +2083,6 @@ def _add_layout_map_in(layout, args: dict) -> dict:
     scale_note = ""
     wanted_scale = args.get("scale")
     if wanted_scale is not None:
-        from .advanced_tools import _apply_scale
-
         applied = _apply_scale(map_item, wanted_scale, args["layout_name"])
         if isinstance(applied, dict):
             layout.removeLayoutItem(map_item)
@@ -2250,8 +2218,6 @@ def _edit_layout_map(layout, args: dict) -> dict:
         map_item.zoomToExtent(shown)
     scale_note = ""
     if args.get("scale") is not None:
-        from .advanced_tools import _apply_scale
-
         applied = _apply_scale(map_item, args["scale"], layout.name())
         if isinstance(applied, dict):
             return applied
@@ -3251,14 +3217,11 @@ def _get_layout_info(args: dict) -> dict:
     if error:
         return error
     if getattr(layout, "pageCollection", None) is None:
-        from .report_tools import report_summary
-
         return report_summary(layout)
     result = _layout_summary(layout)
-    from .layout_reads import layout_reads
     result.update(layout_reads(layout))
     result["edit_in_place"] = coded_fact(hint="layout_edit_in_place")
-    from ..core.layout_quality import assess_layout
+    from .layout_quality import assess_layout
     result["layout_checks"] = assess_layout(layout)
     furniture = furniture_check(layout)
     if furniture is not None:

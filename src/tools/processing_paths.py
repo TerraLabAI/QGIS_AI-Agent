@@ -28,35 +28,17 @@ import unicodedata
 
 from qgis.core import QgsProject
 
+from ..core import tool_rules
 from ..core.host_platform import IS_WINDOWS
 from ..core.logger import log_warning
+from ..core.output_paths import gpkg_sink_uri, gpkg_table_target
 from ..core.policy import create_managed_temp_dir
 from ..core.security import fits_path
+from ..core.text_encoding import ansi_encoding
 from ..core.tool_registry import tool_error
-from .processing_destinations import _gpkg_sink_uri, _gpkg_table_target
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-_PATH_FRAGILE_PROVIDERS = frozenset({"grass", "grass7", "saga", "sagang", "pcraster", "lastools"})
 
 
 
@@ -66,7 +48,7 @@ _UNRELEASED: list = []
 def fragile_provider(algorithm_id: str) -> str:
 
     provider = str(algorithm_id or "").split(":", 1)[0].lower()
-    return provider if provider in _PATH_FRAGILE_PROVIDERS else ""
+    return provider if provider in tool_rules.names("paths", "fragile_providers") else ""
 
 
 def unsafe_path(path: str) -> bool:
@@ -143,10 +125,6 @@ def _short_path(path: str) -> str:
 
 
 
-
-_NARROW_OPEN_SUFFIXES = (".nc", ".nc4", ".cdf", ".hdf", ".hdf4", ".h4", ".he4", ".xls")
-
-
 def narrow_open_path(path: str) -> tuple[str, str]:
 
 
@@ -155,9 +133,8 @@ def narrow_open_path(path: str) -> tuple[str, str]:
 
 
 
-    if not IS_WINDOWS or not str(path or "").lower().endswith(_NARROW_OPEN_SUFFIXES):
+    if not IS_WINDOWS or not str(path or "").lower().endswith(tool_rules.names("paths", "narrow_open_suffixes")):
         return path, ""
-    from ..core.text_encoding import ansi_encoding
 
     page = ansi_encoding()
 
@@ -341,7 +318,7 @@ class PathAliases:
 def _file_behind(item: str, project, destination: bool) -> tuple[str, str, str]:
 
     if destination:
-        table = _gpkg_table_target(item)
+        table = gpkg_table_target(item)
         if table is not None:
             return table[0], "", table[1]
         path = item.split("|", 1)[0]
@@ -394,7 +371,7 @@ def alias_fragile_paths(algorithm_id: str, parameters: dict, destination_names) 
             if not real or not unsafe_path(real):
                 continue
             alias = aliases.destination(real) if destination else aliases.existing(real)
-            built = (_gpkg_sink_uri(alias, table) if table else alias + rest) if alias else None
+            built = (gpkg_sink_uri(alias, table) if table else alias + rest) if alias else None
             if not built or not fits_path(alias):
                 reason = aliases.problem or ("its alias would pass the 260 characters Windows opens"
                                              if built else "no short name or link of its folder could be made")

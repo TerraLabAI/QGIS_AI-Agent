@@ -38,7 +38,9 @@ from qgis.core import (
 )
 from qgis.PyQt.QtGui import QColor
 
+from ..core.layer_release import remove_layers
 from ..core.tool_registry import tool_error
+from ._compat import enum_value
 
 
 MAX_FLOATING = 500
@@ -121,8 +123,6 @@ def line_width_px(layer) -> float:
 
 
     from qgis.core import QgsLineSymbol, QgsUnitTypes
-
-    from ._compat import enum_value
 
     millimetres = enum_value((Qgis, "RenderUnit.Millimeters"), (QgsUnitTypes, "RenderMillimeters"))
     renderer = layer.renderer()
@@ -457,8 +457,6 @@ def float_labels(layer) -> dict:
                               hint="style3d_labels_show_filter")
     project = QgsProject.instance()
     name = f"{layer.name()} labels 3D"
-    from .processing_run import remove_layers
-
     remove_layers([old.id() for old in project.mapLayers().values()
                    if isinstance(old, QgsAnnotationLayer) and old.customProperty(LABELS_PROPERTY) == layer.id()])
     notes = QgsAnnotationLayer(name, QgsAnnotationLayer.LayerOptions(project.transformContext()))

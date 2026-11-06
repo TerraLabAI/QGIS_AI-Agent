@@ -14,6 +14,7 @@ import os
 import re
 from typing import Any
 
+from . import link_vault
 from .provider_uri import _URI_SECRET_KEYS, REDACTED, scrub_uri_secrets
 
 
@@ -56,11 +57,11 @@ _SECRET_KEY_RE = re.compile(
 
 
 
-
-
 _BASE64_PAYLOAD_RE = re.compile(r"[A-Za-z0-9+/]{2000,}={0,2}")
 _BASE64_PAYLOAD_MARK = "\x00\x00b64\x00\x00"
 _BASE64_CUT_MIN = 2000
+_BASE64_LABEL_CHARS = 64
+_SECRET_LABEL_RE = re.compile(r"(?i)bearer|token|authorization|secret|passw|api[-_]?key")
 
 
 
@@ -195,9 +196,13 @@ def scrub_secrets(text: str) -> str:
 
     if not text:
         return text or ""
+
+    text = link_vault.hide_text(text)
     runs: list[str] = []
     if len(text) >= _BASE64_CUT_MIN:
         def _cut(match: re.Match) -> str:
+            if _SECRET_LABEL_RE.search(text, max(0, match.start() - _BASE64_LABEL_CHARS), match.start()):
+                return match.group(0)
             runs.append(match.group(0))
             return _BASE64_PAYLOAD_MARK
         text = _BASE64_PAYLOAD_RE.sub(_cut, text)

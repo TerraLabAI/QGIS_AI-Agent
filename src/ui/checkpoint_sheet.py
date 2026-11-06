@@ -54,6 +54,7 @@ from ..core.checkpoints import (
     NOT_BACKED_TOO_LARGE,
     NOT_PUT_BACK,
 )
+from ..core.numbers import as_float
 from .attach_menu import place_below
 from .font_scale import scale_qss_font_px
 from .history_popup import relative_time
@@ -129,9 +130,8 @@ def _one_line(text: str) -> str:
 
 def _when(stamp) -> str:
 
-    try:
-        seconds = float(stamp or 0.0)
-    except (TypeError, ValueError):
+    seconds = as_float(stamp or 0.0)
+    if seconds is None:
         return ""
     if seconds <= 0:
         return ""

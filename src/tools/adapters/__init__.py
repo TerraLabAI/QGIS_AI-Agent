@@ -39,7 +39,6 @@ def get_adapter(name: str) -> PluginAdapter:
                 return adapter
             if target in (_normalize(k) for k in adapter.keys):
                 return adapter
-
             if any(target in _normalize(k) for k in adapter.keys):
                 return adapter
     return GenericAdapter(name)

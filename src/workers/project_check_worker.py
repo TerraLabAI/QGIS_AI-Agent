@@ -50,13 +50,14 @@ def _layout_quality(plugin_root: str):
         "_ai_agent_plugin": [plugin_root],
         "_ai_agent_plugin.src": [os.path.join(plugin_root, "src")],
         "_ai_agent_plugin.src.core": [os.path.join(plugin_root, "src", "core")],
+        "_ai_agent_plugin.src.tools": [os.path.join(plugin_root, "src", "tools")],
     }
     for name, paths in packages.items():
         if name not in sys.modules:
             module = types.ModuleType(name)
             module.__path__ = paths
             sys.modules[name] = module
-    return importlib.import_module("_ai_agent_plugin.src.core.layout_quality")
+    return importlib.import_module("_ai_agent_plugin.src.tools.layout_quality")
 
 
 def _source_path(layer) -> str:

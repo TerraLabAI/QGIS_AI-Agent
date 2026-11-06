@@ -63,7 +63,7 @@ from ..core.output_paths import default_folder, exports_folder, safe_file_name
 from ..core.policy import create_managed_temp_dir
 from ..core.qt_compat import enum_member
 from ..core.tool_registry import Tool, ToolRegistry, coded_fact, tool_error
-from .data_tools import _USER_AGENT
+from ._layers import resolve_layer
 
 HUB = "https://hub.qgis.org"
 _LIST_URL = HUB + "/api/v1/resources/"
@@ -131,7 +131,6 @@ def register_hub_tools(registry: ToolRegistry):
         name="search_qgis_hub",
         danger="read",
         label=QT_TRANSLATE_NOOP("AIAgent", "Search the QGIS Hub[ for {query}]"),
-        catalog=True,
         input_schema={
             "type": "object",
             "properties": {
@@ -176,7 +175,7 @@ def _type_key(value) -> str:
 
 def _fetch_list(params: dict) -> tuple[list, int]:
     url = _LIST_URL + "?" + urllib.parse.urlencode(params)
-    req = urllib.request.Request(url, headers={"User-Agent": _USER_AGENT, "Accept": "application/json"})
+    req = urllib.request.Request(url, headers={"Accept": "application/json"})
     answer = net.fetch(req, timeout=_TIMEOUT_S, max_bytes=_LIST_MAX_BYTES,
                        total_timeout=_LIST_TOTAL_S, cache_ttl=_LIST_CACHE_S)
     doc = json.loads(answer.body.decode("utf-8", "replace"))
@@ -310,7 +309,7 @@ def _import_qgis_hub_resource(args: dict) -> dict:
     if TYPES.get(kind, ("", ""))[1] == USER_INSTALLS:
 
         return _user_installs(meta, kind, [])
-    req = urllib.request.Request(_DOWNLOAD_URL.format(uuid=uuid), headers={"User-Agent": _USER_AGENT})
+    req = urllib.request.Request(_DOWNLOAD_URL.format(uuid=uuid))
     try:
         answer = net.fetch(req, timeout=_TIMEOUT_S, max_bytes=_FILE_MAX_BYTES, total_timeout=_FILE_TOTAL_S)
     except net.FetchCancelled:
@@ -542,8 +541,6 @@ def _enum_int(value) -> int:
 def _apply_symbol(style, names: list, layer_arg: str) -> dict:
 
     from qgis.core import QgsSingleSymbolRenderer, QgsVectorLayer
-
-    from ._layers import resolve_layer
 
     layer = resolve_layer(layer_arg)
     if not isinstance(layer, QgsVectorLayer):

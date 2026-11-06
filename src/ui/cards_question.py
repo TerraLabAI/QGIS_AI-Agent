@@ -28,11 +28,10 @@ from qgis.PyQt.QtCore import (
     QEvent,
     QPointF,
     Qt,
-    QTimer,
     QVariantAnimation,
     pyqtSignal,
 )
-from qgis.PyQt.QtGui import QFont, QPalette
+from qgis.PyQt.QtGui import QPalette
 from qgis.PyQt.QtWidgets import (
     QFrame,
     QHBoxLayout,
@@ -43,6 +42,8 @@ from qgis.PyQt.QtWidgets import (
     QWidget,
 )
 
+from ..core.numbers import as_int
+from ..core.qt_compat import one_shot
 from .card_base import _UNBOUNDED_PX, _Card, plain_label, reduced_motion
 from .card_controls import (
     _ASK_CARD_QSS,
@@ -68,7 +69,6 @@ from .icons import icon_for
 from .style import (
     ACCENT,
     ACCENT_INK,
-    ACCENT_TINT_STRONG,
     FIELD,
     FONT_BASE,
     FONT_HINT,
@@ -86,6 +86,7 @@ from .style import (
     qcolor,
     repolish,
 )
+from .widgets import ElidedLabel
 
 
 
@@ -98,11 +99,8 @@ _FREE_TEXT_QSS = scale_qss_font_px(
 )
 
 
-
-
 _RECOMMENDED_QSS = scale_qss_font_px(
-    f"QLabel {{ font-size: {FONT_HINT}px; color: {ACCENT_INK}; background: {ACCENT_TINT_STRONG};"
-    f" border: none; border-radius: 4px; padding: 1px 6px; margin-top: 1px; }}"
+    f"QLabel {{ font-size: {FONT_HINT}px; color: {ACCENT_INK}; background: transparent; border: none; }}"
 )
 
 
@@ -192,7 +190,6 @@ class _RoundSummary(QWidget):
         self._items: list = []
 
     def add_line(self, head: str, answer: str) -> None:
-        from .widgets import ElidedLabel
 
         self._items.append((head, answer))
         block = QVBoxLayout()
@@ -292,21 +289,15 @@ class _OptionRow(_ClickRow):
         label.setObjectName("optionText")
         label.setStyleSheet(_OPTION_TEXT_QSS)
         label.setWordWrap(True)
+        lines.addWidget(label)
         if recommended:
-            head = QHBoxLayout()
-            head.setContentsMargins(0, 0, 0, 0)
-            head.setSpacing(SPACE_TIGHT)
 
-            head.addWidget(label, 0)
+
             tag = QLabel(self.tr("Recommended"), self)
             tag.setObjectName("optionRecommended")
             tag.setStyleSheet(_RECOMMENDED_QSS)
             tag.setTextFormat(Qt.TextFormat.PlainText)
-            head.addWidget(tag, 0, Qt.AlignmentFlag.AlignTop)
-            head.addStretch(1)
-            lines.addLayout(head)
-        else:
-            lines.addWidget(label)
+            lines.addWidget(tag)
         if detail:
             line = plain_label(detail, self)
             line.setObjectName("optionDetail")
@@ -462,10 +453,7 @@ class _Page(QWidget):
         details = _as_options(details)
         self.details = (details + [""] * len(self.options))[:len(self.options)]
         self.answer: str | None = None
-        try:
-            index = int(recommended)
-        except (TypeError, ValueError):
-            index = -1
+        index = as_int(recommended, -1)
         self.recommended = index if 0 <= index < len(self.options) else -1
         self.why = " ".join((why or "").split())
         self._rows: list = []
@@ -476,13 +464,9 @@ class _Page(QWidget):
         col.setSpacing(SPACE_CARD)
 
         if self.header:
-            label = plain_label(self.header.upper(), self)
+            label = plain_label(self.header, self)
             label.setObjectName("questionHeader")
             label.setStyleSheet(_HEADER_QSS)
-            label.ensurePolished()
-            font = label.font()
-            font.setLetterSpacing(QFont.SpacingType.AbsoluteSpacing, 0.6)
-            label.setFont(font)
             col.addWidget(label)
         self.head = ask_head(self, self.question)
         col.addWidget(self.head)
@@ -664,10 +648,7 @@ class QuestionCard(_Card, FoldMixin):
         self._folding = False
         self._sending = False
         self._slide: QVariantAnimation | None = None
-        self._advance = QTimer(self)
-        self._advance.setSingleShot(True)
-        self._advance.setInterval(_ADVANCE_MS)
-        self._advance.timeout.connect(self._auto_advance)
+        self._advance = one_shot(self, self._auto_advance, _ADVANCE_MS)
 
         self._body = QWidget(self)
         body = QVBoxLayout(self._body)

@@ -15,6 +15,10 @@ from __future__ import annotations
 
 import re
 
+from . import tuning
+from .numbers import as_int
+from .privacy_notice import PRIVACY_NOTICE_VERSION, set_served_notice_version
+
 PRODUCT_ID = "ai-agent"
 
 SITE_URL = "https://terra-lab.ai"
@@ -85,8 +89,6 @@ def set_server_config(payload: dict | None) -> None:
     _served_config = dict(payload)
 
 
-
-    from .privacy_notice import set_served_notice_version
 
     set_served_notice_version(get_privacy_notice_version())
 
@@ -243,7 +245,6 @@ def _theme_source(args) -> str:
     theme = args.get("theme") if isinstance(args, dict) else None
     if not isinstance(theme, str) or not theme.strip():
         return ""
-    from . import tuning
     return "openstreetmap" if theme.strip() in tuning.service_list("osm_themes", ()) else ""
 
 
@@ -529,9 +530,8 @@ def _served_text(key: str, fallback: str) -> str:
 
 def _served_int(key: str, fallback: int) -> int:
     value = _served_config.get(key)
-    try:
-        value = int(value)
-    except (TypeError, ValueError):
+    value = as_int(value)
+    if value is None:
         return fallback
     return value if value > 0 else fallback
 
@@ -669,9 +669,8 @@ def get_pro_runs_per_month() -> int:
             plan = pricing.get(key)
             if not isinstance(plan, dict):
                 continue
-            try:
-                value = int(plan.get("runs_per_month"))
-            except (TypeError, ValueError):
+            value = as_int(plan.get("runs_per_month"))
+            if value is None:
                 continue
             if value > 0:
                 return value
@@ -689,9 +688,8 @@ def get_pro_price() -> str:
     plan = pricing.get("ai_agent") if isinstance(pricing, dict) else None
     if not isinstance(plan, dict):
         return ""
-    try:
-        minor = int(plan.get("month_minor"))
-    except (TypeError, ValueError):
+    minor = as_int(plan.get("month_minor"))
+    if minor is None:
         return ""
     currency = str(pricing.get("currency") or "").strip().upper()
     if minor <= 0 or not re.fullmatch(r"[A-Z]{3}", currency):
@@ -741,6 +739,20 @@ def set_student_offer(raw) -> None:
 
 def get_student_offer() -> dict | None:
     return _STUDENT_OFFER[0]
+
+
+
+
+
+_PAYMENT_FAILED: list = [None]
+
+
+def set_payment_failed(info) -> None:
+    _PAYMENT_FAILED[0] = info
+
+
+def get_payment_failed() -> dict | None:
+    return _PAYMENT_FAILED[0]
 
 
 def get_pro_price_excludes_tax() -> bool:
@@ -908,13 +920,11 @@ def get_privacy_notice_version() -> int:
 
 
 
-    from .privacy_notice import PRIVACY_NOTICE_VERSION
 
     notice = _served_config.get("privacy_notice")
     value = notice.get("version") if isinstance(notice, dict) else None
-    try:
-        served = int(value)
-    except (TypeError, ValueError):
+    served = as_int(value)
+    if served is None:
         return PRIVACY_NOTICE_VERSION
     if served > 1000 or served < 0:
         return PRIVACY_NOTICE_VERSION

@@ -27,6 +27,8 @@ import re
 from dataclasses import dataclass, field
 from typing import Any
 
+from .numbers import as_float
+
 FENCE_TAG = "openui"
 MAX_BLOCKS = 2
 MAX_STATS = 4
@@ -308,9 +310,8 @@ def number_in(value: Any) -> float | None:
         digits = digits.replace(",", "") if thousands else digits.replace(",", ".")
     elif digits.count(".") > 1:
         digits = digits.replace(".", "")
-    try:
-        number = float(digits)
-    except ValueError:
+    number = as_float(digits)
+    if number is None:
         return None
     return number * _SCALE.get(match.group(2) or "", 1.0)
 

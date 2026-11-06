@@ -53,9 +53,11 @@ from qgis.PyQt.QtCore import QT_TRANSLATE_NOOP
 
 from ..core import limits, net
 from ..core.background import run_on_main_thread
+from ..core.numbers import as_float
 from ..core.qt_compat import enum_member
 from ..core.tool_registry import Tool, ToolRegistry, tool_error
-from .layer_lookup import _field_not_found_error, _find_layer, _is_qgis_null, _layer_not_found_error
+from ._layers import layer_not_found, resolve_layer
+from .layer_lookup import _field_not_found_error, _is_qgis_null
 from .query_tools import STATS_CHUNK
 from .style_3d import SYMBOL_CLASSES, kept_renderer, line_width_px, material_access, paint, painted_renderer
 
@@ -175,9 +177,8 @@ def _plan(args: dict) -> dict:
                           hint="elevation_modes")
     for key in ("z_offset", "z_scale", "extrusion_height", "default_height", "size"):
         if args.get(key) is not None:
-            try:
-                value = float(args[key])
-            except (TypeError, ValueError):
+            value = as_float(args[key])
+            if value is None:
                 return tool_error(f"{key} must be a number.", "INVALID_ARGS")
             if not math.isfinite(value) or (key != "z_offset" and value <= 0):
                 return tool_error(f"{key} {args[key]!r} is out of range.", "INVALID_ARGS",
@@ -261,9 +262,9 @@ def _kind(layer) -> str:
 
 def _open(plan: dict) -> dict:
 
-    layer = _find_layer(plan["layer_name"])
+    layer = resolve_layer(plan["layer_name"])
     if layer is None:
-        return _layer_not_found_error(plan["layer_name"])
+        return layer_not_found(plan["layer_name"])
     kind = _kind(layer)
     if kind == "pointcloud":
         return tool_error(f"{layer.name()} is a point cloud: its elevation is set with {_POINTCLOUD_TOOL}.",

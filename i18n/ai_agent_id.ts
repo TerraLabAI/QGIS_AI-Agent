@@ -1163,14 +1163,6 @@ Setelah masa tenggang berakhir, penghapusan tidak dapat dibatalkan. Sebelum itu,
             <translation>Georeferensikan {raster}</translation>
         </message>
         <message>
-            <source>Get a Sentinel image</source>
-            <translation>Dapatkan citra Sentinel</translation>
-        </message>
-        <message>
-            <source>Get an elevation model</source>
-            <translation>Dapatkan model elevasi</translation>
-        </message>
-        <message>
             <source>Hans van der Kwast's review, recorded in QGIS.</source>
             <translation>Ulasan Hans van der Kwast, direkam di QGIS.</translation>
         </message>
@@ -1231,10 +1223,6 @@ Setelah masa tenggang berakhir, penghapusan tidak dapat dibatalkan. Sebelum itu,
             <translation>Daftar plugin</translation>
         </message>
         <message>
-            <source>List the satellite catalogs</source>
-            <translation>Daftar katalog satelit</translation>
-        </message>
-        <message>
             <source>Load 3D Tiles[ from {url}]</source>
             <translation>Muat 3D Tiles[ dari {url}]</translation>
         </message>
@@ -1255,20 +1243,12 @@ Setelah masa tenggang berakhir, penghapusan tidak dapat dibatalkan. Sebelum itu,
             <translation>Lihat antarmuka</translation>
         </message>
         <message>
-            <source>Look for data on the web[ for {query}]</source>
-            <translation>Cari data di web[ untuk {query}]</translation>
-        </message>
-        <message>
             <source>Look for data on this computer</source>
             <translation>Cari data di komputer ini</translation>
         </message>
         <message>
             <source>Look for relief anomalies[ in {lrm_layer}][ in {dem}]</source>
             <translation>Cari anomali relief[ di {lrm_layer}][ di {dem}]</translation>
-        </message>
-        <message>
-            <source>Look up the place[ {query}]</source>
-            <translation>Cari tempat[ {query}]</translation>
         </message>
         <message>
             <source>Make the temporary layers permanent[ in {gpkg_path}]</source>
@@ -1327,10 +1307,6 @@ Setelah masa tenggang berakhir, penghapusan tidak dapat dibatalkan. Sebelum itu,
             <translation>Kalkulasi raster[ sebagai {name}]</translation>
         </message>
         <message>
-            <source>Read a NASA Earthdata collection[ {short_name}]</source>
-            <translation>Baca koleksi NASA Earthdata[ {short_name}]</translation>
-        </message>
-        <message>
             <source>Read a coordinate from the map</source>
             <translation>Baca koordinat dari peta</translation>
         </message>
@@ -1339,20 +1315,12 @@ Setelah masa tenggang berakhir, penghapusan tidak dapat dibatalkan. Sebelum itu,
             <translation>Baca feature {layer_name}</translation>
         </message>
         <message>
-            <source>Read the AI Agent documentation[ on {query}]</source>
-            <translation>Baca dokumentasi AI Agent[ tentang {query}]</translation>
-        </message>
-        <message>
             <source>Read the CRS of {layer_name}</source>
             <translation>Baca CRS {layer_name}</translation>
         </message>
         <message>
             <source>Read the Python errors</source>
             <translation>Baca error Python</translation>
-        </message>
-        <message>
-            <source>Read the QGIS documentation[ on {query}]</source>
-            <translation>Baca dokumentasi QGIS[ tentang {query}]</translation>
         </message>
         <message>
             <source>Read the extent of {layer_name}</source>
@@ -1471,48 +1439,16 @@ Setelah masa tenggang berakhir, penghapusan tidak dapat dibatalkan. Sebelum itu,
             <translation>Skrip Processing tersimpan</translation>
         </message>
         <message>
-            <source>Search Copernicus images[ of {collection}]</source>
-            <translation>Cari citra Copernicus[ dari {collection}]</translation>
-        </message>
-        <message>
-            <source>Search NASA Earthdata files</source>
-            <translation>Cari file NASA Earthdata</translation>
-        </message>
-        <message>
-            <source>Search NASA Earthdata[ for {query}]</source>
-            <translation>Cari NASA Earthdata[ untuk {query}]</translation>
-        </message>
-        <message>
             <source>Search open data[ for {query}]</source>
             <translation>Cari data terbuka[ untuk {query}]</translation>
-        </message>
-        <message>
-            <source>Search satellite images</source>
-            <translation>Cari citra satelit</translation>
-        </message>
-        <message>
-            <source>Search statistics[ on {topic}]</source>
-            <translation>Cari statistik[ tentang {topic}]</translation>
-        </message>
-        <message>
-            <source>Search the Earth Engine catalog[ for {query}]</source>
-            <translation>Cari katalog Earth Engine[ untuk {query}]</translation>
         </message>
         <message>
             <source>Search the QGIS Hub[ for {query}]</source>
             <translation>Cari QGIS Hub[ untuk {query}]</translation>
         </message>
         <message>
-            <source>Search the data catalog[ for {query}]</source>
-            <translation>Cari katalog data[ untuk {query}]</translation>
-        </message>
-        <message>
             <source>Search the processing tools[ for {query}]</source>
             <translation>Cari tool Processing[ untuk {query}]</translation>
-        </message>
-        <message>
-            <source>Search the web[ for {query}]</source>
-            <translation>Cari di web[ untuk {query}]</translation>
         </message>
         <message>
             <source>Select features in {layer_name}</source>
@@ -2546,6 +2482,38 @@ Setelah masa tenggang berakhir, penghapusan tidak dapat dibatalkan. Sebelum itu,
             <source>This report includes your description and the current conversation. We use it to fix issues and improve AI Agent.</source>
             <translation>Laporan ini berisi deskripsi Anda dan percakapan saat ini. Kami menggunakannya untuk memperbaiki masalah dan meningkatkan AI Agent.</translation>
         </message>
+        <message>
+            <source>Copy</source>
+            <translation>Salin</translation>
+        </message>
+        <message>
+            <source>Real tasks the AI agent does from one sentence.</source>
+            <translation>Tugas nyata yang dikerjakan AI Agent dari satu kalimat.</translation>
+        </message>
+        <message>
+            <source>Uses</source>
+            <translation>Menggunakan</translation>
+        </message>
+        <message>
+            <source>What you type</source>
+            <translation>Yang Anda ketik</translation>
+        </message>
+        <message>
+            <source>Expired on {day}.</source>
+            <translation>Kedaluwarsa pada {day}.</translation>
+        </message>
+        <message>
+            <source>Expires on {day}.</source>
+            <translation>Kedaluwarsa pada {day}.</translation>
+        </message>
+        <message>
+            <source>Private link: its signature stays on this computer. TerraLab and the AI agent see only the site and the file name.</source>
+            <translation>Tautan privat: tanda tangannya tetap ada di komputer ini. TerraLab dan agen AI hanya melihat situs dan nama file.</translation>
+        </message>
+        <message>
+            <source>expired</source>
+            <translation>kedaluwarsa</translation>
+        </message>
     </context>
     <context>
         <name>AIAgentContext</name>
@@ -3288,6 +3256,18 @@ Setelah masa tenggang berakhir, penghapusan tidak dapat dibatalkan. Sebelum itu,
             <source>Type the code shown in your browser:</source>
             <translation>Ketik kode yang muncul di browser Anda:</translation>
         </message>
+        <message>
+            <source>Ask it to load data, style layers, run analyses or edit features.</source>
+            <translation>Minta AI Agent untuk memuat data, mengatur gaya layer, menjalankan analisis, atau mengedit fitur.</translation>
+        </message>
+        <message>
+            <source>Free. Opens your browser, takes about 15 seconds.</source>
+            <translation>Gratis. Membuka browser Anda, sekitar 15 detik.</translation>
+        </message>
+        <message>
+            <source>Sign in or create an account</source>
+            <translation>Masuk atau buat akun</translation>
+        </message>
     </context>
     <context>
         <name>ActivityRow</name>
@@ -3475,6 +3455,10 @@ Setelah masa tenggang berakhir, penghapusan tidak dapat dibatalkan. Sebelum itu,
         <message>
             <source>Write the request for an HTML report of this analysis, with its maps and charts</source>
             <translation>Tulis permintaan laporan HTML untuk analisis ini, lengkap dengan peta dan grafiknya</translation>
+        </message>
+        <message>
+            <source>Remove rating</source>
+            <translation>Hapus penilaian</translation>
         </message>
     </context>
     <context>
@@ -4109,6 +4093,42 @@ Setelah masa tenggang berakhir, penghapusan tidak dapat dibatalkan. Sebelum itu,
             <source>a temporary layer</source>
             <translation>lapisan sementara</translation>
         </message>
+        <message>
+            <source>Not handled, the AI agent is offline: {0}</source>
+            <translation>Tidak diproses, AI Agent sedang offline: {0}</translation>
+        </message>
+        <message>
+            <source>Nothing is kept about this project yet.</source>
+            <translation>Belum ada yang disimpan tentang proyek ini.</translation>
+        </message>
+        <message>
+            <source>Project memory</source>
+            <translation>Memori proyek</translation>
+        </message>
+        <message>
+            <source>Project memory cleared.</source>
+            <translation>Memori proyek dihapus.</translation>
+        </message>
+        <message>
+            <source>Watched folder: not handled, no answer from the server: {0}</source>
+            <translation>Folder pantauan: tidak diproses, tidak ada jawaban dari server: {0}</translation>
+        </message>
+        <message>
+            <source>Watched folder: not handled, the AI agent is offline: {0}</source>
+            <translation>Folder pantauan: tidak diproses, AI Agent sedang offline: {0}</translation>
+        </message>
+        <message>
+            <source>Clear what the AI agent remembers about this project?</source>
+            <translation>Hapus apa yang diingat AI agent tentang proyek ini?</translation>
+        </message>
+        <message>
+            <source>Save the project first: its memory is kept under the project file.</source>
+            <translation>Simpan proyek dulu: memorinya disimpan bersama file proyek.</translation>
+        </message>
+        <message>
+            <source>The AI agent is not connected. Try again in a moment.</source>
+            <translation>AI agent tidak terhubung. Coba lagi sebentar lagi.</translation>
+        </message>
     </context>
     <context>
         <name>AgentSession</name>
@@ -4633,6 +4653,14 @@ Setelah masa tenggang berakhir, penghapusan tidak dapat dibatalkan. Sebelum itu,
         <message>
             <source>Make an HTML report of this analysis, with its maps, charts and method.</source>
             <translation>Buat laporan HTML untuk analisis ini, lengkap dengan peta, grafik, dan metodenya.</translation>
+        </message>
+        <message>
+            <source>Pay to get Pro back</source>
+            <translation>Bayar untuk mengaktifkan Pro lagi</translation>
+        </message>
+        <message>
+            <source>Task ended</source>
+            <translation>Tugas selesai</translation>
         </message>
     </context>
     <context>
@@ -5475,6 +5503,30 @@ Setelah masa tenggang berakhir, penghapusan tidak dapat dibatalkan. Sebelum itu,
             <source>Try in chat</source>
             <translation>Coba di obrolan</translation>
         </message>
+        <message>
+            <source>All %n</source>
+            <translation>Semua %n</translation>
+        </message>
+        <message>
+            <source>Examples with this source</source>
+            <translation>Contoh dengan sumber ini</translation>
+        </message>
+        <message>
+            <source>Fewer</source>
+            <translation>Lebih sedikit</translation>
+        </message>
+        <message>
+            <source>More</source>
+            <translation>Lainnya</translation>
+        </message>
+        <message>
+            <source>More in {shelf}</source>
+            <translation>Lainnya di {shelf}</translation>
+        </message>
+        <message>
+            <source>{first} and %n more licences</source>
+            <translation>{first} dan %n lisensi lainnya</translation>
+        </message>
     </context>
     <context>
         <name>ConnectorsPage</name>
@@ -5653,6 +5705,14 @@ Setelah masa tenggang berakhir, penghapusan tidak dapat dibatalkan. Sebelum itu,
         <message>
             <source>sources</source>
             <translation>sumber</translation>
+        </message>
+        <message>
+            <source>Search sources, datasets or a country</source>
+            <translation>Cari sumber, dataset, atau negara</translation>
+        </message>
+        <message>
+            <source>{sources} sources the AI agent finds and loads by itself: {datasets} datasets in {countries} countries.</source>
+            <translation>{sources} sumber yang ditemukan dan dimuat sendiri oleh AI Agent: {datasets} dataset di {countries} negara.</translation>
         </message>
     </context>
     <context>
@@ -5840,8 +5900,8 @@ Setelah masa tenggang berakhir, penghapusan tidak dapat dibatalkan. Sebelum itu,
             <translation>Tutorial</translation>
         </message>
         <message>
-            <source>You are talking to an AI system. It can be wrong: check its changes.</source>
-            <translation>Anda sedang berbicara dengan sistem AI. Sistem ini bisa salah: periksa perubahannya.</translation>
+            <source>AI can make mistakes. Check its changes.</source>
+            <translation>AI dapat membuat kesalahan. Periksa perubahannya.</translation>
         </message>
         <message>
             <source>Asks before it acts.</source>
@@ -6195,6 +6255,14 @@ Klik untuk membuka halamannya.</translation>
             <source>Videos and guides to get started. They open in your browser.</source>
             <translation>Video dan panduan untuk memulai. Dibuka di browser Anda.</translation>
         </message>
+        <message>
+            <source>Learn</source>
+            <translation>Belajar</translation>
+        </message>
+        <message>
+            <source>Videos, guides and the other TerraLab plugins. Links open in your browser.</source>
+            <translation>Video, panduan, dan plugin TerraLab lainnya. Tautan dibuka di browser Anda.</translation>
+        </message>
     </context>
     <context>
         <name>MapHooks</name>
@@ -6462,6 +6530,46 @@ Klik untuk membuka halamannya.</translation>
         <message>
             <source>The page links to {hosts}, a site the agent does not know.</source>
             <translation>Halaman ini menautkan ke {hosts}, situs yang tidak dikenal asisten AI.</translation>
+        </message>
+        <message>
+            <source>Adds: {}</source>
+            <translation>Menambah: {}</translation>
+        </message>
+        <message>
+            <source>Also covers the next calls of this kind in this answer</source>
+            <translation>Juga berlaku untuk panggilan sejenis berikutnya dalam jawaban ini</translation>
+        </message>
+        <message>
+            <source>Changes: {}</source>
+            <translation>Mengubah: {}</translation>
+        </message>
+        <message>
+            <source>Deletes files: {}</source>
+            <translation>Menghapus file: {}</translation>
+        </message>
+        <message>
+            <source>Deletes: {}</source>
+            <translation>Menghapus: {}</translation>
+        </message>
+        <message>
+            <source>Not in this project: {}</source>
+            <translation>Tidak ada di proyek ini: {}</translation>
+        </message>
+        <message>
+            <source>Other effects the preview could not read: {}</source>
+            <translation>Efek lain yang tidak terbaca oleh pratinjau: {}</translation>
+        </message>
+        <message>
+            <source>Reads: {}</source>
+            <translation>Membaca: {}</translation>
+        </message>
+        <message>
+            <source>Runs: {}</source>
+            <translation>Menjalankan: {}</translation>
+        </message>
+        <message>
+            <source>Writes files: {}</source>
+            <translation>Menulis file: {}</translation>
         </message>
     </context>
     <context>
@@ -6949,6 +7057,26 @@ Klik untuk membuka halamannya.</translation>
             <source>{n} free tasks left</source>
             <translation>Sisa {n} tugas gratis</translation>
         </message>
+        <message>
+            <source>Pay now</source>
+            <translation>Bayar sekarang</translation>
+        </message>
+        <message>
+            <source>Pay {amount} now</source>
+            <translation>Bayar {amount} sekarang</translation>
+        </message>
+        <message>
+            <source>Pro is off until it's paid. You're on the free plan for now.</source>
+            <translation>Pro nonaktif sampai dibayar. Untuk sementara Anda memakai paket gratis.</translation>
+        </message>
+        <message>
+            <source>Your Pro payment failed</source>
+            <translation>Pembayaran Pro Anda gagal</translation>
+        </message>
+        <message>
+            <source>Your payment of {amount} failed</source>
+            <translation>Pembayaran {amount} Anda gagal</translation>
+        </message>
     </context>
     <context>
         <name>QuotaPauseCard</name>
@@ -7177,6 +7305,10 @@ Klik untuk membuka halamannya.</translation>
             <source>{n} steps</source>
             <translation>{n} langkah</translation>
         </message>
+        <message>
+            <source>Thought</source>
+            <translation>Pemikiran</translation>
+        </message>
     </context>
     <context>
         <name>SettingsDialog</name>
@@ -7189,8 +7321,8 @@ Klik untuk membuka halamannya.</translation>
             <translation>Hapus semua {n} catatan? AI tidak akan menambahkannya lagi.</translation>
         </message>
         <message>
-            <source>Lets us read a chat only to fix a bug. Chats are kept 30 days.</source>
-            <translation>Memungkinkan kami membaca chat hanya untuk memperbaiki bug. Chat disimpan 30 hari.</translation>
+            <source>We may read a chat only to fix a bug, never to train AI. Chats are kept 30 days.</source>
+            <translation>Kami hanya boleh membaca chat untuk memperbaiki bug, tidak pernah untuk melatih AI. Chat disimpan 30 hari.</translation>
         </message>
         <message>
             <source>The AI saves notes on its own</source>
@@ -7371,8 +7503,8 @@ Klik untuk membuka halamannya.</translation>
         </message>
         <message>
             <location filename="src/ui/settings_dialog.py" />
-            <source>Help improve AI Agent</source>
-            <translation>Bantu tingkatkan AI Agent</translation>
+            <source>Allow chat review</source>
+            <translation>Izinkan peninjauan chat</translation>
         </message>
         <message>
             <location filename="src/ui/settings_dialog.py" />
@@ -7937,8 +8069,8 @@ Klik untuk membuka halamannya.</translation>
         </message>
         <message>
             <location filename="src/ui/settings_account.py" />
-            <source>Lets us read a chat only to fix a wrong answer or a bug.</source>
-            <translation>Memungkinkan kami membaca chat hanya untuk memperbaiki jawaban yang salah atau bug.</translation>
+            <source>We may read a chat only to fix a wrong answer or a bug, never to train AI.</source>
+            <translation>Kami hanya boleh membaca chat untuk memperbaiki jawaban yang salah atau bug, tidak pernah untuk melatih AI.</translation>
         </message>
         <message>
             <location filename="src/ui/settings_account.py" />
@@ -8159,6 +8291,95 @@ Klik untuk membuka halamannya.</translation>
         <message>
             <source>Send feedback</source>
             <translation>Kirim masukan</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_dialog.py" />
+            <source>See usage</source>
+            <translation>Lihat penggunaan</translation>
+        </message>
+        <message>
+            <source>Always answer in French, never delete a layer without asking</source>
+            <translation>Selalu jawab dalam bahasa Prancis, jangan pernah menghapus layer tanpa bertanya</translation>
+        </message>
+        <message>
+            <source>Choose folder...</source>
+            <translation>Pilih folder...</translation>
+        </message>
+        <message>
+            <source>Clear project memory</source>
+            <translation>Hapus memori proyek</translation>
+        </message>
+        <message>
+            <source>Connected accounts</source>
+            <translation>Akun terhubung</translation>
+        </message>
+        <message>
+            <source>Folder to watch</source>
+            <translation>Folder yang dipantau</translation>
+        </message>
+        <message>
+            <source>Instructions</source>
+            <translation>Instruksi</translation>
+        </message>
+        <message>
+            <source>Job</source>
+            <translation>Pekerjaan</translation>
+        </message>
+        <message>
+            <source>Learn</source>
+            <translation>Belajar</translation>
+        </message>
+        <message>
+            <source>Name</source>
+            <translation>Nama</translation>
+        </message>
+        <message>
+            <source>No folder chosen</source>
+            <translation>Belum ada folder dipilih</translation>
+        </message>
+        <message>
+            <source>Pro reads both before every run.</source>
+            <translation>Pro membaca keduanya sebelum setiap proses.</translation>
+        </message>
+        <message>
+            <source>Proactive triggers</source>
+            <translation>Pemicu proaktif</translation>
+        </message>
+        <message>
+            <source>Project memory</source>
+            <translation>Memori proyek</translation>
+        </message>
+        <message>
+            <source>Read by the AI agent at the start of every conversation.</source>
+            <translation>Dibaca oleh AI Agent di awal setiap percakapan.</translation>
+        </message>
+        <message>
+            <source>Saved notes · {n}</source>
+            <translation>Catatan tersimpan · {n}</translation>
+        </message>
+        <message>
+            <source>Show project memory</source>
+            <translation>Tampilkan memori proyek</translation>
+        </message>
+        <message>
+            <source>The AI agent looks at new data files in this folder and at the schedules you ask for, only while QGIS is open. Nothing runs when QGIS is closed.</source>
+            <translation>AI Agent memeriksa file data baru di folder ini dan jadwal yang Anda minta, hanya saat QGIS terbuka. Tidak ada yang berjalan saat QGIS ditutup.</translation>
+        </message>
+        <message>
+            <source>Urban planner at the city of Lyon, cadastre and PLU layers in EPSG:2154</source>
+            <translation>Perencana kota di kota Lyon, layer kadaster dan PLU dalam EPSG:2154</translation>
+        </message>
+        <message>
+            <source>Watch a folder and run my schedules while QGIS is open</source>
+            <translation>Pantau folder dan jalankan jadwal saya saat QGIS terbuka</translation>
+        </message>
+        <message>
+            <source>What Pro adds: {points}</source>
+            <translation>Yang ditambahkan Pro: {points}</translation>
+        </message>
+        <message>
+            <source>commercial use, more tasks, memory, your instructions and higher effort</source>
+            <translation>penggunaan komersial, lebih banyak tugas, memori, instruksi Anda, dan upaya lebih tinggi</translation>
         </message>
     </context>
     <context>
@@ -8602,6 +8823,22 @@ Klik untuk membuka halamannya.</translation>
             <source>its changes to your project cannot be shown before it runs</source>
             <translation>perubahannya pada proyek Anda tidak bisa ditampilkan sebelum dijalankan</translation>
         </message>
+        <message>
+            <source>Access to {host}</source>
+            <translation>Akses ke {host}</translation>
+        </message>
+        <message>
+            <source>Allowed for this conversation</source>
+            <translation>Diizinkan untuk percakapan ini</translation>
+        </message>
+        <message>
+            <source>Allowed once</source>
+            <translation>Diizinkan sekali</translation>
+        </message>
+        <message>
+            <source>Signed in</source>
+            <translation>Sudah masuk</translation>
+        </message>
     </context>
     <context>
         <name>ToolGroup</name>
@@ -8667,6 +8904,14 @@ Klik untuk membuka halamannya.</translation>
         <message>
             <source>Updating…</source>
             <translation>Memperbarui…</translation>
+        </message>
+        <message>
+            <source>Download</source>
+            <translation>Unduh</translation>
+        </message>
+        <message>
+            <source>This QGIS has no plugin repository turned on. Download the ZIP, then use Install from ZIP in Plugins &gt; Manage and Install Plugins.</source>
+            <translation>QGIS ini belum mengaktifkan repositori pelugin. Unduh file ZIP, lalu gunakan Pasang dari ZIP di Pelugin &gt; Kelola dan Pasang Pelugin.</translation>
         </message>
     </context>
     <context>
@@ -10043,6 +10288,1320 @@ File ini tidak lagi berada di tempat proses menuliskannya.</translation>
         <message>
             <source>Thanks for the feedback</source>
             <translation>Terima kasih atas masukan Anda</translation>
+        </message>
+    </context>
+    <context>
+        <name>ToolDetails</name>
+        <message>
+            <source>Copied</source>
+            <translation>Disalin</translation>
+        </message>
+        <message>
+            <source>Copy as Python</source>
+            <translation>Salin sebagai Python</translation>
+        </message>
+        <message>
+            <source>Open in Processing</source>
+            <translation>Buka di Pengolahan</translation>
+        </message>
+        <message>
+            <source>Open this algorithm's dialog with the same settings, to check them or run it again. The output goes to a new temporary layer.</source>
+            <translation>Buka dialog algoritma ini dengan pengaturan yang sama, untuk memeriksanya atau menjalankannya lagi. Hasilnya masuk ke layer sementara yang baru.</translation>
+        </message>
+        <message>
+            <source>Show less</source>
+            <translation>Tampilkan lebih sedikit</translation>
+        </message>
+        <message>
+            <source>Show {n} more</source>
+            <translation>Tampilkan {n} lagi</translation>
+        </message>
+        <message>
+            <source>The processing.run line, ready for the QGIS Python console</source>
+            <translation>Baris processing.run, siap untuk konsol Python QGIS</translation>
+        </message>
+        <message>
+            <source>Fewer</source>
+            <translation>Lebih sedikit</translation>
+        </message>
+        <message>
+            <source>{n} more</source>
+            <translation>{n} lagi</translation>
+        </message>
+    </context>
+    <context>
+        <name>AccountCard</name>
+        <message>
+            <source>Add keys</source>
+            <translation>Tambah kunci</translation>
+        </message>
+        <message>
+            <source>Add token</source>
+            <translation>Tambah token</translation>
+        </message>
+        <message>
+            <source>Allow</source>
+            <translation>Izinkan</translation>
+        </message>
+        <message>
+            <source>Allow for this conversation</source>
+            <translation>Izinkan untuk percakapan ini</translation>
+        </message>
+        <message>
+            <source>Allowed for this conversation</source>
+            <translation>Diizinkan untuk percakapan ini</translation>
+        </message>
+        <message>
+            <source>Allowed once</source>
+            <translation>Diizinkan sekali</translation>
+        </message>
+        <message>
+            <source>Connect your {label} account</source>
+            <translation>Hubungkan akun {label} Anda</translation>
+        </message>
+        <message>
+            <source>Connected</source>
+            <translation>Terhubung</translation>
+        </message>
+        <message>
+            <source>Continue with your {label} account</source>
+            <translation>Lanjutkan dengan akun {label} Anda</translation>
+        </message>
+        <message>
+            <source>Deny</source>
+            <translation>Tolak</translation>
+        </message>
+        <message>
+            <source>Keys refused</source>
+            <translation>Kunci ditolak</translation>
+        </message>
+        <message>
+            <source>Needs your answer</source>
+            <translation>Menunggu jawaban Anda</translation>
+        </message>
+        <message>
+            <source>Not allowed</source>
+            <translation>Tidak diizinkan</translation>
+        </message>
+        <message>
+            <source>Replace keys</source>
+            <translation>Ganti kunci</translation>
+        </message>
+        <message>
+            <source>Replace token</source>
+            <translation>Ganti token</translation>
+        </message>
+        <message>
+            <source>Sent to {host} only.</source>
+            <translation>Hanya dikirim ke {host}.</translation>
+        </message>
+        <message>
+            <source>Sign in</source>
+            <translation>Masuk</translation>
+        </message>
+        <message>
+            <source>Sign in again</source>
+            <translation>Masuk lagi</translation>
+        </message>
+        <message>
+            <source>Sign in to {host}</source>
+            <translation>Masuk ke {host}</translation>
+        </message>
+        <message>
+            <source>Sign-in refused</source>
+            <translation>Masuk ditolak</translation>
+        </message>
+        <message>
+            <source>Skip</source>
+            <translation>Lewati</translation>
+        </message>
+        <message>
+            <source>Skipped</source>
+            <translation>Dilewati</translation>
+        </message>
+        <message>
+            <source>Stored encrypted in QGIS on this computer. Never sent to TerraLab or the AI agent.</source>
+            <translation>Disimpan terenkripsi di QGIS pada komputer ini. Tidak pernah dikirim ke TerraLab atau AI Agent.</translation>
+        </message>
+        <message>
+            <source>TerraLab's shared access is used up. A free token keeps you going.</source>
+            <translation>Akses bersama TerraLab sudah habis. Token gratis membuat Anda tetap bisa lanjut.</translation>
+        </message>
+        <message>
+            <source>TerraLab's shared access is used up. Free S3 keys keep you going.</source>
+            <translation>Akses bersama TerraLab sudah habis. Kunci S3 gratis membuat Anda tetap bisa lanjut.</translation>
+        </message>
+        <message>
+            <source>This service answers only a signed-in user.</source>
+            <translation>Layanan ini hanya menjawab pengguna yang sudah masuk.</translation>
+        </message>
+        <message>
+            <source>Token refused</source>
+            <translation>Token ditolak</translation>
+        </message>
+        <message>
+            <source>Use your {label} access?</source>
+            <translation>Gunakan akses {label} Anda?</translation>
+        </message>
+        <message>
+            <source>{host} opens with a token or an API key from your account.</source>
+            <translation>{host} dibuka dengan token atau API key dari akun Anda.</translation>
+        </message>
+        <message>
+            <source>{host} refused your saved access ({user}).</source>
+            <translation>{host} menolak akses tersimpan Anda ({user}).</translation>
+        </message>
+        <message>
+            <source>{host} refused your saved access.</source>
+            <translation>{host} menolak akses tersimpan Anda.</translation>
+        </message>
+        <message>
+            <source>{label} answers only a signed-in user.</source>
+            <translation>{label} hanya menjawab pengguna yang sudah masuk.</translation>
+        </message>
+        <message>
+            <source>{label} refused your saved S3 keys.</source>
+            <translation>{label} menolak kunci S3 tersimpan Anda.</translation>
+        </message>
+        <message>
+            <source>{label} refused your saved token.</source>
+            <translation>{label} menolak token tersimpan Anda.</translation>
+        </message>
+        <message>
+            <source>{service} needs a token</source>
+            <translation>{service} memerlukan token</translation>
+        </message>
+        <message>
+            <source>Sign in with {name}</source>
+            <translation>Masuk dengan {name}</translation>
+        </message>
+        <message>
+            <source>TerraLab's shared access is used up. Your free account keeps you going.</source>
+            <translation>Akses bersama TerraLab sudah habis. Akun gratis Anda tetap bisa dipakai.</translation>
+        </message>
+        <message>
+            <source>Try again</source>
+            <translation>Coba lagi</translation>
+        </message>
+        <message>
+            <source>Use S3 keys instead</source>
+            <translation>Gunakan kunci S3 saja</translation>
+        </message>
+        <message>
+            <source>{name} no longer accepts your saved sign-in.</source>
+            <translation>{name} tidak lagi menerima data masuk Anda yang tersimpan.</translation>
+        </message>
+        <message>
+            <source>Keys expired</source>
+            <translation>Kunci kedaluwarsa</translation>
+        </message>
+        <message>
+            <source>Sign-in expired</source>
+            <translation>Data masuk kedaluwarsa</translation>
+        </message>
+        <message>
+            <source>Token expired</source>
+            <translation>Token kedaluwarsa</translation>
+        </message>
+        <message>
+            <source>{host} no longer accepts your saved access.</source>
+            <translation>{host} tidak lagi menerima akses yang Anda simpan.</translation>
+        </message>
+        <message>
+            <source>{label} no longer accepts your saved S3 keys.</source>
+            <translation>{label} tidak lagi menerima kunci S3 yang Anda simpan.</translation>
+        </message>
+        <message>
+            <source>{label} no longer accepts your saved token.</source>
+            <translation>{label} tidak lagi menerima token yang Anda simpan.</translation>
+        </message>
+        <message>
+            <source>Your {name} sign-in expired.</source>
+            <translation>Sesi masuk {name} Anda telah kedaluwarsa.</translation>
+        </message>
+        <message>
+            <source>Details</source>
+            <translation>Detail</translation>
+        </message>
+        <message>
+            <source>File: {value}</source>
+            <translation>File: {value}</translation>
+        </message>
+        <message>
+            <source>Only this file is read with it; nothing is written.</source>
+            <translation>Hanya file ini yang dibaca dengannya; tidak ada yang ditulis.</translation>
+        </message>
+        <message>
+            <source>Saved access: {value}</source>
+            <translation>Akses tersimpan: {value}</translation>
+        </message>
+        <message>
+            <source>Sent to: {value}</source>
+            <translation>Dikirim ke: {value}</translation>
+        </message>
+        <message>
+            <source>Choose in Google Drive</source>
+            <translation>Pilih di Google Drive</translation>
+        </message>
+    </context>
+    <context>
+        <name>ConnectedAccountsPage</name>
+        <message>
+            <source>API key</source>
+            <translation>API key</translation>
+        </message>
+        <message>
+            <source>Connected accounts</source>
+            <translation>Akun terhubung</translation>
+        </message>
+        <message>
+            <source>Kept in QGIS's encrypted vault, on this computer. Neither TerraLab nor the AI agent sees them.</source>
+            <translation>Disimpan di brankas terenkripsi QGIS, di komputer ini. TerraLab maupun AI Agent tidak dapat melihatnya.</translation>
+        </message>
+        <message>
+            <source>No account yet. When a source asks you to sign in, the AI agent shows a card, and the access you save appears here.</source>
+            <translation>Belum ada akun. Saat sebuah sumber meminta Anda masuk, AI Agent menampilkan kartu, dan akses yang Anda simpan muncul di sini.</translation>
+        </message>
+        <message>
+            <source>Remove</source>
+            <translation>Hapus</translation>
+        </message>
+        <message>
+            <source>Remove the access to {host}</source>
+            <translation>Hapus akses ke {host}</translation>
+        </message>
+        <message>
+            <source>S3 keys</source>
+            <translation>Kunci S3</translation>
+        </message>
+        <message>
+            <source>The sign-ins the AI agent may use, each only after you allow it.</source>
+            <translation>Akun masuk yang boleh digunakan AI Agent, masing-masing hanya setelah Anda mengizinkannya.</translation>
+        </message>
+        <message>
+            <source>Token</source>
+            <translation>Token</translation>
+        </message>
+        <message>
+            <source>Username and password</source>
+            <translation>Nama pengguna dan kata sandi</translation>
+        </message>
+        <message>
+            <source>Google account</source>
+            <translation>Akun Google</translation>
+        </message>
+        <message>
+            <source>No project picked</source>
+            <translation>Belum ada proyek dipilih</translation>
+        </message>
+        <message>
+            <source>Project {project}</source>
+            <translation>Proyek {project}</translation>
+        </message>
+        <message>
+            <source>Change project…</source>
+            <translation>Ubah proyek…</translation>
+        </message>
+        <message>
+            <source>Google sign-in</source>
+            <translation>Login Google</translation>
+        </message>
+        <message>
+            <source>Signed in with the browser</source>
+            <translation>Masuk melalui browser</translation>
+        </message>
+        <message>
+            <source>Add account</source>
+            <translation>Tambah akun</translation>
+        </message>
+        <message>
+            <source>Expired</source>
+            <translation>Kedaluwarsa</translation>
+        </message>
+        <message>
+            <source>Expires on {day}</source>
+            <translation>Kedaluwarsa pada {day}</translation>
+        </message>
+        <message>
+            <source>More actions for {label}</source>
+            <translation>Tindakan lainnya untuk {label}</translation>
+        </message>
+        <message>
+            <source>QGIS deletes it from its vault. Layers loaded with it stop loading, and the AI agent asks you to sign in again the next time {host} needs it.</source>
+            <translation>QGIS menghapusnya dari brankasnya. Layer yang dimuat dengannya berhenti dimuat, dan agen AI meminta Anda masuk lagi saat {host} membutuhkannya.</translation>
+        </message>
+        <message>
+            <source>Refused at its last use</source>
+            <translation>Ditolak pada penggunaan terakhir</translation>
+        </message>
+        <message>
+            <source>Remove your {label} access?</source>
+            <translation>Hapus akses {label} Anda?</translation>
+        </message>
+        <message>
+            <source>Remove…</source>
+            <translation>Hapus…</translation>
+        </message>
+        <message>
+            <source>Replace…</source>
+            <translation>Ganti…</translation>
+        </message>
+        <message>
+            <source>Storage keys</source>
+            <translation>Kunci penyimpanan</translation>
+        </message>
+        <message>
+            <source>Choose files…</source>
+            <translation>Pilih berkas…</translation>
+        </message>
+        <message>
+            <source>{name} sign-in</source>
+            <translation>Masuk ke {name}</translation>
+        </message>
+    </context>
+    <context>
+        <name>KeysDialog</name>
+        <message>
+            <source>Access key</source>
+            <translation>Kunci akses</translation>
+        </message>
+        <message>
+            <source>Cancel</source>
+            <translation>Batal</translation>
+        </message>
+        <message>
+            <source>Connect</source>
+            <translation>Hubungkan</translation>
+        </message>
+        <message>
+            <source>Connect {label}</source>
+            <translation>Hubungkan {label}</translation>
+        </message>
+        <message>
+            <source>Connected</source>
+            <translation>Terhubung</translation>
+        </message>
+        <message>
+            <source>Header name</source>
+            <translation>Nama header</translation>
+        </message>
+        <message>
+            <source>Hide</source>
+            <translation>Sembunyikan</translation>
+        </message>
+        <message>
+            <source>Key</source>
+            <translation>Kunci</translation>
+        </message>
+        <message>
+            <source>Not saved. Fill in the fields, and unlock QGIS's vault with its master password when QGIS asks.</source>
+            <translation>Belum disimpan. Isi kolom, dan buka brankas QGIS dengan kata sandi utamanya saat QGIS memintanya.</translation>
+        </message>
+        <message>
+            <source>Not saved. Paste both keys, and unlock QGIS's vault with its master password when QGIS asks.</source>
+            <translation>Belum disimpan. Tempel kedua kunci, dan buka brankas QGIS dengan kata sandi utamanya saat QGIS memintanya.</translation>
+        </message>
+        <message>
+            <source>Open {host}</source>
+            <translation>Buka {host}</translation>
+        </message>
+        <message>
+            <source>Password</source>
+            <translation>Kata sandi</translation>
+        </message>
+        <message>
+            <source>Secret key</source>
+            <translation>Kunci rahasia</translation>
+        </message>
+        <message>
+            <source>Show</source>
+            <translation>Tampilkan</translation>
+        </message>
+        <message>
+            <source>Sign in</source>
+            <translation>Masuk</translation>
+        </message>
+        <message>
+            <source>Sign in to {host}</source>
+            <translation>Masuk ke {host}</translation>
+        </message>
+        <message>
+            <source>Sign in with a free account, add a credential and paste both keys here.</source>
+            <translation>Masuk dengan akun gratis, tambahkan kredensial, lalu tempel kedua kunci di sini.</translation>
+        </message>
+        <message>
+            <source>Stored encrypted in QGIS on this computer, behind your QGIS master password. Never sent to TerraLab or the AI agent.</source>
+            <translation>Disimpan terenkripsi di QGIS pada komputer ini, di balik kata sandi utama QGIS Anda. Tidak pernah dikirim ke TerraLab atau AI Agent.</translation>
+        </message>
+        <message>
+            <source>Use a username and password instead</source>
+            <translation>Gunakan nama pengguna dan kata sandi</translation>
+        </message>
+        <message>
+            <source>Use an API key instead</source>
+            <translation>Gunakan API key</translation>
+        </message>
+        <message>
+            <source>Username</source>
+            <translation>Nama pengguna</translation>
+        </message>
+        <message>
+            <source>the S3 keys manager</source>
+            <translation>pengelola kunci S3</translation>
+        </message>
+        <message>
+            <source>Checking…</source>
+            <translation>Memeriksa…</translation>
+        </message>
+        <message>
+            <source>QGIS will ask you to choose a master password. It locks every sign-in saved in QGIS and cannot be recovered, so keep it somewhere safe.</source>
+            <translation>QGIS akan meminta Anda memilih kata sandi utama. Kata sandi ini mengunci semua data masuk yang disimpan di QGIS dan tidak dapat dipulihkan, jadi simpan di tempat yang aman.</translation>
+        </message>
+        <message>
+            <source>{host} refused these details. Check them and try again.</source>
+            <translation>{host} menolak data ini. Periksa lalu coba lagi.</translation>
+        </message>
+    </context>
+    <context>
+        <name>ProLock</name>
+        <message>
+            <source>Pro</source>
+            <translation>Pro</translation>
+        </message>
+    </context>
+    <context>
+        <name>ProNote</name>
+        <message>
+            <source>Get Pro</source>
+            <translation>Dapatkan Pro</translation>
+        </message>
+    </context>
+    <context>
+        <name>SectionHead</name>
+        <message>
+            <source>See all</source>
+            <translation>Lihat semua</translation>
+        </message>
+    </context>
+    <context>
+        <name>SiblingRow</name>
+        <message>
+            <source>Install</source>
+            <translation>Instal</translation>
+        </message>
+        <message>
+            <source>Installed</source>
+            <translation>Terinstal</translation>
+        </message>
+        <message>
+            <source>Open</source>
+            <translation>Buka</translation>
+        </message>
+        <message>
+            <source>Opens the QGIS plugin manager on this plugin.</source>
+            <translation>Membuka pengelola plugin QGIS pada plugin ini.</translation>
+        </message>
+        <message>
+            <source>Show the plugin's panel.</source>
+            <translation>Tampilkan panel plugin.</translation>
+        </message>
+    </context>
+    <context>
+        <name>SiblingsSection</name>
+        <message>
+            <source>Edit your imagery with a single sentence.</source>
+            <translation>Edit citra Anda hanya dengan satu kalimat.</translation>
+        </message>
+        <message>
+            <source>Other TerraLab plugins</source>
+            <translation>Plugin TerraLab lainnya</translation>
+        </message>
+        <message>
+            <source>Turn buildings, trees or water into polygons.</source>
+            <translation>Ubah bangunan, pohon, atau air menjadi poligon.</translation>
+        </message>
+    </context>
+    <context>
+        <name>SignInDialog</name>
+        <message>
+            <source>Cancel</source>
+            <translation>Batal</translation>
+        </message>
+        <message>
+            <source>Connect</source>
+            <translation>Hubungkan</translation>
+        </message>
+        <message>
+            <source>Connected</source>
+            <translation>Terhubung</translation>
+        </message>
+        <message>
+            <source>Header name</source>
+            <translation>Nama header</translation>
+        </message>
+        <message>
+            <source>Hide</source>
+            <translation>Sembunyikan</translation>
+        </message>
+        <message>
+            <source>Key</source>
+            <translation>Kunci</translation>
+        </message>
+        <message>
+            <source>Not saved. Fill in the fields, and unlock QGIS's vault with its master password when QGIS asks.</source>
+            <translation>Belum disimpan. Isi kolom, dan buka brankas QGIS dengan kata sandi utamanya saat QGIS memintanya.</translation>
+        </message>
+        <message>
+            <source>Open {host}</source>
+            <translation>Buka {host}</translation>
+        </message>
+        <message>
+            <source>Password</source>
+            <translation>Kata sandi</translation>
+        </message>
+        <message>
+            <source>Show</source>
+            <translation>Tampilkan</translation>
+        </message>
+        <message>
+            <source>Sign in</source>
+            <translation>Masuk</translation>
+        </message>
+        <message>
+            <source>Sign in to {host}</source>
+            <translation>Masuk ke {host}</translation>
+        </message>
+        <message>
+            <source>Stored encrypted in QGIS on this computer, behind your QGIS master password. Never sent to TerraLab or the AI agent.</source>
+            <translation>Disimpan terenkripsi di QGIS pada komputer ini, di balik kata sandi utama QGIS Anda. Tidak pernah dikirim ke TerraLab atau AI Agent.</translation>
+        </message>
+        <message>
+            <source>Use a username and password instead</source>
+            <translation>Gunakan nama pengguna dan kata sandi</translation>
+        </message>
+        <message>
+            <source>Use an API key instead</source>
+            <translation>Gunakan API key</translation>
+        </message>
+        <message>
+            <source>Username</source>
+            <translation>Nama pengguna</translation>
+        </message>
+        <message>
+            <source>Checking…</source>
+            <translation>Memeriksa…</translation>
+        </message>
+        <message>
+            <source>QGIS will ask you to choose a master password. It locks every sign-in saved in QGIS and cannot be recovered, so keep it somewhere safe.</source>
+            <translation>QGIS akan meminta Anda memilih kata sandi utama. Kata sandi ini mengunci semua data masuk yang disimpan di QGIS dan tidak dapat dipulihkan, jadi simpan di tempat yang aman.</translation>
+        </message>
+        <message>
+            <source>{host} refused these details. Check them and try again.</source>
+            <translation>{host} menolak data ini. Periksa lalu coba lagi.</translation>
+        </message>
+    </context>
+    <context>
+        <name>TasksPanel</name>
+        <message>
+            <source>Done</source>
+            <translation>Selesai</translation>
+        </message>
+        <message>
+            <source>Failed</source>
+            <translation>Gagal</translation>
+        </message>
+        <message>
+            <source>Paused</source>
+            <translation>Dijeda</translation>
+        </message>
+        <message>
+            <source>Queued</source>
+            <translation>Mengantre</translation>
+        </message>
+        <message>
+            <source>Stopped</source>
+            <translation>Dihentikan</translation>
+        </message>
+        <message>
+            <source>Stopping...</source>
+            <translation>Menghentikan...</translation>
+        </message>
+        <message>
+            <source>Tasks</source>
+            <translation>Tugas</translation>
+        </message>
+        <message>
+            <source>Working</source>
+            <translation>Bekerja</translation>
+        </message>
+    </context>
+    <context>
+        <name>TokenDialog</name>
+        <message>
+            <source>A token or an API key from your {service} account. Sent to {host} only.</source>
+            <translation>Token atau API key dari akun {service} Anda. Hanya dikirim ke {host}.</translation>
+        </message>
+        <message>
+            <source>Cancel</source>
+            <translation>Batal</translation>
+        </message>
+        <message>
+            <source>Connect</source>
+            <translation>Hubungkan</translation>
+        </message>
+        <message>
+            <source>Connect {label}</source>
+            <translation>Hubungkan {label}</translation>
+        </message>
+        <message>
+            <source>Connect {service}</source>
+            <translation>Hubungkan {service}</translation>
+        </message>
+        <message>
+            <source>Connected</source>
+            <translation>Terhubung</translation>
+        </message>
+        <message>
+            <source>Header name</source>
+            <translation>Nama header</translation>
+        </message>
+        <message>
+            <source>Hide</source>
+            <translation>Sembunyikan</translation>
+        </message>
+        <message>
+            <source>Key</source>
+            <translation>Kunci</translation>
+        </message>
+        <message>
+            <source>Not saved. Fill in the fields, and unlock QGIS's vault with its master password when QGIS asks.</source>
+            <translation>Belum disimpan. Isi kolom, dan buka brankas QGIS dengan kata sandi utamanya saat QGIS memintanya.</translation>
+        </message>
+        <message>
+            <source>Not saved. Paste the token, and unlock QGIS's vault with its master password when QGIS asks.</source>
+            <translation>Belum disimpan. Tempel token, dan buka brankas QGIS dengan kata sandi utamanya saat QGIS memintanya.</translation>
+        </message>
+        <message>
+            <source>Open {host}</source>
+            <translation>Buka {host}</translation>
+        </message>
+        <message>
+            <source>Password</source>
+            <translation>Kata sandi</translation>
+        </message>
+        <message>
+            <source>Paste your token</source>
+            <translation>Tempel token Anda</translation>
+        </message>
+        <message>
+            <source>Show</source>
+            <translation>Tampilkan</translation>
+        </message>
+        <message>
+            <source>Sign in</source>
+            <translation>Masuk</translation>
+        </message>
+        <message>
+            <source>Sign in to {host}</source>
+            <translation>Masuk ke {host}</translation>
+        </message>
+        <message>
+            <source>Sign in with a free account, choose Generate Token, copy it and paste it here.</source>
+            <translation>Masuk dengan akun gratis, pilih Generate Token, salin, lalu tempel di sini.</translation>
+        </message>
+        <message>
+            <source>Stored encrypted in QGIS on this computer, behind your QGIS master password. Never sent to TerraLab or the AI agent.</source>
+            <translation>Disimpan terenkripsi di QGIS pada komputer ini, di balik kata sandi utama QGIS Anda. Tidak pernah dikirim ke TerraLab atau AI Agent.</translation>
+        </message>
+        <message>
+            <source>Token</source>
+            <translation>Token</translation>
+        </message>
+        <message>
+            <source>Token for {host}</source>
+            <translation>Token untuk {host}</translation>
+        </message>
+        <message>
+            <source>Use a username and password instead</source>
+            <translation>Gunakan nama pengguna dan kata sandi</translation>
+        </message>
+        <message>
+            <source>Use an API key instead</source>
+            <translation>Gunakan API key</translation>
+        </message>
+        <message>
+            <source>Username</source>
+            <translation>Nama pengguna</translation>
+        </message>
+        <message>
+            <source>Checking…</source>
+            <translation>Memeriksa…</translation>
+        </message>
+        <message>
+            <source>QGIS will ask you to choose a master password. It locks every sign-in saved in QGIS and cannot be recovered, so keep it somewhere safe.</source>
+            <translation>QGIS akan meminta Anda memilih kata sandi utama. Kata sandi ini mengunci semua data masuk yang disimpan di QGIS dan tidak dapat dipulihkan, jadi simpan di tempat yang aman.</translation>
+        </message>
+        <message>
+            <source>{host} refused these details. Check them and try again.</source>
+            <translation>{host} menolak data ini. Periksa lalu coba lagi.</translation>
+        </message>
+    </context>
+    <context>
+        <name>_TaskRow</name>
+        <message>
+            <source>Stop</source>
+            <translation>Hentikan</translation>
+        </message>
+    </context>
+    <context>
+        <name>EarthEngineConnect</name>
+        <message>
+            <source>A non-commercial Earth Engine project is not for commercial work.</source>
+            <translation>Proyek Earth Engine nonkomersial tidak untuk pekerjaan komersial.</translation>
+        </message>
+        <message>
+            <source>Cancel</source>
+            <translation>Batal</translation>
+        </message>
+        <message>
+            <source>Change project</source>
+            <translation>Ganti proyek</translation>
+        </message>
+        <message>
+            <source>Choose project</source>
+            <translation>Pilih proyek</translation>
+        </message>
+        <message>
+            <source>Choose your Earth Engine project</source>
+            <translation>Pilih proyek Earth Engine Anda</translation>
+        </message>
+        <message>
+            <source>Connect</source>
+            <translation>Hubungkan</translation>
+        </message>
+        <message>
+            <source>Connect Earth Engine</source>
+            <translation>Hubungkan Earth Engine</translation>
+        </message>
+        <message>
+            <source>Connected</source>
+            <translation>Terhubung</translation>
+        </message>
+        <message>
+            <source>Earth Engine needs Google's earthengine-api package. It installs into QGIS in about a minute, then you sign in with Google.</source>
+            <translation>Earth Engine memerlukan paket earthengine-api dari Google. Paket ini terpasang di QGIS dalam sekitar satu menit, lalu Anda masuk dengan Google.</translation>
+        </message>
+        <message>
+            <source>Earth Engine refused your project {project}.</source>
+            <translation>Earth Engine menolak proyek Anda {project}.</translation>
+        </message>
+        <message>
+            <source>Earth Engine runs on one of your Google Cloud projects.</source>
+            <translation>Earth Engine berjalan di salah satu proyek Google Cloud Anda.</translation>
+        </message>
+        <message>
+            <source>Finish signing in to Google in your browser.</source>
+            <translation>Selesaikan proses masuk ke Google di browser Anda.</translation>
+        </message>
+        <message>
+            <source>Google refused the sign-in ({error}).</source>
+            <translation>Google menolak proses masuk ({error}).</translation>
+        </message>
+        <message>
+            <source>Google refused your saved sign-in.</source>
+            <translation>Google menolak data masuk Anda yang tersimpan.</translation>
+        </message>
+        <message>
+            <source>Install</source>
+            <translation>Pasang</translation>
+        </message>
+        <message>
+            <source>Installing earthengine-api...</source>
+            <translation>Memasang earthengine-api...</translation>
+        </message>
+        <message>
+            <source>No Earth Engine project on this account yet. Registering one is free for noncommercial use.</source>
+            <translation>Belum ada proyek Earth Engine di akun ini. Mendaftarkan satu proyek gratis untuk penggunaan nonkomersial.</translation>
+        </message>
+        <message>
+            <source>Not saved: QGIS's vault stayed locked. Connect again and set the master password when QGIS asks.</source>
+            <translation>Tidak tersimpan: brankas kredensial QGIS tetap terkunci. Hubungkan lagi dan atur kata sandi utama saat QGIS memintanya.</translation>
+        </message>
+        <message>
+            <source>Open the sign-in page again</source>
+            <translation>Buka lagi halaman masuk</translation>
+        </message>
+        <message>
+            <source>Pick the Cloud project Earth Engine runs on.</source>
+            <translation>Pilih proyek Cloud tempat Earth Engine berjalan.</translation>
+        </message>
+        <message>
+            <source>Project refused</source>
+            <translation>Proyek ditolak</translation>
+        </message>
+        <message>
+            <source>Reading your Cloud projects...</source>
+            <translation>Membaca proyek Cloud Anda...</translation>
+        </message>
+        <message>
+            <source>Refresh</source>
+            <translation>Muat ulang</translation>
+        </message>
+        <message>
+            <source>Register a project</source>
+            <translation>Daftarkan proyek</translation>
+        </message>
+        <message>
+            <source>Sign in again</source>
+            <translation>Masuk lagi</translation>
+        </message>
+        <message>
+            <source>Sign in with Google</source>
+            <translation>Masuk dengan Google</translation>
+        </message>
+        <message>
+            <source>Sign in with Google and pick your own Cloud project.</source>
+            <translation>Masuk dengan Google dan pilih proyek Cloud Anda sendiri.</translation>
+        </message>
+        <message>
+            <source>Sign-in didn't finish ({error}).</source>
+            <translation>Proses masuk tidak selesai ({error}).</translation>
+        </message>
+        <message>
+            <source>Sign-in didn't finish within 5 minutes.</source>
+            <translation>Proses masuk tidak selesai dalam 5 menit.</translation>
+        </message>
+        <message>
+            <source>Sign-in didn't finish. You can close this window and return to QGIS.</source>
+            <translation>Proses masuk tidak selesai. Anda dapat menutup jendela ini dan kembali ke QGIS.</translation>
+        </message>
+        <message>
+            <source>Sign-in expired</source>
+            <translation>Sesi masuk kedaluwarsa</translation>
+        </message>
+        <message>
+            <source>The Earth Engine API is off in your project {project}.</source>
+            <translation>API Earth Engine nonaktif di proyek Anda {project}.</translation>
+        </message>
+        <message>
+            <source>Try again</source>
+            <translation>Coba lagi</translation>
+        </message>
+        <message>
+            <source>Turn on the Earth Engine API</source>
+            <translation>Aktifkan API Earth Engine</translation>
+        </message>
+        <message>
+            <source>Use this project</source>
+            <translation>Gunakan proyek ini</translation>
+        </message>
+        <message>
+            <source>You're signed in. You can close this window and return to QGIS.</source>
+            <translation>Anda sudah masuk. Anda dapat menutup jendela ini dan kembali ke QGIS.</translation>
+        </message>
+        <message>
+            <source>Your Cloud projects could not be read ({error}).</source>
+            <translation>Proyek Cloud Anda tidak dapat dibaca ({error}).</translation>
+        </message>
+        <message>
+            <source>Your Earth Engine sign-in expired.</source>
+            <translation>Sesi masuk Earth Engine Anda telah kedaluwarsa.</translation>
+        </message>
+        <message>
+            <source>Your Google sign-in stays in QGIS's encrypted vault on this computer. Never sent to TerraLab or the AI agent.</source>
+            <translation>Data masuk Google Anda tersimpan di brankas kredensial terenkripsi QGIS di komputer ini. Tidak pernah dikirim ke TerraLab atau agen AI.</translation>
+        </message>
+        <message>
+            <source>Your browser opens Google's sign-in. Earth Engine then runs on your own Google Cloud project, under that project's terms.</source>
+            <translation>Browser Anda membuka halaman masuk Google. Earth Engine lalu berjalan di proyek Google Cloud milik Anda sendiri, sesuai ketentuan proyek itu.</translation>
+        </message>
+        <message>
+            <source>Your project {project} is not registered for Earth Engine.</source>
+            <translation>Proyek Anda {project} belum terdaftar untuk Earth Engine.</translation>
+        </message>
+        <message>
+            <source>earthengine-api did not install: {error}</source>
+            <translation>earthengine-api gagal terpasang: {error}</translation>
+        </message>
+        <message>
+            <source>{count} other projects do not have Earth Engine.</source>
+            <translation>{count} proyek lain tidak memiliki Earth Engine.</translation>
+        </message>
+        <message>
+            <source>QGIS will ask you to choose a master password. It locks every sign-in saved in QGIS and cannot be recovered, so keep it somewhere safe.</source>
+            <translation>QGIS akan meminta Anda memilih kata sandi utama. Kata sandi ini mengunci semua login yang tersimpan di QGIS dan tidak dapat dipulihkan, jadi simpan di tempat yang aman.</translation>
+        </message>
+    </context>
+    <context>
+        <name>BrowserWait</name>
+        <message>
+            <source>Cancel</source>
+            <translation>Batal</translation>
+        </message>
+        <message>
+            <source>Check that the page shows the code {code}, then sign in.</source>
+            <translation>Pastikan halaman menampilkan kode {code}, lalu masuk.</translation>
+        </message>
+        <message>
+            <source>Connecting…</source>
+            <translation>Menghubungkan…</translation>
+        </message>
+        <message>
+            <source>Finish signing in to {name} in your browser.</source>
+            <translation>Selesaikan proses masuk ke {name} di browser Anda.</translation>
+        </message>
+        <message>
+            <source>Not saved. Unlock QGIS's vault with its master password when QGIS asks.</source>
+            <translation>Tidak tersimpan. Buka basis data autentikasi QGIS dengan kata sandi utama saat QGIS memintanya.</translation>
+        </message>
+        <message>
+            <source>Open the page again</source>
+            <translation>Buka halaman lagi</translation>
+        </message>
+        <message>
+            <source>Opening your browser…</source>
+            <translation>Membuka browser Anda…</translation>
+        </message>
+        <message>
+            <source>Sign-in didn't finish.</source>
+            <translation>Proses masuk tidak selesai.</translation>
+        </message>
+        <message>
+            <source>The sign-in was declined in the browser.</source>
+            <translation>Proses masuk ditolak di browser.</translation>
+        </message>
+        <message>
+            <source>{label} did not answer. Check your connection.</source>
+            <translation>{label} tidak menjawab. Periksa koneksi Anda.</translation>
+        </message>
+        <message>
+            <source>{label} did not create the S3 keys.</source>
+            <translation>{label} tidak membuat kunci S3.</translation>
+        </message>
+        <message>
+            <source>{label} refused the sign-in.</source>
+            <translation>{label} menolak proses masuk.</translation>
+        </message>
+        <message>
+            <source>Send this approval link to your IT admin: {link}</source>
+            <translation>Kirim tautan persetujuan ini ke admin TI Anda: {link}</translation>
+        </message>
+        <message>
+            <source>Your organization lets only an admin approve TerraLab AI Agent for {label}.</source>
+            <translation>Organisasi Anda hanya mengizinkan admin menyetujui TerraLab AI Agent untuk {label}.</translation>
+        </message>
+    </context>
+    <context>
+        <name>CloudKeysDialog</name>
+        <message>
+            <source>Access key ID</source>
+            <translation>ID kunci akses</translation>
+        </message>
+        <message>
+            <source>Account key</source>
+            <translation>Kunci akun</translation>
+        </message>
+        <message>
+            <source>Cancel</source>
+            <translation>Batal</translation>
+        </message>
+        <message>
+            <source>Checking…</source>
+            <translation>Memeriksa…</translation>
+        </message>
+        <message>
+            <source>Connect</source>
+            <translation>Hubungkan</translation>
+        </message>
+        <message>
+            <source>Connect {label}</source>
+            <translation>Hubungkan {label}</translation>
+        </message>
+        <message>
+            <source>Connect {store}</source>
+            <translation>Hubungkan {store}</translation>
+        </message>
+        <message>
+            <source>Connected</source>
+            <translation>Terhubung</translation>
+        </message>
+        <message>
+            <source>Endpoint, empty for Amazon S3</source>
+            <translation>Endpoint, kosongkan untuk Amazon S3</translation>
+        </message>
+        <message>
+            <source>For {address}. A read-only key is enough: the AI agent only reads from it.</source>
+            <translation>Untuk {address}. Kunci hanya-baca sudah cukup: agen AI hanya membaca darinya.</translation>
+        </message>
+        <message>
+            <source>HMAC access key</source>
+            <translation>Kunci akses HMAC</translation>
+        </message>
+        <message>
+            <source>HMAC secret</source>
+            <translation>Rahasia HMAC</translation>
+        </message>
+        <message>
+            <source>Header name</source>
+            <translation>Nama header</translation>
+        </message>
+        <message>
+            <source>Hide</source>
+            <translation>Sembunyikan</translation>
+        </message>
+        <message>
+            <source>JSON key (*.json)</source>
+            <translation>Kunci JSON (*.json)</translation>
+        </message>
+        <message>
+            <source>Key</source>
+            <translation>Kunci</translation>
+        </message>
+        <message>
+            <source>Keys expired</source>
+            <translation>Kunci kedaluwarsa</translation>
+        </message>
+        <message>
+            <source>Keys refused</source>
+            <translation>Kunci ditolak</translation>
+        </message>
+        <message>
+            <source>Not saved. Fill in the fields, and unlock QGIS's vault with its master password when QGIS asks.</source>
+            <translation>Tidak disimpan. Isi kolomnya, lalu buka brankas QGIS dengan kata sandi utamanya saat QGIS memintanya.</translation>
+        </message>
+        <message>
+            <source>Open {host}</source>
+            <translation>Buka {host}</translation>
+        </message>
+        <message>
+            <source>Password</source>
+            <translation>Kata sandi</translation>
+        </message>
+        <message>
+            <source>QGIS will ask you to choose a master password. It locks every sign-in saved in QGIS and cannot be recovered, so keep it somewhere safe.</source>
+            <translation>QGIS akan meminta Anda memilih kata sandi utama. Kata sandi ini mengunci semua login yang tersimpan di QGIS dan tidak dapat dipulihkan, jadi simpan di tempat yang aman.</translation>
+        </message>
+        <message>
+            <source>Region (optional)</source>
+            <translation>Wilayah (opsional)</translation>
+        </message>
+        <message>
+            <source>SAS token</source>
+            <translation>Token SAS</translation>
+        </message>
+        <message>
+            <source>Secret access key</source>
+            <translation>Kunci akses rahasia</translation>
+        </message>
+        <message>
+            <source>Service account key (JSON file)</source>
+            <translation>Kunci akun layanan (file JSON)</translation>
+        </message>
+        <message>
+            <source>Show</source>
+            <translation>Tampilkan</translation>
+        </message>
+        <message>
+            <source>Sign in</source>
+            <translation>Masuk</translation>
+        </message>
+        <message>
+            <source>Sign in to {host}</source>
+            <translation>Masuk ke {host}</translation>
+        </message>
+        <message>
+            <source>Storage account name</source>
+            <translation>Nama akun penyimpanan</translation>
+        </message>
+        <message>
+            <source>Stored encrypted in QGIS on this computer, behind your QGIS master password. Never sent to TerraLab or the AI agent.</source>
+            <translation>Disimpan terenkripsi di QGIS pada komputer ini, dilindungi kata sandi utama QGIS Anda. Tidak pernah dikirim ke TerraLab atau agen AI.</translation>
+        </message>
+        <message>
+            <source>The keys could not be checked: {error}</source>
+            <translation>Kunci tidak dapat diperiksa: {error}</translation>
+        </message>
+        <message>
+            <source>This bucket opens only with a service account key.</source>
+            <translation>Bucket ini hanya dapat dibuka dengan kunci akun layanan.</translation>
+        </message>
+        <message>
+            <source>This bucket opens only with your access keys.</source>
+            <translation>Bucket ini hanya dapat dibuka dengan kunci akses Anda.</translation>
+        </message>
+        <message>
+            <source>This container opens only with your account key or a SAS token.</source>
+            <translation>Kontainer ini hanya dapat dibuka dengan kunci akun Anda atau token SAS.</translation>
+        </message>
+        <message>
+            <source>This file is not a service account key. In the Google Cloud console, open the service account, then Keys, Add key, JSON.</source>
+            <translation>File ini bukan kunci akun layanan. Di konsol Google Cloud, buka akun layanan, lalu Kunci, Tambahkan kunci, JSON.</translation>
+        </message>
+        <message>
+            <source>Use a SAS token instead</source>
+            <translation>Gunakan token SAS saja</translation>
+        </message>
+        <message>
+            <source>Use a service account key instead</source>
+            <translation>Gunakan kunci akun layanan saja</translation>
+        </message>
+        <message>
+            <source>Use a username and password instead</source>
+            <translation>Gunakan nama pengguna dan kata sandi saja</translation>
+        </message>
+        <message>
+            <source>Use an API key instead</source>
+            <translation>Gunakan kunci API saja</translation>
+        </message>
+        <message>
+            <source>Use an HMAC key instead</source>
+            <translation>Gunakan kunci HMAC saja</translation>
+        </message>
+        <message>
+            <source>Use the account key instead</source>
+            <translation>Gunakan kunci akun saja</translation>
+        </message>
+        <message>
+            <source>Username</source>
+            <translation>Nama pengguna</translation>
+        </message>
+        <message>
+            <source>{host} refused these details. Check them and try again.</source>
+            <translation>{host} menolak detail ini. Periksa lalu coba lagi.</translation>
+        </message>
+        <message>
+            <source>{store} no longer accepts your saved keys.</source>
+            <translation>{store} tidak lagi menerima kunci tersimpan Anda.</translation>
+        </message>
+        <message>
+            <source>{store} refused your saved keys.</source>
+            <translation>{store} menolak kunci tersimpan Anda.</translation>
+        </message>
+        <message>
+            <source>{where} refused these keys.</source>
+            <translation>{where} menolak kunci ini.</translation>
+        </message>
+    </context>
+    <context>
+        <name>AccountDrive</name>
+        <message>
+            <source>Allow SharePoint sites</source>
+            <translation>Izinkan situs SharePoint</translation>
+        </message>
+        <message>
+            <source>Cancel</source>
+            <translation>Batal</translation>
+        </message>
+        <message>
+            <source>Choose this file in Google Drive</source>
+            <translation>Pilih berkas ini di Google Drive</translation>
+        </message>
+        <message>
+            <source>Connect Google Drive</source>
+            <translation>Hubungkan Google Drive</translation>
+        </message>
+        <message>
+            <source>Connect OneDrive and SharePoint</source>
+            <translation>Hubungkan OneDrive dan SharePoint</translation>
+        </message>
+        <message>
+            <source>Connect SharePoint</source>
+            <translation>Hubungkan SharePoint</translation>
+        </message>
+        <message>
+            <source>Read with your account, only for this request.</source>
+            <translation>Dibaca dengan akun Anda, hanya untuk permintaan ini.</translation>
+        </message>
+        <message>
+            <source>Read-only: the AI agent can open your files, never change or delete them.</source>
+            <translation>Hanya baca: agen AI dapat membuka berkas Anda, tidak pernah mengubah atau menghapusnya.</translation>
+        </message>
+        <message>
+            <source>Reading SharePoint sites needs one more permission. Your organization's admin may have to approve it.</source>
+            <translation>Membaca situs SharePoint memerlukan satu izin lagi. Admin organisasi Anda mungkin perlu menyetujuinya.</translation>
+        </message>
+        <message>
+            <source>Sign in again</source>
+            <translation>Masuk lagi</translation>
+        </message>
+        <message>
+            <source>Sign in with {name}</source>
+            <translation>Masuk dengan {name}</translation>
+        </message>
+        <message>
+            <source>The AI agent sees only the files you pick. Pick this one to let it open it.</source>
+            <translation>Agen AI hanya melihat berkas yang Anda pilih. Pilih berkas ini agar agen dapat membukanya.</translation>
+        </message>
+        <message>
+            <source>Try again</source>
+            <translation>Coba lagi</translation>
+        </message>
+        <message>
+            <source>Use your {label} access?</source>
+            <translation>Gunakan akses {label} Anda?</translation>
+        </message>
+        <message>
+            <source>You pick the files the AI agent may open. It sees nothing else in your Drive.</source>
+            <translation>Anda memilih berkas yang boleh dibuka agen AI. Agen tidak melihat apa pun yang lain di Drive Anda.</translation>
+        </message>
+        <message>
+            <source>Your sign-in stays in QGIS's encrypted vault on this computer. Never sent to TerraLab or the AI agent.</source>
+            <translation>Data masuk Anda tersimpan di brankas terenkripsi QGIS di komputer ini. Tidak pernah dikirim ke TerraLab atau agen AI.</translation>
+        </message>
+        <message>
+            <source>{name} no longer accepts your saved sign-in.</source>
+            <translation>{name} tidak lagi menerima data masuk Anda yang tersimpan.</translation>
+        </message>
+    </context>
+    <context>
+        <name>RatingCard</name>
+        <message>
+            <source>Add details (optional)</source>
+            <translation>Tambahkan detail (opsional)</translation>
+        </message>
+        <message>
+            <source>Close</source>
+            <translation>Tutup</translation>
+        </message>
+        <message>
+            <source>Could not send. Try again.</source>
+            <translation>Tidak dapat mengirim. Coba lagi.</translation>
+        </message>
+        <message>
+            <source>Not what I asked</source>
+            <translation>Bukan yang saya minta</translation>
+        </message>
+        <message>
+            <source>Send</source>
+            <translation>Kirim</translation>
+        </message>
+        <message>
+            <source>Tell us more (optional)</source>
+            <translation>Ceritakan lebih lanjut (opsional)</translation>
+        </message>
+        <message>
+            <source>Thanks for the feedback</source>
+            <translation>Terima kasih atas masukannya</translation>
+        </message>
+        <message>
+            <source>Too slow</source>
+            <translation>Terlalu lambat</translation>
+        </message>
+        <message>
+            <source>What went wrong?</source>
+            <translation>Apa yang salah?</translation>
+        </message>
+        <message>
+            <source>What worked well?</source>
+            <translation>Apa yang berjalan baik?</translation>
+        </message>
+        <message>
+            <source>Wrong result</source>
+            <translation>Hasil salah</translation>
+        </message>
+        <message>
+            <source>Your words are sent with this chat and recent logs.</source>
+            <translation>Tulisan Anda dikirim bersama chat ini dan log terbaru.</translation>
         </message>
     </context>
 </TS>

@@ -24,52 +24,48 @@
 
 from __future__ import annotations
 
-import os
-
+from ..core import catalog, siblings
 from ..core.logger import log, log_warning
-from ._widgets import AI_EDIT_KEYS, AI_SEGMENT_KEYS, sibling_api_version, sibling_plugin
+from ..core.siblings import sibling_info
+from ..ui.cross_plugin_discovery import activate_dock, open_plugin_manager_later
+from .adapters.ai_edit_access import ACCESS
 
 
 
 PRODUCTS = {
     "ai_segment": {
-        "keys": tuple(AI_SEGMENT_KEYS),
         "product_id": "ai-segmentation",
         "min_api": 3,
 
         "commands": ("detect_auto", "auto_detect_status", "cancel_auto", "set_auto_zone"),
     },
     "ai_edit": {
-        "keys": tuple(AI_EDIT_KEYS),
         "product_id": "ai-edit",
         "min_api": 2,
     },
 }
 
 
+def sibling_of(tool: str) -> siblings.Sibling:
+
+    return siblings.by_product(PRODUCTS[tool]["product_id"])
+
+
 def _name(tool: str) -> str:
 
-    from ..ui.cross_plugin_discovery import sibling_info
-    info = sibling_info(PRODUCTS[tool]["product_id"])
-    return (info or {}).get("name") or PRODUCTS[tool]["product_id"]
+    product_id = PRODUCTS[tool]["product_id"]
+    return (catalog.plugin_roster().get(product_id) or {}).get("name") or product_id
 
 
 def _label(tool: str) -> str:
 
-    from ..ui.cross_plugin_discovery import sibling_info
+    return (catalog.plugin_roster().get(PRODUCTS[tool]["product_id"]) or {}).get("label") or _name(tool)
+
+
+def _open_manager(tool: str) -> None:
+
     info = sibling_info(PRODUCTS[tool]["product_id"])
-    return (info or {}).get("label") or _name(tool)
-
-
-def _plugin_dirs() -> list[str]:
-    import qgis.utils
-    dirs = [path for path in (getattr(qgis.utils, "plugin_paths", None) or []) if isinstance(path, str)]
-    try:
-        from qgis.core import QgsApplication
-        dirs.append(os.path.join(QgsApplication.qgisSettingsDirPath(), "python", "plugins"))
-    except Exception:  # nosec B110
-        pass
-    return dirs
+    open_plugin_manager_later(info["name"], info["url"])
 
 
 def _enabled_in_plugin_manager(folder: str) -> bool:
@@ -81,22 +77,29 @@ def _enabled_in_plugin_manager(folder: str) -> bool:
         return False
 
 
-def presence(keys) -> dict:
+def presence(target: siblings.Sibling) -> dict:
 
 
 
 
 
+
+    return _presence(target.folders, siblings.find(target))
+
+
+def plugin_presence(folder: str) -> dict:
 
     import qgis.utils
-    key, plugin = sibling_plugin(keys)
+    plugin = (getattr(qgis.utils, "plugins", None) or {}).get(folder)
+    return _presence((folder,), (folder, plugin) if plugin is not None else (None, None))
+
+
+def _presence(folders: tuple[str, ...], found: tuple) -> dict:
+    import qgis.utils
+    key, plugin = found
     if plugin is not None:
         return {"state": "loaded", "folder": key, "plugin": plugin}
-    available = set(getattr(qgis.utils, "available_plugins", None) or [])
-    folder = next((key for key in keys if key in available), None)
-    if folder is None:
-        folder = next((key for base in _plugin_dirs() for key in keys
-                       if os.path.isfile(os.path.join(base, key, "metadata.txt"))), None)
+    folder = siblings.installed_folder(folders)
     if folder is None:
         return {"state": "absent", "folder": None, "plugin": None}
     started = folder in (getattr(qgis.utils, "active_plugins", None) or [])
@@ -104,9 +107,23 @@ def presence(keys) -> dict:
     return {"state": "not_started" if enabled else "disabled", "folder": folder, "plugin": None}
 
 
+def _aiseg_module(plugin, dotted: str):
+
+
+
+
+    import importlib
+    if plugin is None:
+        return None
+    try:
+        base = type(plugin).__module__.rsplit(".", 2)[0]
+        return importlib.import_module(base + "." + dotted)
+    except Exception:
+        return None
+
+
 def _aiseg_signed_in(plugin) -> bool | None:
 
-    from .integration_tools import _aiseg_module
     module = _aiseg_module(plugin, "core.activation_manager")
     fn = getattr(module, "is_plugin_activated", None) if module is not None else None
     if not callable(fn):
@@ -118,7 +135,6 @@ def _aiseg_signed_in(plugin) -> bool | None:
 
 
 def _aiedit_signed_in(plugin) -> bool | None:
-    from .adapters.ai_edit_access import ACCESS
     auth = getattr(plugin, "_auth_manager", None) or ACCESS.auth(plugin)
     fn = getattr(auth, "has_activation_key", None) if auth is not None else None
     if not callable(fn):
@@ -185,13 +201,12 @@ def show_panel(tool: str) -> bool:
 
 
 
-    found = presence(PRODUCTS[tool]["keys"])
+    found = presence(sibling_of(tool))
     plugin = found.get("plugin")
     if plugin is None:
         return False
     try:
-        from ..ui.cross_plugin_discovery import _activate_dock
-        return bool(_activate_dock(plugin))
+        return bool(activate_dock(plugin))
     except Exception as exc:  # noqa: BLE001
         log_warning(f"{_label(tool)} panel could not be opened: {exc}")
         return False
@@ -219,8 +234,7 @@ def _dock_of(plugin):
 
 def _press_connect(plugin) -> bool:
 
-    from ..ui.cross_plugin_discovery import _activate_dock
-    _activate_dock(plugin)
+    activate_dock(plugin)
     dock = _dock_of(plugin)
     press = getattr(dock, "_on_connect_clicked", None) if dock is not None else None
     if not callable(press):
@@ -245,21 +259,18 @@ def outdated(tool: str, plugin) -> bool:
     api = getattr(plugin, "mcp_api", None)
     if commands and (api is None or any(getattr(api, name, None) is None for name in commands)):
         return True
-    version = sibling_api_version(plugin)
+    version = siblings.api_version(plugin)
     return version is not None and version < product.get("min_api", 0)
 
 
 def setup(tool: str) -> dict:
 
-    product = PRODUCTS[tool]
     name, label = _name(tool), _label(tool)
-    found = presence(product["keys"])
+    found = presence(sibling_of(tool))
     state = found["state"]
 
     if state == "absent":
-        from ..ui.cross_plugin_discovery import SIBLINGS, open_plugin_manager_later
-        sibling = SIBLINGS[product["product_id"]]
-        open_plugin_manager_later(sibling["name"], sibling["url"])
+        _open_manager(tool)
         log(f"setup: Plugin Manager opened on {label}")
         return {
             "done": "plugin_manager_opened",
@@ -267,7 +278,7 @@ def setup(tool: str) -> dict:
             "tell_user_hint": "setup_install_opened", "next_step_hint": "setup_install_opened_next",
 
 
-            "wait_for_plugin": {"keys": list(product["keys"]), "name": name,
+            "wait_for_plugin": {"keys": list(sibling_of(tool).folders), "name": name,
                                 "then": {"tool": tool, "next_step_hint": "setup_status_next"}},
         }
 
@@ -286,9 +297,7 @@ def setup(tool: str) -> dict:
     if outdated(tool, plugin):
 
 
-        from ..ui.cross_plugin_discovery import SIBLINGS, open_plugin_manager_later
-        sibling = SIBLINGS[product["product_id"]]
-        open_plugin_manager_later(sibling["name"], sibling["url"])
+        _open_manager(tool)
         log(f"setup: Plugin Manager opened on {label} for an upgrade")
         return {
             "done": "plugin_manager_opened", "name": name, "tool": tool,
@@ -303,8 +312,7 @@ def setup(tool: str) -> dict:
             "done": "sign_in_opened", "label": label, "tool": tool,
             "tell_user_hint": "setup_sign_in_opened", "next_step_hint": "setup_sign_in_opened_next",
         }
-    from ..ui.cross_plugin_discovery import _activate_dock
-    _activate_dock(plugin)
+    activate_dock(plugin)
     return {
         "done": "panel_opened", "label": label, "tool": tool,
         "tell_user_hint": "setup_panel_opened", "next_step_hint": "setup_panel_opened_next",

@@ -30,6 +30,8 @@ from qgis.PyQt.QtWidgets import (
     QWidget,
 )
 
+from ..core.numbers import as_float
+from ..core.qt_compat import one_shot
 from .card_base import (
     _UNBOUNDED_PX,
     _Card,
@@ -58,6 +60,7 @@ from .card_controls import (
     ask_head,
 )
 from .code_block import CodeBlock
+from .external_links import open_external_url
 from .font_scale import scale_px_length, scale_qss_font_px
 from .shared import tr
 from .style import (
@@ -74,7 +77,7 @@ from .style import (
 )
 from .tool_describe import call_title, card_effect, source_text, spec
 from .transcript import fence
-from .widgets import ChatLabel, ElidedLabel
+from .widgets import ChatLabel, ElidedLabel, Spinner
 
 
 __all__ = [
@@ -192,9 +195,21 @@ def _is_input_value(value) -> bool:
         return False
     if isinstance(value, str):
         text = value.strip()
-        if text.startswith(_NOT_A_VALUE) or "://" in text:
+        if text.startswith(_NOT_A_VALUE) or "://" in text or _is_project_layer(text):
             return False
     return True
+
+
+def _is_project_layer(text: str) -> bool:
+
+
+
+    try:
+        from qgis.core import QgsProject
+
+        return QgsProject.instance().mapLayer(text) is not None
+    except Exception:  # noqa: BLE001
+        return False
 
 
 def editable_fields(args, sentence: str = "") -> list:
@@ -295,10 +310,7 @@ def _as_float(text: str):
             if "," in head or not (1 <= len(tail) <= 2) or not tail.isdigit():
                 return text
             raw = f"{head}.{tail}"
-    try:
-        return float(raw)
-    except (TypeError, ValueError):
-        return text
+    return as_float(raw, text)
 
 
 class PermissionCard(_Card, FoldMixin):
@@ -321,7 +333,7 @@ class PermissionCard(_Card, FoldMixin):
     }
 
     def __init__(self, tool_call_id: str, sentence: str, args=None, parent=None, name: str = "",
-                 addresses=None, grant: str = "", group: str = ""):
+                 addresses=None, grant: str = "", group: str = "", preview=None):
         super().__init__(None, parent, frame_qss=_ASK_CARD_QSS)
         self.set_margins(*_ASK_MARGINS)
         self._col.setSpacing(SPACE_OUTER)
@@ -332,6 +344,8 @@ class PermissionCard(_Card, FoldMixin):
 
         self.group = str(group or "")
         self._grant = grant
+
+        self._preview = dict(preview) if isinstance(preview, dict) else {}
 
 
 
@@ -425,10 +439,7 @@ class PermissionCard(_Card, FoldMixin):
 
 
         if self._rebuild_timer is None:
-            self._rebuild_timer = QTimer(self)
-            self._rebuild_timer.setSingleShot(True)
-            self._rebuild_timer.setInterval(0)
-            self._rebuild_timer.timeout.connect(self._flush_rebuild)
+            self._rebuild_timer = one_shot(self, self._flush_rebuild, 0)
         if not self._rebuild_timer.isActive():
             self._rebuild_timer.start()
 
@@ -454,6 +465,30 @@ class PermissionCard(_Card, FoldMixin):
         if self._rebuild_timer is not None:
             self._rebuild_timer.stop()
 
+    def _preview_lines(self) -> list[str]:
+
+
+
+
+        found = self._preview
+        labels = (("reads", self.tr("Reads: {}")), ("changes", self.tr("Changes: {}")),
+                  ("deletes", self.tr("Deletes: {}")), ("adds", self.tr("Adds: {}")),
+                  ("files_written", self.tr("Writes files: {}")),
+                  ("files_deleted", self.tr("Deletes files: {}")),
+                  ("algorithms", self.tr("Runs: {}")))
+        lines = []
+        for key, label in labels:
+            items = [str(v) for v in found.get(key) or [] if str(v).strip()]
+            if items:
+                lines.append(label.format(", ".join(items)))
+        missing = [str(v) for v in found.get("missing") or [] if str(v).strip()]
+        if missing:
+            lines.append(self.tr("Not in this project: {}").format(", ".join(missing)))
+        if found.get("unknown"):
+            lines.append(self.tr("Other effects the preview could not read: {}").format(
+                ", ".join(str(v) for v in found["unknown"][:3])))
+        return lines
+
     def _headline(self) -> str:
         sentences = [c["sentence"] for c in self._calls]
         if len(sentences) == 1:
@@ -478,14 +513,14 @@ class PermissionCard(_Card, FoldMixin):
         body.setSpacing(SPACE_OUTER)
 
 
-        title, reasons = title_and_reasons(self.sentence)
+        title, reasons = title_and_reasons(self.sentence, first["name"] if not grouped else "")
         head = ask_head(self._body, title)
         self._sentence = head.text_label
         body.addWidget(head)
         notes = [reasons] if reasons else []
         offers = str(self._grant or "").split()
         if "answer" in offers:
-            notes.append(self.tr("Your answer also counts for the next calls of this kind in this answer."))
+            notes.append(self.tr("Also covers the next calls of this kind in this answer"))
         for note in notes:
             line = ChatLabel(note, self._body, wrap=True, selectable=True)
             line.setObjectName("permissionReason")
@@ -518,6 +553,11 @@ class PermissionCard(_Card, FoldMixin):
         self._code_open = False
         self._code_lines = 0
         code, language = ("", "") if grouped else source_text(first["name"], self.args)
+        for text in ([] if grouped else self._preview_lines()):
+            line = ChatLabel(text, self._body, wrap=True, selectable=True)
+            line.setObjectName("permissionPreview")
+            line.setStyleSheet(_REASON_QSS)
+            body.addWidget(line)
         if code:
             body.addWidget(self._build_code_section(code, language))
 
@@ -601,7 +641,6 @@ class PermissionCard(_Card, FoldMixin):
         return host
 
     def _open_site(self, url: str) -> None:
-        from .external_links import open_external_url
 
         open_external_url(url, parent=self.window())
 
@@ -800,7 +839,8 @@ class PermissionCard(_Card, FoldMixin):
 
 
         self.decision = decision
-        titles = [title_and_reasons(call["sentence"])[0] for call in self._calls] or [self.sentence]
+        titles = [title_and_reasons(call["sentence"], call["name"])[0]
+                  for call in self._calls] or [self.sentence]
         if len(titles) == 1:
             title = titles[0]
         elif len(set(titles)) == 1:
@@ -844,7 +884,11 @@ _SERVER_SAYS_IT_BETTER = ("execute_code",)
 _SERVER_ADDS_TERMS = ("add_xyz_layer",)
 
 
-def title_and_reasons(sentence: str) -> tuple:
+def title_and_reasons(sentence: str, name: str = "") -> tuple:
+
+
+
+
 
 
 
@@ -857,7 +901,7 @@ def title_and_reasons(sentence: str) -> tuple:
     if dot and rest:
         text, reasons = head, rest
     text = text.rstrip(". ")
-    if text.endswith(")") and " (" in text:
+    if name in _SERVER_SAYS_IT_BETTER and text.endswith(")") and " (" in text:
         text, _, inner = text[:-1].partition(" (")
         reasons = f"{inner[:1].upper()}{inner[1:]}" + (f". {reasons}" if reasons else "")
     return text, reasons
@@ -959,6 +1003,15 @@ def run_ending(code: str, reason: str, fallback: str) -> tuple[str, str]:
     return _first_sentence(fallback)
 
 
+def _says_in_one_line(text: str) -> bool:
+
+    text = " ".join(str(text or "").split())
+    return len(text) <= _ONE_LINE_CHARS and ". " not in text.rstrip(".")
+
+
+_ONE_LINE_CHARS = 72
+
+
 def _first_sentence(text: str) -> tuple[str, str]:
 
     text = " ".join(str(text or "").split())
@@ -1013,13 +1066,18 @@ class ErrorCard(_Card):
             self._more_label.setObjectName("cardDetails")
             self._more_label.setWordWrap(True)
             self._more_label.setStyleSheet(_REASON_QSS)
-            self._more_label.hide()
             self._col.addWidget(self._more_label)
+            if _says_in_one_line(self.more):
+
+
+                self._more_label = None
+            else:
+                self._more_label.hide()
         row = QHBoxLayout()
         row.setContentsMargins(0, 0, 0, 0)
         row.setSpacing(SPACE_CARD)
         if new_chat:
-            row.addWidget(_pill(self._button(self.tr("New chat"), _BTN_GHOST_PILL,
+            row.addWidget(_pill(self._button(self.tr("New chat"), _BTN_PRIMARY_PILL,
                                              lambda: self.new_chat_requested.emit())))
 
 
@@ -1029,11 +1087,11 @@ class ErrorCard(_Card):
         elif self.code == "PLUGIN_UPDATE_REQUIRED":
 
 
-            row.addWidget(_pill(self._button(self.tr("Update the plugin"), _BTN_GHOST_PILL, self._on_update)))
+            row.addWidget(_pill(self._button(self.tr("Update the plugin"), _BTN_PRIMARY_PILL, self._on_update)))
         elif continuable:
-            row.addWidget(_pill(self._button(self.tr("Continue"), _BTN_GHOST_PILL, self._on_continue)))
+            row.addWidget(_pill(self._button(self.tr("Continue"), _BTN_PRIMARY_PILL, self._on_continue)))
         elif retryable:
-            row.addWidget(_pill(self._button(self.tr("Retry"), _BTN_GHOST_PILL, self._on_retry)))
+            row.addWidget(_pill(self._button(self.tr("Retry"), _BTN_PRIMARY_PILL, self._on_retry)))
 
 
         self._undo_retry = None
@@ -1103,7 +1161,6 @@ class InstallWaitCard(_Card):
 
     def __init__(self, tool_call_id: str, name: str, parent=None):
         super().__init__(None, parent)
-        from .widgets import Spinner
 
         self.tool_call_id = tool_call_id
         self.name = name
@@ -1193,6 +1250,7 @@ class RunSummaryCard(_Card):
 
 
 
+
     _STATUS = {
         "done": ("success", QT_TRANSLATE_NOOP("RunSummaryCard", "Done")),
         "cancelled": ("neutral", QT_TRANSLATE_NOOP("RunSummaryCard", "Stopped")),
@@ -1201,7 +1259,7 @@ class RunSummaryCard(_Card):
     }
 
     def __init__(self, status: str, summary: str = "", usage=None,
-                 verification=None, duration_s=None, steps=None, parent=None):
+                 verification=None, duration_s=None, steps=None, parent=None, headed: bool = False):
         super().__init__(None, parent)
         self.status = status
         self.summary = summary or ""
@@ -1212,7 +1270,8 @@ class RunSummaryCard(_Card):
         kind, word = self._STATUS.get(status, ("neutral", QT_TRANSLATE_NOOP("RunSummaryCard", "Ended")))
         self._status_word = self.tr(word)
         self.set_kind(kind if kind != "neutral" else None)
-        self._col.addWidget(_message_row(self, kind, self._status_word, title=True))
+        if not (headed and (self.summary or self.lines())):
+            self._col.addWidget(_message_row(self, kind, self._status_word, title=True))
         if self.summary:
             text = plain_label(self.summary, self)
             text.setObjectName("cardText")

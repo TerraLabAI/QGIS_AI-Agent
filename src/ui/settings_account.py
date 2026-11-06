@@ -34,6 +34,17 @@ from qgis.PyQt.QtWidgets import (
 
 from ..core.logger import log_warning
 from ..core.profile import clear_memory_notes
+from ..core.served_state import (
+    PRODUCT_ID,
+    get_dashboard_url,
+    get_plan_name,
+    get_pricing_url,
+    get_pro_runs_per_month,
+    get_served_pro_points,
+    get_student_offer,
+    get_support_email,
+)
+from .account_avatar import AccountAvatarLoader, cached_avatar_pixmap, is_avatar_url_usable
 from .account_settings_dialog import _ACCOUNT_OFFLINE_CODES, format_count, resolve_plan_runs
 from .confirm_dialog import ask_confirm
 from .delete_account_dialog import ask_delete_account
@@ -42,30 +53,20 @@ from .font_scale import apply_font_scale_to_tree, scale_px_length, scale_qss_fon
 from .quota_card import _STUDENT_QSS, note_student_offer_shown, open_student_offer, trial_cta
 from .settings_pages import (
     DANGER_GHOST_BTN_QSS,
+    GET_PRO_BTN_QSS,
     GHOST_BTN_QSS,
     PRIMARY_BTN_QSS,
     PROGRESS_QSS,
     ROW_NOTE_QSS,
-    ROW_TITLE_QSS,
     USAGE_KEYS,
     Page,
-    ProCard,
     SettingGroup,
     SettingRow,
+    SkeletonRow,
     Switch,
 )
-from .shared import (
-    PRODUCT_ID,
-    format_reset_date,
-    get_dashboard_url,
-    get_plan_name,
-    get_pricing_url,
-    get_pro_runs_per_month,
-    get_served_pro_points,
-    get_student_offer,
-    get_support_email,
-    safe_disconnect,
-)
+from .settings_retention import RetentionRow
+from .shared import format_reset_date, safe_disconnect
 from .widgets import ElidedLabel
 
 _AVATAR_D = 36
@@ -80,7 +81,7 @@ def _note_settings_upsell() -> None:
     try:
         from ..core import telemetry
         from ..core import telemetry_events as ev
-        from .shared import get_pro_offer
+        from ..core.served_state import get_pro_offer
 
         telemetry.track(ev.PRO_UPSELL_VIEWED, {"where": "settings", "cta_source": "settings",
                                                "offer": get_pro_offer()})
@@ -116,8 +117,11 @@ class AccountPageMixin:
         if "improve_enabled" in info:
             self.set_improve_enabled(bool(info["improve_enabled"]))
         self._sync_improve_plan(info)
-        self._sync_upgrade_pill(info)
+        self._sync_trial_offer(info)
         self._clear_account()
+        rail = getattr(self, "set_rail_plan", None)
+        if rail is not None:
+            rail("", "", None, None)
 
 
         self._account_email = ""
@@ -132,7 +136,7 @@ class AccountPageMixin:
             self._account_state = "loaded"
         if info.get("loading"):
             group = SettingGroup(self._account_box)
-            group.add_row(SettingRow(self.tr("Loading account info..."), "", None, group))
+            group.add_row(SkeletonRow(group, self.tr("Loading account info...")))
             self._account_col.addWidget(group)
         elif info.get("error") or info.get("error_code"):
             self._show_account_error(str(info.get("error") or ""), str(info.get("error_code") or ""))
@@ -145,23 +149,11 @@ class AccountPageMixin:
         self._sync_delete_account()
         apply_font_scale_to_tree(self._account_box)
 
-    def _sync_upgrade_pill(self, info: dict) -> None:
-
-
-
-
+    def _sync_trial_offer(self, info: dict) -> None:
 
         failed = bool(info.get("loading") or info.get("error") or info.get("error_code"))
         self.trial_offered = not failed and self._trial_offered(info)
-        pill = getattr(self, "_upgrade_pill", None)
-        if pill is None:
-            return
-        if failed:
-            pill.hide()
-            return
-        self._get_pro_label = getattr(self, "_get_pro_label", "") or pill.text()
-        pill.setText(trial_cta() if self.trial_offered else self._get_pro_label)
-        pill.setVisible(not self._is_subscriber(info))
+        self._sync_pro_notes()
 
     def _trial_offered(self, info: dict) -> bool:
 
@@ -292,18 +284,6 @@ class AccountPageMixin:
         self._account_col.addWidget(group)
 
         if not plan.is_subscriber:
-
-
-
-            points = get_served_pro_points()
-            card = ProCard(self.tr("Commercial use and more tasks with Pro"),
-                           " · ".join(points) if points else
-                           self.tr("Plus memory, your instructions and higher effort."),
-                           self._account_box)
-            if getattr(self, "trial_offered", False):
-                card.button.setText(trial_cta())
-            card.upgrade_requested.connect(self._on_upgrade)
-            self._account_col.addWidget(card)
             _note_settings_upsell()
 
     def _plan_row(self, plan, plan_name: str, parent: QWidget) -> QFrame:
@@ -343,35 +323,64 @@ class AccountPageMixin:
         words = QVBoxLayout()
         words.setContentsMargins(0, 0, 0, 0)
         words.setSpacing(2)
+
+
         title_lbl = QLabel(title, row)
-        title_lbl.setStyleSheet(ROW_TITLE_QSS)
+        title_lbl.setStyleSheet(ROW_NOTE_QSS)
         title_lbl.setWordWrap(True)
         words.addWidget(title_lbl)
-        facts = " · ".join(part for part in (runs, reset) if part)
-        if facts:
-            facts_lbl = QLabel(facts, row)
-            facts_lbl.setStyleSheet(ROW_NOTE_QSS)
-            facts_lbl.setWordWrap(True)
-            words.addWidget(facts_lbl)
+        if runs:
+            runs_lbl = QLabel(runs, row)
+            runs_lbl.setStyleSheet(scale_qss_font_px(
+                "font-size: 20px; font-weight: 600; color: palette(text); background: transparent;"))
+            runs_lbl.setWordWrap(True)
+            words.addWidget(runs_lbl)
         line.addLayout(words, 1)
-        manage = self._button(self.tr("Manage plan"), GHOST_BTN_QSS)
-        manage.setToolTip(self.tr("Your plan, payment method and invoices, on the TerraLab "
-                                  "website. Payment never happens inside QGIS."))
-        manage.clicked.connect(lambda: self._open_dashboard("account_card"))
+        if plan.is_subscriber:
+            manage = self._button(self.tr("Manage plan"), GHOST_BTN_QSS)
+            manage.setToolTip(self.tr("Your plan, payment method and invoices, on the TerraLab "
+                                      "website. Payment never happens inside QGIS."))
+            manage.clicked.connect(lambda: self._open_dashboard("account_card"))
+        else:
+
+
+            manage = self._button(trial_cta() if getattr(self, "trial_offered", False)
+                                  else self.tr("Get Pro"), GET_PRO_BTN_QSS)
+            manage.clicked.connect(self._on_upgrade)
         line.addWidget(manage, 0, Qt.AlignmentFlag.AlignVCenter)
         col.addLayout(line)
         if plan.is_subscriber:
             row.setToolTip(self.tr("Need more than {n} tasks a month? Write to {email}.").format(
                 n=get_pro_runs_per_month(), email=get_support_email()))
+        rail = getattr(self, "set_rail_plan", None)
+        if rail is not None:
+            left_n = max(0, int(plan.limit) - int(plan.used)) if (
+                plan.limit is not None and plan.used is not None) else None
+            rail(plan_name, runs, left_n, plan.limit)
         if plan.limit is not None and plan.used is not None:
             bar = QProgressBar(row)
             bar.setRange(0, max(int(plan.limit), 1))
             bar.setValue(max(0, min(int(plan.limit - plan.used), int(plan.limit))))
             bar.setTextVisible(False)
-            bar.setFixedHeight(6)
+            bar.setFixedHeight(4)
             bar.setStyleSheet(PROGRESS_QSS)
             bar.setAccessibleName(runs)
             col.addWidget(bar)
+        if reset:
+            reset_lbl = QLabel(reset, row)
+            reset_lbl.setStyleSheet(ROW_NOTE_QSS)
+            reset_lbl.setWordWrap(True)
+            col.addWidget(reset_lbl)
+        if not plan.is_subscriber:
+
+            points = get_served_pro_points()
+            adds = QLabel(self.tr("What Pro adds: {points}").format(
+                points=", ".join(points) if points else
+                self.tr("commercial use, more tasks, memory, your instructions and higher effort")), row)
+            adds.setTextFormat(Qt.TextFormat.PlainText)
+            adds.setStyleSheet(ROW_NOTE_QSS)
+            adds.setWordWrap(True)
+            col.addWidget(adds)
         return row
 
     def _student_row(self, parent: QWidget) -> QFrame | None:
@@ -419,7 +428,6 @@ class AccountPageMixin:
         return None
 
     def _show_account_picture(self, url, diameter: int) -> None:
-        from .account_avatar import AccountAvatarLoader, cached_avatar_pixmap, is_avatar_url_usable
 
         if not is_avatar_url_usable(url):
             return
@@ -496,7 +504,7 @@ class AccountPageMixin:
 
 
 
-        page.add_group_title(self.tr("Advanced"))
+        page.add_group_title(self.tr("Privacy"))
 
         group = SettingGroup(page)
         self._telemetry_switch = Switch(group, self._telemetry_enabled)
@@ -511,7 +519,6 @@ class AccountPageMixin:
                                    self._telemetry_switch, group)
         telemetry_row.setToolTip(telemetry_detail)
         group.add_row(telemetry_row)
-        from .settings_retention import RetentionRow
 
         self._retention = RetentionRow(self, group)
         group.add_row(self._retention.row)
@@ -525,18 +532,17 @@ class AccountPageMixin:
 
         self._improve_switch = Switch(group, self._improve_enabled)
         self._improve_switch.toggled.connect(self._on_improve_toggled)
-        self._improve_row = SettingRow(self.tr("Help improve AI Agent"),
+        self._improve_row = SettingRow(self.tr("Allow chat review"),
                                        self._improve_note(False), self._improve_switch, group)
         self._improve_row.setToolTip(self._improve_tip(False))
         group.add_row(self._improve_row)
+
         reset = QPushButton(self.tr("Reset"), group)
-        reset.setStyleSheet(DANGER_GHOST_BTN_QSS)
+        reset.setStyleSheet(GHOST_BTN_QSS)
         reset.setCursor(Qt.CursorShape.PointingHandCursor)
         reset.setAutoDefault(False)
         reset.clicked.connect(self._on_reset)
-        reset_row = SettingRow(self.tr("Reset all settings"),
-                               self.tr("Back to defaults, memory notes included. You stay signed in."),
-                               reset, group)
+        reset_row = SettingRow(self.tr("Reset all settings"), "", reset, group)
         reset_row.setToolTip(self.tr("Language, style, permissions, your profile and your memory "
                                      "notes go back to their defaults."))
         group.add_row(reset_row)
@@ -545,7 +551,7 @@ class AccountPageMixin:
 
     def _add_danger_zone(self, page: Page) -> None:
 
-        page.add_group_title(self.tr("Danger zone"))
+        page.body.insertSpacing(page.body.count() - 1, 20)
         group = SettingGroup(page)
         button = QPushButton(self.tr("Delete"), group)
         button.setStyleSheet(DANGER_GHOST_BTN_QSS)
@@ -597,8 +603,8 @@ class AccountPageMixin:
     def _improve_note(self, subscriber: bool) -> str:
 
         if subscriber:
-            return self.tr("Lets us read a chat only to fix a bug. Chats are kept 30 days.")
-        return self.tr("Lets us read a chat only to fix a wrong answer or a bug.")
+            return self.tr("We may read a chat only to fix a bug, never to train AI. Chats are kept 30 days.")
+        return self.tr("We may read a chat only to fix a wrong answer or a bug, never to train AI.")
 
     def _improve_tip(self, subscriber: bool) -> str:
         if subscriber:

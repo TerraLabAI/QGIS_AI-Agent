@@ -31,6 +31,8 @@ from __future__ import annotations
 import math
 import re
 
+from .numbers import as_finite
+
 
 
 UNIT_SAMPLE = 50
@@ -40,8 +42,6 @@ UNIT_SAMPLE = 50
 
 
 
-UNIT_TOLERANCE = 3.0
-
 
 RASTER_SAMPLE = 250_000
 
@@ -50,30 +50,20 @@ SUM_MAX_FEATURES = 2000
 AOI_MAX_FEATURES = 200
 
 
-AOI_TOLERANCE = 0.01
+def _rules() -> dict:
+
+    try:
+        from . import tool_rules
+    except ImportError:
+        return {}
+    return tool_rules.section("invariants")
 
 
-ZONE_TOLERANCE = 0.1
-ZONE_MIN_PIXELS = 50
+def _words(key: str) -> tuple:
+    value = _rules().get(key)
+    return tuple(value) if isinstance(value, list) else ()
 
 
-_AREA_UNITS = {
-    "km2": 1e6, "sqkm": 1e6, "kmsq": 1e6, "skm": 1e6,
-    "ha": 1e4, "hectare": 1e4, "hectares": 1e4,
-    "m2": 1.0, "sqm": 1.0, "msq": 1.0,
-    "acre": 4046.8564224, "acres": 4046.8564224,
-    "mi2": 2589988.110336, "sqmi": 2589988.110336,
-    "ft2": 0.09290304, "sqft": 0.09290304,
-}
-_LENGTH_UNITS = {"km": 1000.0, "m": 1.0, "mi": 1609.344, "ft": 0.3048}
-
-
-
-_AREA_WORDS = ("area", "surface", "surf", "superficie", "sup", "aire", "flaeche", "flache")
-_LENGTH_WORDS = ("length", "len", "longueur", "laenge", "lange")
-_PERIMETER_WORDS = ("perimeter", "perimetre", "perim")
-_NOT_A_MEASURE = frozenset({"per", "dens", "density", "densite", "pop", "hab", "inhab", "ratio", "pct",
-                            "percent", "share", "rate", "par", "by"})
 _SPLIT_RE = re.compile(r"[^a-z0-9]+")
 _CAMEL_RE = re.compile(r"([a-z0-9])([A-Z])")
 
@@ -98,36 +88,39 @@ def field_unit(field_name: str, geometry: str) -> tuple[str, str, float] | None:
 
 
 
+    rules = _rules()
+    area_units, length_units = rules.get("area_units") or {}, rules.get("length_units") or {}
+    area_words, length_words, perimeter_words = _words("area_words"), _words("length_words"), _words("perimeter_words")
     tokens = _tokens(field_name)
-    if not tokens or _NOT_A_MEASURE.intersection(tokens):
+    if not tokens or not area_units or not length_units or set(_words("not_a_measure")).intersection(tokens):
         return None
     kind = str(geometry or "").lower()
     if kind.startswith("polygon"):
         for token in tokens:
-            unit = token if token in _AREA_UNITS else _split_word(token, _AREA_WORDS, _AREA_UNITS)
+            unit = token if token in area_units else _split_word(token, area_words, area_units)
             if unit is None:
                 continue
             others = [t for t in tokens if t != token]
 
 
-            if any(not (t.startswith(_AREA_WORDS) or t.isdigit()) for t in others):
+            if any(not (t.startswith(area_words) or t.isdigit()) for t in others):
                 continue
-            if token != unit or not others or any(t.startswith(_AREA_WORDS) for t in others):
-                return "area", unit, _AREA_UNITS[unit]
-        measure, words = "perimeter", _PERIMETER_WORDS
+            if token != unit or not others or any(t.startswith(area_words) for t in others):
+                return "area", unit, area_units[unit]
+        measure, words = "perimeter", perimeter_words
     elif kind.startswith("line"):
-        measure, words = "length", _LENGTH_WORDS
+        measure, words = "length", length_words
     else:
         return None
     for token in tokens:
-        unit = token if token in _LENGTH_UNITS else _split_word(token, words, _LENGTH_UNITS)
+        unit = token if token in length_units else _split_word(token, words, length_units)
         if unit is None:
             continue
         others = [t for t in tokens if t != token]
         if any(not (t.startswith(words) or t.isdigit()) for t in others):
             continue
         if token != unit or any(t.startswith(words) for t in others):
-            return measure, unit, _LENGTH_UNITS[unit]
+            return measure, unit, length_units[unit]
     return None
 
 
@@ -215,16 +208,6 @@ def _median(values: list) -> float | None:
     return values[middle] if len(values) % 2 else math.sqrt(values[middle - 1] * values[middle])
 
 
-def _number(value) -> float | None:
-    if value is None or isinstance(value, bool):
-        return None
-    try:
-        number = float(value)
-    except (TypeError, ValueError):
-        return None
-    return number if math.isfinite(number) else None
-
-
 def _times(ratio: float) -> str:
 
     exponent = round(math.log10(ratio))
@@ -253,7 +236,8 @@ def unit_factor(layer, field_name: str) -> dict | None:
 
         from .geometry_budget import VertexBudget
 
-        promised = field_unit(field_name, _geometry_kind(layer))
+        tolerance = _rules().get("unit_tolerance")
+        promised = field_unit(field_name, _geometry_kind(layer)) if tolerance else None
         if promised is None:
             return None
         measure, unit, per_unit = promised
@@ -276,7 +260,7 @@ def unit_factor(layer, field_name: str) -> dict | None:
             if budget.exhausted():
                 break
             read += 1
-            value = _number(feature.attribute(index))
+            value = as_finite(feature.attribute(index))
             geometry = feature.geometry()
             if not value or value < 0 or geometry is None or geometry.isNull() or budget.oversize(geometry):
                 continue
@@ -290,7 +274,7 @@ def unit_factor(layer, field_name: str) -> dict | None:
         return None
     medians = [median for median in (_median(ratios[0]), _median(ratios[1])) if median]
 
-    agrees = any(1 / UNIT_TOLERANCE <= median <= UNIT_TOLERANCE for median in medians)
+    agrees = any(1 / tolerance <= median <= tolerance for median in medians)
     out = {"field": field_name, "unit": unit, "measure": measure, "sampled": sampled,
            "median_ratio": float(f"{medians[0]:.4g}")}
     try:
@@ -325,11 +309,9 @@ def unit_still_wrong(layer_id: str, field_name: str) -> bool | None:
 
 
 
+
 _SLOPE = frozenset()
 _ASPECT = frozenset()
-
-_CALCULATORS = {"native:rastercalc": "EXPRESSION", "qgis:rastercalculator": "EXPRESSION",
-                "native:virtualrastercalc": "EXPRESSION", "gdal:rastercalculator": "FORMULA"}
 _CASTS_RE = re.compile(r"(?:numpy\.|np\.)?(?:float32|float64|float|double)\(([^()]+)\)", re.IGNORECASE)
 _ASTYPE_RE = re.compile(r"\.astype\([^()]*\)")
 _OPERAND = r'"[^"]+"|[A-Za-z_][\w@.]*'
@@ -361,19 +343,29 @@ def _algs(key: str, shipped: frozenset) -> frozenset:
     return tuning.check_algs(key, shipped)
 
 
+def _range_of(row) -> tuple[float, float, str] | None:
+    return (float(row["low"]), float(row["high"]), row["what"]) if row else None
+
+
+def normalised_difference_range() -> tuple[float, float, str] | None:
+
+    return _range_of((_rules().get("ranges") or {}).get("normalised_difference"))
+
+
 def expected_range(algorithm_id: str, parameters: dict) -> tuple[float, float, str] | None:
 
     algorithm_id = str(algorithm_id or "").lower()
     parameters = parameters if isinstance(parameters, dict) else {}
+    ranges = _rules().get("ranges") or {}
     if algorithm_id in _algs("slope_algorithms", _SLOPE):
         if str(parameters.get("AS_PERCENT")).strip().lower() in ("true", "1"):
             return None
-        return 0.0, 90.0, "a slope in degrees"
+        return _range_of(ranges.get("slope"))
     if algorithm_id in _algs("aspect_algorithms", _ASPECT):
-        return 0.0, 360.0, "an aspect in degrees"
-    key = _CALCULATORS.get(algorithm_id)
+        return _range_of(ranges.get("aspect"))
+    key = (_rules().get("calculators") or {}).get(algorithm_id)
     if key and normalised_difference(parameters.get(key)):
-        return -1.0, 1.0, "a normalised difference index"
+        return _range_of(ranges.get("normalised_difference"))
     return None
 
 
@@ -459,6 +451,9 @@ def overlay_area(algorithm_id: str, output_layer, overlay_layer) -> dict | None:
     if (str(algorithm_id or "").lower() not in _algs("clips_to_overlay", _CLIPS_TO_OVERLAY)
             or output_layer is None or overlay_layer is None):
         return None
+    tolerance = _rules().get("aoi_tolerance")
+    if tolerance is None:
+        return None
     try:
         from .geometry_budget import VertexBudget
 
@@ -473,7 +468,7 @@ def overlay_area(algorithm_id: str, output_layer, overlay_layer) -> dict | None:
         return None
     share = total / aoi
     out = {"output_m2": round(total, 1), "area_of_interest_m2": round(aoi, 1), "share": round(share, 4)}
-    if share > 1 + AOI_TOLERANCE:
+    if share > 1 + tolerance:
         name = overlay_layer.name() if hasattr(overlay_layer, "name") else "the overlay"
         out["warning"] = (f"its polygons cover {share:.0%} of {name!r}: they overlap, so class areas summed from it "
                           "count ground twice. Dissolve by class first.")
@@ -488,6 +483,10 @@ def zonal_coverage(algorithm_id: str, parameters: dict, output_layer) -> dict | 
 
 
     if str(algorithm_id or "").lower() not in _algs("zonal_histogram", _ZONAL_HISTOGRAM) or output_layer is None:
+        return None
+    rules = _rules()
+    tolerance, min_pixels = rules.get("zone_tolerance"), rules.get("zone_min_pixels")
+    if tolerance is None or min_pixels is None:
         return None
     try:
         from qgis.core import QgsCoordinateTransform, QgsFeatureRequest, QgsProject
@@ -525,9 +524,9 @@ def zonal_coverage(algorithm_id: str, parameters: dict, output_layer) -> dict | 
             if transform is not None:
                 geometry.transform(transform)
             area = float(geometry.area())
-            if area < ZONE_MIN_PIXELS * pixel:
+            if area < min_pixels * pixel:
                 continue
-            pixels = sum(_number(feature.attribute(i)) or 0.0 for i in columns)
+            pixels = sum(as_finite(feature.attribute(i)) or 0.0 for i in columns)
             counted += pixels * pixel
             zone += area
             zones += 1
@@ -537,10 +536,10 @@ def zonal_coverage(algorithm_id: str, parameters: dict, output_layer) -> dict | 
         return None
     share = counted / zone
     out = {"zones": zones, "share": round(share, 4)}
-    if share < 1 - ZONE_TOLERANCE:
+    if share < 1 - tolerance:
         out["warning"] = (f"the class pixels cover {share:.0%} of the zone area ({zones} zones): the raster misses "
                           "part of the zones, so class areas do not add up to them.")
-    elif share > 1 + ZONE_TOLERANCE:
+    elif share > 1 + tolerance:
         out["warning"] = (f"the class pixels add up to {share:.0%} of the zone area ({zones} zones): check the "
                           "raster's CRS and pixel size before reporting areas.")
     return out

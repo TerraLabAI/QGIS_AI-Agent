@@ -97,7 +97,45 @@ def locale_variants(locale: str) -> list[str]:
     return variants
 
 
+_CHINESE_SCRIPTS = {"hans": "zh_CN", "hant": "zh_TW"}
+_CHINESE_REGIONS = ("CN", "TW", "HK", "MO", "SG")
 
+
+def plugin_locale(tag: str) -> str:
+
+
+
+
+
+
+
+
+    parts = str(tag or "").replace("_", "-").split("-")
+    if parts[0].lower() == "zh" and len(parts) > 1 and parts[1].lower() in _CHINESE_SCRIPTS:
+        region = parts[2].upper() if len(parts) > 2 else ""
+        return "zh_" + region if region in _CHINESE_REGIONS else _CHINESE_SCRIPTS[parts[1].lower()]
+    return str(tag or "")[:5]
+
+
+def qgis_locale_names() -> tuple[str, str]:
+
+
+
+
+
+
+    override = ""
+    try:
+        store = QgsSettings()
+        if store.value("locale/overrideFlag", False, type=bool):
+            override = str(store.value("locale/userLocale", "", type=str) or "")
+    except Exception:  # noqa: BLE001  # nosec B110
+        pass
+    try:
+        system = str(QLocale.system().name() or "")
+    except Exception:  # noqa: BLE001
+        system = ""
+    return override, system
 
 
 
@@ -106,24 +144,10 @@ _user_locale: str | None = None
 
 def current_locale() -> str:
 
-
-
-
-
-
-
-
     global _user_locale
     if _user_locale is None:
-        try:
-            from .settings import Settings
-
-            _user_locale = str(Settings().locale or "")
-        except Exception:  # noqa: BLE001  # nosec B110
-            try:
-                _user_locale = str(QgsSettings().value("locale/userLocale", "en_US") or "")
-            except Exception:  # noqa: BLE001
-                return ""
+        override, system = qgis_locale_names()
+        _user_locale = plugin_locale(override or system or "en")
     return _user_locale
 
 

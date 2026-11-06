@@ -47,7 +47,9 @@ from qgis.PyQt.QtCore import QCoreApplication, Qt, QTimer
 from qgis.PyQt.QtGui import QPainter
 from qgis.PyQt.QtWidgets import QHBoxLayout, QLabel, QProgressBar, QPushButton, QSizePolicy, QVBoxLayout, QWidget
 
-from .card_base import format_duration
+from ..core.layer_release import task_state
+from ..core.qt_compat import disconnect_quietly
+from ..core.tool_registry import spec
 from .cards_tool import ToolCard
 from .font_scale import widget_pixel_ratio
 from .icons import pixmap_for
@@ -66,11 +68,11 @@ from .tool_describe import source_text as _source_text
 from .trace_rows import (
     _HINT_QSS,
     _LABEL_QSS,
-    _MEDIUM_QSS,
     _ROW_GAP,
     _ROW_PAD_X,
     _ROW_PAD_Y,
     _SECOND_QSS,
+    _VERB_QSS,
     GLYPH_PX,
     GLYPH_SLOT_PX,
     ROW_MIN_PX,
@@ -144,14 +146,6 @@ def stage_words(stage: str, done=None, total=None) -> str:
     return words
 
 
-def seconds_words(seconds: float) -> str:
-
-    whole = int(max(0, seconds))
-    if whole < 60:
-        return QCoreApplication.translate("ActivityRow", "{n} s").format(n=whole)
-    return QCoreApplication.translate("ActivityRow", "{m} min {s} s").format(m=whole // 60, s=f"{whole % 60:02d}")
-
-
 def _task_id_of(card) -> str:
 
     try:
@@ -164,10 +158,6 @@ def _task_id_of(card) -> str:
 def _task_state(task_id: str):
 
     if not task_id:
-        return None
-    try:
-        from ..tools.processing_run import task_state
-    except Exception:  # noqa: BLE001
         return None
     return task_state(task_id)
 
@@ -266,8 +256,7 @@ def secondary_of(card: ToolCard) -> str:
 
 
 
-        repeated = getattr(card, "connector", None) is not None and source.lower() in head.lower()
-        return "" if repeated else source
+        return "" if source.lower() in head.lower() else source
     subject = card.subject_text() if callable(getattr(card, "subject_text", None)) else ""
     if not subject and getattr(card, "connector", None) is not None:
         subject, _ = call_subject(card.name, card.args)
@@ -351,7 +340,6 @@ class _ResultRow(QWidget):
         self._link = link
         if link:
             self.setCursor(Qt.CursorShape.PointingHandCursor)
-            self.setToolTip(link)
         row = QHBoxLayout(self)
         row.setContentsMargins(0, 0, 0, 0)
         row.setSpacing(8)
@@ -478,7 +466,7 @@ class ActivityRow(QWidget):
 
         self._label = ElidedLabel("", self._head, Qt.TextElideMode.ElideRight)
         self._label.setObjectName("activityLabel")
-        self._label.setStyleSheet(_MEDIUM_QSS)
+        self._label.setStyleSheet(_VERB_QSS)
         self._label.setSizePolicy(QSizePolicy.Policy.Maximum, QSizePolicy.Policy.Preferred)
         row.addWidget(self._label, 0, Qt.AlignmentFlag.AlignVCenter)
         self._secondary = ElidedLabel("", self._head, Qt.TextElideMode.ElideMiddle)
@@ -492,6 +480,8 @@ class ActivityRow(QWidget):
         self._count.hide()
         row.addWidget(self._count, 0, Qt.AlignmentFlag.AlignVCenter)
 
+        row.addStretch(1)
+
 
         self._outcome = ElidedLabel("", self._head)
         self._outcome.setObjectName("activityOutcome")
@@ -499,7 +489,6 @@ class ActivityRow(QWidget):
         self._outcome.setSizePolicy(QSizePolicy.Policy.Maximum, QSizePolicy.Policy.Preferred)
         self._outcome.hide()
         row.addWidget(self._outcome, 0, Qt.AlignmentFlag.AlignVCenter)
-        row.addStretch(1)
         self._chevron = Chevron(_CHEVRON_PX, self._head)
         self._chevron.hide()
         row.addWidget(self._chevron, 0, Qt.AlignmentFlag.AlignVCenter)
@@ -803,10 +792,9 @@ class ActivityRow(QWidget):
         else:
             words = stage_words(self._call_stage, done, total)
         spent = time.monotonic() - self._call_started if self._call_started else 0.0
-        clock = seconds_words(spent) if spent >= _CALL_CLOCK_FROM_S else ""
-        if not words and clock and self._call_source:
+        if not words and spent >= _CALL_CLOCK_FROM_S and self._call_source:
             words = self.tr("Waiting for {host}").format(host=self._call_source)
-        return " \u00b7 ".join(part for part in (words, clock) if part)
+        return words
 
     def _show_call(self) -> None:
 
@@ -921,7 +909,7 @@ class ActivityRow(QWidget):
         self._tries_count = 0 if calling else recovered
         self._sync_tries_button()
         declined = failed or ended in ("denied", "stopped")
-        self._label.setStyleSheet(_SECOND_QSS if declined else _MEDIUM_QSS)
+        self._label.setStyleSheet(_SECOND_QSS if declined else _VERB_QSS)
         colour = first.glyph_colour() if callable(getattr(first, "glyph_colour", None)) \
             else qcolor(INK_2)
         if declined:
@@ -959,18 +947,6 @@ class ActivityRow(QWidget):
 
 
             self._sync_card(card, card.is_expanded())
-
-
-        lines = []
-        for card in self.cards:
-            text = card.line()
-            source = card.source_text() if callable(getattr(card, "source_text", None)) else ""
-            if source and source not in text:
-                text = f"{text} · {source}"
-            if card.ok is not None and getattr(card, "duration_s", 0):
-                text = f"{text} \u00b7 {format_duration(card.duration_s)}"
-            lines.append(text)
-        self._head.setToolTip("\n".join(lines))
         self._sync_open()
 
     @staticmethod
@@ -1063,7 +1039,7 @@ class ActivityRow(QWidget):
             facts = result_facts(last.summary)
             if facts["count"] is not None:
                 text = count_text(last.summary, getattr(last, "detail", ""))
-            elif facts["layer"] and self._made_layer(last, facts["layer"]):
+            elif facts["layer"] and not self._reads_only(last) and self._made_layer(last, facts["layer"]):
                 text = f"\u2192 {facts['layer']}"
         self._outcome.setText(text)
 
@@ -1075,6 +1051,14 @@ class ActivityRow(QWidget):
         self._outcome.setMinimumWidth(self._outcome_floor)
         self._outcome.setVisible(bool(text))
         self._sync_sub(running)
+
+    @staticmethod
+    def _reads_only(card: ToolCard) -> bool:
+
+
+
+        declared = spec(str(card.name or ""))
+        return (declared.danger if declared is not None else getattr(card, "danger", "")) == "read"
 
     @staticmethod
     def _made_layer(card: ToolCard, layer: str) -> bool:
@@ -1163,10 +1147,7 @@ class ActivityRow(QWidget):
         if self._logo_hooked:
             from .library.pictures import store
 
-            try:
-                store().ready.disconnect(self._on_logo_ready)
-            except (RuntimeError, TypeError):
-                pass
+            disconnect_quietly(store(), "ready", self._on_logo_ready)
         self._chevron.cleanup()
         for card in self.cards:
 

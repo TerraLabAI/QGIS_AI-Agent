@@ -31,8 +31,9 @@ from __future__ import annotations
 import contextlib
 import urllib.parse
 
-from . import data_date, security, tuning
+from . import data_date, security_urls, tuning
 from .logger import log_warning
+from .numbers import as_int
 
 
 
@@ -67,7 +68,7 @@ def _fetchable(url: str) -> bool:
         return False
     if scheme not in ("http", "https"):
         return False
-    return not security.is_local_url(url, resolve=False) and not security.is_private_url(url, resolve=False)
+    return not security_urls.is_local_url(url, resolve=False) and not security_urls.is_private_url(url, resolve=False)
 
 
 def _clean_basemap(row) -> dict | None:
@@ -83,10 +84,7 @@ def _clean_basemap(row) -> dict | None:
 
     if kind == "xyz" and not _looks_like_xyz(url):
         return None
-    try:
-        zoom = int(row.get("max_zoom") or 19)
-    except (TypeError, ValueError):
-        zoom = 19
+    zoom = as_int(row.get("max_zoom") or 19, 19)
     clean = {
         "id": key,
         "name": str(row.get("name") or key),
@@ -247,16 +245,35 @@ def set_connector_shelves(payload) -> None:
     if not isinstance(payload, dict):
         return
     out: dict = {}
-    try:
-        cap = int(payload.get("cap"))
-    except (TypeError, ValueError):
-        cap = 0
+    cap = as_int(payload.get("cap"), 0)
     if cap:
         out["cap"] = max(_SHELF_CAP_MIN, min(cap, _SHELF_CAP_MAX))
     order = payload.get("order")
     if isinstance(order, list):
         out["order"] = [str(k) for k in order if isinstance(k, str) and k]
     _shelves = out
+
+
+_MAX_TOOL_LINES = 200
+_MAX_TOOL_LINE_CHARS = 160
+_tool_lines: dict = {}
+
+
+def set_tool_lines(payload) -> None:
+
+    global _tool_lines
+    if not isinstance(payload, dict):
+        return
+    kept: dict = {}
+    for name, text in list(payload.items())[:_MAX_TOOL_LINES]:
+        if isinstance(name, str) and name and isinstance(text, str) and text.strip():
+            kept[name] = text.strip()[:_MAX_TOOL_LINE_CHARS]
+    _tool_lines = kept
+
+
+def tool_line(name: str) -> str:
+
+    return _tool_lines.get(name, "")
 
 
 def shelf_order() -> list:
@@ -453,6 +470,9 @@ def apply_session(session: dict) -> None:
     shelves = session.get("connector_shelves")
     if isinstance(shelves, dict) and shelves:
         set_connector_shelves(shelves)
+    lines = session.get("tool_lines")
+    if isinstance(lines, dict) and lines:
+        set_tool_lines(lines)
     licences = session.get("source_licences")
     if isinstance(licences, list):
         set_source_licences(licences)

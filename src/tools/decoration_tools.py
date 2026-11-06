@@ -34,6 +34,7 @@ from qgis.PyQt.QtGui import QColor
 from qgis.PyQt.QtXml import QDomDocument
 
 from ..core.logger import log_warning
+from ..core.qt_compat import enum_member
 from ..core.security import validate_path
 from ..core.tool_registry import Tool, ToolRegistry, tool_error
 from .colour_text import hex_from_qcolor, qcolor_from_text
@@ -183,11 +184,6 @@ def _color_utils():
         return None
 
 
-def _hex(color: QColor) -> str:
-
-    return hex_from_qcolor(color)
-
-
 def _context() -> QgsReadWriteContext:
     context = QgsReadWriteContext()
     context.setPathResolver(_project().pathResolver())
@@ -258,15 +254,17 @@ def _state(decoration: str) -> dict:
     if decoration in ("title", "copyright"):
         fmt, _stored = _read_text_format(scope, "/Font")
         state.update(_margins(scope, decoration))
-        state.update(text=_read_str(scope, "/Label"), color=_hex(fmt.color()), font_size=round(fmt.size(), 2))
+        state.update(text=_read_str(scope, "/Label"), color=hex_from_qcolor(fmt.color()),
+                     font_size=round(fmt.size(), 2))
         if decoration == "title":
-            state["background_color"] = _hex(_color_from_string(_read_str(scope, "/BackgroundColor", "0,0,0,99")))
+            background = _read_str(scope, "/BackgroundColor", "0,0,0,99")
+            state["background_color"] = hex_from_qcolor(_color_from_string(background))
     elif decoration == "north_arrow":
         state.update(_margins(scope, decoration))
         automatic = _read_bool(scope, "/Automatic", True)
         state.update(size=_read_float(scope, "/Size", 16.0),
-                     color=_hex(_color_from_string(_read_str(scope, "/Color", "#000000"))),
-                     outline_color=_hex(_color_from_string(_read_str(scope, "/OutlineColor", "#FFFFFF"))),
+                     color=hex_from_qcolor(_color_from_string(_read_str(scope, "/Color", "#000000"))),
+                     outline_color=hex_from_qcolor(_color_from_string(_read_str(scope, "/OutlineColor", "#FFFFFF"))),
                      rotation="automatic" if automatic else _read_int(scope, "/Rotation", 0),
                      path=_read_str(scope, "/SvgPath") or "(QGIS default arrow)")
     elif decoration == "scale_bar":
@@ -276,8 +274,8 @@ def _state(decoration: str) -> dict:
         state.update(style=SCALE_BAR_STYLES[style] if 0 <= style < len(SCALE_BAR_STYLES) else "ticks_down",
                      size=_read_int(scope, "/PreferredSize", 30),
                      snap=_read_bool(scope, "/Snapping", True),
-                     color=_hex(_color_from_string(_read_str(scope, "/Color", "#000000"))),
-                     outline_color=_hex(_color_from_string(_read_str(scope, "/OutlineColor", "#FFFFFF"))),
+                     color=hex_from_qcolor(_color_from_string(_read_str(scope, "/Color", "#000000"))),
+                     outline_color=hex_from_qcolor(_color_from_string(_read_str(scope, "/OutlineColor", "#FFFFFF"))),
                      font_size=round(fmt.size(), 2))
     elif decoration == "grid":
         style = _read_int(scope, "/Style", 0)
@@ -461,8 +459,6 @@ def _decimal_places(value: float, max_places: int = 6) -> int:
 
 def _write_grid(scope: str, args: dict, current: dict) -> dict | None:
     from qgis.core import Qgis, QgsLineSymbol, QgsMarkerSymbol, QgsSimpleMarkerSymbolLayer
-
-    from ..core.qt_compat import enum_member
 
     iface, _window = _main_window()
     canvas = iface.mapCanvas() if iface is not None else None

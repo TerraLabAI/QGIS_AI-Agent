@@ -68,7 +68,10 @@ from array import array
 from ..core import net, security
 from ..core.background import heartbeat, run_on_main_thread
 from ..core.logger import log_warning
+from ..core.qt_compat import enum_member
 from ..core.tool_registry import coded_fact, tool_error
+from ._layers import layer_not_found, resolve_layer
+from .layer_files import discard_staged_write, publish_staged_write, staging_path
 
 
 
@@ -111,13 +114,10 @@ def _read_grid(args: dict) -> dict:
 
     from qgis.core import Qgis, QgsRasterLayer, QgsRectangle
 
-    from ..core.qt_compat import enum_member
-    from .layer_lookup import _find_layer, _layer_not_found_error
-
     reference = str(args.get("layer_name") or "").strip()
-    layer = _find_layer(reference) if reference else None
+    layer = resolve_layer(reference) if reference else None
     if layer is None:
-        return {"error": _layer_not_found_error(reference)}
+        return {"error": layer_not_found(reference)}
     if not isinstance(layer, QgsRasterLayer):
         return {"error": tool_error(
             f"{layer.name()!r} is not a raster layer, so it carries no elevation to build a mesh from.",
@@ -461,7 +461,6 @@ def _format_for(path: str, asked) -> tuple[str, dict | None]:
 
 def _export_3d_model(args: dict) -> dict:
 
-    from .layer_io_tools import _discard_staged_write, _publish_staged_write, _staging_path
 
     path = str(args.get("path") or "").strip()
     if not path:
@@ -506,7 +505,7 @@ def _export_3d_model(args: dict) -> dict:
     parent = os.path.dirname(path)
     if parent:
         os.makedirs(parent, exist_ok=True)
-    staging = _staging_path(path)
+    staging = staging_path(path)
     if not security.fits_path(staging, margin=8):
         return tool_error(
             f"The path is too long for this system to write beside: {path}", "INVALID_ARGS",
@@ -532,18 +531,18 @@ def _export_3d_model(args: dict) -> dict:
                 triangles = _write_stl(handle, values, nx, ny, dx, dy, z_factor, z_base, title)
             vertices, faces = nx * ny + 4, triangles
     except InterruptedError:
-        _discard_staged_write(staging)
+        discard_staged_write(staging)
         return tool_error("The export was stopped before the file was finished.", "CANCELLED",
                           hint="mesh_export_cancelled")
     except (OSError, MemoryError) as exc:
-        _discard_staged_write(staging)
+        discard_staged_write(staging)
         return tool_error(f"Could not write {path}: {exc}", "EXECUTION_FAILED",
                           hint="mesh_write_failed", path=path)
 
     size = os.path.getsize(staging) if os.path.isfile(staging) else 0
-    publish_error = _publish_staged_write(staging, path)
+    publish_error = publish_staged_write(staging, path)
     if publish_error:
-        _discard_staged_write(staging)
+        discard_staged_write(staging)
         return tool_error(
             f"The model was written but could not be put in place at {path}: {publish_error}",
             "EXECUTION_FAILED", hint="mesh_publish_failed", path=path)

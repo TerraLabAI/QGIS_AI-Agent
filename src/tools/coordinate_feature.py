@@ -22,7 +22,7 @@ from qgis.PyQt.QtCore import QT_TRANSLATE_NOOP
 from ..core.tool_registry import Tool, ToolRegistry, tool_error
 from . import vector_write
 from ._compat import QVAR_STRING
-from .layer_lookup import _find_layer
+from ._layers import resolve_layer
 
 
 def register_coordinate_feature_tools(registry: ToolRegistry) -> None:
@@ -93,7 +93,7 @@ def _create_coordinate_feature(args: dict) -> dict:
     if error:
         return error
     source = _crs(source_authid)
-    target_layer = _find_layer(str(args.get("target_layer") or "")) if args.get("target_layer") else None
+    target_layer = resolve_layer(str(args.get("target_layer") or "")) if args.get("target_layer") else None
     if target_layer is not None and not isinstance(target_layer, QgsVectorLayer):
         return tool_error("target_layer must be a vector layer.", "INVALID_ARGS")
     layer_crs = target_layer.crs() if target_layer else None

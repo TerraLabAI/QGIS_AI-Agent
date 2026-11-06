@@ -25,6 +25,7 @@ from qgis.PyQt.QtWidgets import (
     QWidget,
 )
 
+from ..core import telemetry
 from ..core.memory_store import memory_dir
 from ..core.profile import (
     MEMORY_NOTE_MAX_CHARS,
@@ -35,7 +36,6 @@ from ..core.profile import (
     clear_memory_notes,
     load_memory_notes,
     normalize_expertise,
-    normalize_layer_naming,
     normalize_question_policy,
     normalize_reply_language,
     normalize_reply_style,
@@ -45,6 +45,7 @@ from ..core.profile import (
     save_memory_notes,
 )
 from .font_scale import apply_font_scale_to_tree, scale_px_length
+from .quota_card import trial_cta
 from .settings_pages import (
     GHOST_BTN_QSS,
     INPUT_QSS,
@@ -52,10 +53,10 @@ from .settings_pages import (
     PRIMARY_BTN_QSS,
     ROW_NOTE_QSS,
     TEXTAREA_QSS,
-    Disclosure,
     NoteRow,
     Page,
-    ProCard,
+    ProLock,
+    ProNote,
     SectionCard,
     Segmented,
     SettingGroup,
@@ -65,7 +66,10 @@ from .settings_pages import (
     set_section_locked,
 )
 
-_TEXTAREA_H = 118
+_TEXTAREA_H = 64
+
+_COUNT_SHOWN_FROM = PROFILE_MAX_CHARS - 200
+_FIELD_LABEL_QSS = f"font-size: 12px; color: {MUTED}; background: transparent;"
 
 
 class _NoteField(QLineEdit):
@@ -86,6 +90,8 @@ class PersonalisationPageMixin:
 
     def _build_answers(self, page: Page) -> SettingGroup:
 
+
+
         group = SettingGroup(page)
 
         self._language_combo = QComboBox(group)
@@ -97,7 +103,7 @@ class PersonalisationPageMixin:
         self._language_combo.setMinimumWidth(scale_px_length(180))
         self._language_combo.currentIndexChanged.connect(self._on_language_changed)
         group.add_row(SettingRow(self.tr("Response language"),
-                                 self.tr("The language the AI writes its answers in."),
+                                 "",
                                  self._language_combo, group))
 
         self._style_segments = Segmented(
@@ -105,8 +111,17 @@ class PersonalisationPageMixin:
              ("detailed", self.tr("Detailed"))], self._store.reply_style, group)
         self._style_segments.changed.connect(self._on_style_changed)
         group.add_row(SettingRow(self.tr("Response style"),
-                                 self.tr("Short answers, a balance, or the full reasoning."),
+                                 "",
                                  self._style_segments, group))
+
+
+
+        self._units_segments = Segmented(
+            [("metric", self.tr("Metric")), ("imperial", self.tr("Imperial"))], self._store.units, group)
+        self._units_segments.changed.connect(self._on_units_changed)
+        group.add_row(SettingRow(self.tr("Units"),
+                                 "",
+                                 self._units_segments, group))
 
 
 
@@ -118,26 +133,14 @@ class PersonalisationPageMixin:
                                  self.tr("How often the AI asks before acting."),
                                  self._questions_segments, group))
 
-
-
-        more = SettingGroup(None, flat=True)
-        self._answers_more = Disclosure(self.tr("More"), more, group)
-        self._answers_more.layout().setContentsMargins(14, 4, 14, 8)
-        group.add_row(self._answers_more)
-        answers, group = group, more
-
-        self._explain_switch = Switch(group, self._store.explain_runs)
-        self._explain_switch.toggled.connect(self._on_explain_toggled)
-        group.add_row(SettingRow(self.tr("Explain what it did after each run"),
-                                 self.tr("A short summary of the changes once a task is done."),
-                                 self._explain_switch, group))
-
-        self._tools_switch = Switch(group, self._store.show_tool_details)
-        self._tools_switch.toggled.connect(self._on_tools_toggled)
-
-        group.add_row(SettingRow(self.tr("Show the steps it takes"),
-                                 self.tr("The list of steps above each answer."),
-                                 self._tools_switch, group))
+        self._expertise_segments = Segmented(
+            [("", self.tr("Auto")), ("beginner", self.tr("Beginner")),
+             ("intermediate", self.tr("Regular")), ("expert", self.tr("Expert"))],
+            self._store.expertise, group)
+        self._expertise_segments.changed.connect(self._on_expertise_changed)
+        group.add_row(SettingRow(self.tr("GIS experience"),
+                                 self.tr("How much the AI explains."),
+                                 self._expertise_segments, group))
 
 
 
@@ -148,7 +151,7 @@ class PersonalisationPageMixin:
             self.tr("Move the map to what it changes"),
             self.tr("The view goes to each edit as it happens. Off keeps your view where you put it."),
             self._follow_switch, group))
-        return answers
+        return group
 
     def _sync_language_combo(self) -> None:
         code = normalize_reply_language(self._store.reply_language)
@@ -162,6 +165,7 @@ class PersonalisationPageMixin:
         if code == self._store.reply_language:
             return
         self._store.reply_language = code
+        telemetry.track_setting("reply_language", code)
         self._show_saved()
         self._emit_profile()
 
@@ -170,6 +174,7 @@ class PersonalisationPageMixin:
         if value == self._store.reply_style:
             return
         self._store.reply_style = value
+        telemetry.track_setting("reply_style", value)
         self._show_saved()
         self._emit_profile()
 
@@ -178,21 +183,13 @@ class PersonalisationPageMixin:
         if value == self._store.question_policy:
             return
         self._store.question_policy = value
-        self._show_saved()
-        self._emit_profile()
-
-    def _on_explain_toggled(self, on: bool) -> None:
-        self._store.explain_runs = bool(on)
-        self._show_saved()
-        self._emit_profile()
-
-    def _on_tools_toggled(self, on: bool) -> None:
-        self._store.show_tool_details = bool(on)
+        telemetry.track_setting("question_policy", value)
         self._show_saved()
         self._emit_profile()
 
     def _on_follow_toggled(self, on: bool) -> None:
         self._store.follow_edits = bool(on)
+        telemetry.track_setting("follow_edits", bool(on))
         self._show_saved()
         self._emit_profile()
 
@@ -200,84 +197,66 @@ class PersonalisationPageMixin:
 
 
         page = Page(self.tr("Personalisation"),
-                    self.tr("Context the AI reads at the start of every conversation, "
-                            "and the notes it keeps between them."), self)
+                    self.tr("Read by the AI agent at the start of every conversation."), self)
 
 
-        page.add_group_title(self.tr("Who you are"))
-        identity = SettingGroup(page)
-        self._name_edit = QLineEdit(self._store.profile_name, identity)
-        self._name_edit.setStyleSheet(INPUT_QSS)
-        self._name_edit.setPlaceholderText(self.tr("Your first name"))
-        self._name_edit.setMaxLength(PROFILE_LINE_MAX_CHARS)
-        self._name_edit.setFixedWidth(scale_px_length(200))
+
+        you = SectionCard(page)
+        fields = QWidget(you)
+        line = QHBoxLayout(fields)
+        line.setContentsMargins(0, 0, 0, 0)
+        line.setSpacing(12)
+        self._name_edit = self._field(fields, line, self.tr("Name"), self._store.profile_name,
+                                      self.tr("Your first name"))
         self._name_edit.editingFinished.connect(self._on_name_changed)
-        identity.add_row(SettingRow(self.tr("What the AI should call you"),
-                                    self.tr("Used in its answers. Empty: it uses no name."),
-                                    self._name_edit, identity))
-        self._role_edit = QLineEdit(self._store.profile_role, identity)
-        self._role_edit.setStyleSheet(INPUT_QSS)
-        self._role_edit.setPlaceholderText(self.tr("Urban planner"))
-        self._role_edit.setMaxLength(PROFILE_LINE_MAX_CHARS)
-        self._role_edit.setFixedWidth(scale_px_length(200))
+        self._role_edit = self._field(fields, line, self.tr("Job"), self._store.profile_role,
+                                      self.tr("Urban planner"))
         self._role_edit.editingFinished.connect(self._on_role_changed)
-        identity.add_row(SettingRow(self.tr("What you do"),
-                                    self.tr("Your job in a few words. It changes which data and "
-                                            "which method it reaches for first."),
-                                    self._role_edit, identity))
-        page.add(identity)
+        you.add(fields)
+        page.add(you)
+
+
+
         locked = self._memory_locked()
-
-
+        card = you
         self._about_edit, self._about_count = self._text_block(
-            page, self.tr("About you"),
-            self.tr("Who you are and what you work on. Example: urban planner at the city of Lyon, "
-                    "I mostly work with cadastre and PLU layers in EPSG:2154."),
-            self._store.profile_about, "about", pro_only=locked,
-            pro_note=self.tr("Pro reads who you are and your standing rules before every run: "
-                             "your job, your city, your usual CRS, the language it answers in, "
-                             "how it names layers and what it must never do without asking."))
+            card, self.tr("About you"),
+            self.tr("Urban planner at the city of Lyon, cadastre and PLU layers in EPSG:2154"),
+            self._store.profile_about, "about")
         self._instructions_edit, self._instructions_count = self._text_block(
-            page, self.tr("Instructions for the AI"),
-            self.tr("How it should work. Example: always answer in French, name new layers in "
-                    "snake_case, never delete a layer without asking."),
-            self._store.profile_instructions, "instructions", pro_only=locked)
-        page.add_group_title(self.tr("How you work"))
-        page.add(self._build_work_preferences(page))
+            card, self.tr("Instructions"),
+            self.tr("Always answer in French, never delete a layer without asking"),
+            self._store.profile_instructions, "instructions")
+        note = self._pro_note(card, self.tr("Pro reads both before every run."))
+        boxes = (self._about_edit, self._about_count, self._instructions_edit, self._instructions_count)
+        self._plan_sections.append((note, boxes))
+        note.setVisible(locked)
+        set_section_locked(*boxes, locked=locked)
+
         page.add_group_title(self.tr("Answers"))
         page.add(self._build_answers(page))
         self._sync_language_combo()
         self._build_memory(page)
+        self._build_project_memory(page)
         return page
 
-    def _build_work_preferences(self, page: Page) -> SettingGroup:
-        group = SettingGroup(page)
-        self._expertise_segments = Segmented(
-            [("", self.tr("Auto")), ("beginner", self.tr("Beginner")),
-             ("intermediate", self.tr("Regular")), ("expert", self.tr("Expert"))],
-            self._store.expertise, group)
-        self._expertise_segments.changed.connect(self._on_expertise_changed)
-        group.add_row(SettingRow(self.tr("GIS experience"),
-                                 self.tr("How much the AI explains."),
-                                 self._expertise_segments, group))
+    def _field(self, host: QWidget, line: QHBoxLayout, label: str, text: str,
+               placeholder: str) -> QLineEdit:
 
-
-
-        self._units_segments = Segmented(
-            [("metric", self.tr("Metric")), ("imperial", self.tr("Imperial"))], self._store.units, group)
-        self._units_segments.changed.connect(self._on_units_changed)
-        group.add_row(SettingRow(self.tr("Units"),
-                                 self.tr("Metres and hectares, or feet, miles and acres."),
-                                 self._units_segments, group))
-
-        self._naming_segments = Segmented(
-            [("human", self.tr("Plain words")), ("snake_case", self.tr("Computer-style names"))],
-            self._store.layer_naming, group)
-        self._naming_segments.changed.connect(self._on_naming_changed)
-        group.add_row(SettingRow(self.tr("Layer names"),
-                                 self.tr("How the AI names the layers it creates."),
-                                 self._naming_segments, group))
-        return group
+        col = QVBoxLayout()
+        col.setContentsMargins(0, 0, 0, 0)
+        col.setSpacing(4)
+        title = QLabel(label, host)
+        title.setStyleSheet(_FIELD_LABEL_QSS)
+        title.setContentsMargins(2, 0, 0, 0)
+        col.addWidget(title)
+        edit = QLineEdit(text, host)
+        edit.setStyleSheet(INPUT_QSS)
+        edit.setPlaceholderText(placeholder)
+        edit.setMaxLength(PROFILE_LINE_MAX_CHARS)
+        col.addWidget(edit)
+        line.addLayout(col, 1)
+        return edit
 
     def _on_name_changed(self) -> None:
         value = " ".join(self._name_edit.text().split())[:PROFILE_LINE_MAX_CHARS]
@@ -304,6 +283,7 @@ class PersonalisationPageMixin:
         if value == self._store.expertise:
             return
         self._store.expertise = value
+        telemetry.track_setting("expertise", value)
         self._show_saved()
         self._emit_profile()
 
@@ -312,44 +292,38 @@ class PersonalisationPageMixin:
         if value == self._store.units:
             return
         self._store.units = value
+        telemetry.track_setting("units", value)
         self._show_saved()
         self._emit_profile()
 
-    def _on_naming_changed(self, value: str) -> None:
-        value = normalize_layer_naming(value)
-        if value == self._store.layer_naming:
-            return
-        self._store.layer_naming = value
-        self._show_saved()
-        self._emit_profile()
+    def _pro_note(self, host: SectionCard, reason: str) -> ProNote:
 
-    def _pro_card(self, host, note: str, title: str = "") -> ProCard:
+        note = ProNote(reason)
+        note.upgrade_requested.connect(self._on_upgrade)
+        host.add(note)
+        self._pro_notes.append(note)
+        self._sync_pro_notes()
+        return note
 
+    def _sync_pro_notes(self) -> None:
 
+        label = trial_cta() if getattr(self, "trial_offered", False) else ""
+        for note in list(getattr(self, "_pro_notes", ())):
+            try:
+                note.set_trial(label)
+            except RuntimeError:
+                continue
 
+    def _text_block(self, card: SectionCard, title: str, placeholder: str, text: str, key: str):
 
-
-        card = ProCard(title or self.tr("Your profile and instructions, read before every run"),
-                       note, host)
-        card.upgrade_requested.connect(self._on_upgrade)
-        host.add(card)
-        return card
-
-    def _text_block(self, page: Page, title: str, placeholder: str, text: str, key: str,
-                    pro_only: bool = False, pro_note: str = ""):
-        page.add_group_title(title)
-
-
-
-
-        pro = self._pro_card(page, pro_note) if pro_note else None
-        if pro is not None:
-            pro.setVisible(bool(pro_only))
-        box = QWidget(page)
+        box = QWidget(card)
         col = QVBoxLayout(box)
         col.setContentsMargins(0, 0, 0, 0)
         col.setSpacing(4)
-        page.add(box)
+        label = QLabel(title, box)
+        label.setStyleSheet(_FIELD_LABEL_QSS)
+        label.setContentsMargins(2, 0, 0, 0)
+        col.addWidget(label)
         edit = QPlainTextEdit(box)
         edit.setStyleSheet(TEXTAREA_QSS)
         edit.setPlaceholderText(placeholder)
@@ -364,13 +338,13 @@ class PersonalisationPageMixin:
         col.addWidget(count)
         self._update_count(edit, count)
         edit.textChanged.connect(lambda: self._on_profile_text_changed(edit, count, key))
-        self._plan_sections.append((pro, (edit, count)))
-        set_section_locked(edit, count, locked=bool(pro_only))
+        card.add(box)
         return edit, count
 
     def _update_count(self, edit: QPlainTextEdit, count: QLabel) -> None:
-        count.setText(self.tr("{count} / {limit}").format(
-            count=len(edit.toPlainText()), limit=PROFILE_MAX_CHARS))
+        used = len(edit.toPlainText())
+        count.setText(self.tr("{count} / {limit}").format(count=used, limit=PROFILE_MAX_CHARS))
+        count.setVisible(used >= _COUNT_SHOWN_FROM)
 
     def _on_profile_text_changed(self, edit: QPlainTextEdit, count: QLabel, key: str) -> None:
         text = edit.toPlainText()
@@ -405,35 +379,37 @@ class PersonalisationPageMixin:
 
 
 
-        page.add_group_title(self.tr("Memory"))
         locked = self._memory_locked()
+        lock = ProLock()
+        page.add_group_title(self.tr("Memory"), lock)
+        lock.setVisible(locked)
+        self._plan_sections.append((lock, ()))
         card = SectionCard(page)
+
+
+        card.layout().setContentsMargins(0, 0, 0, 8)
         page.add(card)
-        pro = self._pro_card(
-            card, self.tr("Pro reads your notes at the start of every conversation."),
-            self.tr("Memory between conversations"))
-        pro.setVisible(locked)
 
         group = SettingGroup(card, flat=True)
         self._memory_switch = Switch(group, self._store.memory_enabled)
         self._memory_switch.toggled.connect(self._on_memory_toggled)
         group.add_row(SettingRow(self.tr("The AI saves notes on its own"),
-                                 self.tr("You can review or remove them here."),
+                                 "",
                                  self._memory_switch, group))
         card.add(group)
 
         self._notes_label = QLabel(card)
         self._notes_label.setObjectName("memoryNotesLabel")
         self._notes_label.setStyleSheet(
-            f"font-size: 10px; font-weight: 600; letter-spacing: 0.6px; color: {MUTED}; background: transparent;")
-        self._notes_label.setContentsMargins(2, 6, 2, 0)
+            f"font-size: 11px; font-weight: 500; color: {MUTED}; background: transparent;")
+        self._notes_label.setContentsMargins(14, 6, 14, 0)
         card.add(self._notes_label)
         self._notes_group = SettingGroup(card, flat=True)
         card.add(self._notes_group)
 
         add_host = QWidget(card)
         add_col = QVBoxLayout(add_host)
-        add_col.setContentsMargins(0, 0, 0, 0)
+        add_col.setContentsMargins(12, 0, 12, 0)
         add_col.setSpacing(6)
         self._add_note_btn = QPushButton(self.tr("+ Add a note"), add_host)
         self._add_note_btn.setObjectName("memoryAddNote")
@@ -489,7 +465,7 @@ class PersonalisationPageMixin:
 
         folder = QWidget(card)
         folder_lay = QHBoxLayout(folder)
-        folder_lay.setContentsMargins(2, 4, 2, 0)
+        folder_lay.setContentsMargins(14, 4, 14, 0)
         folder_lay.setSpacing(4)
         folder_text = QLabel(self.tr("Markdown files on this computer"), folder)
         folder_text.setStyleSheet(ROW_NOTE_QSS)
@@ -510,6 +486,9 @@ class PersonalisationPageMixin:
         folder_lay.addStretch(1)
 
         card.add(folder)
+        pro = self._pro_note(card, self.tr("Pro reads your notes at the start of every conversation."))
+        pro.setContentsMargins(12, 0, 12, 0)
+        pro.setVisible(locked)
         self._fill_notes()
 
 
@@ -529,7 +508,7 @@ class PersonalisationPageMixin:
     def _fill_notes(self) -> None:
         self._notes_group.clear()
         notes = load_memory_notes(self._store)
-        self._notes_label.setText(self.tr("SAVED NOTES · {n}").format(n=len(notes)))
+        self._notes_label.setText(self.tr("Saved notes · {n}").format(n=len(notes)))
         if getattr(self, "_clear_notes_btn", None) is not None:
             self._clear_notes_btn.setVisible(bool(notes))
         if not notes:
@@ -644,6 +623,7 @@ class PersonalisationPageMixin:
 
     def _on_memory_toggled(self, on: bool) -> None:
         self._store.memory_enabled = bool(on)
+        telemetry.track_setting("memory_enabled", bool(on))
         self._show_saved()
         self._emit_profile()
 
@@ -654,16 +634,13 @@ class PersonalisationPageMixin:
         self._questions_segments.set_value(self._store.question_policy)
         self._expertise_segments.set_value(self._store.expertise)
         self._units_segments.set_value(self._store.units)
-        self._naming_segments.set_value(self._store.layer_naming)
         self._values["send_shortcut"] = self._store.send_shortcut
         for edit, value in ((self._name_edit, self._store.profile_name),
                             (self._role_edit, self._store.profile_role)):
             edit.blockSignals(True)
             edit.setText(value)
             edit.blockSignals(False)
-        for switch, value in ((self._explain_switch, self._store.explain_runs),
-                              (self._tools_switch, self._store.show_tool_details),
-                              (self._follow_switch, self._store.follow_edits),
+        for switch, value in ((self._follow_switch, self._store.follow_edits),
                               (self._memory_switch, self._store.memory_enabled)):
             switch.blockSignals(True)
             switch.setChecked(value)

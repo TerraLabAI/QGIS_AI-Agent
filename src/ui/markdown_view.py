@@ -29,7 +29,7 @@ from __future__ import annotations
 import bisect
 import math
 import re
-import secrets
+import time
 
 from qgis.PyQt.QtCore import QEvent, QObject, QRect, QRectF, QSize, QSizeF, Qt, QUrl, pyqtSignal
 from qgis.PyQt.QtGui import (
@@ -53,9 +53,10 @@ from qgis.PyQt.QtGui import (
     QTextOption,
     QTextTableFormat,
 )
-from qgis.PyQt.QtWidgets import QFrame, QMessageBox, QSizePolicy, QTextBrowser, QTextEdit, QToolTip
+from qgis.PyQt.QtWidgets import QFrame, QMessageBox, QSizePolicy, QTextBrowser, QTextEdit
 
-from ..core.links import URL_STOP, open_data_hosts, open_data_label
+from ..core.links import URL_STOP, open_data_chip, open_data_hosts, open_data_label
+from .file_links import SOURCE_SCHEME
 from .font_scale import widget_pixel_ratio
 from .shared import exec_dialog, qt_enum_int, resolve_qt_enum, tr
 from .source_marks import MARK_PX, connector_row, family_pixmap, item_mark_pixmap, source_host, source_mark_pixmap
@@ -69,6 +70,7 @@ from .style import (
     LINE_SOFT,
     MONO_FAMILY,
     OVERLAY,
+    RED,
     accent_color,
     qcolor,
 )
@@ -165,13 +167,27 @@ _RULE_HEIGHT = 12
 
 
 
-SOURCE_SCHEME = f"source-{secrets.token_hex(6)}:"
-
-
-
 GONE_SCHEME = "gone:"
 _CHIP_PAD = "\u00a0"
+
+PRIVATE_LINK_SCHEME = "private-link:"
 _PLAIN_URL = re.compile(r"https?://[^" + URL_STOP + r"]+", re.IGNORECASE)
+
+
+
+_PRIVATE_PLACES = ((".amazonaws.com", "Amazon S3"), (".blob.core.windows.net", "Azure"),
+                   (".storage.googleapis.com", "Google Cloud"), ("storage.googleapis.com", "Google Cloud"),
+                   (".sharepoint.com", "SharePoint"), ("1drv.ms", "OneDrive"), ("onedrive.live.com", "OneDrive"),
+                   ("dropbox.com", "Dropbox"), ("drive.google.com", "Google Drive"),
+                   ("docs.google.com", "Google Drive"), ("drive.usercontent.google.com", "Google Drive"))
+
+
+def _private_place(url: str) -> str:
+    host = source_host(url).lower()
+    for suffix, name in _PRIVATE_PLACES:
+        if host == suffix.lstrip(".") or host.endswith(suffix if suffix.startswith(".") else "." + suffix):
+            return name
+    return host
 
 
 def _utf16_len(text: str) -> int:
@@ -287,11 +303,8 @@ class MarkdownView(QTextBrowser):
         cursor_state = self._cursor_state()
         self._stream = None
         doc = self.document()
-        if hasattr(doc, "setMarkdown"):
-            _import_markdown(doc, text or "")
-            self._decorate()
-        else:
-            doc.setPlainText(text or "")
+        _import_markdown(doc, text or "")
+        self._decorate()
         self._sync_height()
         self._restore_cursor(cursor_state)
 
@@ -304,7 +317,6 @@ class MarkdownView(QTextBrowser):
 
 
 
-        from ..core.links import open_data_chip
 
         doc = self.document()
         text = doc.toPlainText()
@@ -325,7 +337,6 @@ class MarkdownView(QTextBrowser):
             fmt = QTextCharFormat()
             fmt.setAnchor(True)
             fmt.setAnchorHref(SOURCE_SCHEME + url)
-            fmt.setToolTip(url)
             cursor.setPosition(start + shift)
             cursor.setPosition(start + shift + length, QTextCursor.MoveMode.KeepAnchor)
             cursor.insertText(chip, fmt)
@@ -333,6 +344,59 @@ class MarkdownView(QTextBrowser):
             shift += _utf16_len(chip) - length
         cursor.endEditBlock()
         self._insert_source_chips(sources)
+        self._sync_height()
+
+    def chip_private_links(self) -> None:
+
+
+
+        from ..core import link_vault
+        from .icons import pixmap_for
+
+        doc = self.document()
+        text = doc.toPlainText()
+        found = link_vault.secret_links(text)
+        if not found or self._mono:
+            return
+        image_kind = resolve_qt_enum(QTextDocument, "ResourceType", "ImageResource")
+        doc.addResource(image_kind, QUrl("source-mark:private-link-lock"),
+                        pixmap_for(self, "lock", MARK_PX, qcolor(INK_2)))
+        cursor = QTextCursor(doc)
+        cursor.beginEditBlock()
+
+        for index, (start, end, url) in reversed(list(enumerate(found))):
+            ends = link_vault.expires_at(url)
+            gone = ends is not None and ends <= time.time()
+            parts = [link_vault.file_name(url), _private_place(url)]
+            if gone:
+                parts.append(tr("expired"))
+
+            label = " \u00b7 ".join(p for p in parts if p).replace(" ", _CHIP_PAD).replace("-", "\u2011")
+            href = f"{PRIVATE_LINK_SCHEME}{index}"
+            chip = QTextCharFormat()
+            chip.setAnchor(True)
+            chip.setAnchorHref(href)
+            chip.setFontUnderline(False)
+            chip.setForeground(QBrush(qcolor(RED if gone else INK_2)))
+            chip.setBackground(QBrush(qcolor(FIELD)))
+            _set_family(chip, MONO_FAMILY.split(",")[0].strip().strip("'"))
+            _set_pixel_size(chip, FONT_HINT)
+            mark = QTextImageFormat()
+            mark.setName("source-mark:private-link-lock")
+            mark.setWidth(MARK_PX)
+            mark.setHeight(MARK_PX)
+            mark.setAnchor(True)
+            mark.setAnchorHref(href)
+            mark.setVerticalAlignment(resolve_qt_enum(QTextCharFormat, "VerticalAlignment", "AlignMiddle"))
+            first, last = _utf16_len(text[:start]), _utf16_len(text[:end])
+            cursor.setPosition(first)
+            cursor.setPosition(last, QTextCursor.MoveMode.KeepAnchor)
+
+
+            cursor.insertText(_CHIP_PAD + label + _CHIP_PAD, chip)
+            cursor.insertImage(mark)
+            cursor.insertText(_CHIP_PAD, chip)
+        cursor.endEditBlock()
         self._sync_height()
 
     def stream_markdown(self, text: str) -> None:
@@ -360,8 +424,7 @@ class MarkdownView(QTextBrowser):
         if state.cuts.pending_ref_def(text):
             state.cuts.stuck = True
         closed = state.cuts.last()
-        incremental = (not state.broken and not state.cuts.stuck and closed > 0
-                       and hasattr(doc, "setMarkdown"))
+        incremental = not state.broken and not state.cuts.stuck and closed > 0
         if incremental:
 
 
@@ -891,12 +954,9 @@ class MarkdownView(QTextBrowser):
 
     def event(self, event):  # noqa: N802
 
-
         if event.type() == QEvent.Type.ToolTip:
-            href = self.anchorAt(event.pos())
-            if href and not href.startswith(SOURCE_SCHEME):
-                QToolTip.showText(event.globalPos(), href[:300], self)
-                return True
+            event.ignore()
+            return True
         return super().event(event)
 
     def _anchor_text(self, href: str) -> str:
@@ -921,7 +981,9 @@ class MarkdownView(QTextBrowser):
         host = url.host().lower()
         shown = self._anchor_text(url.toString()[:4096]).lower()
         bare = host[4:] if host.startswith("www.") else host
-        if bare in shown or host in open_data_hosts() or host == "terra-lab.ai" or host.endswith(".terra-lab.ai"):
+        words = (word.strip(".-") for word in re.findall(r"[a-z0-9.-]+", shown))
+        if (any(word == bare or word.endswith("." + bare) for word in words) or host in open_data_hosts()
+                or host == "terra-lab.ai" or host.endswith(".terra-lab.ai")):
             return True
         box = QMessageBox(self)
         box.setIcon(QMessageBox.Icon.Question)
@@ -993,10 +1055,7 @@ def _set_pixel_size(fmt: QTextCharFormat, px: int) -> None:
 
 
 def _set_family(fmt: QTextCharFormat, family: str) -> None:
-    if hasattr(fmt, "setFontFamilies"):
-        fmt.setFontFamilies([family])
-    else:
-        fmt.setFontFamily(family)
+    fmt.setFontFamilies([family])
 
 
 def _is_code_block(block) -> bool:

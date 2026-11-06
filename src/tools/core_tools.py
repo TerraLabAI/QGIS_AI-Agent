@@ -15,12 +15,12 @@ from qgis.PyQt.QtCore import QT_TRANSLATE_NOOP
 
 from ..core.tool_registry import NAMED_LAYER, Tool, ToolRegistry
 from . import guards
+from ._layers import resolve_layer
+from .data_inspect import _add_vector_source
 from .layer_io_tools import (
     _add_field,
-    _add_vector_layer,
     _export_layer,
 )
-from .layer_lookup import _find_layer
 from .model_export import FORMATS as MODEL_FORMATS
 from .model_export import MAX_CELLS_CEILING as MODEL_MAX_CELLS
 from .model_export import _export_3d_model
@@ -44,6 +44,7 @@ from .query_tools import (
     _get_raster_band_stats,
     _get_renderer_info,
     _raster_sample,
+    _samples_in_worker,
 )
 from .style_tools import (
     _flash_features,
@@ -129,8 +130,10 @@ def _runs_a_script(args: dict) -> bool:
 
 
 
+
     algorithm = str(args.get("algorithm_id") or "").strip().lower()
-    return (algorithm.startswith(("script:", "model:")) or algorithm in _PYTHON_ALGORITHMS
+    return (algorithm.startswith(("script:", "model:", "project:")) or algorithm in _PYTHON_ALGORITHMS
+            or algorithm.endswith(("postgisexecutesql", "spatialiteexecutesql", "postgisexecuteandloadsql"))
             or _formula_is_code(args))
 
 
@@ -208,6 +211,7 @@ def register_core_tools(registry: ToolRegistry):
         label=QT_TRANSLATE_NOOP("AIAgent", "Inspect {layer_name}"),
         input_schema={
             "type": "object",
+            "x-summary-without-rows": True,
             "properties": {
                 "layer_name": {"type": "string"},
                 "detail": {"type": "string", "enum": ["summary", "full"]},
@@ -220,6 +224,7 @@ def register_core_tools(registry: ToolRegistry):
     registry.register(Tool(
         name="add_vector_layer",
         danger="write",
+        loads_source=True, check_shape="arrives",
         label=QT_TRANSLATE_NOOP("AIAgent", "Add {path}[ as {name}]"),
         input_schema={
             "type": "object",
@@ -235,7 +240,7 @@ def register_core_tools(registry: ToolRegistry):
             },
             "required": ["path"],
         },
-        handler=_add_vector_layer,
+        handler=_add_vector_source,
 
 
         background=True,
@@ -249,6 +254,7 @@ def register_core_tools(registry: ToolRegistry):
     registry.register(Tool(
         name="remove_layer",
         danger="destructive",
+        check_shape="removed",
         removes_layer_at="layer_name",
         label=QT_TRANSLATE_NOOP("AIAgent", "Remove {layer_name}"),
         input_schema={
@@ -263,6 +269,7 @@ def register_core_tools(registry: ToolRegistry):
 
     registry.register(Tool(
         name="zoom_to_layer",
+        layer_use="keep",
         sets_view=True,
         danger="write",
         label=QT_TRANSLATE_NOOP("AIAgent", "Zoom to {layer_name}"),
@@ -320,6 +327,7 @@ def register_core_tools(registry: ToolRegistry):
 
     registry.register(Tool(
         name="run_processing",
+        derives_layers=True,
         danger="write",
         visible=6,
         card="algorithm",
@@ -365,6 +373,7 @@ def register_core_tools(registry: ToolRegistry):
 
     registry.register(Tool(
         name="get_task_status",
+        reads_task=True,
         danger="read",
         label=QT_TRANSLATE_NOOP("AIAgent", "Check the running task"),
         input_schema={
@@ -379,6 +388,7 @@ def register_core_tools(registry: ToolRegistry):
 
     registry.register(Tool(
         name="cancel_task",
+        reads_task=True,
         danger="write",
         label=QT_TRANSLATE_NOOP("AIAgent", "Cancel the running task"),
         input_schema={
@@ -393,6 +403,7 @@ def register_core_tools(registry: ToolRegistry):
 
     registry.register(Tool(
         name="list_tasks",
+        reads_task=True,
         danger="read",
         input_schema={"type": "object", "properties": {}, "required": []},
         handler=_list_tasks,
@@ -427,6 +438,7 @@ def register_core_tools(registry: ToolRegistry):
     registry.register(Tool(
         name="get_field_statistics",
         danger="read",
+        reads_whole_layer=True,
         label=QT_TRANSLATE_NOOP("AIAgent", "Statistics of {field} in {layer_name}"),
         input_schema={
             "type": "object",
@@ -485,6 +497,8 @@ def register_core_tools(registry: ToolRegistry):
             "required": ["layer_name", "x", "y"],
         },
         handler=_raster_sample,
+
+        background=_samples_in_worker,
     ))
 
     registry.register(Tool(
@@ -540,7 +554,9 @@ def register_core_tools(registry: ToolRegistry):
 
     registry.register(Tool(
         name="set_layer_style",
+        layer_use="keep",
         danger="write",
+        check_shape="layer",
         visible=9,
         label=QT_TRANSLATE_NOOP("AIAgent", "Style {layer_name}"),
         input_schema={
@@ -633,7 +649,7 @@ def register_core_tools(registry: ToolRegistry):
         input_schema={"type": "object", "properties": {
             "layer_name": {"type": "string"}, "legend_image": {"type": "string"}},
             "required": ["layer_name", "legend_image"], "additionalProperties": False},
-        handler=lambda args: _set_layer_legend_image(_find_layer(args.get("layer_name")), args),
+        handler=lambda args: _set_layer_legend_image(resolve_layer(args.get("layer_name")), args),
     ))
 
     registry.register(Tool(
@@ -669,7 +685,9 @@ def register_core_tools(registry: ToolRegistry):
 
     registry.register(Tool(
         name="set_layer_labels",
+        layer_use="keep",
         danger="write",
+        check_shape="layer",
         label=QT_TRANSLATE_NOOP("AIAgent", "Label {layer_name}[ by {field}]"),
         input_schema={
             "type": "object",
@@ -732,7 +750,9 @@ def register_core_tools(registry: ToolRegistry):
 
     registry.register(Tool(
         name="export_layer",
+        layer_use="keep",
         danger="destructive",
+        writes_at=("path",),
         label=QT_TRANSLATE_NOOP("AIAgent", "Export {layer_name} to {path}"),
         input_schema={
             "type": "object",
@@ -766,7 +786,9 @@ def register_core_tools(registry: ToolRegistry):
 
     registry.register(Tool(
         name="export_3d_model",
+        layer_use="keep",
         danger="destructive",
+        writes_at=("path",),
         label=QT_TRANSLATE_NOOP("AIAgent", "Export {layer_name} as a 3D model to {path}"),
         input_schema={
             "type": "object",
@@ -801,6 +823,7 @@ def register_core_tools(registry: ToolRegistry):
     registry.register(Tool(
         name="add_field",
         danger="write",
+        mutates_data=True, check_shape="field",
         label=QT_TRANSLATE_NOOP("AIAgent", "Add the field {field_name} to {layer_name}"),
         input_schema={
             "type": "object",

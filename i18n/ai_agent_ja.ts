@@ -1163,14 +1163,6 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <translation>{raster}をジオリファレンス</translation>
         </message>
         <message>
-            <source>Get a Sentinel image</source>
-            <translation>Sentinel画像を取得</translation>
-        </message>
-        <message>
-            <source>Get an elevation model</source>
-            <translation>標高モデルを取得</translation>
-        </message>
-        <message>
             <source>Hans van der Kwast's review, recorded in QGIS.</source>
             <translation>Hans van der Kwastによるレビュー、QGISで収録。</translation>
         </message>
@@ -1231,10 +1223,6 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <translation>プラグインを一覧表示</translation>
         </message>
         <message>
-            <source>List the satellite catalogs</source>
-            <translation>衛星カタログを一覧表示</translation>
-        </message>
-        <message>
             <source>Load 3D Tiles[ from {url}]</source>
             <translation>3D Tilesを読み込み[（{url}から）]</translation>
         </message>
@@ -1255,20 +1243,12 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <translation>インターフェースを見る</translation>
         </message>
         <message>
-            <source>Look for data on the web[ for {query}]</source>
-            <translation>Webでデータを探す[：{query}]</translation>
-        </message>
-        <message>
             <source>Look for data on this computer</source>
             <translation>このコンピュータでデータを探す</translation>
         </message>
         <message>
             <source>Look for relief anomalies[ in {lrm_layer}][ in {dem}]</source>
             <translation>起伏異常を探す[（{lrm_layer}内）][（{dem}内）]</translation>
-        </message>
-        <message>
-            <source>Look up the place[ {query}]</source>
-            <translation>場所を検索[：{query}]</translation>
         </message>
         <message>
             <source>Make the temporary layers permanent[ in {gpkg_path}]</source>
@@ -1327,10 +1307,6 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <translation>ラスタ計算[（{name}として）]</translation>
         </message>
         <message>
-            <source>Read a NASA Earthdata collection[ {short_name}]</source>
-            <translation>NASA Earthdataのコレクションを読み取り[：{short_name}]</translation>
-        </message>
-        <message>
             <source>Read a coordinate from the map</source>
             <translation>地図から座標を読み取り</translation>
         </message>
@@ -1339,20 +1315,12 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <translation>{layer_name}の地物を読み取り</translation>
         </message>
         <message>
-            <source>Read the AI Agent documentation[ on {query}]</source>
-            <translation>AI Agentのドキュメントを読む[：{query}]</translation>
-        </message>
-        <message>
             <source>Read the CRS of {layer_name}</source>
             <translation>{layer_name}のCRSを読み取り</translation>
         </message>
         <message>
             <source>Read the Python errors</source>
             <translation>Pythonエラーを読み取り</translation>
-        </message>
-        <message>
-            <source>Read the QGIS documentation[ on {query}]</source>
-            <translation>QGISのドキュメントを読む[：{query}]</translation>
         </message>
         <message>
             <source>Read the extent of {layer_name}</source>
@@ -1471,48 +1439,16 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <translation>プロセシングスクリプトを保存しました</translation>
         </message>
         <message>
-            <source>Search Copernicus images[ of {collection}]</source>
-            <translation>Copernicus画像を検索[：{collection}]</translation>
-        </message>
-        <message>
-            <source>Search NASA Earthdata files</source>
-            <translation>NASA Earthdataファイルを検索</translation>
-        </message>
-        <message>
-            <source>Search NASA Earthdata[ for {query}]</source>
-            <translation>NASA Earthdataを検索[：{query}]</translation>
-        </message>
-        <message>
             <source>Search open data[ for {query}]</source>
             <translation>オープンデータを検索[：{query}]</translation>
-        </message>
-        <message>
-            <source>Search satellite images</source>
-            <translation>衛星画像を検索</translation>
-        </message>
-        <message>
-            <source>Search statistics[ on {topic}]</source>
-            <translation>統計を検索[：{topic}]</translation>
-        </message>
-        <message>
-            <source>Search the Earth Engine catalog[ for {query}]</source>
-            <translation>Earth Engineのカタログを検索[：{query}]</translation>
         </message>
         <message>
             <source>Search the QGIS Hub[ for {query}]</source>
             <translation>QGIS Hubを検索[：{query}]</translation>
         </message>
         <message>
-            <source>Search the data catalog[ for {query}]</source>
-            <translation>データカタログを検索[：{query}]</translation>
-        </message>
-        <message>
             <source>Search the processing tools[ for {query}]</source>
             <translation>プロセシングツールを検索[：{query}]</translation>
-        </message>
-        <message>
-            <source>Search the web[ for {query}]</source>
-            <translation>Web検索[：{query}]</translation>
         </message>
         <message>
             <source>Select features in {layer_name}</source>
@@ -2546,6 +2482,38 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <source>This report includes your description and the current conversation. We use it to fix issues and improve AI Agent.</source>
             <translation>このレポートには、あなたの説明と現在の会話が含まれます。問題の修正とAI Agentの改善に使用します。</translation>
         </message>
+        <message>
+            <source>Copy</source>
+            <translation>コピー</translation>
+        </message>
+        <message>
+            <source>Real tasks the AI agent does from one sentence.</source>
+            <translation>AIエージェントが一文から実行する実際のタスクです。</translation>
+        </message>
+        <message>
+            <source>Uses</source>
+            <translation>使用するもの</translation>
+        </message>
+        <message>
+            <source>What you type</source>
+            <translation>入力する内容</translation>
+        </message>
+        <message>
+            <source>Expired on {day}.</source>
+            <translation>{day}に期限切れになりました。</translation>
+        </message>
+        <message>
+            <source>Expires on {day}.</source>
+            <translation>{day}に期限切れになります。</translation>
+        </message>
+        <message>
+            <source>Private link: its signature stays on this computer. TerraLab and the AI agent see only the site and the file name.</source>
+            <translation>プライベートリンク：署名はこのコンピューターから出ません。TerraLabとAIエージェントに見えるのは、サイトとファイル名だけです。</translation>
+        </message>
+        <message>
+            <source>expired</source>
+            <translation>期限切れ</translation>
+        </message>
     </context>
     <context>
         <name>AIAgentContext</name>
@@ -3288,6 +3256,18 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <source>Type the code shown in your browser:</source>
             <translation>ブラウザに表示されたコードを入力してください:</translation>
         </message>
+        <message>
+            <source>Ask it to load data, style layers, run analyses or edit features.</source>
+            <translation>データの読み込み、レイヤのスタイル設定、解析の実行、フィーチャの編集を依頼できます。</translation>
+        </message>
+        <message>
+            <source>Free. Opens your browser, takes about 15 seconds.</source>
+            <translation>無料です。ブラウザが開き、約15秒かかります。</translation>
+        </message>
+        <message>
+            <source>Sign in or create an account</source>
+            <translation>サインインまたはアカウントを作成</translation>
+        </message>
     </context>
     <context>
         <name>ActivityRow</name>
@@ -3475,6 +3455,10 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <source>Write the request for an HTML report of this analysis, with its maps and charts</source>
             <translation>この分析の地図とグラフを含むHTMLレポートの依頼文を作成します</translation>
+        </message>
+        <message>
+            <source>Remove rating</source>
+            <translation>評価を取り消す</translation>
         </message>
     </context>
     <context>
@@ -4109,6 +4093,42 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <source>a temporary layer</source>
             <translation>一時レイヤ</translation>
         </message>
+        <message>
+            <source>Not handled, the AI agent is offline: {0}</source>
+            <translation>処理されませんでした。AIエージェントがオフラインです: {0}</translation>
+        </message>
+        <message>
+            <source>Nothing is kept about this project yet.</source>
+            <translation>このプロジェクトについて保存されている内容はまだありません。</translation>
+        </message>
+        <message>
+            <source>Project memory</source>
+            <translation>プロジェクトメモリ</translation>
+        </message>
+        <message>
+            <source>Project memory cleared.</source>
+            <translation>プロジェクトメモリを消去しました。</translation>
+        </message>
+        <message>
+            <source>Watched folder: not handled, no answer from the server: {0}</source>
+            <translation>監視フォルダ: 処理されませんでした。サーバーから応答がありません: {0}</translation>
+        </message>
+        <message>
+            <source>Watched folder: not handled, the AI agent is offline: {0}</source>
+            <translation>監視フォルダ: 処理されませんでした。AIエージェントがオフラインです: {0}</translation>
+        </message>
+        <message>
+            <source>Clear what the AI agent remembers about this project?</source>
+            <translation>このプロジェクトについてAIエージェントが記憶している内容を消去しますか？</translation>
+        </message>
+        <message>
+            <source>Save the project first: its memory is kept under the project file.</source>
+            <translation>先にプロジェクトを保存してください。記憶はプロジェクトファイルの下に保存されます。</translation>
+        </message>
+        <message>
+            <source>The AI agent is not connected. Try again in a moment.</source>
+            <translation>AIエージェントに接続されていません。しばらくしてからもう一度お試しください。</translation>
+        </message>
     </context>
     <context>
         <name>AgentSession</name>
@@ -4633,6 +4653,14 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <source>Make an HTML report of this analysis, with its maps, charts and method.</source>
             <translation>この分析について、地図、グラフ、手法を含むHTMLレポートを作成してください。</translation>
+        </message>
+        <message>
+            <source>Pay to get Pro back</source>
+            <translation>お支払いしてProを再開する</translation>
+        </message>
+        <message>
+            <source>Task ended</source>
+            <translation>タスクが終了しました</translation>
         </message>
     </context>
     <context>
@@ -5475,6 +5503,30 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <source>Try in chat</source>
             <translation>チャットで試す</translation>
         </message>
+        <message>
+            <source>All %n</source>
+            <translation>すべて %n</translation>
+        </message>
+        <message>
+            <source>Examples with this source</source>
+            <translation>このソースの例</translation>
+        </message>
+        <message>
+            <source>Fewer</source>
+            <translation>表示を減らす</translation>
+        </message>
+        <message>
+            <source>More</source>
+            <translation>もっと見る</translation>
+        </message>
+        <message>
+            <source>More in {shelf}</source>
+            <translation>{shelf}をもっと見る</translation>
+        </message>
+        <message>
+            <source>{first} and %n more licences</source>
+            <translation>{first}ほか%n件のライセンス</translation>
+        </message>
     </context>
     <context>
         <name>ConnectorsPage</name>
@@ -5653,6 +5705,14 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <source>sources</source>
             <translation>ソース</translation>
+        </message>
+        <message>
+            <source>Search sources, datasets or a country</source>
+            <translation>ソース、データセット、国を検索</translation>
+        </message>
+        <message>
+            <source>{sources} sources the AI agent finds and loads by itself: {datasets} datasets in {countries} countries.</source>
+            <translation>AIエージェントが自分で見つけて読み込めるソースは{sources}件、{countries}か国の{datasets}データセットです。</translation>
         </message>
     </context>
     <context>
@@ -5840,8 +5900,8 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <translation>チュートリアル</translation>
         </message>
         <message>
-            <source>You are talking to an AI system. It can be wrong: check its changes.</source>
-            <translation>AIシステムと会話しています。誤りが含まれることもあります。変更内容を確認してください。</translation>
+            <source>AI can make mistakes. Check its changes.</source>
+            <translation>AIは間違えることがあります。変更内容を確認してください。</translation>
         </message>
         <message>
             <source>Asks before it acts.</source>
@@ -6195,6 +6255,14 @@ Click to open its page.</source>
             <source>Videos and guides to get started. They open in your browser.</source>
             <translation>はじめに役立つ動画とガイドです。ブラウザで開きます。</translation>
         </message>
+        <message>
+            <source>Learn</source>
+            <translation>学ぶ</translation>
+        </message>
+        <message>
+            <source>Videos, guides and the other TerraLab plugins. Links open in your browser.</source>
+            <translation>動画、ガイド、その他のTerraLabプラグイン。リンクはブラウザで開きます。</translation>
+        </message>
     </context>
     <context>
         <name>MapHooks</name>
@@ -6462,6 +6530,46 @@ Click to open its page.</source>
         <message>
             <source>The page links to {hosts}, a site the agent does not know.</source>
             <translation>このページには、AIアシスタントが知らないサイト{hosts}へのリンクがあります。</translation>
+        </message>
+        <message>
+            <source>Adds: {}</source>
+            <translation>追加: {}</translation>
+        </message>
+        <message>
+            <source>Also covers the next calls of this kind in this answer</source>
+            <translation>この回答内の、同じ種類の次の呼び出しにも適用</translation>
+        </message>
+        <message>
+            <source>Changes: {}</source>
+            <translation>変更: {}</translation>
+        </message>
+        <message>
+            <source>Deletes files: {}</source>
+            <translation>ファイルを削除: {}</translation>
+        </message>
+        <message>
+            <source>Deletes: {}</source>
+            <translation>削除: {}</translation>
+        </message>
+        <message>
+            <source>Not in this project: {}</source>
+            <translation>このプロジェクトにはありません: {}</translation>
+        </message>
+        <message>
+            <source>Other effects the preview could not read: {}</source>
+            <translation>プレビューで読み取れなかったその他の影響: {}</translation>
+        </message>
+        <message>
+            <source>Reads: {}</source>
+            <translation>読み取り: {}</translation>
+        </message>
+        <message>
+            <source>Runs: {}</source>
+            <translation>実行: {}</translation>
+        </message>
+        <message>
+            <source>Writes files: {}</source>
+            <translation>ファイルを書き込み: {}</translation>
         </message>
     </context>
     <context>
@@ -6949,6 +7057,26 @@ Click to open its page.</source>
             <source>{n} free tasks left</source>
             <translation>無料のタスク：残り{n}回</translation>
         </message>
+        <message>
+            <source>Pay now</source>
+            <translation>今すぐ支払う</translation>
+        </message>
+        <message>
+            <source>Pay {amount} now</source>
+            <translation>今すぐ{amount}を支払う</translation>
+        </message>
+        <message>
+            <source>Pro is off until it's paid. You're on the free plan for now.</source>
+            <translation>お支払いが完了するまでProは無効です。現在は無料プランをご利用中です。</translation>
+        </message>
+        <message>
+            <source>Your Pro payment failed</source>
+            <translation>Proのお支払いに失敗しました</translation>
+        </message>
+        <message>
+            <source>Your payment of {amount} failed</source>
+            <translation>{amount}のお支払いに失敗しました</translation>
+        </message>
     </context>
     <context>
         <name>QuotaPauseCard</name>
@@ -7177,6 +7305,10 @@ Click to open its page.</source>
             <source>{n} steps</source>
             <translation>{n} ステップ</translation>
         </message>
+        <message>
+            <source>Thought</source>
+            <translation>思考</translation>
+        </message>
     </context>
     <context>
         <name>SettingsDialog</name>
@@ -7189,8 +7321,8 @@ Click to open its page.</source>
             <translation>{n} 件のメモをすべて削除しますか？ AI が再び追加することはありません。</translation>
         </message>
         <message>
-            <source>Lets us read a chat only to fix a bug. Chats are kept 30 days.</source>
-            <translation>バグ修正の目的に限り、チャットを読むことを許可します。チャットは30日間保存されます。</translation>
+            <source>We may read a chat only to fix a bug, never to train AI. Chats are kept 30 days.</source>
+            <translation>チャットを読むのは、バグを直すときだけです。AIの学習には使いません。チャットは30日間保存されます。</translation>
         </message>
         <message>
             <source>The AI saves notes on its own</source>
@@ -7371,8 +7503,8 @@ Click to open its page.</source>
         </message>
         <message>
             <location filename="src/ui/settings_dialog.py" />
-            <source>Help improve AI Agent</source>
-            <translation>AI Agentの改善に協力する</translation>
+            <source>Allow chat review</source>
+            <translation>チャットの確認を許可</translation>
         </message>
         <message>
             <location filename="src/ui/settings_dialog.py" />
@@ -7937,8 +8069,8 @@ Click to open its page.</source>
         </message>
         <message>
             <location filename="src/ui/settings_account.py" />
-            <source>Lets us read a chat only to fix a wrong answer or a bug.</source>
-            <translation>誤答やバグの修正のためにのみ、チャットの読み取りを許可します。</translation>
+            <source>We may read a chat only to fix a wrong answer or a bug, never to train AI.</source>
+            <translation>チャットを読むのは、誤った回答やバグを直すときだけです。AIの学習には使いません。</translation>
         </message>
         <message>
             <location filename="src/ui/settings_account.py" />
@@ -8159,6 +8291,95 @@ Click to open its page.</source>
         <message>
             <source>Send feedback</source>
             <translation>フィードバックを送信</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_dialog.py" />
+            <source>See usage</source>
+            <translation>使用状況を見る</translation>
+        </message>
+        <message>
+            <source>Always answer in French, never delete a layer without asking</source>
+            <translation>常にフランス語で回答し、確認なしにレイヤを削除しない</translation>
+        </message>
+        <message>
+            <source>Choose folder...</source>
+            <translation>フォルダを選択...</translation>
+        </message>
+        <message>
+            <source>Clear project memory</source>
+            <translation>プロジェクトメモリを消去</translation>
+        </message>
+        <message>
+            <source>Connected accounts</source>
+            <translation>接続済みアカウント</translation>
+        </message>
+        <message>
+            <source>Folder to watch</source>
+            <translation>監視するフォルダ</translation>
+        </message>
+        <message>
+            <source>Instructions</source>
+            <translation>指示</translation>
+        </message>
+        <message>
+            <source>Job</source>
+            <translation>職種</translation>
+        </message>
+        <message>
+            <source>Learn</source>
+            <translation>学ぶ</translation>
+        </message>
+        <message>
+            <source>Name</source>
+            <translation>名前</translation>
+        </message>
+        <message>
+            <source>No folder chosen</source>
+            <translation>フォルダが選択されていません</translation>
+        </message>
+        <message>
+            <source>Pro reads both before every run.</source>
+            <translation>Proは実行のたびに、その両方を読み込みます。</translation>
+        </message>
+        <message>
+            <source>Proactive triggers</source>
+            <translation>プロアクティブトリガー</translation>
+        </message>
+        <message>
+            <source>Project memory</source>
+            <translation>プロジェクトメモリ</translation>
+        </message>
+        <message>
+            <source>Read by the AI agent at the start of every conversation.</source>
+            <translation>会話の開始時に、AIエージェントが毎回読み込みます。</translation>
+        </message>
+        <message>
+            <source>Saved notes · {n}</source>
+            <translation>保存済みメモ · {n}</translation>
+        </message>
+        <message>
+            <source>Show project memory</source>
+            <translation>プロジェクトメモリを表示</translation>
+        </message>
+        <message>
+            <source>The AI agent looks at new data files in this folder and at the schedules you ask for, only while QGIS is open. Nothing runs when QGIS is closed.</source>
+            <translation>AIエージェントは、QGISが開いている間だけ、このフォルダの新しいデータファイルと、依頼されたスケジュールを確認します。QGISが閉じているときは何も実行されません。</translation>
+        </message>
+        <message>
+            <source>Urban planner at the city of Lyon, cadastre and PLU layers in EPSG:2154</source>
+            <translation>リヨン市の都市計画担当者、EPSG:2154の地籍およびPLUレイヤ</translation>
+        </message>
+        <message>
+            <source>Watch a folder and run my schedules while QGIS is open</source>
+            <translation>QGISが開いている間、フォルダを監視してスケジュールを実行する</translation>
+        </message>
+        <message>
+            <source>What Pro adds: {points}</source>
+            <translation>Proで追加されるもの: {points}</translation>
+        </message>
+        <message>
+            <source>commercial use, more tasks, memory, your instructions and higher effort</source>
+            <translation>商用利用、より多くのタスク、メモリ、独自の指示、高い推論レベル</translation>
         </message>
     </context>
     <context>
@@ -8602,6 +8823,22 @@ Click to open its page.</source>
             <source>its changes to your project cannot be shown before it runs</source>
             <translation>プロジェクトへの変更は、実行前に表示できません</translation>
         </message>
+        <message>
+            <source>Access to {host}</source>
+            <translation>{host}へのアクセス</translation>
+        </message>
+        <message>
+            <source>Allowed for this conversation</source>
+            <translation>この会話で許可済み</translation>
+        </message>
+        <message>
+            <source>Allowed once</source>
+            <translation>1回のみ許可</translation>
+        </message>
+        <message>
+            <source>Signed in</source>
+            <translation>サインイン済み</translation>
+        </message>
     </context>
     <context>
         <name>ToolGroup</name>
@@ -8667,6 +8904,14 @@ Click to open its page.</source>
         <message>
             <source>Updating…</source>
             <translation>更新中…</translation>
+        </message>
+        <message>
+            <source>Download</source>
+            <translation>ダウンロード</translation>
+        </message>
+        <message>
+            <source>This QGIS has no plugin repository turned on. Download the ZIP, then use Install from ZIP in Plugins &gt; Manage and Install Plugins.</source>
+            <translation>この QGIS ではプラグインリポジトリが有効になっていません。ZIP をダウンロードし、プラグイン &gt; プラグインの管理とインストール の「ZIP からインストール」を使ってください。</translation>
         </message>
     </context>
     <context>
@@ -10043,6 +10288,1320 @@ This file is no longer where the run wrote it.</source>
         <message>
             <source>Thanks for the feedback</source>
             <translation>フィードバックありがとうございます</translation>
+        </message>
+    </context>
+    <context>
+        <name>ToolDetails</name>
+        <message>
+            <source>Copied</source>
+            <translation>コピーしました</translation>
+        </message>
+        <message>
+            <source>Copy as Python</source>
+            <translation>Python としてコピー</translation>
+        </message>
+        <message>
+            <source>Open in Processing</source>
+            <translation>プロセッシングで開く</translation>
+        </message>
+        <message>
+            <source>Open this algorithm's dialog with the same settings, to check them or run it again. The output goes to a new temporary layer.</source>
+            <translation>このアルゴリズムのダイアログを同じ設定で開きます。設定の確認や再実行に使えます。出力は新しい一時レイヤに追加されます。</translation>
+        </message>
+        <message>
+            <source>Show less</source>
+            <translation>表示を減らす</translation>
+        </message>
+        <message>
+            <source>Show {n} more</source>
+            <translation>さらに {n} 件を表示</translation>
+        </message>
+        <message>
+            <source>The processing.run line, ready for the QGIS Python console</source>
+            <translation>QGIS の Python コンソールにそのまま貼り付けられる processing.run の行</translation>
+        </message>
+        <message>
+            <source>Fewer</source>
+            <translation>表示を減らす</translation>
+        </message>
+        <message>
+            <source>{n} more</source>
+            <translation>さらに{n}件</translation>
+        </message>
+    </context>
+    <context>
+        <name>AccountCard</name>
+        <message>
+            <source>Add keys</source>
+            <translation>キーを追加</translation>
+        </message>
+        <message>
+            <source>Add token</source>
+            <translation>トークンを追加</translation>
+        </message>
+        <message>
+            <source>Allow</source>
+            <translation>許可</translation>
+        </message>
+        <message>
+            <source>Allow for this conversation</source>
+            <translation>この会話で許可</translation>
+        </message>
+        <message>
+            <source>Allowed for this conversation</source>
+            <translation>この会話で許可済み</translation>
+        </message>
+        <message>
+            <source>Allowed once</source>
+            <translation>1回のみ許可</translation>
+        </message>
+        <message>
+            <source>Connect your {label} account</source>
+            <translation>{label}アカウントを接続</translation>
+        </message>
+        <message>
+            <source>Connected</source>
+            <translation>接続済み</translation>
+        </message>
+        <message>
+            <source>Continue with your {label} account</source>
+            <translation>{label}アカウントで続行</translation>
+        </message>
+        <message>
+            <source>Deny</source>
+            <translation>拒否</translation>
+        </message>
+        <message>
+            <source>Keys refused</source>
+            <translation>キーが拒否されました</translation>
+        </message>
+        <message>
+            <source>Needs your answer</source>
+            <translation>回答が必要です</translation>
+        </message>
+        <message>
+            <source>Not allowed</source>
+            <translation>許可されていません</translation>
+        </message>
+        <message>
+            <source>Replace keys</source>
+            <translation>キーを置き換え</translation>
+        </message>
+        <message>
+            <source>Replace token</source>
+            <translation>トークンを置き換え</translation>
+        </message>
+        <message>
+            <source>Sent to {host} only.</source>
+            <translation>{host}にのみ送信されます。</translation>
+        </message>
+        <message>
+            <source>Sign in</source>
+            <translation>サインイン</translation>
+        </message>
+        <message>
+            <source>Sign in again</source>
+            <translation>もう一度サインイン</translation>
+        </message>
+        <message>
+            <source>Sign in to {host}</source>
+            <translation>{host}にサインイン</translation>
+        </message>
+        <message>
+            <source>Sign-in refused</source>
+            <translation>サインインが拒否されました</translation>
+        </message>
+        <message>
+            <source>Skip</source>
+            <translation>スキップ</translation>
+        </message>
+        <message>
+            <source>Skipped</source>
+            <translation>スキップ済み</translation>
+        </message>
+        <message>
+            <source>Stored encrypted in QGIS on this computer. Never sent to TerraLab or the AI agent.</source>
+            <translation>このコンピュータのQGIS内に暗号化して保存されます。TerraLabやAIエージェントには送信されません。</translation>
+        </message>
+        <message>
+            <source>TerraLab's shared access is used up. A free token keeps you going.</source>
+            <translation>TerraLabの共有アクセスを使い切りました。無料のトークンがあれば続けられます。</translation>
+        </message>
+        <message>
+            <source>TerraLab's shared access is used up. Free S3 keys keep you going.</source>
+            <translation>TerraLabの共有アクセスを使い切りました。無料のS3キーがあれば続けられます。</translation>
+        </message>
+        <message>
+            <source>This service answers only a signed-in user.</source>
+            <translation>このサービスはサインイン済みのユーザーにのみ応答します。</translation>
+        </message>
+        <message>
+            <source>Token refused</source>
+            <translation>トークンが拒否されました</translation>
+        </message>
+        <message>
+            <source>Use your {label} access?</source>
+            <translation>{label}のアクセスを使用しますか?</translation>
+        </message>
+        <message>
+            <source>{host} opens with a token or an API key from your account.</source>
+            <translation>{host}は、アカウントのトークンまたはAPIキーで開きます。</translation>
+        </message>
+        <message>
+            <source>{host} refused your saved access ({user}).</source>
+            <translation>{host}は保存済みのアクセス({user})を拒否しました。</translation>
+        </message>
+        <message>
+            <source>{host} refused your saved access.</source>
+            <translation>{host}は保存済みのアクセスを拒否しました。</translation>
+        </message>
+        <message>
+            <source>{label} answers only a signed-in user.</source>
+            <translation>{label}はサインイン済みのユーザーにのみ応答します。</translation>
+        </message>
+        <message>
+            <source>{label} refused your saved S3 keys.</source>
+            <translation>{label}は保存済みのS3キーを拒否しました。</translation>
+        </message>
+        <message>
+            <source>{label} refused your saved token.</source>
+            <translation>{label}は保存済みのトークンを拒否しました。</translation>
+        </message>
+        <message>
+            <source>{service} needs a token</source>
+            <translation>{service}にはトークンが必要です</translation>
+        </message>
+        <message>
+            <source>Sign in with {name}</source>
+            <translation>{name} でサインイン</translation>
+        </message>
+        <message>
+            <source>TerraLab's shared access is used up. Your free account keeps you going.</source>
+            <translation>TerraLab の共有アクセスを使い切りました。無料アカウントなら引き続き利用できます。</translation>
+        </message>
+        <message>
+            <source>Try again</source>
+            <translation>もう一度試す</translation>
+        </message>
+        <message>
+            <source>Use S3 keys instead</source>
+            <translation>代わりに S3 キーを使う</translation>
+        </message>
+        <message>
+            <source>{name} no longer accepts your saved sign-in.</source>
+            <translation>{name} は保存されたサインインを受け付けなくなりました。</translation>
+        </message>
+        <message>
+            <source>Keys expired</source>
+            <translation>キーの有効期限切れ</translation>
+        </message>
+        <message>
+            <source>Sign-in expired</source>
+            <translation>サインインの有効期限切れ</translation>
+        </message>
+        <message>
+            <source>Token expired</source>
+            <translation>トークンの有効期限切れ</translation>
+        </message>
+        <message>
+            <source>{host} no longer accepts your saved access.</source>
+            <translation>{host}は保存済みのアクセスを受け付けなくなりました。</translation>
+        </message>
+        <message>
+            <source>{label} no longer accepts your saved S3 keys.</source>
+            <translation>{label}は保存済みのS3キーを受け付けなくなりました。</translation>
+        </message>
+        <message>
+            <source>{label} no longer accepts your saved token.</source>
+            <translation>{label}は保存済みのトークンを受け付けなくなりました。</translation>
+        </message>
+        <message>
+            <source>Your {name} sign-in expired.</source>
+            <translation>{name} のサインインの有効期限が切れました。</translation>
+        </message>
+        <message>
+            <source>Details</source>
+            <translation>詳細</translation>
+        </message>
+        <message>
+            <source>File: {value}</source>
+            <translation>ファイル: {value}</translation>
+        </message>
+        <message>
+            <source>Only this file is read with it; nothing is written.</source>
+            <translation>これで読み取られるのはこのファイルだけです。何も書き込まれません。</translation>
+        </message>
+        <message>
+            <source>Saved access: {value}</source>
+            <translation>保存済みのアクセス: {value}</translation>
+        </message>
+        <message>
+            <source>Sent to: {value}</source>
+            <translation>送信先: {value}</translation>
+        </message>
+        <message>
+            <source>Choose in Google Drive</source>
+            <translation>Google Drive から選択</translation>
+        </message>
+    </context>
+    <context>
+        <name>ConnectedAccountsPage</name>
+        <message>
+            <source>API key</source>
+            <translation>APIキー</translation>
+        </message>
+        <message>
+            <source>Connected accounts</source>
+            <translation>接続済みアカウント</translation>
+        </message>
+        <message>
+            <source>Kept in QGIS's encrypted vault, on this computer. Neither TerraLab nor the AI agent sees them.</source>
+            <translation>このコンピュータのQGISの暗号化された保管庫に保存されます。TerraLabもAIエージェントも見ることはできません。</translation>
+        </message>
+        <message>
+            <source>No account yet. When a source asks you to sign in, the AI agent shows a card, and the access you save appears here.</source>
+            <translation>アカウントはまだありません。ソースがサインインを求めると、AIエージェントがカードを表示し、保存したアクセスがここに表示されます。</translation>
+        </message>
+        <message>
+            <source>Remove</source>
+            <translation>削除</translation>
+        </message>
+        <message>
+            <source>Remove the access to {host}</source>
+            <translation>{host}へのアクセスを削除</translation>
+        </message>
+        <message>
+            <source>S3 keys</source>
+            <translation>S3キー</translation>
+        </message>
+        <message>
+            <source>The sign-ins the AI agent may use, each only after you allow it.</source>
+            <translation>AIエージェントが使用できるサインインです。それぞれ、許可した後にのみ使用されます。</translation>
+        </message>
+        <message>
+            <source>Token</source>
+            <translation>トークン</translation>
+        </message>
+        <message>
+            <source>Username and password</source>
+            <translation>ユーザー名とパスワード</translation>
+        </message>
+        <message>
+            <source>Google account</source>
+            <translation>Google アカウント</translation>
+        </message>
+        <message>
+            <source>No project picked</source>
+            <translation>プロジェクトが未選択です</translation>
+        </message>
+        <message>
+            <source>Project {project}</source>
+            <translation>プロジェクト {project}</translation>
+        </message>
+        <message>
+            <source>Change project…</source>
+            <translation>プロジェクトを変更…</translation>
+        </message>
+        <message>
+            <source>Google sign-in</source>
+            <translation>Googleサインイン</translation>
+        </message>
+        <message>
+            <source>Signed in with the browser</source>
+            <translation>ブラウザでサインイン済み</translation>
+        </message>
+        <message>
+            <source>Add account</source>
+            <translation>アカウントを追加</translation>
+        </message>
+        <message>
+            <source>Expired</source>
+            <translation>期限切れ</translation>
+        </message>
+        <message>
+            <source>Expires on {day}</source>
+            <translation>{day}に期限切れ</translation>
+        </message>
+        <message>
+            <source>More actions for {label}</source>
+            <translation>{label}のその他の操作</translation>
+        </message>
+        <message>
+            <source>QGIS deletes it from its vault. Layers loaded with it stop loading, and the AI agent asks you to sign in again the next time {host} needs it.</source>
+            <translation>QGISの保管庫から削除されます。これで読み込んだレイヤは読み込まれなくなり、次に{host}が必要になったとき、AIエージェントが再度サインインを求めます。</translation>
+        </message>
+        <message>
+            <source>Refused at its last use</source>
+            <translation>前回の使用時に拒否されました</translation>
+        </message>
+        <message>
+            <source>Remove your {label} access?</source>
+            <translation>{label}のアクセスを削除しますか？</translation>
+        </message>
+        <message>
+            <source>Remove…</source>
+            <translation>削除…</translation>
+        </message>
+        <message>
+            <source>Replace…</source>
+            <translation>置き換え…</translation>
+        </message>
+        <message>
+            <source>Storage keys</source>
+            <translation>ストレージキー</translation>
+        </message>
+        <message>
+            <source>Choose files…</source>
+            <translation>ファイルを選択…</translation>
+        </message>
+        <message>
+            <source>{name} sign-in</source>
+            <translation>{name} のサインイン</translation>
+        </message>
+    </context>
+    <context>
+        <name>KeysDialog</name>
+        <message>
+            <source>Access key</source>
+            <translation>アクセスキー</translation>
+        </message>
+        <message>
+            <source>Cancel</source>
+            <translation>キャンセル</translation>
+        </message>
+        <message>
+            <source>Connect</source>
+            <translation>接続</translation>
+        </message>
+        <message>
+            <source>Connect {label}</source>
+            <translation>{label}を接続</translation>
+        </message>
+        <message>
+            <source>Connected</source>
+            <translation>接続済み</translation>
+        </message>
+        <message>
+            <source>Header name</source>
+            <translation>ヘッダー名</translation>
+        </message>
+        <message>
+            <source>Hide</source>
+            <translation>隠す</translation>
+        </message>
+        <message>
+            <source>Key</source>
+            <translation>キー</translation>
+        </message>
+        <message>
+            <source>Not saved. Fill in the fields, and unlock QGIS's vault with its master password when QGIS asks.</source>
+            <translation>保存されていません。項目を入力し、QGISが求めたら、マスターパスワードでQGISの保管庫のロックを解除してください。</translation>
+        </message>
+        <message>
+            <source>Not saved. Paste both keys, and unlock QGIS's vault with its master password when QGIS asks.</source>
+            <translation>保存されていません。両方のキーを貼り付け、QGISが求めたら、マスターパスワードでQGISの保管庫のロックを解除してください。</translation>
+        </message>
+        <message>
+            <source>Open {host}</source>
+            <translation>{host}を開く</translation>
+        </message>
+        <message>
+            <source>Password</source>
+            <translation>パスワード</translation>
+        </message>
+        <message>
+            <source>Secret key</source>
+            <translation>シークレットキー</translation>
+        </message>
+        <message>
+            <source>Show</source>
+            <translation>表示</translation>
+        </message>
+        <message>
+            <source>Sign in</source>
+            <translation>サインイン</translation>
+        </message>
+        <message>
+            <source>Sign in to {host}</source>
+            <translation>{host}にサインイン</translation>
+        </message>
+        <message>
+            <source>Sign in with a free account, add a credential and paste both keys here.</source>
+            <translation>無料アカウントでサインインし、認証情報を追加して、両方のキーをここに貼り付けてください。</translation>
+        </message>
+        <message>
+            <source>Stored encrypted in QGIS on this computer, behind your QGIS master password. Never sent to TerraLab or the AI agent.</source>
+            <translation>このコンピュータのQGIS内に、QGISのマスターパスワードで保護して暗号化保存されます。TerraLabやAIエージェントには送信されません。</translation>
+        </message>
+        <message>
+            <source>Use a username and password instead</source>
+            <translation>ユーザー名とパスワードを使用する</translation>
+        </message>
+        <message>
+            <source>Use an API key instead</source>
+            <translation>APIキーを使用する</translation>
+        </message>
+        <message>
+            <source>Username</source>
+            <translation>ユーザー名</translation>
+        </message>
+        <message>
+            <source>the S3 keys manager</source>
+            <translation>S3キー管理ページ</translation>
+        </message>
+        <message>
+            <source>Checking…</source>
+            <translation>確認中…</translation>
+        </message>
+        <message>
+            <source>QGIS will ask you to choose a master password. It locks every sign-in saved in QGIS and cannot be recovered, so keep it somewhere safe.</source>
+            <translation>QGISからマスターパスワードの設定を求められます。QGISに保存されたすべてのサインインがロックされ、復元はできないため、安全な場所に保管してください。</translation>
+        </message>
+        <message>
+            <source>{host} refused these details. Check them and try again.</source>
+            <translation>{host}はこれらの情報を拒否しました。内容を確認して、もう一度お試しください。</translation>
+        </message>
+    </context>
+    <context>
+        <name>ProLock</name>
+        <message>
+            <source>Pro</source>
+            <translation>Pro</translation>
+        </message>
+    </context>
+    <context>
+        <name>ProNote</name>
+        <message>
+            <source>Get Pro</source>
+            <translation>Proを入手</translation>
+        </message>
+    </context>
+    <context>
+        <name>SectionHead</name>
+        <message>
+            <source>See all</source>
+            <translation>すべて表示</translation>
+        </message>
+    </context>
+    <context>
+        <name>SiblingRow</name>
+        <message>
+            <source>Install</source>
+            <translation>インストール</translation>
+        </message>
+        <message>
+            <source>Installed</source>
+            <translation>インストール済み</translation>
+        </message>
+        <message>
+            <source>Open</source>
+            <translation>開く</translation>
+        </message>
+        <message>
+            <source>Opens the QGIS plugin manager on this plugin.</source>
+            <translation>QGISのプラグインマネージャでこのプラグインを開きます。</translation>
+        </message>
+        <message>
+            <source>Show the plugin's panel.</source>
+            <translation>プラグインのパネルを表示します。</translation>
+        </message>
+    </context>
+    <context>
+        <name>SiblingsSection</name>
+        <message>
+            <source>Edit your imagery with a single sentence.</source>
+            <translation>一文で画像を編集できます。</translation>
+        </message>
+        <message>
+            <source>Other TerraLab plugins</source>
+            <translation>その他のTerraLabプラグイン</translation>
+        </message>
+        <message>
+            <source>Turn buildings, trees or water into polygons.</source>
+            <translation>建物、樹木、水域をポリゴンに変換します。</translation>
+        </message>
+    </context>
+    <context>
+        <name>SignInDialog</name>
+        <message>
+            <source>Cancel</source>
+            <translation>キャンセル</translation>
+        </message>
+        <message>
+            <source>Connect</source>
+            <translation>接続</translation>
+        </message>
+        <message>
+            <source>Connected</source>
+            <translation>接続済み</translation>
+        </message>
+        <message>
+            <source>Header name</source>
+            <translation>ヘッダー名</translation>
+        </message>
+        <message>
+            <source>Hide</source>
+            <translation>隠す</translation>
+        </message>
+        <message>
+            <source>Key</source>
+            <translation>キー</translation>
+        </message>
+        <message>
+            <source>Not saved. Fill in the fields, and unlock QGIS's vault with its master password when QGIS asks.</source>
+            <translation>保存されていません。項目を入力し、QGISが求めたら、マスターパスワードでQGISの保管庫のロックを解除してください。</translation>
+        </message>
+        <message>
+            <source>Open {host}</source>
+            <translation>{host}を開く</translation>
+        </message>
+        <message>
+            <source>Password</source>
+            <translation>パスワード</translation>
+        </message>
+        <message>
+            <source>Show</source>
+            <translation>表示</translation>
+        </message>
+        <message>
+            <source>Sign in</source>
+            <translation>サインイン</translation>
+        </message>
+        <message>
+            <source>Sign in to {host}</source>
+            <translation>{host}にサインイン</translation>
+        </message>
+        <message>
+            <source>Stored encrypted in QGIS on this computer, behind your QGIS master password. Never sent to TerraLab or the AI agent.</source>
+            <translation>このコンピュータのQGIS内に、QGISのマスターパスワードで保護して暗号化保存されます。TerraLabやAIエージェントには送信されません。</translation>
+        </message>
+        <message>
+            <source>Use a username and password instead</source>
+            <translation>ユーザー名とパスワードを使用する</translation>
+        </message>
+        <message>
+            <source>Use an API key instead</source>
+            <translation>APIキーを使用する</translation>
+        </message>
+        <message>
+            <source>Username</source>
+            <translation>ユーザー名</translation>
+        </message>
+        <message>
+            <source>Checking…</source>
+            <translation>確認中…</translation>
+        </message>
+        <message>
+            <source>QGIS will ask you to choose a master password. It locks every sign-in saved in QGIS and cannot be recovered, so keep it somewhere safe.</source>
+            <translation>QGISからマスターパスワードの設定を求められます。QGISに保存されたすべてのサインインがロックされ、復元はできないため、安全な場所に保管してください。</translation>
+        </message>
+        <message>
+            <source>{host} refused these details. Check them and try again.</source>
+            <translation>{host}はこれらの情報を拒否しました。内容を確認して、もう一度お試しください。</translation>
+        </message>
+    </context>
+    <context>
+        <name>TasksPanel</name>
+        <message>
+            <source>Done</source>
+            <translation>完了</translation>
+        </message>
+        <message>
+            <source>Failed</source>
+            <translation>失敗</translation>
+        </message>
+        <message>
+            <source>Paused</source>
+            <translation>一時停止中</translation>
+        </message>
+        <message>
+            <source>Queued</source>
+            <translation>待機中</translation>
+        </message>
+        <message>
+            <source>Stopped</source>
+            <translation>停止</translation>
+        </message>
+        <message>
+            <source>Stopping...</source>
+            <translation>停止中...</translation>
+        </message>
+        <message>
+            <source>Tasks</source>
+            <translation>タスク</translation>
+        </message>
+        <message>
+            <source>Working</source>
+            <translation>処理中</translation>
+        </message>
+    </context>
+    <context>
+        <name>TokenDialog</name>
+        <message>
+            <source>A token or an API key from your {service} account. Sent to {host} only.</source>
+            <translation>{service}アカウントのトークンまたはAPIキーです。{host}にのみ送信されます。</translation>
+        </message>
+        <message>
+            <source>Cancel</source>
+            <translation>キャンセル</translation>
+        </message>
+        <message>
+            <source>Connect</source>
+            <translation>接続</translation>
+        </message>
+        <message>
+            <source>Connect {label}</source>
+            <translation>{label}を接続</translation>
+        </message>
+        <message>
+            <source>Connect {service}</source>
+            <translation>{service}を接続</translation>
+        </message>
+        <message>
+            <source>Connected</source>
+            <translation>接続済み</translation>
+        </message>
+        <message>
+            <source>Header name</source>
+            <translation>ヘッダー名</translation>
+        </message>
+        <message>
+            <source>Hide</source>
+            <translation>隠す</translation>
+        </message>
+        <message>
+            <source>Key</source>
+            <translation>キー</translation>
+        </message>
+        <message>
+            <source>Not saved. Fill in the fields, and unlock QGIS's vault with its master password when QGIS asks.</source>
+            <translation>保存されていません。項目を入力し、QGISが求めたら、マスターパスワードでQGISの保管庫のロックを解除してください。</translation>
+        </message>
+        <message>
+            <source>Not saved. Paste the token, and unlock QGIS's vault with its master password when QGIS asks.</source>
+            <translation>保存されていません。トークンを貼り付け、QGISが求めたら、マスターパスワードでQGISの保管庫のロックを解除してください。</translation>
+        </message>
+        <message>
+            <source>Open {host}</source>
+            <translation>{host}を開く</translation>
+        </message>
+        <message>
+            <source>Password</source>
+            <translation>パスワード</translation>
+        </message>
+        <message>
+            <source>Paste your token</source>
+            <translation>トークンを貼り付け</translation>
+        </message>
+        <message>
+            <source>Show</source>
+            <translation>表示</translation>
+        </message>
+        <message>
+            <source>Sign in</source>
+            <translation>サインイン</translation>
+        </message>
+        <message>
+            <source>Sign in to {host}</source>
+            <translation>{host}にサインイン</translation>
+        </message>
+        <message>
+            <source>Sign in with a free account, choose Generate Token, copy it and paste it here.</source>
+            <translation>無料アカウントでサインインし、「Generate Token」を選んでコピーし、ここに貼り付けてください。</translation>
+        </message>
+        <message>
+            <source>Stored encrypted in QGIS on this computer, behind your QGIS master password. Never sent to TerraLab or the AI agent.</source>
+            <translation>このコンピュータのQGIS内に、QGISのマスターパスワードで保護して暗号化保存されます。TerraLabやAIエージェントには送信されません。</translation>
+        </message>
+        <message>
+            <source>Token</source>
+            <translation>トークン</translation>
+        </message>
+        <message>
+            <source>Token for {host}</source>
+            <translation>{host}のトークン</translation>
+        </message>
+        <message>
+            <source>Use a username and password instead</source>
+            <translation>ユーザー名とパスワードを使用する</translation>
+        </message>
+        <message>
+            <source>Use an API key instead</source>
+            <translation>APIキーを使用する</translation>
+        </message>
+        <message>
+            <source>Username</source>
+            <translation>ユーザー名</translation>
+        </message>
+        <message>
+            <source>Checking…</source>
+            <translation>確認中…</translation>
+        </message>
+        <message>
+            <source>QGIS will ask you to choose a master password. It locks every sign-in saved in QGIS and cannot be recovered, so keep it somewhere safe.</source>
+            <translation>QGISからマスターパスワードの設定を求められます。QGISに保存されたすべてのサインインがロックされ、復元はできないため、安全な場所に保管してください。</translation>
+        </message>
+        <message>
+            <source>{host} refused these details. Check them and try again.</source>
+            <translation>{host}はこれらの情報を拒否しました。内容を確認して、もう一度お試しください。</translation>
+        </message>
+    </context>
+    <context>
+        <name>_TaskRow</name>
+        <message>
+            <source>Stop</source>
+            <translation>停止</translation>
+        </message>
+    </context>
+    <context>
+        <name>EarthEngineConnect</name>
+        <message>
+            <source>A non-commercial Earth Engine project is not for commercial work.</source>
+            <translation>非商用の Earth Engine プロジェクトは、商用の作業には使えません。</translation>
+        </message>
+        <message>
+            <source>Cancel</source>
+            <translation>キャンセル</translation>
+        </message>
+        <message>
+            <source>Change project</source>
+            <translation>プロジェクトを変更</translation>
+        </message>
+        <message>
+            <source>Choose project</source>
+            <translation>プロジェクトを選択</translation>
+        </message>
+        <message>
+            <source>Choose your Earth Engine project</source>
+            <translation>Earth Engine のプロジェクトを選択</translation>
+        </message>
+        <message>
+            <source>Connect</source>
+            <translation>接続</translation>
+        </message>
+        <message>
+            <source>Connect Earth Engine</source>
+            <translation>Earth Engine に接続</translation>
+        </message>
+        <message>
+            <source>Connected</source>
+            <translation>接続済み</translation>
+        </message>
+        <message>
+            <source>Earth Engine needs Google's earthengine-api package. It installs into QGIS in about a minute, then you sign in with Google.</source>
+            <translation>Earth Engine には Google の earthengine-api パッケージが必要です。QGIS へのインストールは約1分で終わり、その後 Google にログインします。</translation>
+        </message>
+        <message>
+            <source>Earth Engine refused your project {project}.</source>
+            <translation>Earth Engine はプロジェクト {project} を拒否しました。</translation>
+        </message>
+        <message>
+            <source>Earth Engine runs on one of your Google Cloud projects.</source>
+            <translation>Earth Engine は、お持ちの Google Cloud プロジェクトのいずれかで動作します。</translation>
+        </message>
+        <message>
+            <source>Finish signing in to Google in your browser.</source>
+            <translation>ブラウザで Google へのログインを完了してください。</translation>
+        </message>
+        <message>
+            <source>Google refused the sign-in ({error}).</source>
+            <translation>Google がログインを拒否しました（{error}）。</translation>
+        </message>
+        <message>
+            <source>Google refused your saved sign-in.</source>
+            <translation>Google が保存済みのログインを拒否しました。</translation>
+        </message>
+        <message>
+            <source>Install</source>
+            <translation>インストール</translation>
+        </message>
+        <message>
+            <source>Installing earthengine-api...</source>
+            <translation>earthengine-api をインストール中...</translation>
+        </message>
+        <message>
+            <source>No Earth Engine project on this account yet. Registering one is free for noncommercial use.</source>
+            <translation>このアカウントにはまだ Earth Engine のプロジェクトがありません。非商用であれば、無料で登録できます。</translation>
+        </message>
+        <message>
+            <source>Not saved: QGIS's vault stayed locked. Connect again and set the master password when QGIS asks.</source>
+            <translation>保存されませんでした。QGIS の認証データベースがロックされたままでした。もう一度接続し、QGIS から求められたらマスターパスワードを設定してください。</translation>
+        </message>
+        <message>
+            <source>Open the sign-in page again</source>
+            <translation>ログインページをもう一度開く</translation>
+        </message>
+        <message>
+            <source>Pick the Cloud project Earth Engine runs on.</source>
+            <translation>Earth Engine を実行する Google Cloud プロジェクトを選んでください。</translation>
+        </message>
+        <message>
+            <source>Project refused</source>
+            <translation>プロジェクトが拒否されました</translation>
+        </message>
+        <message>
+            <source>Reading your Cloud projects...</source>
+            <translation>Google Cloud プロジェクトを読み込み中...</translation>
+        </message>
+        <message>
+            <source>Refresh</source>
+            <translation>更新</translation>
+        </message>
+        <message>
+            <source>Register a project</source>
+            <translation>プロジェクトを登録</translation>
+        </message>
+        <message>
+            <source>Sign in again</source>
+            <translation>もう一度ログイン</translation>
+        </message>
+        <message>
+            <source>Sign in with Google</source>
+            <translation>Google でログイン</translation>
+        </message>
+        <message>
+            <source>Sign in with Google and pick your own Cloud project.</source>
+            <translation>Google でログインし、ご自身の Google Cloud プロジェクトを選びます。</translation>
+        </message>
+        <message>
+            <source>Sign-in didn't finish ({error}).</source>
+            <translation>ログインが完了しませんでした（{error}）。</translation>
+        </message>
+        <message>
+            <source>Sign-in didn't finish within 5 minutes.</source>
+            <translation>ログインが5分以内に完了しませんでした。</translation>
+        </message>
+        <message>
+            <source>Sign-in didn't finish. You can close this window and return to QGIS.</source>
+            <translation>ログインが完了しませんでした。このウィンドウを閉じて QGIS に戻ってください。</translation>
+        </message>
+        <message>
+            <source>Sign-in expired</source>
+            <translation>ログインの有効期限が切れました</translation>
+        </message>
+        <message>
+            <source>The Earth Engine API is off in your project {project}.</source>
+            <translation>プロジェクト {project} で Earth Engine API がオフになっています。</translation>
+        </message>
+        <message>
+            <source>Try again</source>
+            <translation>再試行</translation>
+        </message>
+        <message>
+            <source>Turn on the Earth Engine API</source>
+            <translation>Earth Engine API をオンにする</translation>
+        </message>
+        <message>
+            <source>Use this project</source>
+            <translation>このプロジェクトを使う</translation>
+        </message>
+        <message>
+            <source>You're signed in. You can close this window and return to QGIS.</source>
+            <translation>ログインしました。このウィンドウを閉じて QGIS に戻ってください。</translation>
+        </message>
+        <message>
+            <source>Your Cloud projects could not be read ({error}).</source>
+            <translation>Google Cloud プロジェクトを読み込めませんでした（{error}）。</translation>
+        </message>
+        <message>
+            <source>Your Earth Engine sign-in expired.</source>
+            <translation>Earth Engine のログインの有効期限が切れました。</translation>
+        </message>
+        <message>
+            <source>Your Google sign-in stays in QGIS's encrypted vault on this computer. Never sent to TerraLab or the AI agent.</source>
+            <translation>Google のログイン情報は、このコンピュータ上の QGIS の暗号化された認証データベースにのみ保存されます。TerraLab や AI Agent に送信されることはありません。</translation>
+        </message>
+        <message>
+            <source>Your browser opens Google's sign-in. Earth Engine then runs on your own Google Cloud project, under that project's terms.</source>
+            <translation>ブラウザで Google のログイン画面が開きます。その後、Earth Engine はご自身の Google Cloud プロジェクト上で、そのプロジェクトの利用規約に従って動作します。</translation>
+        </message>
+        <message>
+            <source>Your project {project} is not registered for Earth Engine.</source>
+            <translation>プロジェクト {project} は Earth Engine に登録されていません。</translation>
+        </message>
+        <message>
+            <source>earthengine-api did not install: {error}</source>
+            <translation>earthengine-api をインストールできませんでした: {error}</translation>
+        </message>
+        <message>
+            <source>{count} other projects do not have Earth Engine.</source>
+            <translation>他の {count} 件のプロジェクトでは Earth Engine を利用できません。</translation>
+        </message>
+        <message>
+            <source>QGIS will ask you to choose a master password. It locks every sign-in saved in QGIS and cannot be recovered, so keep it somewhere safe.</source>
+            <translation>QGISからマスターパスワードの設定を求められます。QGISに保存されたすべてのサインイン情報をロックするもので、復元できないため、安全な場所に保管してください。</translation>
+        </message>
+    </context>
+    <context>
+        <name>BrowserWait</name>
+        <message>
+            <source>Cancel</source>
+            <translation>キャンセル</translation>
+        </message>
+        <message>
+            <source>Check that the page shows the code {code}, then sign in.</source>
+            <translation>ページにコード {code} が表示されていることを確認してから、サインインしてください。</translation>
+        </message>
+        <message>
+            <source>Connecting…</source>
+            <translation>接続中…</translation>
+        </message>
+        <message>
+            <source>Finish signing in to {name} in your browser.</source>
+            <translation>ブラウザで {name} へのサインインを完了してください。</translation>
+        </message>
+        <message>
+            <source>Not saved. Unlock QGIS's vault with its master password when QGIS asks.</source>
+            <translation>保存されていません。QGIS から求められたら、マスターパスワードで認証データベースのロックを解除してください。</translation>
+        </message>
+        <message>
+            <source>Open the page again</source>
+            <translation>ページをもう一度開く</translation>
+        </message>
+        <message>
+            <source>Opening your browser…</source>
+            <translation>ブラウザを開いています…</translation>
+        </message>
+        <message>
+            <source>Sign-in didn't finish.</source>
+            <translation>サインインが完了しませんでした。</translation>
+        </message>
+        <message>
+            <source>The sign-in was declined in the browser.</source>
+            <translation>ブラウザでサインインが拒否されました。</translation>
+        </message>
+        <message>
+            <source>{label} did not answer. Check your connection.</source>
+            <translation>{label} から応答がありません。接続を確認してください。</translation>
+        </message>
+        <message>
+            <source>{label} did not create the S3 keys.</source>
+            <translation>{label} が S3 キーを作成しませんでした。</translation>
+        </message>
+        <message>
+            <source>{label} refused the sign-in.</source>
+            <translation>{label} がサインインを拒否しました。</translation>
+        </message>
+        <message>
+            <source>Send this approval link to your IT admin: {link}</source>
+            <translation>この承認リンクを IT 管理者に送ってください：{link}</translation>
+        </message>
+        <message>
+            <source>Your organization lets only an admin approve TerraLab AI Agent for {label}.</source>
+            <translation>組織の設定により、TerraLab AI Agent を {label} で承認できるのは管理者だけです。</translation>
+        </message>
+    </context>
+    <context>
+        <name>CloudKeysDialog</name>
+        <message>
+            <source>Access key ID</source>
+            <translation>アクセスキー ID</translation>
+        </message>
+        <message>
+            <source>Account key</source>
+            <translation>アカウント キー</translation>
+        </message>
+        <message>
+            <source>Cancel</source>
+            <translation>キャンセル</translation>
+        </message>
+        <message>
+            <source>Checking…</source>
+            <translation>確認中…</translation>
+        </message>
+        <message>
+            <source>Connect</source>
+            <translation>接続</translation>
+        </message>
+        <message>
+            <source>Connect {label}</source>
+            <translation>{label} に接続</translation>
+        </message>
+        <message>
+            <source>Connect {store}</source>
+            <translation>{store} に接続</translation>
+        </message>
+        <message>
+            <source>Connected</source>
+            <translation>接続済み</translation>
+        </message>
+        <message>
+            <source>Endpoint, empty for Amazon S3</source>
+            <translation>エンドポイント（Amazon S3 の場合は空欄）</translation>
+        </message>
+        <message>
+            <source>For {address}. A read-only key is enough: the AI agent only reads from it.</source>
+            <translation>{address} 用です。読み取り専用のキーで十分です。AI エージェントはここから読み取るだけです。</translation>
+        </message>
+        <message>
+            <source>HMAC access key</source>
+            <translation>HMAC アクセスキー</translation>
+        </message>
+        <message>
+            <source>HMAC secret</source>
+            <translation>HMAC シークレット</translation>
+        </message>
+        <message>
+            <source>Header name</source>
+            <translation>ヘッダー名</translation>
+        </message>
+        <message>
+            <source>Hide</source>
+            <translation>非表示</translation>
+        </message>
+        <message>
+            <source>JSON key (*.json)</source>
+            <translation>JSON キー (*.json)</translation>
+        </message>
+        <message>
+            <source>Key</source>
+            <translation>キー</translation>
+        </message>
+        <message>
+            <source>Keys expired</source>
+            <translation>キーの有効期限切れ</translation>
+        </message>
+        <message>
+            <source>Keys refused</source>
+            <translation>キーが拒否されました</translation>
+        </message>
+        <message>
+            <source>Not saved. Fill in the fields, and unlock QGIS's vault with its master password when QGIS asks.</source>
+            <translation>保存されていません。項目を入力し、QGIS から求められたらマスターパスワードで QGIS の保管庫のロックを解除してください。</translation>
+        </message>
+        <message>
+            <source>Open {host}</source>
+            <translation>{host} を開く</translation>
+        </message>
+        <message>
+            <source>Password</source>
+            <translation>パスワード</translation>
+        </message>
+        <message>
+            <source>QGIS will ask you to choose a master password. It locks every sign-in saved in QGIS and cannot be recovered, so keep it somewhere safe.</source>
+            <translation>QGIS からマスターパスワードの設定を求められます。QGIS に保存されたすべてのサインイン情報がこれでロックされ、復元できないため、安全な場所に保管してください。</translation>
+        </message>
+        <message>
+            <source>Region (optional)</source>
+            <translation>リージョン（省略可）</translation>
+        </message>
+        <message>
+            <source>SAS token</source>
+            <translation>SAS トークン</translation>
+        </message>
+        <message>
+            <source>Secret access key</source>
+            <translation>シークレットアクセスキー</translation>
+        </message>
+        <message>
+            <source>Service account key (JSON file)</source>
+            <translation>サービス アカウント キー（JSON ファイル）</translation>
+        </message>
+        <message>
+            <source>Show</source>
+            <translation>表示</translation>
+        </message>
+        <message>
+            <source>Sign in</source>
+            <translation>サインイン</translation>
+        </message>
+        <message>
+            <source>Sign in to {host}</source>
+            <translation>{host} にサインイン</translation>
+        </message>
+        <message>
+            <source>Storage account name</source>
+            <translation>ストレージ アカウント名</translation>
+        </message>
+        <message>
+            <source>Stored encrypted in QGIS on this computer, behind your QGIS master password. Never sent to TerraLab or the AI agent.</source>
+            <translation>このコンピューターの QGIS 内に、QGIS のマスターパスワードで保護して暗号化保存されます。TerraLab にも AI エージェントにも送信されません。</translation>
+        </message>
+        <message>
+            <source>The keys could not be checked: {error}</source>
+            <translation>キーを確認できませんでした: {error}</translation>
+        </message>
+        <message>
+            <source>This bucket opens only with a service account key.</source>
+            <translation>このバケットはサービス アカウント キーでのみ開けます。</translation>
+        </message>
+        <message>
+            <source>This bucket opens only with your access keys.</source>
+            <translation>このバケットはアクセスキーでのみ開けます。</translation>
+        </message>
+        <message>
+            <source>This container opens only with your account key or a SAS token.</source>
+            <translation>このコンテナーはアカウント キーまたは SAS トークンでのみ開けます。</translation>
+        </message>
+        <message>
+            <source>This file is not a service account key. In the Google Cloud console, open the service account, then Keys, Add key, JSON.</source>
+            <translation>このファイルはサービス アカウント キーではありません。Google Cloud コンソールでサービス アカウントを開き、「キー」、「鍵を追加」、「JSON」の順に選択してください。</translation>
+        </message>
+        <message>
+            <source>Use a SAS token instead</source>
+            <translation>代わりに SAS トークンを使う</translation>
+        </message>
+        <message>
+            <source>Use a service account key instead</source>
+            <translation>代わりにサービス アカウント キーを使う</translation>
+        </message>
+        <message>
+            <source>Use a username and password instead</source>
+            <translation>代わりにユーザー名とパスワードを使う</translation>
+        </message>
+        <message>
+            <source>Use an API key instead</source>
+            <translation>代わりに API キーを使う</translation>
+        </message>
+        <message>
+            <source>Use an HMAC key instead</source>
+            <translation>代わりに HMAC キーを使う</translation>
+        </message>
+        <message>
+            <source>Use the account key instead</source>
+            <translation>代わりにアカウント キーを使う</translation>
+        </message>
+        <message>
+            <source>Username</source>
+            <translation>ユーザー名</translation>
+        </message>
+        <message>
+            <source>{host} refused these details. Check them and try again.</source>
+            <translation>{host} がこの情報を拒否しました。内容を確認して、もう一度お試しください。</translation>
+        </message>
+        <message>
+            <source>{store} no longer accepts your saved keys.</source>
+            <translation>{store} は保存されたキーを受け付けなくなりました。</translation>
+        </message>
+        <message>
+            <source>{store} refused your saved keys.</source>
+            <translation>{store} が保存されたキーを拒否しました。</translation>
+        </message>
+        <message>
+            <source>{where} refused these keys.</source>
+            <translation>{where} がこれらのキーを拒否しました。</translation>
+        </message>
+    </context>
+    <context>
+        <name>AccountDrive</name>
+        <message>
+            <source>Allow SharePoint sites</source>
+            <translation>SharePoint サイトを許可</translation>
+        </message>
+        <message>
+            <source>Cancel</source>
+            <translation>キャンセル</translation>
+        </message>
+        <message>
+            <source>Choose this file in Google Drive</source>
+            <translation>Google Drive でこのファイルを選択</translation>
+        </message>
+        <message>
+            <source>Connect Google Drive</source>
+            <translation>Google Drive に接続</translation>
+        </message>
+        <message>
+            <source>Connect OneDrive and SharePoint</source>
+            <translation>OneDrive と SharePoint に接続</translation>
+        </message>
+        <message>
+            <source>Connect SharePoint</source>
+            <translation>SharePoint に接続</translation>
+        </message>
+        <message>
+            <source>Read with your account, only for this request.</source>
+            <translation>あなたのアカウントで読み取ります。このリクエストのみです。</translation>
+        </message>
+        <message>
+            <source>Read-only: the AI agent can open your files, never change or delete them.</source>
+            <translation>読み取り専用：AIエージェントはファイルを開けますが、変更や削除は一切できません。</translation>
+        </message>
+        <message>
+            <source>Reading SharePoint sites needs one more permission. Your organization's admin may have to approve it.</source>
+            <translation>SharePoint サイトの読み取りには、もう1つ権限が必要です。組織の管理者による承認が必要になる場合があります。</translation>
+        </message>
+        <message>
+            <source>Sign in again</source>
+            <translation>もう一度サインイン</translation>
+        </message>
+        <message>
+            <source>Sign in with {name}</source>
+            <translation>{name} でサインイン</translation>
+        </message>
+        <message>
+            <source>The AI agent sees only the files you pick. Pick this one to let it open it.</source>
+            <translation>AIエージェントには、あなたが選んだファイルしか見えません。このファイルを選ぶと、開けるようになります。</translation>
+        </message>
+        <message>
+            <source>Try again</source>
+            <translation>やり直す</translation>
+        </message>
+        <message>
+            <source>Use your {label} access?</source>
+            <translation>{label} のアクセスを使用しますか？</translation>
+        </message>
+        <message>
+            <source>You pick the files the AI agent may open. It sees nothing else in your Drive.</source>
+            <translation>AIエージェントが開けるファイルは、あなたが選びます。Drive 内のそれ以外のファイルは見えません。</translation>
+        </message>
+        <message>
+            <source>Your sign-in stays in QGIS's encrypted vault on this computer. Never sent to TerraLab or the AI agent.</source>
+            <translation>サインイン情報は、このコンピューター上の QGIS の暗号化された保管庫にだけ保存されます。TerraLab や AIエージェントには送信されません。</translation>
+        </message>
+        <message>
+            <source>{name} no longer accepts your saved sign-in.</source>
+            <translation>{name} は、保存されているサインイン情報を受け付けなくなりました。</translation>
+        </message>
+    </context>
+    <context>
+        <name>RatingCard</name>
+        <message>
+            <source>Add details (optional)</source>
+            <translation>詳細を追加（任意）</translation>
+        </message>
+        <message>
+            <source>Close</source>
+            <translation>閉じる</translation>
+        </message>
+        <message>
+            <source>Could not send. Try again.</source>
+            <translation>送信できませんでした。もう一度お試しください。</translation>
+        </message>
+        <message>
+            <source>Not what I asked</source>
+            <translation>依頼と違う</translation>
+        </message>
+        <message>
+            <source>Send</source>
+            <translation>送信</translation>
+        </message>
+        <message>
+            <source>Tell us more (optional)</source>
+            <translation>詳しく教えてください（任意）</translation>
+        </message>
+        <message>
+            <source>Thanks for the feedback</source>
+            <translation>フィードバックありがとうございます</translation>
+        </message>
+        <message>
+            <source>Too slow</source>
+            <translation>遅すぎる</translation>
+        </message>
+        <message>
+            <source>What went wrong?</source>
+            <translation>何が問題でしたか？</translation>
+        </message>
+        <message>
+            <source>What worked well?</source>
+            <translation>何がうまくいきましたか？</translation>
+        </message>
+        <message>
+            <source>Wrong result</source>
+            <translation>結果が間違っている</translation>
+        </message>
+        <message>
+            <source>Your words are sent with this chat and recent logs.</source>
+            <translation>入力した内容は、このチャットと最近のログとともに送信されます。</translation>
         </message>
     </context>
 </TS>

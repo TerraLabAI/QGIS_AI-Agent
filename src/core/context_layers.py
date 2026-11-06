@@ -27,6 +27,7 @@ from . import background, ground, tuning
 from .crs_ref import crs_ref
 from .feature_requests import feature_request, first_feature
 from .layer_order import is_web_service
+from .numbers import as_float
 from .serialization import qt_temporal_text
 
 
@@ -596,9 +597,8 @@ def _band_names(provider, count: int) -> list[str]:
 
 
 def _rounded(value) -> float | None:
-    try:
-        number = float(value)
-    except (TypeError, ValueError):
+    number = as_float(value)
+    if number is None:
         return None
     if math.isnan(number) or math.isinf(number):
         return None

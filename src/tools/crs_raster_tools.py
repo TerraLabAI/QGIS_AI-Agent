@@ -23,7 +23,7 @@ from qgis.PyQt.QtCore import QT_TRANSLATE_NOOP
 
 from ..core import security
 from ..core.tool_registry import Tool, ToolRegistry, tool_error
-from .layer_lookup import _find_layer
+from ._layers import resolve_layer
 
 
 def _crs_from_text(raw: str):
@@ -74,7 +74,7 @@ def _save_custom_crs(args: dict) -> dict:
 
 
 def _resolve_raster(value):
-    layer = _find_layer(str(value or ""))
+    layer = resolve_layer(str(value or ""))
     if layer is not None:
         return layer
     path = security.expand_path(str(value or ""))

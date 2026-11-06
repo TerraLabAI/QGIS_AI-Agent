@@ -74,15 +74,17 @@ from qgis.core import QgsRasterLayer
 from qgis.PyQt.QtCore import QT_TRANSLATE_NOOP, QBuffer, QByteArray, QIODevice, QLineF, QRectF, Qt
 from qgis.PyQt.QtGui import QColor, QFont, QImage, QImageWriter, QPainter, QPen
 
-from ..core import limits, net, output_paths, security, tuning
+from ..core import geodata_rules, limits, net, output_paths, security, tuning
 from ..core.background import run_on_main_thread
 from ..core.host_platform import remove_quietly, retry_file_op
 from ..core.logger import log_warning
+from ..core.numbers import as_float
 from ..core.serialization import CodedText, coded_like
 from ..core.tool_registry import Tool, ToolRegistry, coded_fact, tool_error
+from ..core.vsi import thread_options
 from ._images import image_to_base64
-from .data_common import _DOWNLOAD_TOTAL_TIMEOUT, _MAX_DOWNLOAD_SIZE, _download_timeout, _safe_filename
-from .layer_lookup import _find_layer, _layer_not_found_error
+from ._layers import layer_not_found, resolve_layer
+from .data_common import _DOWNLOAD_TOTAL_TIMEOUT, _MAX_DOWNLOAD_SIZE, _download_timeout
 
 PREVIEW_LONG_SIDE = 1200
 
@@ -107,11 +109,7 @@ _R = 6378137.0
 _WORLD_FILE_EXTENSIONS = frozenset({".wld", ".tfw", ".tifw", ".tiffw", ".jgw", ".jpgw", ".jpegw", ".pgw", ".pngw",
                                     ".gfw", ".gifw", ".bpw", ".bmpw", ".j2w", ".jp2w", ".sdw"})
 
-_FRAME_35MM_DIAGONAL = math.hypot(36.0, 24.0)
 
-_UNIT_MM = {2: 25.4, 3: 10.0, 4: 1.0, 5: 0.001}
-
-_NADIR_PITCH = -70.0
 
 _SIGNATURES = ((b"\xff\xd8\xff", ".jpg"), (b"\x89PNG\r\n\x1a\n", ".png"), (b"II*\x00", ".tif"),
                (b"MM\x00*", ".tif"), (b"II+\x00", ".tif"), (b"MM\x00+", ".tif"), (b"%PDF-", ".pdf"),
@@ -120,6 +118,8 @@ _SIGNATURES = ((b"\xff\xd8\xff", ".jpg"), (b"\x89PNG\r\n\x1a\n", ".png"), (b"II*
 _DOWNLOADED_EXTENSIONS = frozenset(ext for _, ext in _SIGNATURES) | {".webp", ".kml"}
 
 _DOWNLOAD_SHARE = 0.6
+
+_EXIF_RESOLUTION_UNIT_MM = {"2": 25.4, "3": 10.0, "4": 1.0, "5": 0.001}
 
 
 def register_georeference_inspect_tools(registry: ToolRegistry):
@@ -173,11 +173,11 @@ def _resolve(ref) -> dict:
         if error:
             return tool_error(error, "PERMISSION_DENIED", hint="georef_read_scope")
         return {"path": expanded, "layer": "", "page": 0}
-    layer = _find_layer(text)
+    layer = resolve_layer(text)
     if layer is None:
         if "/" in text or "\\" in text or os.path.splitext(text)[1]:
             return tool_error(f"No file at {expanded}.", "INVALID_ARGS", hint="georef_no_such_file")
-        return _layer_not_found_error(text)
+        return layer_not_found(text)
     source = str(layer.source() or "").split("|", 1)[0]
     page = 0
 
@@ -337,7 +337,7 @@ def _download(url: str, cancelled) -> dict:
     if not extension:
         return tool_error(f"{host} did not answer with an image, a PDF, a KML or a KMZ.", "INVALID_ARGS",
                           hint="georef_address_not_file")
-    stem = os.path.splitext(_safe_filename(posixpath.basename(unquote(urlsplit(url).path)), "image"))[0]
+    stem = os.path.splitext(output_paths.safe_file_name(posixpath.basename(unquote(urlsplit(url).path)), "image"))[0]
     target = os.path.join(folder, f"{stem[:60]}-{key}{extension}")
     if not security.fits_path(target, 48):
         target = os.path.join(folder, f"{key}{extension}")
@@ -759,9 +759,8 @@ def _xmp_number(xmp: str, *names: str):
         text = _xmp_text(xmp, name)
         if text is None:
             continue
-        try:
-            value = float(text.strip())
-        except ValueError:
+        value = as_float(text.strip())
+        if value is None:
             continue
         if math.isfinite(value):
             return value
@@ -835,10 +834,11 @@ def _photo_facts(path: str, width: int, height: int) -> dict | None:
     focal = _first(exif.get(0x920A))
     focal_35 = _first(exif.get(0xA405))
     resolution = _first(exif.get(0xA20E))
-    unit_mm = _UNIT_MM.get(_first(exif.get(0xA210)) or 2)
+    unit_mm = _EXIF_RESOLUTION_UNIT_MM.get(str(_first(exif.get(0xA210)) or 2))
     across = _first(exif.get(0xA002)) or width
     sensor = across / resolution * unit_mm if resolution and unit_mm and across else None
-    if sensor is not None and not 1.0 <= sensor <= 70.0:
+    sensor_low, sensor_high = geodata_rules.rule("georeference", "sensor_mm")
+    if sensor is not None and not sensor_low <= sensor <= sensor_high:
         sensor = None
     yaw = _xmp_number(xmp, "GimbalYawDegree", "CameraYawDegree")
     flight_yaw = _xmp_number(xmp, "FlightYawDegree")
@@ -851,10 +851,11 @@ def _photo_facts(path: str, width: int, height: int) -> dict | None:
     facts: dict = {"photo": photo, "center": {"lon": photo["lon"], "lat": photo["lat"]}}
     ground_width = None
     if relative and relative > 0 and focal and sensor:
-        ground_width, how = relative * sensor / focal, "height above take-off x sensor width / focal length"
+        ground_width, how = relative * sensor / focal, geodata_rules.rule("georeference", "how", "sensor")
     elif relative and relative > 0 and focal_35:
-        ground_width = relative * _FRAME_35MM_DIAGONAL / focal_35 * width / math.hypot(width, height)
-        how = "height above take-off and the 35 mm equivalent focal length"
+        frame_diagonal = math.hypot(*geodata_rules.rule("georeference", "frame_35mm_mm"))
+        ground_width = relative * frame_diagonal / focal_35 * width / math.hypot(width, height)
+        how = geodata_rules.rule("georeference", "how", "equivalent")
     if ground_width:
         facts["width_m"] = round(ground_width, 1)
         facts["width_from"] = how
@@ -863,11 +864,12 @@ def _photo_facts(path: str, width: int, height: int) -> dict | None:
         facts["rotation_deg"] = round(((heading + 180.0) % 360.0) - 180.0, 2)
     notes = []
     if not ground_width:
-        notes.append("The photo gives no height above the ground, so its ground width is unknown: estimate it.")
+        notes.append(geodata_rules.note("georeference", "no_height"))
     if heading is None:
-        notes.append("No heading in the photo: leave rotation_deg out.")
-    if pitch is not None and pitch > _NADIR_PITCH:
-        notes.append(f"The camera looked {abs(pitch):g} degrees down, not straight down: the footprint is rough.")
+        notes.append(geodata_rules.note("georeference", "no_heading"))
+    if pitch is not None and pitch > geodata_rules.rule("georeference", "nadir_pitch_deg"):
+        notes.append(geodata_rules.note("georeference", "oblique", pitch=f"{abs(pitch):g}"))
+    notes = [text for text in notes if text]
     if notes:
         facts["photo_note"] = " ".join(notes)
     if ground_width and heading is not None:
@@ -1009,11 +1011,7 @@ def _base_image(gdal, dataset, long_side: int, cancelled):
 
     options["format"] = "MEM"
 
-    previous = getattr(gdal, "GetThreadLocalConfigOption", lambda *_: None)("GDAL_PAM_ENABLED", None)
-
-    set_option = getattr(gdal, "SetThreadLocalConfigOption", lambda *_: None)
-    set_option("GDAL_PAM_ENABLED", "NO")
-    try:
+    with thread_options(gdal, GDAL_PAM_ENABLED="NO"):
         memory = gdal.Translate("", dataset, **options)
         if memory is None:
             return None
@@ -1026,8 +1024,6 @@ def _base_image(gdal, dataset, long_side: int, cancelled):
             raw = memory.ReadRaster(0, 0, w, h, band_list=[1])
             layout = (w, QImage.Format.Format_Grayscale8)
         memory = None
-    finally:
-        set_option("GDAL_PAM_ENABLED", previous)
     if not raw:
         return None
 

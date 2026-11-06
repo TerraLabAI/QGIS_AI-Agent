@@ -38,8 +38,8 @@ from ..core.layer_order import keep_place
 from ..core.logger import log, log_warning
 from ..core.qt_compat import enum_member
 from ..core.tool_registry import Tool, ToolRegistry, tool_error
-from ._layers import resolve_layer_note
-from .layer_lookup import _layer_not_found_error
+from ._layers import layer_not_found, resolve_layer_note
+from .zone_facts import area_text, clear_declined, ground_refusal
 
 ZONE_ACTIONS = ("set", "get", "clear")
 
@@ -56,11 +56,6 @@ MAX_BUFFER_KM = 100.0
 BUFFER_PROJ = ("+proj=aeqd +lat_0={lat:.6f} +lon_0={lon:.6f} +x_0=0 +y_0=0 "
                "+datum=WGS84 +units=m +no_defs")
 
-
-def _area_text(area: float) -> str:
-
-    from .cost_guard import area_text
-    return area_text(area)
 
 def register_zone_tools(registry: ToolRegistry):
     registry.register(Tool(
@@ -159,7 +154,6 @@ def _zone_set(args: dict) -> dict:
     if source in ("bbox", "wkt"):
 
 
-        from .cost_guard import ground_refusal
         refusal = ground_refusal(geom, crs, bool(given), "The zone was not set", given)
         if refusal is not None:
             facts = {k: v for k, v in refusal.items() if k not in ("error", "code", "suggestion")}
@@ -174,13 +168,12 @@ def _zone_set(args: dict) -> dict:
 
     label = str(args.get("label") or "").strip() or None
     layer = zoi.write_zone(geom, crs, label=label, approximate=approximate)
-    from .cost_guard import clear_declined
     clear_declined()
     if layer is None:
         return tool_error("The zone of interest layer could not be created.", "EXECUTION_FAILED",
                           hint="zone_layer_not_created")
     keep_place(layer)
-    log(f"Area of interest set from {source} ({_area_text(zoi.area_km2(geom, crs))})")
+    log(f"Area of interest set from {source} ({area_text(zoi.area_km2(geom, crs))})")
 
     if args.get("zoom", True):
         _zoom_to(layer)
@@ -240,7 +233,7 @@ def _geometry_from_args(args: dict):
 def _from_layer(named: str, expression: str, use_selection: bool):
     layer, note = resolve_layer_note(named)
     if layer is None:
-        return _layer_not_found_error(named)
+        return layer_not_found(named)
     if expression:
         if not isinstance(layer, QgsVectorLayer):
             return tool_error(f"'{layer.name()}' has no features to filter.", "INVALID_ARGS",
@@ -459,7 +452,7 @@ def _zone_result(held: zoi.Zone, source: str) -> dict:
     if held.approximate:
         out["approximate"] = True
         out["note_hint"] = "zone_is_box"
-    out["area_text"] = _area_text(area)
+    out["area_text"] = area_text(area)
     out["tell_user_hint"] = "zone_set"
     out["next_step_hint"] = "zone_set_next"
     return out

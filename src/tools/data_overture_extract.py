@@ -9,31 +9,33 @@ import os
 
 from qgis.core import QgsProject, QgsTask, QgsVectorLayer
 
-from ..core import limits, net
+from ..core import geodata_rules, layer_order, limits, net
 from ..core.background import run_on_main_thread
 from ..core.host_platform import remove_quietly, remove_tree
+from ..core.layer_release import register_task
 from ..core.logger import log_warning
+from ..core.output_paths import file_stem
 from ..core.policy import create_managed_temp_dir
+from ..core.qt_compat import enum_member
 from ..core.tool_registry import coded_fact, tool_error
 from . import volume_guard
-from .data_common import _USER_AGENT, _bbox_km2, _footprint_box, _vector_source_from_features
-from .data_inspect import _VSICURL_TIMEOUT_S, _human_bytes, _safe_extract_stem, _tune_gdal_for_range_reads
+from .data_common import _bbox_km2, _footprint_box, _vector_source_from_features, close_dataset
+from .data_inspect import _VSICURL_TIMEOUT_S, _human_bytes, _tune_gdal_for_range_reads
 from .data_osm_geometry import _LIFTED_CHECK_EVERY, _LIFTED_FAMILIES, _beyond_bbox
+from .data_outline import _OUTLINE_PRECISION_DEG, _outline_contains, _outline_shape, _polys_bbox, _prepared
 from .data_overture import (
     _CLIP_CHECK_EVERY,
-    _OVERTURE_LICENCES,
     _OVERTURE_MAX_KM2,
     _OVERTURE_MAX_SPAN_DEG,
-    _OVERTURE_MAX_TILES,
-    _OVERTURE_TILE_ZOOM,
     _clip_grid,
     _clip_split_refusal,
     _division_names,
     _divisions_subtypes_asked,
     _filter_miss_suggestion,
+    _max_tiles,
     _named_sentence,
+    _names_the_place,
     _osm_themes,
-    _outline_contains,
     _overture_attribution,
     _overture_boxes,
     _overture_divisions_named,
@@ -42,17 +44,19 @@ from .data_overture import (
     _overture_filter_miss,
     _overture_layer,
     _overture_layer_name,
+    _overture_licence,
     _overture_matches,
     _overture_source,
     _overture_stream,
     _overture_themes,
     _overture_tile_url,
     _overture_tiles,
-    _polys_bbox,
+    _present_tiles,
     _stop_if_cancelled,
     _stream_refusal,
     _subset_string,
     _tile_sample,
+    _tile_zoom,
     _tiles_base,
 )
 from .data_places import _resolve_outline
@@ -78,7 +82,9 @@ def _say_unless_miss(empty: dict, hint: str, **facts) -> None:
         _say(empty, hint=hint, **facts)
 
 
-def _say_named(empty: dict, asked: list, names: list, box) -> bool:
+def _say_named(empty: dict, asked: list, names: list, box, inside: bool = False) -> bool:
+
+
 
 
 
@@ -91,14 +97,16 @@ def _say_named(empty: dict, asked: list, names: list, box) -> bool:
     if not named:
         empty["message"] = f"{empty.get('message') or ''} {_named_sentence(asked, names, [])}".strip()
         return False
-    empty["message"] = _named_sentence(asked, names, named)
+    empty["message"] = _named_sentence(asked, names, named, inside)
+    where = {"variant": "inside", "asked": " or ".join(asked)} if inside else {}
     if "locality" in asked:
 
 
 
-        _say(empty, hint="overture_town_elsewhere", levels=", ".join(sorted({e["subtype"] for e in named})))
+        _say(empty, hint="overture_town_elsewhere", levels=", ".join(sorted({e["subtype"] for e in named})),
+             name=str(named[0]["name"]), **where)
     else:
-        _say(empty, hint="overture_subtype_named", subtype=named[0]["subtype"], name=str(named[0]["name"]))
+        _say(empty, hint="overture_subtype_named", subtype=named[0]["subtype"], name=str(named[0]["name"]), **where)
     return True
 
 
@@ -119,10 +127,6 @@ def _overture_clip(theme: str, box, args: dict, deadline: float | None = None, l
     return _fetch_overture(call, deadline=deadline, later=later)
 
 _LIFTED_CLOCK_SHARE = 0.8
-
-
-_LIFTED_OUTLINE_VERTICES = 4000
-_OUTLINE_PRECISION_DEG = 0.002
 
 
 def _lifted_deadline() -> float:
@@ -181,29 +185,6 @@ def _lifted_family(geometry_type: int) -> str:
                                 ogr.wkbPolygon: "polygons", ogr.wkbMultiPolygon: "polygons",
                                 "flatten": ogr.GT_Flatten})
     return _FAMILY_OF_FLAT.get(_FAMILY_OF_FLAT["flatten"](geometry_type), "")
-
-
-def _outline_shape(outline: dict, simplify: bool = True):
-
-
-
-    from osgeo import ogr
-
-    polys = outline.get("polys") or []
-    coordinates = [[[list(point) for point in exterior]] + [[list(point) for point in hole] for hole in holes]
-                   for exterior, holes in polys]
-    shape = ogr.CreateGeometryFromJson(json.dumps({"type": "MultiPolygon", "coordinates": coordinates}))
-    if shape is None:
-        return None
-    if simplify and sum(len(ring) for polygon in coordinates for ring in polygon) > _LIFTED_OUTLINE_VERTICES:
-
-
-        sizes = sorted(max(east - west, north - south) for west, south, east, north in
-                       (_polys_bbox([(exterior, [])]) for exterior, _holes in polys))
-        shape = shape.SimplifyPreserveTopology(min(_OUTLINE_PRECISION_DEG, sizes[len(sizes) // 2] / 20.0))
-    if not shape.IsValid():
-        shape = shape.Buffer(0)
-    return shape
 
 
 
@@ -303,19 +284,6 @@ def _filter_can_match(wanted, fields: set) -> bool:
         if str(field) not in fields and not any(str(one).lower() == "none" for one in values):
             return False
     return True
-
-
-def _prepared(shape):
-
-
-
-
-
-
-    try:
-        return shape.CreatePreparedGeometry()
-    except Exception:  # noqa: BLE001
-        return None
 
 
 def _cut(geometry, shape, family: str, prepared=None):
@@ -460,11 +428,6 @@ _NAMES_SHOWN = 30
 
 
 
-_OVERTURE_CLASS_FIELDS = ("subtype", "class", "category")
-
-
-_OSM_COVER_KEY = "natural"
-
 
 def _osm_class_fields(theme: str) -> tuple:
 
@@ -474,7 +437,8 @@ def _osm_class_fields(theme: str) -> tuple:
     keys |= {key for key, (_values, owner) in routing.value_themes.items() if owner == theme}
     published = routing.fields.get(theme) or frozenset()
     ordered = tuple(sorted(key for key in keys if not published or key in published))
-    return ordered + ((_OSM_COVER_KEY,) if _OSM_COVER_KEY in published and _OSM_COVER_KEY not in keys else ())
+    cover = geodata_rules.rule("overture_extract", "cover_key")
+    return ordered + ((cover,) if cover in published and cover not in keys else ())
 
 
 def _class_of(get, theme: str, osm_fields: tuple) -> str:
@@ -485,7 +449,7 @@ def _class_of(get, theme: str, osm_fields: tuple) -> str:
             if value not in (None, ""):
                 return f"{field}={value}"
         return "untagged"
-    values = [get(field) for field in _OVERTURE_CLASS_FIELDS]
+    values = [get(field) for field in geodata_rules.rule("overture_extract", "class_fields")]
     return "/".join(str(value) for value in values if value not in (None, "")) or "unclassified"
 
 
@@ -511,8 +475,6 @@ class _ClassCounter:
 
 
 
-
-_COVER_CELLS = 1_000_000
 
 _COVER_CHECK_EVERY = 5_000
 
@@ -562,8 +524,8 @@ def _burned_share(polygons, area_shape, stopped=None) -> tuple:
     area.CreateFeature(feature)
     min_x, max_x, min_y, max_y = area_shape.GetEnvelope()
     width, height = max(max_x - min_x, 1e-9), max(max_y - min_y, 1e-9)
-    columns = max(1, round((_COVER_CELLS * width / height) ** 0.5))
-    rows = max(1, round(_COVER_CELLS / columns))
+    columns = max(1, round((geodata_rules.rule("overture_extract", "cover_cells") * width / height) ** 0.5))
+    rows = max(1, round(geodata_rules.rule("overture_extract", "cover_cells") / columns))
     grid = gdal.GetDriverByName("MEM").Create("", columns, rows, 1, gdal.GDT_Byte)
     grid.SetGeoTransform((min_x, width / columns, 0.0, max_y, 0.0, -height / rows))
     _stop_if_cancelled(stopped)
@@ -609,7 +571,7 @@ def _file_cover(source: str, count: int, area_shape, stopped):
     finally:
         layer = None
         if dataset is not None:
-            _close_dataset(dataset)
+            close_dataset(dataset)
 
 
 def _served_cover(features: list, outline, box, stopped, source: str = ""):
@@ -666,7 +628,7 @@ def _tile_bounds(label: str):
         x, y = (int(part) for part in str(label).split("/"))
     except ValueError:
         return None
-    side = 2 ** _OVERTURE_TILE_ZOOM
+    side = 2 ** _tile_zoom()
 
     def latitude(row: int) -> float:
         return math.degrees(math.atan(math.sinh(math.pi * (1 - 2 * row / side))))
@@ -690,9 +652,10 @@ def _strictly_inside(geometry, bounds) -> bool:
 _WRITE_EVERY_S = 1.0
 
 
-_WINDOW_GRID = 32
 
-_MAX_WINDOWS = 8
+def _window_grid() -> int:
+    return geodata_rules.rule("overture_extract", "window_grid")
+
 
 
 def _windows(box, bounds, parts, prepared) -> list:
@@ -736,17 +699,17 @@ def _windows(box, bounds, parts, prepared) -> list:
                     break
             if merged:
                 break
-    if len(rects) > _MAX_WINDOWS:
+    if len(rects) > geodata_rules.rule("overture_extract", "max_windows"):
 
         rects = [[min(r[0] for r in rects), min(r[1] for r in rects), max(r[2] for r in rects),
                   max(r[3] for r in rects)]]
     windows = []
     for left, low, right, high in rects:
-        width, height = (right - left) / _WINDOW_GRID, (high - low) / _WINDOW_GRID
+        width, height = (right - left) / _window_grid(), (high - low) / _window_grid()
         cells = []
-        for row in range(_WINDOW_GRID):
+        for row in range(_window_grid()):
             line = []
-            for column in range(_WINDOW_GRID):
+            for column in range(_window_grid()):
                 x0, y0 = left + column * width, low + row * height
                 ring = ogr.Geometry(ogr.wkbLinearRing)
                 for x, y in ((x0, y0), (x0 + width, y0), (x0 + width, y0 + height), (x0, y0 + height), (x0, y0)):
@@ -772,13 +735,13 @@ def _whole(envelope, window) -> bool:
     if not cells:
         return False
     min_x, max_x, min_y, max_y = envelope
-    column = int((min_x - west) / (east - west) * _WINDOW_GRID)
-    row = int((min_y - south) / (north - south) * _WINDOW_GRID)
-    if column != int((max_x - west) / (east - west) * _WINDOW_GRID):
+    column = int((min_x - west) / (east - west) * _window_grid())
+    row = int((min_y - south) / (north - south) * _window_grid())
+    if column != int((max_x - west) / (east - west) * _window_grid()):
         return False
-    if row != int((max_y - south) / (north - south) * _WINDOW_GRID):
+    if row != int((max_y - south) / (north - south) * _window_grid()):
         return False
-    return 0 <= row < _WINDOW_GRID and 0 <= column < _WINDOW_GRID and cells[row][column]
+    return 0 <= row < _window_grid() and 0 <= column < _window_grid() and cells[row][column]
 
 
 def _window_features(layer, windows: list, failures: list):
@@ -956,7 +919,7 @@ class _ExtractRead:
                 for family, row, shape, piece in batch:
                     out = outputs.get(family)
                     if out is None:
-                        table = f"{_safe_extract_stem(self.name)}_{family}"
+                        table = f"{file_stem(self.name, 'extract')}_{family}"
                         out = target.CreateLayer(table, wgs84, kinds[family], options=["SPATIAL_INDEX=YES"])
                         outputs[family] = out
                         self.tables[family] = table
@@ -1149,9 +1112,9 @@ class _ExtractRead:
         left = deadline - time.monotonic()
         if left <= 1:
             return None, "", why
-        path = os.path.join(self.directory, f"{_safe_extract_stem(self.theme + '_' + label)}.fgb")
+        path = os.path.join(self.directory, f"{file_stem(self.theme + '_' + label, 'extract')}.fgb")
         try:
-            net.fetch_to_file(urllib.request.Request(url, headers={"User-Agent": _USER_AGENT}), path,
+            net.fetch_to_file(urllib.request.Request(url), path,
                               timeout=_VSICURL_TIMEOUT_S, max_bytes=limits.current("MAX_STREAM_BYTES"),
                               total_timeout=left, cancel=cancelled)
             source = ogr.Open(path)
@@ -1185,28 +1148,9 @@ class _ExtractRead:
             QgsProject.instance().addMapLayer(layer)
             self.layer_ids[family] = layer.id()
             added.append({"layer_name": layer.name(), "layer_id": layer.id(), "feature_count": self.counts[family],
-                          "geometry": family, "licence": _OVERTURE_LICENCES.get(self.theme, ""),
+                          "geometry": family, "licence": _overture_licence(self.theme),
                           "attribution": _overture_attribution(self.theme)})
         return added
-
-
-def _close_dataset(dataset) -> None:
-
-
-
-
-
-
-
-
-
-    close = getattr(dataset, "Close", None)
-    if close is None:
-        return
-    try:
-        close()
-    except RuntimeError as exc:
-        log_warning(f"lifted extract: GeoPackage close: {exc}")
 
 
 def _overture_extract(theme: str, box, wanted, outline, args: dict, forced_clip: bool = False,
@@ -1239,7 +1183,8 @@ def _overture_extract(theme: str, box, wanted, outline, args: dict, forced_clip:
         filters.pop("subtype", None)
         sources = [(subtype, f"{_tiles_base('divisions')}/divisions/{subtype}.fgb") for subtype in subtypes]
     else:
-        sources = [(f"{x}/{y}", _overture_tile_url(theme, x, y)) for x, y in _overture_tiles(box)]
+        sources = [(f"{x}/{y}", _overture_tile_url(theme, x, y))
+                   for x, y in _present_tiles(theme, _overture_tiles(box))]
     for _label, url in sources[:1]:
         net.check_url(url)
     _tune_gdal_for_range_reads()
@@ -1254,7 +1199,7 @@ def _overture_extract(theme: str, box, wanted, outline, args: dict, forced_clip:
     inside = (_outline_test(outline, cut=theme not in _SELECTED_WHOLE_THEMES)
               if outline is not None and not code_where else None)
     directory = create_managed_temp_dir("lifted")
-    path = os.path.join(directory, f"{_safe_extract_stem(name)}.gpkg")
+    path = os.path.join(directory, f"{file_stem(name, 'extract')}.gpkg")
     reader = _ExtractRead(theme=theme, name=name, path=path, directory=directory, box=box, sources=sources,
                           where=where, code_where=code_where, in_python=in_python, wanted=wanted,
                           inside=inside, dedupe=theme not in _osm_themes())
@@ -1264,7 +1209,7 @@ def _overture_extract(theme: str, box, wanted, outline, args: dict, forced_clip:
         stopped = reader.read(target, deadline, net.current_cancel_check())
         completed = True
     finally:
-        _close_dataset(target)
+        close_dataset(target)
         target = None
         if not completed:
 
@@ -1323,7 +1268,7 @@ def _overture_extract(theme: str, box, wanted, outline, args: dict, forced_clip:
     made = {"theme": theme, "mode": "clip", "lifted": True, "crs": "EPSG:4326", "box_km2": area,
             "feature_count": total, "size_bytes": size, "size": _human_bytes(size), "files_read": read,
             "wall_s": round(wall, 1), "path": path, "truncated": stopped == "clock" and not continuing,
-            "licence": _OVERTURE_LICENCES.get(theme, ""), "attribution": _overture_attribution(theme),
+            "licence": _overture_licence(theme), "attribution": _overture_attribution(theme),
             "by_class": reader.classes.result()}
     if len(added) > 1:
         made["layers"] = added
@@ -1389,8 +1334,6 @@ class ExtractContinuation(QgsTask):
 
 
     def __init__(self, readers: list, label: str):
-        from ..core import layer_order
-        from ..core.qt_compat import enum_member
 
         super().__init__(label, enum_member(QgsTask, "Flag", "CanCancel"))
         self.readers = readers
@@ -1457,7 +1400,7 @@ class ExtractContinuation(QgsTask):
                     self.stopped = reader.read(target, math.inf, progress_cancelled, self._room(reader.path))
                     done += before - len(reader.queue)
                 finally:
-                    _close_dataset(target)
+                    close_dataset(target)
                     target = None
                 if self.stopped:
                     return self.stopped != "cancelled"
@@ -1518,7 +1461,6 @@ class ExtractContinuation(QgsTask):
 
     def _refresh(self) -> dict:
 
-        from ..core import layer_order
 
         layers, unread = [], []
         for reader in self.readers:
@@ -1544,7 +1486,7 @@ class ExtractContinuation(QgsTask):
                 reader.made["dropped_outside"] = reader.outside
         report = {"layers": layers, "feature_count": sum(sum(r.counts.values()) for r in self.readers),
                   "themes": sorted({reader.theme for reader in self.readers}),
-                  "licence": ", ".join(sorted({_OVERTURE_LICENCES.get(r.theme, "") for r in self.readers} - {""})),
+                  "licence": ", ".join(sorted({_overture_licence(r.theme) for r in self.readers} - {""})),
                   "attribution": "; ".join(sorted({_overture_attribution(r.theme) for r in self.readers})),
                   "lifted": True, "coverage": "partial" if unread or self.stopped else "complete"}
         if unread:
@@ -1567,8 +1509,6 @@ class ExtractContinuation(QgsTask):
 
 
 def continue_in_background(readers: list, made: dict) -> dict:
-
-    from .processing_run import register_task
 
     names = ", ".join(sorted({reader.name for reader in readers}))
     label = f"AI Agent: rest of {names}"
@@ -1672,7 +1612,7 @@ def _fetch_overture(args: dict, deadline: float | None = None, check_only: bool 
         forced_clip = True
         mode = "clip"
     if (mode == "stream" and theme != "divisions" and volume_guard.lifted(args)
-            and len(_overture_tiles(box)) > _OVERTURE_MAX_TILES):
+            and len(_overture_tiles(box)) > _max_tiles()):
 
 
         forced_clip = True
@@ -1716,7 +1656,13 @@ def _fetch_overture(args: dict, deadline: float | None = None, check_only: bool 
 
     max_km2, max_span = volume_guard.hosted_caps().get(theme, (_OVERTURE_MAX_KM2, _OVERTURE_MAX_SPAN_DEG))
     area_km2 = _bbox_km2(south, west, north, east)
-    if volume_guard.lifted(args) and (max(east - west, north - south) > max_span or area_km2 > max_km2):
+    over_one_call = max(east - west, north - south) > max_span or area_km2 > max_km2
+
+
+
+
+    if (volume_guard.lifted(args) and over_one_call
+            and not (outline is not None and _clip_grid(box, max_km2, max_span, outline)[0])):
         if check_only:
             return {}
 
@@ -1851,7 +1797,8 @@ def _fetch_overture(args: dict, deadline: float | None = None, check_only: bool 
             _say(empty, hint="overture_outline_held_none", theme=theme, clipped_to=outline["label"],
                  served_in_box=served_in_box)
             if theme == "divisions":
-                _say_named(empty, [s for s in subtypes if s], _division_names(wanted, args, outline), box)
+                _say_named(empty, [s for s in subtypes if s], _division_names(wanted, args, outline), box,
+                           _names_the_place(wanted))
             return empty
         if isinstance(wanted, (dict, list)) and wanted:
             flat = wanted if isinstance(wanted, dict) else {k: v for one in wanted for k, v in one.items()}
@@ -1878,11 +1825,12 @@ def _fetch_overture(args: dict, deadline: float | None = None, check_only: bool 
             empty["message"] = (f"{len(served):,} {level} divisions came back in this box and none matched "
                                 f"the rest of the filter; values_present holds what they carry.")
             _say_unless_miss(empty, hint="overture_name_miss", level=level, served=len(served))
-            _say_named(empty, [s for s in subtypes if s], _division_names(wanted, args, outline), box)
+            _say_named(empty, [s for s in subtypes if s], _division_names(wanted, args, outline), box,
+                       _names_the_place(wanted))
         else:
             asked = [s for s in subtypes if s] if theme == "divisions" else []
             names = _division_names(wanted, args, outline) if asked else []
-            if _say_named(empty, asked, names, box):
+            if _say_named(empty, asked, names, box, _names_the_place(wanted)):
                 return empty
             elsewhere = _overture_divisions_presence(box) if asked else {}
             for subtype in asked:
@@ -1915,7 +1863,7 @@ def _fetch_overture(args: dict, deadline: float | None = None, check_only: bool 
     made.update({
         "theme": theme, "mode": "clip", "crs": "EPSG:4326", "box_km2": round(area_km2, 1),
         "release": payload.get("release", ""),
-        "licence": payload.get("licence") or _OVERTURE_LICENCES.get(theme, ""),
+        "licence": payload.get("licence") or _overture_licence(theme),
         "attribution": payload.get("attribution") or _overture_attribution(theme),
         "truncated": bool(payload.get("truncated")),
         **(payload.get("_trace") or {}),

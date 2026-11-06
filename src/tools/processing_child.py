@@ -52,6 +52,8 @@ from ..core.host_platform import IS_WINDOWS
 from ..core.logger import log_warning
 from ..core.policy import create_managed_temp_dir
 from ..core.qt_compat import enum_member
+from .child_python import environment as _environment
+from .child_python import python_for_child
 from .processing_paths import _short_path, unsafe_path
 
 _WORKER = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "workers",
@@ -258,7 +260,6 @@ class ChildRun(QgsTask):
         self.job, self.done, self.report = job, done, {}
 
     def run(self) -> bool:  # noqa: D401
-        from .isolated_code import _environment, python_for_child
 
         started = time.monotonic()
         python = python_for_child()

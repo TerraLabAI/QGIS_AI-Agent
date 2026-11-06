@@ -100,7 +100,7 @@ class RailRow(Pressable):
     def _paint_glyph(self) -> None:
 
         if self._icon is not None:
-            self._icon.setPixmap(pixmap_for(self._icon, self._glyph_name, _GLYPH_PX,
+            self._icon.setPixmap(pixmap_for(self._icon, C.line_glyph(self._glyph_name), _GLYPH_PX,
                                             QColor(C.T.text if self._current else C.T.text_2)))
 
 
@@ -120,9 +120,9 @@ class RedirectRow(RailRow):
 
     def _paint_out(self) -> None:
         ink = C.T.text if self._hovered else C.T.text_2
-        self._out.setPixmap(pixmap_for(self._out, "external", 12, QColor(ink)))
+        self._out.setPixmap(pixmap_for(self._out, C.line_glyph("external"), 12, QColor(ink)))
         if self._icon is not None:
-            self._icon.setPixmap(pixmap_for(self._icon, self._glyph_name, _GLYPH_PX, QColor(ink)))
+            self._icon.setPixmap(pixmap_for(self._icon, C.line_glyph(self._glyph_name), _GLYPH_PX, QColor(ink)))
         self.text.setStyleSheet(C.text_qss(C.BODY_PX, ink))
 
     def _state_changed(self) -> None:

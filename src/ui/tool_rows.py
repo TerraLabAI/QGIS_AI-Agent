@@ -66,9 +66,6 @@ class _MonoChip(QLabel):
     def setText(self, text: str) -> None:  # noqa: N802
         self._full = " ".join(str(text or "").split())
         super().setText(self._full)
-
-
-        self.setToolTip(self._full)
         self.updateGeometry()
         self.update()
 

@@ -54,6 +54,7 @@ import time
 import uuid
 from datetime import datetime, timezone
 
+from . import link_vault
 from .host_platform import retry_file_op
 from .logger import log, log_warning
 from .serialization import cut_string
@@ -547,6 +548,8 @@ class ThreadStore:
 
         messages = [m for m in self.messages(thread_id) if isinstance(m, dict)]
         answers = {m.get("run_id"): m for m in messages if m.get("role") == "agent"}
+
+        link_vault.remember(thread_id, messages)
         turns: list = []
         used = 0
         for msg in reversed(messages):
@@ -556,7 +559,8 @@ class ThreadStore:
             if msg.get("role") != "user" or not run_id or run_id in skip or not str(msg.get("text") or "").strip():
                 continue
             agent = answers.get(run_id) or {}
-            user = cut_string(str(msg["text"]), EARLIER_TURN_CHARS)
+
+            user = cut_string(link_vault.hide_links(thread_id, str(msg["text"])), EARLIER_TURN_CHARS)
             answer = cut_string(str(agent.get("text") or ""), EARLIER_TURN_CHARS)
             if used + len(user) + len(answer) > EARLIER_TURNS_CHARS:
                 break
@@ -598,6 +602,7 @@ class ThreadStore:
         except ValueError:
             return
         self._cache.pop(thread_id, None)
+        link_vault.forget(thread_id)
         with self._index_lock:
             self._deleted.add(thread_id)
             self._index.pop(thread_id, None)

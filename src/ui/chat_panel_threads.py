@@ -22,7 +22,7 @@ from qgis.PyQt.QtWidgets import (
     QWidget,
 )
 
-from ..core.background import run_sliced
+from ..core.background import gc_paused, run_sliced
 from .bubbles import UserBubble
 from .chat_panel_shared import RestoreDivider
 from .checkpoint_sheet import changes_tooltip, history_rows, long_reason, losses, not_restored_line, row_target, usable
@@ -516,6 +516,8 @@ class _ChatPanelThreads:
 
         self.set_queue_thread(None)
         self._error_cards = {}
+
+        self._task_cards = {}
         self.composer.set_running(False)
         self.composer.clear_chips()
         self._changed_count = 0
@@ -548,7 +550,6 @@ class _ChatPanelThreads:
     def _replay_quiet(self):
 
 
-        from ..core.background import gc_paused
 
         self.message_list.setUpdatesEnabled(False)
         status = self._status

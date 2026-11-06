@@ -43,6 +43,8 @@ import sqlite3
 import time
 
 from .logger import log_warning
+from .snapshot_files import sqlite_read_only_uri
+from .snapshot_paths import _stamp
 
 
 BUDGET_S = 20.0
@@ -135,7 +137,6 @@ def _uri(path: str, live: bool) -> str:
 
 
 
-    from .snapshot_files import sqlite_read_only_uri
 
     uri = sqlite_read_only_uri(path)
     if live and os.path.exists(path + "-wal"):
@@ -230,7 +231,6 @@ def maybe_changed(history, thread_id: str, entry, current) -> list[str]:
     pairs = files_to_check(history, thread_id, entry, current)
     if not pairs:
         return []
-    from .snapshot_paths import _stamp
 
     stamps = _recorded_stamps(history.entries(thread_id))
     deadline = time.monotonic() + INLINE_ROWS_S

@@ -12,23 +12,28 @@
 
 from __future__ import annotations
 
+from ..core import net, siblings, zone_of_interest
+from ..core.background import run_on_main_thread
+from ..core.layer_order import keep_place
 from ..core.logger import log, log_warning
 from ..core.tool_registry import Tool, ToolRegistry, coded_fact, tool_error
-from . import cost_guard
+from . import aiseg_review, cost_guard, zone_facts
 from . import sibling_setup as _setup
-from ._widgets import AI_EDIT_KEYS, AI_SEGMENT_KEYS, sibling_api_version, sibling_plugin
 from .adapters.ai_edit_access import ACCESS as AIEDIT
 from .aiseg_review import AISEG_REVIEW_API
-
-AISEG_KEYS = list(AI_SEGMENT_KEYS)
+from .handoff_reads import (
+    _aiseg_raster_layer,
+    _aiseg_zone_wkt,
+    interactive_state,
+    raster_layer,
+    segmentation_arguments,
+)
+from .integration_handoff import prepare
+from .zone_tools import _zoom_to
 
 
 
 _DETECT_READY_HINT = coded_fact(hint="aiseg_detect_auto_ready")["hint"]
-
-
-def _find_plugin(candidate_keys: list[str]):
-    return sibling_plugin(candidate_keys)
 
 
 def aiseg_presence() -> dict:
@@ -41,7 +46,7 @@ def aiseg_presence() -> dict:
 
 
 
-    return _setup.presence(AISEG_KEYS)
+    return _setup.presence(siblings.AI_SEGMENTATION)
 
 
 def aiseg_version(plugin) -> str:
@@ -83,21 +88,6 @@ def aiseg_not_running_status(presence: dict) -> dict:
     return out
 
 
-def _aiseg_module(plugin, dotted: str):
-
-
-
-
-    import importlib
-    if plugin is None:
-        return None
-    try:
-        base = type(plugin).__module__.rsplit(".", 2)[0]
-        return importlib.import_module(base + "." + dotted)
-    except Exception:
-        return None
-
-
 def register_integration_tools(registry: ToolRegistry):
 
 
@@ -128,7 +118,6 @@ def register_integration_tools(registry: ToolRegistry):
     _try_register_aiseg_auto(registry)
 
 
-    from . import aiseg_review
     aiseg_review.sync(registry)
 
 
@@ -246,7 +235,7 @@ def _register_aiedit_generate(registry: ToolRegistry):
 
 def _try_register_aiseg_auto(registry: ToolRegistry):
     try:
-        key, plugin = _find_plugin(AISEG_KEYS)
+        key, plugin = siblings.find(siblings.AI_SEGMENTATION)
         if not plugin:
             log("AI Segmentation plugin not detected, automatic detection tools not available")
             return
@@ -330,12 +319,11 @@ def _aiedit_get_credits(args: dict) -> dict:
 def _aiedit_status(args: dict) -> dict:
 
     try:
-        found = _setup.presence(AI_EDIT_KEYS)
+        found = _setup.presence(siblings.AI_EDIT)
         if found["plugin"] is None:
             return _setup.not_running("ai_edit", found)
         status = AIEDIT.status()
         status["resolutions"] = AIEDIT.resolutions()
-        from .integration_handoff import interactive_state
         state = interactive_state(getattr(found["plugin"], "mcp_api", None))
         if state is not None:
             status["interactive"] = state
@@ -466,7 +454,6 @@ def _aiseg_status(args: dict) -> dict:
         for key in ("model_loaded", "register_url"):
             status.pop(key, None)
         _aiseg_add_balance(plugin, status)
-        from .integration_handoff import interactive_state
         state = interactive_state(api)
         if state is not None:
             status["interactive"] = state
@@ -538,7 +525,7 @@ def _aiseg_cloud_ready(status: dict) -> dict:
 def _aiseg_load_model(args: dict) -> dict:
 
     try:
-        _, plugin = _find_plugin(AISEG_KEYS)
+        _, plugin = siblings.find(siblings.AI_SEGMENTATION)
         if not plugin:
             return _aiseg_absent()
         api = getattr(plugin, "mcp_api", None)
@@ -558,7 +545,7 @@ def _aiseg_load_model(args: dict) -> dict:
 
 def _aiseg_set_mode(args: dict) -> dict:
     try:
-        _, plugin = _find_plugin(AISEG_KEYS)
+        _, plugin = siblings.find(siblings.AI_SEGMENTATION)
         if not plugin:
             return _aiseg_absent()
 
@@ -579,7 +566,7 @@ def _aiseg_set_mode(args: dict) -> dict:
 
 def _aiseg_set_zone(args: dict) -> dict:
     try:
-        _, plugin = _find_plugin(AISEG_KEYS)
+        _, plugin = siblings.find(siblings.AI_SEGMENTATION)
         if not plugin:
             return _aiseg_absent()
 
@@ -591,7 +578,6 @@ def _aiseg_set_zone(args: dict) -> dict:
         if fn is None:
             return _aiseg_outdated(plugin, "set_auto_zone")
         if args.get("layer_name") and callable(getattr(api, "prepare_interactive", None)):
-            from .integration_handoff import prepare
             result = prepare("ai_segment", args)
             zone_wkt = None
         else:
@@ -626,10 +612,7 @@ def _show_zone_layer(plugin, args: dict, zone_wkt: str | None, result: dict) -> 
 
     from qgis.core import QgsGeometry
 
-    from ..core import zone_of_interest
-    from ..core.layer_order import keep_place
-    from .zone_tools import _zoom_to
-    canvas = cost_guard._canvas_crs()
+    canvas = zone_facts._canvas_crs()
     geom = cost_guard.plugin_zone()
     if geom is None and zone_wkt and not result.get("free_fit"):
         geom = QgsGeometry.fromWkt(zone_wkt)
@@ -646,7 +629,53 @@ def _show_zone_layer(plugin, args: dict, zone_wkt: str | None, result: dict) -> 
     _zoom_to(layer)
 
 
-def _aiseg_detect_points(args: dict) -> dict:
+def aiseg_points_off_main(args: dict) -> bool:
+
+
+
+
+
+    if args.get("action") != "detect_points":
+        return False
+    try:
+        _, plugin = siblings.find(siblings.AI_SEGMENTATION)
+        fn = getattr(getattr(plugin, "mcp_api", None), "detect_points", None) if plugin else None
+    except Exception:  # noqa: BLE001
+        return False
+    params = _aiseg_detect_params(fn) if fn is not None else None
+    return bool(params) and "on_done" in params
+
+
+def aiseg_detect_points_waiting(args: dict) -> dict:
+
+
+
+
+
+
+    import queue
+    import time
+
+    answers: queue.Queue = queue.Queue()
+
+    deadline = time.monotonic() + 285.0
+
+    started = run_on_main_thread(_aiseg_detect_points, args, answers.put, timeout=240)
+    if started != {"pending": True}:
+        return started
+    cancelled = net.current_cancel_check()
+    while True:
+        try:
+            return answers.get(timeout=0.2)
+        except queue.Empty:
+            pass
+        if cancelled is not None and cancelled():
+            return tool_error("Stopped while AI Segmentation was reading the imagery.", "CANCELLED")
+        if time.monotonic() > deadline:
+            return tool_error("AI Segmentation gave no answer for the points within 285 s.", "TIMEOUT")
+
+
+def _aiseg_detect_points(args: dict, on_done=None) -> dict:
 
 
 
@@ -654,7 +683,7 @@ def _aiseg_detect_points(args: dict) -> dict:
 
 
     try:
-        _, plugin = _find_plugin(AISEG_KEYS)
+        _, plugin = siblings.find(siblings.AI_SEGMENTATION)
         if not plugin:
             return _aiseg_absent()
         api = getattr(plugin, "mcp_api", None)
@@ -671,6 +700,8 @@ def _aiseg_detect_points(args: dict) -> dict:
         }
         if args.get("layer_name"):
             kwargs["layer_name"] = args["layer_name"]
+        if on_done is not None:
+            kwargs["on_done"] = on_done
         return fn(**kwargs)
     except Exception as e:
         log_warning(f"AI Segmentation point detection failed: {e}")
@@ -727,59 +758,6 @@ def _aiseg_class_preflight(api, object_class: str, args: dict) -> dict | None:
     return None
 
 
-def _aiseg_raster_layer(plugin, layer_name):
-
-    name = str(layer_name or "").strip()
-    if name:
-        from .integration_handoff import raster_layer
-        try:
-            return raster_layer(name)
-        except ValueError:
-            return None
-    fn = getattr(plugin, "_get_active_raster_layer", None)
-    if callable(fn):
-        try:
-            return fn()
-        except Exception:  # noqa: BLE001
-            return None
-    return None
-
-
-def _aiseg_zone_wkt(plugin, args: dict) -> str:
-
-
-
-
-
-
-
-
-    wkt = str(args.get("zone_wkt") or "").strip()
-    if wkt and not args.get("use_zone"):
-        return wkt
-    from . import cost_guard
-    if args.get("bbox") is not None and cost_guard.unknown_crs(args):
-        raise ValueError(f"crs '{cost_guard.unknown_crs(args)}' is not a CRS QGIS knows.")
-    geom = cost_guard.zone_from_args(args)
-    if geom is None:
-        if args.get("use_zone") or args.get("bbox") is not None or args.get("use_canvas_extent"):
-            raise ValueError("The requested area of interest could not be read; prepare a valid zone first.")
-        return ""
-    layer = _aiseg_raster_layer(plugin, args.get("layer_name"))
-    try:
-        from qgis.core import QgsCoordinateTransform, QgsGeometry, QgsProject
-        source = cost_guard._canvas_crs()
-        target = layer.crs() if layer is not None else None
-        if target is not None and source is not None and target.isValid() and source.isValid() \
-                and target != source:
-            geom = QgsGeometry(geom)
-            geom.transform(QgsCoordinateTransform(source, target, QgsProject.instance()))
-        return geom.asWkt()
-    except Exception as exc:  # noqa: BLE001
-        log_warning(f"AI Segmentation zone could not be expressed in the layer CRS: {exc}")
-        raise ValueError("The zone could not be transformed into the input image CRS.") from exc
-
-
 def _aiseg_imagery_name(name: str) -> str:
 
 
@@ -814,7 +792,6 @@ def _aiseg_imagery_refusal(args: dict) -> dict | None:
     if not wanted:
         return None
     try:
-        from .integration_handoff import raster_layer
         raster_layer(wanted)
         return None
     except ValueError as exc:
@@ -883,13 +860,12 @@ def _aiseg_zone_facts(args: dict, layer, zone) -> str:
     try:
         from qgis.core import QgsCoordinateTransform, QgsProject, QgsRectangle
 
-        from . import cost_guard
         layer_crs = layer.crs()
         if str(args.get("zone_wkt") or "").strip():
             read_in, box, extent = layer_crs, zone.boundingBox(), layer.extent()
         else:
-            read_in = cost_guard._canvas_crs()
-            box = cost_guard.zone_from_args(args)
+            read_in = zone_facts._canvas_crs()
+            box = zone_facts.zone_from_args(args)
             box = box.boundingBox() if box is not None else None
             extent = layer.extent()
             if read_in is not None and read_in.isValid() and layer_crs.isValid() and read_in != layer_crs:
@@ -922,13 +898,8 @@ def aiseg_argument_refusal(args: dict) -> dict | None:
         return None
 
 
-    from . import aiseg_review
-    if aiseg_review.review_open():
-        return {"error": "A detection review is open in the AI Segmentation panel and unsaved.",
-                "code": "BUSY", **coded_fact(hint="aiseg_review_open")}
     try:
-        _, plugin = _find_plugin(AISEG_KEYS)
-        from .integration_handoff import segmentation_arguments
+        _, plugin = siblings.find(siblings.AI_SEGMENTATION)
         args = segmentation_arguments(plugin, args)
     except ValueError as exc:
         return {"error": str(exc), "code": "INVALID_ARGS"}
@@ -941,7 +912,7 @@ def aiseg_argument_refusal(args: dict) -> dict | None:
         return {"error": "Needs object_class or exemplars.", "code": "INVALID_ARGS",
                 **coded_fact(hint="aiseg_needs_class_or_exemplars")}
     try:
-        _, plugin = _find_plugin(AISEG_KEYS)
+        _, plugin = siblings.find(siblings.AI_SEGMENTATION)
     except Exception:  # noqa: BLE001
         return None
     api = getattr(plugin, "mcp_api", None) if plugin else None
@@ -961,7 +932,7 @@ def aiseg_argument_refusal(args: dict) -> dict | None:
                 "code": "INVALID_ARGS", **coded_fact(hint="aiseg_refine_unsupported")}
 
     if (params is None or "wait" not in params) and cost_guard.detaches(args):
-        area = cost_guard.zone_area_km2(args, cost_guard.SEGMENTATION) or 0.0
+        area = cost_guard.zone_area_km2(args, zone_facts.SEGMENTATION) or 0.0
         return {
             "error": (f"This zone is {area:,.1f} km² and the installed AI Segmentation can only "
                       "run a sweep the caller waits on."),
@@ -973,7 +944,7 @@ def aiseg_argument_refusal(args: dict) -> dict | None:
 
 def _aiseg_detect_auto(args: dict) -> dict:
     try:
-        _, plugin = _find_plugin(AISEG_KEYS)
+        _, plugin = siblings.find(siblings.AI_SEGMENTATION)
         if not plugin:
             return _aiseg_absent()
 
@@ -985,7 +956,6 @@ def _aiseg_detect_auto(args: dict) -> dict:
         if fn is None:
             return _aiseg_outdated(plugin, "detect_auto")
 
-        from .integration_handoff import segmentation_arguments
         args = segmentation_arguments(plugin, args)
 
 
@@ -1016,7 +986,7 @@ def _aiseg_detect_auto(args: dict) -> dict:
             kwargs["wait"] = False
 
 
-        if detached and "keep_review" in params and (sibling_api_version(plugin) or 0) >= AISEG_REVIEW_API:
+        if detached and "keep_review" in params and (siblings.api_version(plugin) or 0) >= AISEG_REVIEW_API:
             kwargs["keep_review"] = True
 
 
@@ -1028,6 +998,18 @@ def _aiseg_detect_auto(args: dict) -> dict:
                 kwargs["detail"] = int(detail)
             except (TypeError, ValueError):
                 pass
+
+
+
+
+        from . import aiseg_review
+        kept = None
+        if aiseg_review.review_open():
+            kept = aiseg_review.keep_open_review()
+            if kept.get("error"):
+                return {"error": "A detection review is open in the AI Segmentation panel and unsaved. "
+                                 f"{kept['error']}",
+                        "code": "BUSY", **coded_fact(hint="aiseg_review_open")}
 
 
 
@@ -1059,6 +1041,10 @@ def _aiseg_detect_auto(args: dict) -> dict:
 
         shown = _setup.show_panel("ai_segment")
         result = fn(**kwargs)
+        if kept and isinstance(result, dict):
+            result["earlier_review_saved"] = (
+                f"The earlier detection review was still open, so it was saved as the layer "
+                f"{kept.get('layer_name')!r} before this detection started.")
 
         if shown and isinstance(result, dict) and "_error" not in result:
             result["panel_opened"] = True
@@ -1080,10 +1066,10 @@ def _aiseg_detect_auto(args: dict) -> dict:
 
 def _aiseg_get_presets(args: dict) -> dict:
     try:
-        _, plugin = _find_plugin(AISEG_KEYS)
+        _, plugin = siblings.find(siblings.AI_SEGMENTATION)
         if not plugin:
             return _aiseg_absent()
-        mod = _aiseg_module(plugin, "core.presets.segmentation_presets")
+        mod = _setup._aiseg_module(plugin, "core.presets.segmentation_presets")
         if mod is None:
             return tool_error("AI Segmentation preset library (segmentation_presets) not found in this version.")
         out = {}
@@ -1113,7 +1099,7 @@ def _aiseg_get_presets(args: dict) -> dict:
 
 def _aiseg_review_filter(args: dict) -> dict:
     try:
-        _, plugin = _find_plugin(AISEG_KEYS)
+        _, plugin = siblings.find(siblings.AI_SEGMENTATION)
         if not plugin:
             return _aiseg_absent()
         conf = args.get("confidence")
@@ -1183,7 +1169,7 @@ def _aiseg_review_filter(args: dict) -> dict:
 
 def _aiseg_set_display_mode(args: dict) -> dict:
     try:
-        _, plugin = _find_plugin(AISEG_KEYS)
+        _, plugin = siblings.find(siblings.AI_SEGMENTATION)
         if not plugin:
             return _aiseg_absent()
         mode = (args.get("mode") or "").strip().lower()
@@ -1257,7 +1243,7 @@ def _aiseg_progress_sentence(status: dict) -> str:
 
 def _aiseg_auto_status(args: dict) -> dict:
     try:
-        _, plugin = _find_plugin(AISEG_KEYS)
+        _, plugin = siblings.find(siblings.AI_SEGMENTATION)
         if not plugin:
             return _aiseg_absent()
 
@@ -1293,7 +1279,7 @@ def _aiseg_auto_status(args: dict) -> dict:
 
 def _aiseg_auto_cancel(args: dict) -> dict:
     try:
-        _, plugin = _find_plugin(AISEG_KEYS)
+        _, plugin = siblings.find(siblings.AI_SEGMENTATION)
         if not plugin:
             return _aiseg_absent()
 

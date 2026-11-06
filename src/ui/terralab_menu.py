@@ -11,8 +11,9 @@ import os
 from qgis.PyQt.QtGui import QIcon
 from qgis.PyQt.QtWidgets import QMenu
 
+from ..core.served_state import TERRALAB_MORE_URL
 from .external_links import open_external_url
-from .shared import TERRALAB_LOGO_PATH, TERRALAB_MORE_URL, tr
+from .shared import TERRALAB_LOGO_PATH, tr
 
 TERRALAB_URL = TERRALAB_MORE_URL
 

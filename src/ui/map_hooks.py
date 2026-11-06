@@ -18,7 +18,7 @@ from qgis.core import QgsLayerTree, QgsMapLayer, QgsVectorLayer
 from qgis.PyQt.QtCore import QCoreApplication
 
 from ..core.logger import log_warning
-from ..core.qt_compat import enum_member
+from ..core.qt_compat import disconnect_quietly, enum_member
 from .shared import QAction
 
 
@@ -105,10 +105,7 @@ class MapHooks:
             self._feature_action.deleteLater()
             self._feature_action = None
         if self._tree_connected:
-            try:
-                self._iface.layerTreeView().contextMenuAboutToShow.disconnect(self._on_tree_menu)
-            except Exception:  # nosec B110
-                pass
+            disconnect_quietly(self._iface.layerTreeView(), "contextMenuAboutToShow", self._on_tree_menu)
             self._tree_connected = False
         if self._layer_action is not None:
 
@@ -126,17 +123,11 @@ class MapHooks:
                         break
                 except Exception:  # nosec B110
                     break
-            try:
-                self._layer_action.triggered.disconnect(self._on_layer_action)
-            except Exception:  # nosec B110
-                pass
+            disconnect_quietly(self._layer_action, "triggered", self._on_layer_action)
             self._layer_action.setVisible(False)
             self._layer_action = None
         if self._canvas_connected:
-            try:
-                self._iface.mapCanvas().contextMenuAboutToShow.disconnect(self._on_canvas_menu)
-            except Exception:  # nosec B110
-                pass
+            disconnect_quietly(self._iface.mapCanvas(), "contextMenuAboutToShow", self._on_canvas_menu)
             self._canvas_connected = False
 
     def _on_layer_action(self) -> None:
@@ -177,12 +168,15 @@ class MapHooks:
             return
         layers = []
         group_name = ""
-        for node in nodes:
-            if QgsLayerTree.isGroup(node):
-                group_name = group_name or node.name()
-                layers.extend(n.layer() for n in node.findLayers() if n.layer() is not None)
-            elif QgsLayerTree.isLayer(node) and node.layer() is not None:
-                layers.append(node.layer())
+        try:
+            for node in nodes:
+                if QgsLayerTree.isGroup(node):
+                    group_name = group_name or node.name()
+                    layers.extend(n.layer() for n in node.findLayers() if n.layer() is not None)
+                elif QgsLayerTree.isLayer(node) and node.layer() is not None:
+                    layers.append(node.layer())
+        except (AttributeError, RuntimeError, TypeError):
+            return
         unique = list({layer.id(): layer for layer in layers}.values())
         if len(unique) < 2 and not group_name:
             return

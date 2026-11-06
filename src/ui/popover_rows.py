@@ -96,7 +96,7 @@ class _Row(QWidget):
         row = QHBoxLayout(self)
         row.setContentsMargins(_ROW_PAD_X, _ROW_PAD_Y, _ROW_PAD_X, _ROW_PAD_Y)
         row.setSpacing(8)
-        row.addWidget(glyph_tile(self, glyph, accent, _TILE, 15), 0, Qt.AlignmentFlag.AlignVCenter)
+        row.addWidget(glyph_tile(self, glyph, accent, _TILE, 15, tinted=bool(accent)), 0, Qt.AlignmentFlag.AlignVCenter)
         col = QVBoxLayout()
         col.setContentsMargins(0, 0, 0, 0)
         col.setSpacing(1)

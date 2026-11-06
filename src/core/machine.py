@@ -67,6 +67,7 @@ import threading
 import time
 from collections import namedtuple
 
+from . import net_link
 from .host_platform import IS_MACOS, IS_WINDOWS
 
 IS_LINUX = sys.platform.startswith("linux")
@@ -819,16 +820,8 @@ def factor() -> float:
 
 def link_factor() -> float:
 
-
-
-
-
-
-
     try:
-        from . import net
-
-        return net.link_factor()
+        return net_link.link_factor()
     except Exception:  # noqa: BLE001
         return 1.0
 

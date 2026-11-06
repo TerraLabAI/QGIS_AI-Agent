@@ -23,6 +23,8 @@ from qgis.core import (
 )
 from qgis.PyQt.QtCore import QVariant
 
+from ..core.qt_compat import enum_member
+
 _ABSENT = object()
 
 
@@ -156,3 +158,16 @@ def _text(value):
 
 
 _QT_TIME_TO_PYTHON = ("toPyDateTime", "toPyDate", "toPyTime")
+
+
+def composition_mode(name: str):
+
+    from qgis.core import Qgis, QgsPainting
+
+    member = "".join(part.capitalize() for part in name.split("_"))
+    mode = enum_member(Qgis, "BlendMode", member, None)
+    if mode is None:
+        mode = enum_member(QgsPainting, "BlendMode", "Blend" + member, None)
+    if mode is None:
+        return None
+    return QgsPainting.getCompositionMode(mode)

@@ -11,10 +11,11 @@
 
 from __future__ import annotations
 
-from qgis.PyQt.QtCore import QEasingCurve, QEvent, QPropertyAnimation, Qt, QTimer
+from qgis.PyQt.QtCore import QEasingCurve, QEvent, QPropertyAnimation, Qt
 from qgis.PyQt.QtGui import QColor
 from qgis.PyQt.QtWidgets import QFrame, QGraphicsOpacityEffect, QHBoxLayout, QLabel, QPushButton
 
+from ..core.qt_compat import disconnect_quietly, one_shot
 from .font_scale import scale_qss_font_px
 from .icons import pixmap_for
 from .style import FONT_BODY, ORANGE, RADIUS_CARD, TOOLTIP_BG, TOOLTIP_BORDER, TOOLTIP_FG, TOOLTIP_MUTED
@@ -70,9 +71,7 @@ class Toast(QFrame):
 
         self._fade = None
         self._fading_out = False
-        self._timer = QTimer(self)
-        self._timer.setSingleShot(True)
-        self._timer.timeout.connect(self.dismiss)
+        self._timer = one_shot(self, self.dismiss)
         host.installEventFilter(self)
         self.hide()
 
@@ -128,10 +127,7 @@ class Toast(QFrame):
     def _stop_fade(self) -> None:
         fade, self._fade = self._fade, None
         if fade is not None:
-            try:
-                fade.finished.disconnect(self._fade_done)
-            except (TypeError, RuntimeError):
-                pass
+            disconnect_quietly(fade, "finished", self._fade_done)
             fade.stop()
             fade.deleteLater()
         self.setGraphicsEffect(None)

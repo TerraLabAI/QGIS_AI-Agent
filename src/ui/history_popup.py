@@ -38,11 +38,10 @@ from qgis.PyQt.QtCore import (
     QPoint,
     QRectF,
     Qt,
-    QTimer,
     QVariantAnimation,
     pyqtSignal,
 )
-from qgis.PyQt.QtGui import QBrush, QPainter
+from qgis.PyQt.QtGui import QBrush, QFont, QPainter
 from qgis.PyQt.QtWidgets import (
     QFrame,
     QHBoxLayout,
@@ -54,16 +53,18 @@ from qgis.PyQt.QtWidgets import (
     QWidget,
 )
 
+from ..core.numbers import as_float
+from ..core.qt_compat import one_shot
 from .card_base import reduced_motion
 from .confirm_dialog import ask_confirm
 from .font_scale import scale_qss_font_px
 from .icons import pixmap_for
 from .shared import event_pos, keep_on_screen, screen_area_at
 from .style import (
-    ACCENT_INK,
     FONT_BASE,
     FONT_HINT,
     FONT_MICRO,
+    HOVER_ON,
     INK,
     INK_3,
     LINE,
@@ -165,6 +166,25 @@ def relative_time(iso: str, now: QDateTime | None = None) -> str:
     if days < 7:
         return tr("{n} days ago").format(n=days)
     return QLocale().toString(stamp.date(), QLocale.FormatType.ShortFormat)
+
+
+def row_time(iso: str, now: QDateTime | None = None) -> str:
+
+
+    if not iso:
+        return ""
+    stamp = QDateTime.fromString(iso, Qt.DateFormat.ISODate)
+    if not stamp.isValid():
+        return ""
+    stamp = stamp.toLocalTime()
+    now = (now or QDateTime.currentDateTime()).toLocalTime()
+    locale = QLocale()
+    days = stamp.date().daysTo(now.date())
+    if days <= 0:
+        return locale.toString(stamp.time(), QLocale.FormatType.ShortFormat)
+    if days < 7:
+        return locale.dayName(stamp.date().dayOfWeek(), QLocale.FormatType.ShortFormat)
+    return locale.toString(stamp.date(), QLocale.FormatType.ShortFormat)
 
 
 BAND_TODAY = "today"
@@ -331,6 +351,10 @@ class _Row(QWidget):
     def set_current(self, current: bool) -> None:
 
         self._current = bool(current)
+        font = self._title.font()
+        font.setWeight(QFont.Weight.DemiBold if self._current else QFont.Weight.Normal)
+        self._title.setFont(font)
+        self._elide()
         self.update()
 
     def _sync_delete(self) -> None:
@@ -388,14 +412,10 @@ class _Row(QWidget):
             try:
                 painter.setRenderHint(QPainter.RenderHint.Antialiasing, True)
                 painter.setPen(Qt.PenStyle.NoPen)
-                if self._hover or self._selected:
-                    painter.setBrush(QBrush(hover_pill()))
-                    painter.drawRoundedRect(QRectF(self.rect()).adjusted(0.5, 0.5, -0.5, -0.5),
-                                            _ROW_RADIUS, _ROW_RADIUS)
-                if self._current:
-                    painter.setBrush(QBrush(qcolor(ACCENT_INK)))
-                    painter.drawRoundedRect(QRectF(1.0, 8.0, 2.0, max(4.0, self.height() - 16.0)),
-                                            1.0, 1.0)
+                ground = qcolor(HOVER_ON) if self._current else hover_pill()
+                painter.setBrush(QBrush(ground))
+                painter.drawRoundedRect(QRectF(self.rect()).adjusted(0.5, 0.5, -0.5, -0.5),
+                                        _ROW_RADIUS, _ROW_RADIUS)
             finally:
                 painter.end()
         super().paintEvent(event)
@@ -428,10 +448,7 @@ class HistoryPopup(QWidget):
 
         self._limit = _MAX_ROWS
         self._final = QPoint()
-        self._query_timer = QTimer(self)
-        self._query_timer.setSingleShot(True)
-        self._query_timer.setInterval(_QUERY_DEBOUNCE_MS)
-        self._query_timer.timeout.connect(self._rebuild)
+        self._query_timer = one_shot(self, self._rebuild, _QUERY_DEBOUNCE_MS)
 
         outer = QVBoxLayout(self)
         outer.setContentsMargins(_SHADOW, _SHADOW, _SHADOW, _SHADOW)
@@ -565,10 +582,7 @@ class HistoryPopup(QWidget):
         super().paintEvent(event)
 
     def _on_pop(self, value) -> None:
-        try:
-            progress = float(value)
-        except (TypeError, ValueError):
-            progress = 1.0
+        progress = as_float(value, 1.0)
         self.setWindowOpacity(progress)
         self.move(QPoint(self._final.x(), self._final.y() + int(_POP_RISE * (1.0 - progress))))
 
@@ -678,14 +692,8 @@ class HistoryPopup(QWidget):
 
     def _section(self, text: str) -> QLabel:
 
-
-        from qgis.PyQt.QtGui import QFont
-
-        label = QLabel(text.upper(), self._content)
+        label = QLabel(text, self._content)
         label.setObjectName("historySection")
-        font = QFont(label.font())
-        font.setLetterSpacing(QFont.SpacingType.PercentageSpacing, 104)
-        label.setFont(font)
         return label
 
     def _empty(self, text: str) -> QLabel:
@@ -704,12 +712,11 @@ class HistoryPopup(QWidget):
 
 
 
-
         mine = _same_project(path, self._current_project)
         if self._search.text().strip():
             meta = when if mine else project
         else:
-            meta = "" if mine else project
+            meta = row_time(str(item.get("updated_at") or item.get("updated_at_iso") or "")) if mine else project
         row = _Row(title, True, self._content, meta=meta)
         row.setToolTip("\n".join(p for p in (title, "  ·  ".join(q for q in (when, project) if q)) if p))
         row.set_current(thread_id == self._current_thread)

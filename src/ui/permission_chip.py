@@ -18,6 +18,7 @@
 
 
 
+
 from __future__ import annotations
 
 from qgis.PyQt.QtCore import QCoreApplication, QEvent, QPoint, QSize, Qt, pyqtSignal
@@ -46,12 +47,10 @@ from .style import (
     FIELD,
     FONT_BODY,
     FONT_HINT,
-    FONT_MICRO,
     HOVER,
     INK,
     INK_2,
     INK_3,
-    LINE,
     LINE_STRONG,
     RADIUS_CARD,
     RADIUS_CONTROL,
@@ -105,24 +104,37 @@ def mode_visual(approval: str) -> tuple:
     return MODE_VISUALS.get(normalize_mode(approval), MODE_VISUALS[DEFAULT_MODE])
 
 
-def glyph_tile(widget, glyph: str, accent: str, size: int = _TILE_SIZE,
-               glyph_size: int = _TILE_GLYPH) -> QLabel:
+def paint_tile(tile: QLabel, glyph: str, accent: str, glyph_size: int = _TILE_GLYPH,
+               tinted: bool = True) -> None:
 
-    color = QColor(accent)
+
+    size = tile.width()
+    if tinted:
+        color = QColor(accent)
+        ground = f"rgba({color.red()}, {color.green()}, {color.blue()}, 0.16)"
+    else:
+        color = QColor(INK_2)
+        ground = FIELD
+    tile.setStyleSheet(
+        f"QLabel {{ background: {ground}; border: none; border-radius: {size // 3 + 2}px; }}")
+    tile.setPixmap(pixmap_for(tile, glyph, glyph_size, color))
+
+
+def glyph_tile(widget, glyph: str, accent: str, size: int = _TILE_SIZE,
+               glyph_size: int = _TILE_GLYPH, tinted: bool = True) -> QLabel:
+
     tile = QLabel(widget)
     tile.setFixedSize(size, size)
     tile.setAlignment(Qt.AlignmentFlag.AlignCenter)
-    tile.setStyleSheet(
-        f"QLabel {{ background: rgba({color.red()}, {color.green()}, {color.blue()}, 0.16);"
-        f" border: none; border-radius: {size // 3 + 2}px; }}")
-    tile.setPixmap(pixmap_for(widget, glyph, glyph_size, color))
+    paint_tile(tile, glyph, accent, glyph_size, tinted)
     return tile
 
 
-def mode_tile(widget, approval: str, size: int = _TILE_SIZE, glyph_size: int = _TILE_GLYPH) -> QLabel:
+def mode_tile(widget, approval: str, size: int = _TILE_SIZE, glyph_size: int = _TILE_GLYPH,
+              tinted: bool = True) -> QLabel:
 
     glyph, accent = mode_visual(approval)
-    return glyph_tile(widget, glyph, accent, size, glyph_size)
+    return glyph_tile(widget, glyph, accent, size, glyph_size, tinted)
 
 
 def select_qss(name: str) -> str:
@@ -151,11 +163,11 @@ _POPOVER_QSS = scale_qss_font_px(
     f" color: {INK}; background: transparent; border: none; }}"
     f"QLabel#permissionNote {{ font-size: {FONT_HINT}px; color: {INK_2};"
     " background: transparent; border: none; }"
-    f"QLabel#permissionHead {{ font-size: {FONT_MICRO}px; font-weight: 600;"
-    f" letter-spacing: 0.7px; color: {INK_3}; background: transparent; border: none; }}"
-    f"QLabel#permissionTag {{ font-size: {FONT_MICRO}px; font-weight: 600; color: {ACCENT_INK};"
-    f" background: {FIELD}; border: 1px solid {LINE}; border-radius: 8px; padding: 1px 7px; }}"
-    f"QLabel#permissionPrice {{ font-size: {FONT_HINT}px; font-weight: 500; color: {INK};"
+    f"QLabel#permissionHead {{ font-size: {FONT_HINT}px; font-weight: 500;"
+    f" color: {INK_3}; background: transparent; border: none; }}"
+    f"QLabel#permissionTag {{ font-size: {FONT_HINT}px; font-weight: 500; color: {ACCENT_INK};"
+    " background: transparent; border: none; padding: 0; }"
+    f"QLabel#permissionPrice {{ font-size: {FONT_HINT}px; color: {INK_2};"
     " background: transparent; border: none; }"
     "QLabel { background: transparent; border: none; }"
 )
@@ -182,7 +194,8 @@ class _ModeRow(QFrame):
         row = QHBoxLayout(self)
         row.setContentsMargins(_ROW_PAD_X, _ROW_PAD_Y, _ROW_PAD_X, _ROW_PAD_Y)
         row.setSpacing(_ROW_SPACING)
-        row.addWidget(mode_tile(self, approval), 0, Qt.AlignmentFlag.AlignTop)
+        self._tile = mode_tile(self, approval)
+        row.addWidget(self._tile, 0, Qt.AlignmentFlag.AlignTop)
         col = QVBoxLayout()
         col.setContentsMargins(0, 0, 0, 0)
         col.setSpacing(2)
@@ -223,12 +236,10 @@ class _ModeRow(QFrame):
 
         self._locked = bool(locked)
         self._tag.setVisible(self._locked)
-        self._price.setVisible(self._locked)
-        if self._locked:
-            price = pro_price_per_month()
-            self._price.setText(
-                QCoreApplication.translate("PermissionChip", "Pro · {price}").format(price=price) if price
-                else QCoreApplication.translate("PermissionChip", "Included in Pro"))
+
+        price = pro_price_per_month() if self._locked else ""
+        self._price.setText(price)
+        self._price.setVisible(bool(price))
         self._check.setVisible(not self._locked)
         if self._locked:
             self._check.clear()
@@ -276,7 +287,7 @@ class _ModeRow(QFrame):
 
         head = max(self._name.sizeHint().height(),
                    self._tag.sizeHint().height() if self._locked else _CHECK_SIZE)
-        price = (2 + self._price.fontMetrics().height()) if self._locked else 0
+        price = (2 + self._price.fontMetrics().height()) if self._price.text() else 0
         self.setFixedHeight(2 * _ROW_PAD_Y + head + 2 + note_height + price)
 
     def enterEvent(self, event):  # noqa: N802
@@ -321,7 +332,7 @@ class PermissionPopover(QFrame):
 
 
         self._head = QLabel(QCoreApplication.translate(
-            "PermissionChip", "AI permissions").upper(), self)
+            "PermissionChip", "AI permissions"), self)
         self._head.setObjectName("permissionHead")
         self._head.setContentsMargins(_ROW_PAD_X, 6, _ROW_PAD_X, 4)
         col.addWidget(self._head)

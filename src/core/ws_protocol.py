@@ -22,6 +22,8 @@ import zlib
 from typing import Callable
 from urllib.parse import quote, unquote, urlsplit
 
+from .numbers import as_int
+
 _GUID = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"
 MAX_FRAME_BYTES = 16 * 1024 * 1024
 MAX_MESSAGE_BYTES = 16 * 1024 * 1024
@@ -64,8 +66,6 @@ class WsProtocolError(WsError):
     def __init__(self, message: str, code: int = 1002):
         super().__init__(message, "protocol")
         self.code = code
-
-
 
 
 def parse_ws_url(url: str) -> tuple[bool, str, int, str]:
@@ -176,8 +176,6 @@ def build_ssl_context(ca_pem: bytes | None = None, insecure: bool = False) -> ss
     return ctx
 
 
-
-
 def mask_bytes(data: bytes, mask: bytes) -> bytes:
     n = len(data)
     if n == 0:
@@ -227,10 +225,7 @@ def http_status_of(start_line: str) -> int:
     parts = start_line.split()
     if len(parts) < 2 or not parts[0].startswith("HTTP/"):
         return 0
-    try:
-        return int(parts[1])
-    except ValueError:
-        return 0
+    return as_int(parts[1], 0)
 
 
 def close_payload(code: int, reason: str) -> bytes:

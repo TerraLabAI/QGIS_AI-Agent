@@ -20,7 +20,8 @@ import re
 import threading
 import urllib.parse
 
-from . import net_state
+from . import net_state, telemetry
+from . import telemetry_events as ev
 from .net_hosts import OWN_HOSTS, VOLUNTEER_CEILINGS
 
 SAMPLE_EVERY = 20
@@ -104,8 +105,6 @@ def record(url: str, facts: dict) -> None:
     if not rate:
         return
     props["sample_rate"] = rate
-    from . import telemetry
-    from . import telemetry_events as ev
 
     telemetry.track(ev.PLUGIN_HTTP_TIMED, props)
 

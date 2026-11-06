@@ -166,8 +166,8 @@ class EmptyState(QWidget):
 
 
 
-        disclosure = QLabel(
-            self.tr("You are talking to an AI system. It can be wrong: check its changes."), rows)
+
+        disclosure = QLabel(self.tr("AI can make mistakes. Check its changes."), rows)
         disclosure.setObjectName("aiDisclosure")
         disclosure.setStyleSheet(_DISCLOSURE_QSS)
         disclosure.setAlignment(Qt.AlignmentFlag.AlignHCenter)

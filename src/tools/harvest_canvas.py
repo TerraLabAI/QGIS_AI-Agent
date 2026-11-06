@@ -72,6 +72,7 @@ def register_harvest_canvas_tools(registry: ToolRegistry):
     registry.register(Tool(
         name="update_feature_geometry",
         danger="write",
+        mutates_data=True, reads_whole_layer=True, check_shape="layer",
         label=QT_TRANSLATE_NOOP("AIAgent", "Reshape a feature of {layer_name}"),
         input_schema={
             "type": "object",

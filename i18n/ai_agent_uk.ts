@@ -599,14 +599,6 @@
             <translation>Прив'язати {raster} до координат</translation>
         </message>
         <message>
-            <source>Get a Sentinel image</source>
-            <translation>Отримати знімок Sentinel</translation>
-        </message>
-        <message>
-            <source>Get an elevation model</source>
-            <translation>Отримати модель висот</translation>
-        </message>
-        <message>
             <source>Get {what}</source>
             <translation>Отримати {what}</translation>
         </message>
@@ -751,10 +743,6 @@
             <translation>Показати список плагінів</translation>
         </message>
         <message>
-            <source>List the satellite catalogs</source>
-            <translation>Показати список супутникових каталогів</translation>
-        </message>
-        <message>
             <source>Load 3D Tiles[ from {url}]</source>
             <translation>Завантажити 3D Tiles[ з {url}]</translation>
         </message>
@@ -771,20 +759,12 @@
             <translation>Подивитися на вікно QGIS</translation>
         </message>
         <message>
-            <source>Look for data on the web[ for {query}]</source>
-            <translation>Шукати дані в інтернеті[ за запитом {query}]</translation>
-        </message>
-        <message>
             <source>Look for data on this computer</source>
             <translation>Шукати дані на цьому комп'ютері</translation>
         </message>
         <message>
             <source>Look for relief anomalies[ in {lrm_layer}][ in {dem}]</source>
             <translation>Шукати аномалії рельєфу[ у {lrm_layer}][ у {dem}]</translation>
-        </message>
-        <message>
-            <source>Look up the place[ {query}]</source>
-            <translation>Знайти місце[ {query}]</translation>
         </message>
         <message>
             <source>Make the temporary layers permanent[ in {gpkg_path}]</source>
@@ -967,10 +947,6 @@
             <translation>Растеризувати {INPUT}</translation>
         </message>
         <message>
-            <source>Read a NASA Earthdata collection[ {short_name}]</source>
-            <translation>Прочитати колекцію NASA Earthdata[ {short_name}]</translation>
-        </message>
-        <message>
             <source>Read a web page</source>
             <translation>Прочитати вебсторінку</translation>
         </message>
@@ -983,16 +959,8 @@
             <translation>Прочитати об'єкти {layer_name}</translation>
         </message>
         <message>
-            <source>Read the AI Agent documentation[ on {query}]</source>
-            <translation>Прочитати документацію AI Agent[ про {query}]</translation>
-        </message>
-        <message>
             <source>Read the CRS of {layer_name}</source>
             <translation>Прочитати CRS {layer_name}</translation>
-        </message>
-        <message>
-            <source>Read the QGIS documentation[ on {query}]</source>
-            <translation>Прочитати документацію QGIS[ про {query}]</translation>
         </message>
         <message>
             <source>Read the extent of {layer_name}</source>
@@ -1155,18 +1123,6 @@
             <translation>Збережено як {file} у {folder}.</translation>
         </message>
         <message>
-            <source>Search Copernicus images[ of {collection}]</source>
-            <translation>Пошук зображень Copernicus[ з колекції {collection}]</translation>
-        </message>
-        <message>
-            <source>Search NASA Earthdata files</source>
-            <translation>Пошук файлів NASA Earthdata</translation>
-        </message>
-        <message>
-            <source>Search NASA Earthdata[ for {query}]</source>
-            <translation>Пошук у NASA Earthdata[ за запитом {query}]</translation>
-        </message>
-        <message>
             <source>Search examples</source>
             <translation>Пошук прикладів</translation>
         </message>
@@ -1175,24 +1131,8 @@
             <translation>Пошук відкритих даних[ за запитом {query}]</translation>
         </message>
         <message>
-            <source>Search satellite images</source>
-            <translation>Пошук супутникових знімків</translation>
-        </message>
-        <message>
-            <source>Search statistics[ on {topic}]</source>
-            <translation>Пошук статистики[ на тему {topic}]</translation>
-        </message>
-        <message>
-            <source>Search the Earth Engine catalog[ for {query}]</source>
-            <translation>Пошук у каталозі Earth Engine[ за запитом {query}]</translation>
-        </message>
-        <message>
             <source>Search the QGIS Hub[ for {query}]</source>
             <translation>Пошук у QGIS Hub[ за запитом {query}]</translation>
-        </message>
-        <message>
-            <source>Search the data catalog[ for {query}]</source>
-            <translation>Пошук у каталозі даних[ за запитом {query}]</translation>
         </message>
         <message>
             <source>Search the processing tools[ for {query}]</source>
@@ -1201,10 +1141,6 @@
         <message>
             <source>Search the processing tools[ for {search}]</source>
             <translation>Пошук серед інструментів обробки[ за запитом {search}]</translation>
-        </message>
-        <message>
-            <source>Search the web[ for {query}]</source>
-            <translation>Пошук в інтернеті[ за запитом {query}]</translation>
         </message>
         <message>
             <source>Select features in {layer_name}</source>
@@ -1842,6 +1778,38 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <source>This report includes your description and the current conversation. We use it to fix issues and improve AI Agent.</source>
             <translation>Звіт містить ваш опис і поточну розмову. Ми використовуємо його, щоб виправляти помилки та вдосконалювати AI Agent.</translation>
         </message>
+        <message>
+            <source>Copy</source>
+            <translation>Копіювати</translation>
+        </message>
+        <message>
+            <source>Real tasks the AI agent does from one sentence.</source>
+            <translation>Реальні завдання, які ШІ-агент виконує з одного речення.</translation>
+        </message>
+        <message>
+            <source>Uses</source>
+            <translation>Використовує</translation>
+        </message>
+        <message>
+            <source>What you type</source>
+            <translation>Що ти вводиш</translation>
+        </message>
+        <message>
+            <source>Expired on {day}.</source>
+            <translation>Термін дії закінчився {day}.</translation>
+        </message>
+        <message>
+            <source>Expires on {day}.</source>
+            <translation>Діє до {day}.</translation>
+        </message>
+        <message>
+            <source>Private link: its signature stays on this computer. TerraLab and the AI agent see only the site and the file name.</source>
+            <translation>Приватне посилання: його підпис залишається на цьому комп'ютері. TerraLab та ШІ-агент бачать лише сайт і назву файлу.</translation>
+        </message>
+        <message>
+            <source>expired</source>
+            <translation>прострочено</translation>
+        </message>
     </context>
     <context>
         <name>AIAgentContext</name>
@@ -2314,6 +2282,18 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <source>Your AI agent inside QGIS</source>
             <translation>Ваш ШІ-асистент у QGIS</translation>
         </message>
+        <message>
+            <source>Ask it to load data, style layers, run analyses or edit features.</source>
+            <translation>Попроси його завантажити дані, стилізувати шари, виконати аналіз або редагувати об'єкти.</translation>
+        </message>
+        <message>
+            <source>Free. Opens your browser, takes about 15 seconds.</source>
+            <translation>Безкоштовно. Відкриє браузер, займе близько 15 секунд.</translation>
+        </message>
+        <message>
+            <source>Sign in or create an account</source>
+            <translation>Увійти або створити обліковий запис</translation>
+        </message>
     </context>
     <context>
         <name>ActivityRow</name>
@@ -2451,6 +2431,10 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <source>Write the request for an HTML report of this analysis, with its maps and charts</source>
             <translation>Написати запит на HTML-звіт про цей аналіз із його картами та діаграмами</translation>
+        </message>
+        <message>
+            <source>Remove rating</source>
+            <translation>Прибрати оцінку</translation>
         </message>
     </context>
     <context>
@@ -2794,6 +2778,42 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <source>a temporary layer</source>
             <translation>тимчасовий шар</translation>
+        </message>
+        <message>
+            <source>Not handled, the AI agent is offline: {0}</source>
+            <translation>Не оброблено, ШІ-агент офлайн: {0}</translation>
+        </message>
+        <message>
+            <source>Nothing is kept about this project yet.</source>
+            <translation>Про цей проєкт ще нічого не збережено.</translation>
+        </message>
+        <message>
+            <source>Project memory</source>
+            <translation>Пам'ять проєкту</translation>
+        </message>
+        <message>
+            <source>Project memory cleared.</source>
+            <translation>Пам'ять проєкту очищено.</translation>
+        </message>
+        <message>
+            <source>Watched folder: not handled, no answer from the server: {0}</source>
+            <translation>Папка для стеження: не оброблено, сервер не відповів: {0}</translation>
+        </message>
+        <message>
+            <source>Watched folder: not handled, the AI agent is offline: {0}</source>
+            <translation>Папка для стеження: не оброблено, ШІ-агент офлайн: {0}</translation>
+        </message>
+        <message>
+            <source>Clear what the AI agent remembers about this project?</source>
+            <translation>Очистити все, що AI Agent пам'ятає про цей проєкт?</translation>
+        </message>
+        <message>
+            <source>Save the project first: its memory is kept under the project file.</source>
+            <translation>Спершу збережіть проєкт: його пам'ять зберігається разом із файлом проєкту.</translation>
+        </message>
+        <message>
+            <source>The AI agent is not connected. Try again in a moment.</source>
+            <translation>AI Agent не підключено. Спробуйте ще раз за мить.</translation>
         </message>
     </context>
     <context>
@@ -3189,6 +3209,14 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <source>Make an HTML report of this analysis, with its maps, charts and method.</source>
             <translation>Створи HTML-звіт про цей аналіз із його картами, діаграмами та методом.</translation>
         </message>
+        <message>
+            <source>Pay to get Pro back</source>
+            <translation>Сплатіть, щоб повернути Pro</translation>
+        </message>
+        <message>
+            <source>Task ended</source>
+            <translation>Завдання завершено</translation>
+        </message>
     </context>
     <context>
         <name>ChatSidebar</name>
@@ -3574,6 +3602,34 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <source>Your own account with the provider: it will ask for a key.</source>
             <translation>Власний обліковий запис у провайдера: потрібно буде ввести ключ.</translation>
         </message>
+        <message>
+            <source>All %n</source>
+            <translation>Усі %n</translation>
+        </message>
+        <message>
+            <source>Examples with this source</source>
+            <translation>Приклади з цим джерелом</translation>
+        </message>
+        <message>
+            <source>Fewer</source>
+            <translation>Менше</translation>
+        </message>
+        <message>
+            <source>More</source>
+            <translation>Більше</translation>
+        </message>
+        <message>
+            <source>More in {shelf}</source>
+            <translation>Більше в {shelf}</translation>
+        </message>
+        <message>
+            <source>{first} and %n more licences</source>
+            <translation>{first} і ще ліцензій: %n</translation>
+        </message>
+        <message>
+            <source>Use in chat</source>
+            <translation>Використати в чаті</translation>
+        </message>
     </context>
     <context>
         <name>ConnectorsPage</name>
@@ -3636,6 +3692,14 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <source>sources</source>
             <translation>джерел</translation>
+        </message>
+        <message>
+            <source>Search sources, datasets or a country</source>
+            <translation>Пошук джерел, наборів даних або країни</translation>
+        </message>
+        <message>
+            <source>{sources} sources the AI agent finds and loads by itself: {datasets} datasets in {countries} countries.</source>
+            <translation>{sources} джерел, які ШІ-агент знаходить і завантажує сам: {datasets} наборів даних у {countries} країнах.</translation>
         </message>
     </context>
     <context>
@@ -3774,8 +3838,8 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <translation>Над чим працюємо?</translation>
         </message>
         <message>
-            <source>You are talking to an AI system. It can be wrong: check its changes.</source>
-            <translation>Ви спілкуєтеся з системою ШІ. Вона може помилятися: перевіряйте її зміни.</translation>
+            <source>AI can make mistakes. Check its changes.</source>
+            <translation>ШІ може помилятися. Перевіряйте його зміни.</translation>
         </message>
     </context>
     <context>
@@ -4125,6 +4189,14 @@ Click to show it in the Layers panel.</source>
             <source>Videos and guides to get started. They open in your browser.</source>
             <translation>Відео та посібники для початку. Вони відкриваються у вашому браузері.</translation>
         </message>
+        <message>
+            <source>Learn</source>
+            <translation>Навчання</translation>
+        </message>
+        <message>
+            <source>Videos, guides and the other TerraLab plugins. Links open in your browser.</source>
+            <translation>Відео, посібники та інші плагіни TerraLab. Посилання відкриваються в браузері.</translation>
+        </message>
     </context>
     <context>
         <name>LibraryRail</name>
@@ -4404,6 +4476,46 @@ Click to show it in the Layers panel.</source>
         <message>
             <source>{n} actions wait for your approval.</source>
             <translation>Дій, що чекають вашого схвалення: {n}.</translation>
+        </message>
+        <message>
+            <source>Adds: {}</source>
+            <translation>Додає: {}</translation>
+        </message>
+        <message>
+            <source>Also covers the next calls of this kind in this answer</source>
+            <translation>Також охоплює наступні виклики такого типу в цій відповіді</translation>
+        </message>
+        <message>
+            <source>Changes: {}</source>
+            <translation>Змінює: {}</translation>
+        </message>
+        <message>
+            <source>Deletes files: {}</source>
+            <translation>Видаляє файли: {}</translation>
+        </message>
+        <message>
+            <source>Deletes: {}</source>
+            <translation>Видаляє: {}</translation>
+        </message>
+        <message>
+            <source>Not in this project: {}</source>
+            <translation>Немає в цьому проєкті: {}</translation>
+        </message>
+        <message>
+            <source>Other effects the preview could not read: {}</source>
+            <translation>Інші наслідки, яких попередній перегляд не зміг прочитати: {}</translation>
+        </message>
+        <message>
+            <source>Reads: {}</source>
+            <translation>Читає: {}</translation>
+        </message>
+        <message>
+            <source>Runs: {}</source>
+            <translation>Запускає: {}</translation>
+        </message>
+        <message>
+            <source>Writes files: {}</source>
+            <translation>Записує файли: {}</translation>
         </message>
     </context>
     <context>
@@ -4721,6 +4833,26 @@ Click to show it in the Layers panel.</source>
             <source>{n} free tasks left</source>
             <translation>Залишилось безкоштовних завдань: {n}</translation>
         </message>
+        <message>
+            <source>Pay now</source>
+            <translation>Сплатити зараз</translation>
+        </message>
+        <message>
+            <source>Pay {amount} now</source>
+            <translation>Сплатити {amount} зараз</translation>
+        </message>
+        <message>
+            <source>Pro is off until it's paid. You're on the free plan for now.</source>
+            <translation>Pro вимкнено, доки не буде оплати. Поки що у вас безкоштовний план.</translation>
+        </message>
+        <message>
+            <source>Your Pro payment failed</source>
+            <translation>Ваш платіж за Pro не пройшов</translation>
+        </message>
+        <message>
+            <source>Your payment of {amount} failed</source>
+            <translation>Ваш платіж на {amount} не пройшов</translation>
+        </message>
     </context>
     <context>
         <name>QuotaPauseCard</name>
@@ -4952,6 +5084,10 @@ Click to show it in the Layers panel.</source>
             <source>{n} steps</source>
             <translation>Кроків: {n}</translation>
         </message>
+        <message>
+            <source>Thought</source>
+            <translation>Роздуми</translation>
+        </message>
     </context>
     <context>
         <name>RunsLeftLine</name>
@@ -5139,8 +5275,8 @@ Click to show it in the Layers panel.</source>
             <translation>Отримати Pro</translation>
         </message>
         <message>
-            <source>Help improve AI Agent</source>
-            <translation>Допоможіть покращити AI Agent</translation>
+            <source>Allow chat review</source>
+            <translation>Дозволити перегляд чату</translation>
         </message>
         <message>
             <source>How it should work. Example: always answer in French, name new layers in snake_case, never delete a layer without asking.</source>
@@ -5187,12 +5323,12 @@ Click to show it in the Layers panel.</source>
             <translation>Назви шарів</translation>
         </message>
         <message>
-            <source>Lets us read a chat only to fix a bug. Chats are kept 30 days.</source>
-            <translation>Дозволяє нам читати чат лише для виправлення помилки. Чати зберігаються 30 днів.</translation>
+            <source>We may read a chat only to fix a bug, never to train AI. Chats are kept 30 days.</source>
+            <translation>Ми можемо прочитати чат лише щоб виправити помилку, і ніколи для навчання ШІ. Чати зберігаються 30 днів.</translation>
         </message>
         <message>
-            <source>Lets us read a chat only to fix a wrong answer or a bug.</source>
-            <translation>Дозволяє нам читати чат лише для виправлення неправильної відповіді або помилки.</translation>
+            <source>We may read a chat only to fix a wrong answer or a bug, never to train AI.</source>
+            <translation>Ми можемо прочитати чат лише щоб виправити неправильну відповідь або помилку, і ніколи для навчання ШІ.</translation>
         </message>
         <message>
             <source>Loading account info...</source>
@@ -5557,6 +5693,95 @@ Click to show it in the Layers panel.</source>
         <message>
             <source>Send feedback</source>
             <translation>Надіслати відгук</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_dialog.py" />
+            <source>See usage</source>
+            <translation>Переглянути використання</translation>
+        </message>
+        <message>
+            <source>Always answer in French, never delete a layer without asking</source>
+            <translation>Завжди відповідай французькою, ніколи не видаляй шар без запиту</translation>
+        </message>
+        <message>
+            <source>Choose folder...</source>
+            <translation>Вибрати папку...</translation>
+        </message>
+        <message>
+            <source>Clear project memory</source>
+            <translation>Очистити пам'ять проєкту</translation>
+        </message>
+        <message>
+            <source>Connected accounts</source>
+            <translation>Підключені облікові записи</translation>
+        </message>
+        <message>
+            <source>Folder to watch</source>
+            <translation>Папка для стеження</translation>
+        </message>
+        <message>
+            <source>Instructions</source>
+            <translation>Інструкції</translation>
+        </message>
+        <message>
+            <source>Job</source>
+            <translation>Професія</translation>
+        </message>
+        <message>
+            <source>Learn</source>
+            <translation>Навчання</translation>
+        </message>
+        <message>
+            <source>Name</source>
+            <translation>Ім'я</translation>
+        </message>
+        <message>
+            <source>No folder chosen</source>
+            <translation>Папку не вибрано</translation>
+        </message>
+        <message>
+            <source>Pro reads both before every run.</source>
+            <translation>Pro читає обидва перед кожним запуском.</translation>
+        </message>
+        <message>
+            <source>Proactive triggers</source>
+            <translation>Проактивні тригери</translation>
+        </message>
+        <message>
+            <source>Project memory</source>
+            <translation>Пам'ять проєкту</translation>
+        </message>
+        <message>
+            <source>Read by the AI agent at the start of every conversation.</source>
+            <translation>ШІ-агент читає це на початку кожної розмови.</translation>
+        </message>
+        <message>
+            <source>Saved notes · {n}</source>
+            <translation>Збережені нотатки · {n}</translation>
+        </message>
+        <message>
+            <source>Show project memory</source>
+            <translation>Показати пам'ять проєкту</translation>
+        </message>
+        <message>
+            <source>The AI agent looks at new data files in this folder and at the schedules you ask for, only while QGIS is open. Nothing runs when QGIS is closed.</source>
+            <translation>ШІ-агент перевіряє нові файли даних у цій папці та розклади, про які ти просиш, лише поки QGIS відкрито. Коли QGIS закрито, нічого не працює.</translation>
+        </message>
+        <message>
+            <source>Urban planner at the city of Lyon, cadastre and PLU layers in EPSG:2154</source>
+            <translation>Містобудівник у місті Ліон, шари кадастру та PLU в EPSG:2154</translation>
+        </message>
+        <message>
+            <source>Watch a folder and run my schedules while QGIS is open</source>
+            <translation>Стежити за папкою та виконувати мої розклади, поки QGIS відкрито</translation>
+        </message>
+        <message>
+            <source>What Pro adds: {points}</source>
+            <translation>Що додає Pro: {points}</translation>
+        </message>
+        <message>
+            <source>commercial use, more tasks, memory, your instructions and higher effort</source>
+            <translation>комерційне використання, більше завдань, пам'ять, твої інструкції та вищий рівень зусиль</translation>
         </message>
     </context>
     <context>
@@ -5941,6 +6166,22 @@ Click to show it in the Layers panel.</source>
             <source>{what} on '{layer}' whose CRS {crs} is geographic: the distance would be in degrees, not meters.</source>
             <translation>{what} на '{layer}', чия СК {crs} географічна: відстань була б у градусах, а не в метрах.</translation>
         </message>
+        <message>
+            <source>Access to {host}</source>
+            <translation>Доступ до {host}</translation>
+        </message>
+        <message>
+            <source>Allowed for this conversation</source>
+            <translation>Дозволено для цієї розмови</translation>
+        </message>
+        <message>
+            <source>Allowed once</source>
+            <translation>Дозволено один раз</translation>
+        </message>
+        <message>
+            <source>Signed in</source>
+            <translation>Виконано вхід</translation>
+        </message>
     </context>
     <context>
         <name>UpdateBanner</name>
@@ -5959,6 +6200,14 @@ Click to show it in the Layers panel.</source>
         <message>
             <source>{product} {version} is out</source>
             <translation>Вийшла версія {product} {version}</translation>
+        </message>
+        <message>
+            <source>Download</source>
+            <translation>Завантажити</translation>
+        </message>
+        <message>
+            <source>This QGIS has no plugin repository turned on. Download the ZIP, then use Install from ZIP in Plugins &gt; Manage and Install Plugins.</source>
+            <translation>У цьому QGIS не ввімкнено жодного репозиторію додатків. Завантажте ZIP, потім скористайтеся «Встановити з ZIP» у меню Додатки &gt; Керування та встановлення додатків.</translation>
         </message>
     </context>
     <context>
@@ -6370,6 +6619,1320 @@ Click to show it in the Layers panel.</source>
         <message>
             <source>Thanks for the feedback</source>
             <translation>Дякуємо за відгук</translation>
+        </message>
+    </context>
+    <context>
+        <name>ToolDetails</name>
+        <message>
+            <source>Copied</source>
+            <translation>Скопійовано</translation>
+        </message>
+        <message>
+            <source>Copy as Python</source>
+            <translation>Копіювати як Python</translation>
+        </message>
+        <message>
+            <source>Open in Processing</source>
+            <translation>Відкрити в Обробці</translation>
+        </message>
+        <message>
+            <source>Open this algorithm's dialog with the same settings, to check them or run it again. The output goes to a new temporary layer.</source>
+            <translation>Відкриває діалог цього алгоритму з тими самими параметрами, щоб перевірити їх або запустити його ще раз. Результат потрапляє в новий тимчасовий шар.</translation>
+        </message>
+        <message>
+            <source>Show less</source>
+            <translation>Показати менше</translation>
+        </message>
+        <message>
+            <source>Show {n} more</source>
+            <translation>Показати ще {n}</translation>
+        </message>
+        <message>
+            <source>The processing.run line, ready for the QGIS Python console</source>
+            <translation>Рядок processing.run, готовий для консолі Python у QGIS</translation>
+        </message>
+        <message>
+            <source>Fewer</source>
+            <translation>Менше</translation>
+        </message>
+        <message>
+            <source>{n} more</source>
+            <translation>ще {n}</translation>
+        </message>
+    </context>
+    <context>
+        <name>AccountCard</name>
+        <message>
+            <source>Add keys</source>
+            <translation>Додати ключі</translation>
+        </message>
+        <message>
+            <source>Add token</source>
+            <translation>Додати токен</translation>
+        </message>
+        <message>
+            <source>Allow</source>
+            <translation>Дозволити</translation>
+        </message>
+        <message>
+            <source>Allow for this conversation</source>
+            <translation>Дозволити для цієї розмови</translation>
+        </message>
+        <message>
+            <source>Allowed for this conversation</source>
+            <translation>Дозволено для цієї розмови</translation>
+        </message>
+        <message>
+            <source>Allowed once</source>
+            <translation>Дозволено один раз</translation>
+        </message>
+        <message>
+            <source>Connect your {label} account</source>
+            <translation>Підключи свій обліковий запис {label}</translation>
+        </message>
+        <message>
+            <source>Connected</source>
+            <translation>Підключено</translation>
+        </message>
+        <message>
+            <source>Continue with your {label} account</source>
+            <translation>Продовжити з обліковим записом {label}</translation>
+        </message>
+        <message>
+            <source>Deny</source>
+            <translation>Відхилити</translation>
+        </message>
+        <message>
+            <source>Keys refused</source>
+            <translation>Ключі відхилено</translation>
+        </message>
+        <message>
+            <source>Needs your answer</source>
+            <translation>Потрібна твоя відповідь</translation>
+        </message>
+        <message>
+            <source>Not allowed</source>
+            <translation>Не дозволено</translation>
+        </message>
+        <message>
+            <source>Replace keys</source>
+            <translation>Замінити ключі</translation>
+        </message>
+        <message>
+            <source>Replace token</source>
+            <translation>Замінити токен</translation>
+        </message>
+        <message>
+            <source>Sent to {host} only.</source>
+            <translation>Надсилається лише на {host}.</translation>
+        </message>
+        <message>
+            <source>Sign in</source>
+            <translation>Увійти</translation>
+        </message>
+        <message>
+            <source>Sign in again</source>
+            <translation>Увійти знову</translation>
+        </message>
+        <message>
+            <source>Sign in to {host}</source>
+            <translation>Увійти в {host}</translation>
+        </message>
+        <message>
+            <source>Sign-in refused</source>
+            <translation>Вхід відхилено</translation>
+        </message>
+        <message>
+            <source>Skip</source>
+            <translation>Пропустити</translation>
+        </message>
+        <message>
+            <source>Skipped</source>
+            <translation>Пропущено</translation>
+        </message>
+        <message>
+            <source>Stored encrypted in QGIS on this computer. Never sent to TerraLab or the AI agent.</source>
+            <translation>Зберігається зашифрованим у QGIS на цьому комп'ютері. Ніколи не надсилається до TerraLab чи ШІ-агента.</translation>
+        </message>
+        <message>
+            <source>TerraLab's shared access is used up. A free token keeps you going.</source>
+            <translation>Спільний доступ TerraLab вичерпано. Безкоштовний токен дозволить тобі продовжити.</translation>
+        </message>
+        <message>
+            <source>TerraLab's shared access is used up. Free S3 keys keep you going.</source>
+            <translation>Спільний доступ TerraLab вичерпано. Безкоштовні ключі S3 дозволять тобі продовжити.</translation>
+        </message>
+        <message>
+            <source>This service answers only a signed-in user.</source>
+            <translation>Цей сервіс відповідає лише користувачеві, який увійшов.</translation>
+        </message>
+        <message>
+            <source>Token refused</source>
+            <translation>Токен відхилено</translation>
+        </message>
+        <message>
+            <source>Use your {label} access?</source>
+            <translation>Використати твій доступ до {label}?</translation>
+        </message>
+        <message>
+            <source>{host} opens with a token or an API key from your account.</source>
+            <translation>{host} відкривається за токеном або ключем API з твого облікового запису.</translation>
+        </message>
+        <message>
+            <source>{host} refused your saved access ({user}).</source>
+            <translation>{host}: збережений доступ відхилено ({user}).</translation>
+        </message>
+        <message>
+            <source>{host} refused your saved access.</source>
+            <translation>{host}: збережений доступ відхилено.</translation>
+        </message>
+        <message>
+            <source>{label} answers only a signed-in user.</source>
+            <translation>{label} відповідає лише користувачеві, який увійшов.</translation>
+        </message>
+        <message>
+            <source>{label} refused your saved S3 keys.</source>
+            <translation>{label}: збережені ключі S3 відхилено.</translation>
+        </message>
+        <message>
+            <source>{label} refused your saved token.</source>
+            <translation>{label}: збережений токен відхилено.</translation>
+        </message>
+        <message>
+            <source>{service} needs a token</source>
+            <translation>Для {service} потрібен токен</translation>
+        </message>
+        <message>
+            <source>Sign in with {name}</source>
+            <translation>Увійти через {name}</translation>
+        </message>
+        <message>
+            <source>TerraLab's shared access is used up. Your free account keeps you going.</source>
+            <translation>Спільний доступ TerraLab вичерпано. Ваш безкоштовний обліковий запис дає змогу продовжити.</translation>
+        </message>
+        <message>
+            <source>Try again</source>
+            <translation>Спробувати ще раз</translation>
+        </message>
+        <message>
+            <source>Use S3 keys instead</source>
+            <translation>Натомість використати ключі S3</translation>
+        </message>
+        <message>
+            <source>{name} no longer accepts your saved sign-in.</source>
+            <translation>{name} більше не приймає ваш збережений вхід.</translation>
+        </message>
+        <message>
+            <source>Keys expired</source>
+            <translation>Термін дії ключів минув</translation>
+        </message>
+        <message>
+            <source>Sign-in expired</source>
+            <translation>Термін дії входу минув</translation>
+        </message>
+        <message>
+            <source>Token expired</source>
+            <translation>Термін дії токена минув</translation>
+        </message>
+        <message>
+            <source>{host} no longer accepts your saved access.</source>
+            <translation>{host} більше не приймає ваш збережений доступ.</translation>
+        </message>
+        <message>
+            <source>{label} no longer accepts your saved S3 keys.</source>
+            <translation>{label} більше не приймає ваші збережені ключі S3.</translation>
+        </message>
+        <message>
+            <source>{label} no longer accepts your saved token.</source>
+            <translation>{label} більше не приймає ваш збережений токен.</translation>
+        </message>
+        <message>
+            <source>Your {name} sign-in expired.</source>
+            <translation>Термін дії вашого входу в {name} закінчився.</translation>
+        </message>
+        <message>
+            <source>Details</source>
+            <translation>Подробиці</translation>
+        </message>
+        <message>
+            <source>File: {value}</source>
+            <translation>Файл: {value}</translation>
+        </message>
+        <message>
+            <source>Only this file is read with it; nothing is written.</source>
+            <translation>З його допомогою читається лише цей файл; нічого не записується.</translation>
+        </message>
+        <message>
+            <source>Saved access: {value}</source>
+            <translation>Збережений доступ: {value}</translation>
+        </message>
+        <message>
+            <source>Sent to: {value}</source>
+            <translation>Надіслано до: {value}</translation>
+        </message>
+        <message>
+            <source>Choose in Google Drive</source>
+            <translation>Вибрати в Google Drive</translation>
+        </message>
+    </context>
+    <context>
+        <name>ConnectedAccountsPage</name>
+        <message>
+            <source>API key</source>
+            <translation>Ключ API</translation>
+        </message>
+        <message>
+            <source>Connected accounts</source>
+            <translation>Підключені облікові записи</translation>
+        </message>
+        <message>
+            <source>Kept in QGIS's encrypted vault, on this computer. Neither TerraLab nor the AI agent sees them.</source>
+            <translation>Зберігаються в зашифрованому сховищі QGIS на цьому комп'ютері. Ні TerraLab, ні ШІ-агент їх не бачать.</translation>
+        </message>
+        <message>
+            <source>No account yet. When a source asks you to sign in, the AI agent shows a card, and the access you save appears here.</source>
+            <translation>Облікових записів поки немає. Коли джерело просить увійти, ШІ-агент показує картку, а збережений тобою доступ з'являється тут.</translation>
+        </message>
+        <message>
+            <source>Remove</source>
+            <translation>Видалити</translation>
+        </message>
+        <message>
+            <source>Remove the access to {host}</source>
+            <translation>Видалити доступ до {host}</translation>
+        </message>
+        <message>
+            <source>S3 keys</source>
+            <translation>Ключі S3</translation>
+        </message>
+        <message>
+            <source>The sign-ins the AI agent may use, each only after you allow it.</source>
+            <translation>Входи, якими може користуватися ШІ-агент, кожен лише після твого дозволу.</translation>
+        </message>
+        <message>
+            <source>Token</source>
+            <translation>Токен</translation>
+        </message>
+        <message>
+            <source>Username and password</source>
+            <translation>Ім'я користувача та пароль</translation>
+        </message>
+        <message>
+            <source>Google account</source>
+            <translation>Обліковий запис Google</translation>
+        </message>
+        <message>
+            <source>No project picked</source>
+            <translation>Проєкт не вибрано</translation>
+        </message>
+        <message>
+            <source>Project {project}</source>
+            <translation>Проєкт {project}</translation>
+        </message>
+        <message>
+            <source>Change project…</source>
+            <translation>Змінити проєкт…</translation>
+        </message>
+        <message>
+            <source>Google sign-in</source>
+            <translation>Вхід через Google</translation>
+        </message>
+        <message>
+            <source>Signed in with the browser</source>
+            <translation>Вхід виконано через браузер</translation>
+        </message>
+        <message>
+            <source>Add account</source>
+            <translation>Додати обліковий запис</translation>
+        </message>
+        <message>
+            <source>Expired</source>
+            <translation>Термін дії минув</translation>
+        </message>
+        <message>
+            <source>Expires on {day}</source>
+            <translation>Діє до {day}</translation>
+        </message>
+        <message>
+            <source>More actions for {label}</source>
+            <translation>Інші дії для {label}</translation>
+        </message>
+        <message>
+            <source>QGIS deletes it from its vault. Layers loaded with it stop loading, and the AI agent asks you to sign in again the next time {host} needs it.</source>
+            <translation>QGIS видаляє його зі своєї бази даних автентифікації. Шари, завантажені з його допомогою, перестануть завантажуватися, а ШІ-агент попросить вас увійти знову, коли {host} знадобиться доступ.</translation>
+        </message>
+        <message>
+            <source>Refused at its last use</source>
+            <translation>Відхилено під час останнього використання</translation>
+        </message>
+        <message>
+            <source>Remove your {label} access?</source>
+            <translation>Видалити ваш доступ до {label}?</translation>
+        </message>
+        <message>
+            <source>Remove…</source>
+            <translation>Видалити…</translation>
+        </message>
+        <message>
+            <source>Replace…</source>
+            <translation>Замінити…</translation>
+        </message>
+        <message>
+            <source>Storage keys</source>
+            <translation>Ключі сховищ</translation>
+        </message>
+        <message>
+            <source>Choose files…</source>
+            <translation>Вибрати файли…</translation>
+        </message>
+        <message>
+            <source>{name} sign-in</source>
+            <translation>Вхід у {name}</translation>
+        </message>
+    </context>
+    <context>
+        <name>KeysDialog</name>
+        <message>
+            <source>Access key</source>
+            <translation>Ключ доступу</translation>
+        </message>
+        <message>
+            <source>Cancel</source>
+            <translation>Скасувати</translation>
+        </message>
+        <message>
+            <source>Connect</source>
+            <translation>Підключити</translation>
+        </message>
+        <message>
+            <source>Connect {label}</source>
+            <translation>Підключити {label}</translation>
+        </message>
+        <message>
+            <source>Connected</source>
+            <translation>Підключено</translation>
+        </message>
+        <message>
+            <source>Header name</source>
+            <translation>Назва заголовка</translation>
+        </message>
+        <message>
+            <source>Hide</source>
+            <translation>Сховати</translation>
+        </message>
+        <message>
+            <source>Key</source>
+            <translation>Ключ</translation>
+        </message>
+        <message>
+            <source>Not saved. Fill in the fields, and unlock QGIS's vault with its master password when QGIS asks.</source>
+            <translation>Не збережено. Заповни поля та розблокуй сховище QGIS майстер-паролем, коли QGIS попросить.</translation>
+        </message>
+        <message>
+            <source>Not saved. Paste both keys, and unlock QGIS's vault with its master password when QGIS asks.</source>
+            <translation>Не збережено. Встав обидва ключі та розблокуй сховище QGIS майстер-паролем, коли QGIS попросить.</translation>
+        </message>
+        <message>
+            <source>Open {host}</source>
+            <translation>Відкрити {host}</translation>
+        </message>
+        <message>
+            <source>Password</source>
+            <translation>Пароль</translation>
+        </message>
+        <message>
+            <source>Secret key</source>
+            <translation>Секретний ключ</translation>
+        </message>
+        <message>
+            <source>Show</source>
+            <translation>Показати</translation>
+        </message>
+        <message>
+            <source>Sign in</source>
+            <translation>Увійти</translation>
+        </message>
+        <message>
+            <source>Sign in to {host}</source>
+            <translation>Увійти в {host}</translation>
+        </message>
+        <message>
+            <source>Sign in with a free account, add a credential and paste both keys here.</source>
+            <translation>Увійди з безкоштовним обліковим записом, додай облікові дані та встав обидва ключі тут.</translation>
+        </message>
+        <message>
+            <source>Stored encrypted in QGIS on this computer, behind your QGIS master password. Never sent to TerraLab or the AI agent.</source>
+            <translation>Зберігається зашифрованим у QGIS на цьому комп'ютері, під твоїм майстер-паролем QGIS. Ніколи не надсилається до TerraLab чи ШІ-агента.</translation>
+        </message>
+        <message>
+            <source>Use a username and password instead</source>
+            <translation>Використати натомість ім'я користувача та пароль</translation>
+        </message>
+        <message>
+            <source>Use an API key instead</source>
+            <translation>Використати натомість ключ API</translation>
+        </message>
+        <message>
+            <source>Username</source>
+            <translation>Ім'я користувача</translation>
+        </message>
+        <message>
+            <source>the S3 keys manager</source>
+            <translation>менеджер ключів S3</translation>
+        </message>
+        <message>
+            <source>Checking…</source>
+            <translation>Перевірка…</translation>
+        </message>
+        <message>
+            <source>QGIS will ask you to choose a master password. It locks every sign-in saved in QGIS and cannot be recovered, so keep it somewhere safe.</source>
+            <translation>QGIS попросить вас вибрати головний пароль. Він блокує всі дані входу, збережені в QGIS, і його не можна відновити, тож зберігайте його в безпечному місці.</translation>
+        </message>
+        <message>
+            <source>{host} refused these details. Check them and try again.</source>
+            <translation>{host} відхилив ці дані. Перевірте їх і спробуйте ще раз.</translation>
+        </message>
+    </context>
+    <context>
+        <name>ProLock</name>
+        <message>
+            <source>Pro</source>
+            <translation>Pro</translation>
+        </message>
+    </context>
+    <context>
+        <name>ProNote</name>
+        <message>
+            <source>Get Pro</source>
+            <translation>Отримати Pro</translation>
+        </message>
+    </context>
+    <context>
+        <name>SectionHead</name>
+        <message>
+            <source>See all</source>
+            <translation>Показати все</translation>
+        </message>
+    </context>
+    <context>
+        <name>SiblingRow</name>
+        <message>
+            <source>Install</source>
+            <translation>Встановити</translation>
+        </message>
+        <message>
+            <source>Installed</source>
+            <translation>Встановлено</translation>
+        </message>
+        <message>
+            <source>Open</source>
+            <translation>Відкрити</translation>
+        </message>
+        <message>
+            <source>Opens the QGIS plugin manager on this plugin.</source>
+            <translation>Відкриває менеджер плагінів QGIS на цьому плагіні.</translation>
+        </message>
+        <message>
+            <source>Show the plugin's panel.</source>
+            <translation>Показати панель плагіна.</translation>
+        </message>
+    </context>
+    <context>
+        <name>SiblingsSection</name>
+        <message>
+            <source>Edit your imagery with a single sentence.</source>
+            <translation>Редагуй свої зображення одним реченням.</translation>
+        </message>
+        <message>
+            <source>Other TerraLab plugins</source>
+            <translation>Інші плагіни TerraLab</translation>
+        </message>
+        <message>
+            <source>Turn buildings, trees or water into polygons.</source>
+            <translation>Перетворюй будівлі, дерева чи воду на полігони.</translation>
+        </message>
+    </context>
+    <context>
+        <name>SignInDialog</name>
+        <message>
+            <source>Cancel</source>
+            <translation>Скасувати</translation>
+        </message>
+        <message>
+            <source>Connect</source>
+            <translation>Підключити</translation>
+        </message>
+        <message>
+            <source>Connected</source>
+            <translation>Підключено</translation>
+        </message>
+        <message>
+            <source>Header name</source>
+            <translation>Назва заголовка</translation>
+        </message>
+        <message>
+            <source>Hide</source>
+            <translation>Сховати</translation>
+        </message>
+        <message>
+            <source>Key</source>
+            <translation>Ключ</translation>
+        </message>
+        <message>
+            <source>Not saved. Fill in the fields, and unlock QGIS's vault with its master password when QGIS asks.</source>
+            <translation>Не збережено. Заповни поля та розблокуй сховище QGIS майстер-паролем, коли QGIS попросить.</translation>
+        </message>
+        <message>
+            <source>Open {host}</source>
+            <translation>Відкрити {host}</translation>
+        </message>
+        <message>
+            <source>Password</source>
+            <translation>Пароль</translation>
+        </message>
+        <message>
+            <source>Show</source>
+            <translation>Показати</translation>
+        </message>
+        <message>
+            <source>Sign in</source>
+            <translation>Увійти</translation>
+        </message>
+        <message>
+            <source>Sign in to {host}</source>
+            <translation>Увійти в {host}</translation>
+        </message>
+        <message>
+            <source>Stored encrypted in QGIS on this computer, behind your QGIS master password. Never sent to TerraLab or the AI agent.</source>
+            <translation>Зберігається зашифрованим у QGIS на цьому комп'ютері, під твоїм майстер-паролем QGIS. Ніколи не надсилається до TerraLab чи ШІ-агента.</translation>
+        </message>
+        <message>
+            <source>Use a username and password instead</source>
+            <translation>Використати натомість ім'я користувача та пароль</translation>
+        </message>
+        <message>
+            <source>Use an API key instead</source>
+            <translation>Використати натомість ключ API</translation>
+        </message>
+        <message>
+            <source>Username</source>
+            <translation>Ім'я користувача</translation>
+        </message>
+        <message>
+            <source>Checking…</source>
+            <translation>Перевірка…</translation>
+        </message>
+        <message>
+            <source>QGIS will ask you to choose a master password. It locks every sign-in saved in QGIS and cannot be recovered, so keep it somewhere safe.</source>
+            <translation>QGIS попросить вас вибрати головний пароль. Він блокує всі дані входу, збережені в QGIS, і його не можна відновити, тож зберігайте його в безпечному місці.</translation>
+        </message>
+        <message>
+            <source>{host} refused these details. Check them and try again.</source>
+            <translation>{host} відхилив ці дані. Перевірте їх і спробуйте ще раз.</translation>
+        </message>
+    </context>
+    <context>
+        <name>TasksPanel</name>
+        <message>
+            <source>Done</source>
+            <translation>Готово</translation>
+        </message>
+        <message>
+            <source>Failed</source>
+            <translation>Помилка</translation>
+        </message>
+        <message>
+            <source>Paused</source>
+            <translation>Призупинено</translation>
+        </message>
+        <message>
+            <source>Queued</source>
+            <translation>У черзі</translation>
+        </message>
+        <message>
+            <source>Stopped</source>
+            <translation>Зупинено</translation>
+        </message>
+        <message>
+            <source>Stopping...</source>
+            <translation>Зупинка...</translation>
+        </message>
+        <message>
+            <source>Tasks</source>
+            <translation>Завдання</translation>
+        </message>
+        <message>
+            <source>Working</source>
+            <translation>Працює</translation>
+        </message>
+    </context>
+    <context>
+        <name>TokenDialog</name>
+        <message>
+            <source>A token or an API key from your {service} account. Sent to {host} only.</source>
+            <translation>Токен або ключ API з твого облікового запису {service}. Надсилається лише на {host}.</translation>
+        </message>
+        <message>
+            <source>Cancel</source>
+            <translation>Скасувати</translation>
+        </message>
+        <message>
+            <source>Connect</source>
+            <translation>Підключити</translation>
+        </message>
+        <message>
+            <source>Connect {label}</source>
+            <translation>Підключити {label}</translation>
+        </message>
+        <message>
+            <source>Connect {service}</source>
+            <translation>Підключити {service}</translation>
+        </message>
+        <message>
+            <source>Connected</source>
+            <translation>Підключено</translation>
+        </message>
+        <message>
+            <source>Header name</source>
+            <translation>Назва заголовка</translation>
+        </message>
+        <message>
+            <source>Hide</source>
+            <translation>Сховати</translation>
+        </message>
+        <message>
+            <source>Key</source>
+            <translation>Ключ</translation>
+        </message>
+        <message>
+            <source>Not saved. Fill in the fields, and unlock QGIS's vault with its master password when QGIS asks.</source>
+            <translation>Не збережено. Заповни поля та розблокуй сховище QGIS майстер-паролем, коли QGIS попросить.</translation>
+        </message>
+        <message>
+            <source>Not saved. Paste the token, and unlock QGIS's vault with its master password when QGIS asks.</source>
+            <translation>Не збережено. Встав токен і розблокуй сховище QGIS майстер-паролем, коли QGIS попросить.</translation>
+        </message>
+        <message>
+            <source>Open {host}</source>
+            <translation>Відкрити {host}</translation>
+        </message>
+        <message>
+            <source>Password</source>
+            <translation>Пароль</translation>
+        </message>
+        <message>
+            <source>Paste your token</source>
+            <translation>Встав свій токен</translation>
+        </message>
+        <message>
+            <source>Show</source>
+            <translation>Показати</translation>
+        </message>
+        <message>
+            <source>Sign in</source>
+            <translation>Увійти</translation>
+        </message>
+        <message>
+            <source>Sign in to {host}</source>
+            <translation>Увійти в {host}</translation>
+        </message>
+        <message>
+            <source>Sign in with a free account, choose Generate Token, copy it and paste it here.</source>
+            <translation>Увійди з безкоштовним обліковим записом, вибери Generate Token, скопіюй його та встав тут.</translation>
+        </message>
+        <message>
+            <source>Stored encrypted in QGIS on this computer, behind your QGIS master password. Never sent to TerraLab or the AI agent.</source>
+            <translation>Зберігається зашифрованим у QGIS на цьому комп'ютері, під твоїм майстер-паролем QGIS. Ніколи не надсилається до TerraLab чи ШІ-агента.</translation>
+        </message>
+        <message>
+            <source>Token</source>
+            <translation>Токен</translation>
+        </message>
+        <message>
+            <source>Token for {host}</source>
+            <translation>Токен для {host}</translation>
+        </message>
+        <message>
+            <source>Use a username and password instead</source>
+            <translation>Використати натомість ім'я користувача та пароль</translation>
+        </message>
+        <message>
+            <source>Use an API key instead</source>
+            <translation>Використати натомість ключ API</translation>
+        </message>
+        <message>
+            <source>Username</source>
+            <translation>Ім'я користувача</translation>
+        </message>
+        <message>
+            <source>Checking…</source>
+            <translation>Перевірка…</translation>
+        </message>
+        <message>
+            <source>QGIS will ask you to choose a master password. It locks every sign-in saved in QGIS and cannot be recovered, so keep it somewhere safe.</source>
+            <translation>QGIS попросить вас вибрати головний пароль. Він блокує всі дані входу, збережені в QGIS, і його не можна відновити, тож зберігайте його в безпечному місці.</translation>
+        </message>
+        <message>
+            <source>{host} refused these details. Check them and try again.</source>
+            <translation>{host} відхилив ці дані. Перевірте їх і спробуйте ще раз.</translation>
+        </message>
+    </context>
+    <context>
+        <name>_TaskRow</name>
+        <message>
+            <source>Stop</source>
+            <translation>Зупинити</translation>
+        </message>
+    </context>
+    <context>
+        <name>EarthEngineConnect</name>
+        <message>
+            <source>A non-commercial Earth Engine project is not for commercial work.</source>
+            <translation>Некомерційний проєкт Earth Engine не призначений для комерційної роботи.</translation>
+        </message>
+        <message>
+            <source>Cancel</source>
+            <translation>Скасувати</translation>
+        </message>
+        <message>
+            <source>Change project</source>
+            <translation>Змінити проєкт</translation>
+        </message>
+        <message>
+            <source>Choose project</source>
+            <translation>Вибрати проєкт</translation>
+        </message>
+        <message>
+            <source>Choose your Earth Engine project</source>
+            <translation>Виберіть свій проєкт Earth Engine</translation>
+        </message>
+        <message>
+            <source>Connect</source>
+            <translation>Підключити</translation>
+        </message>
+        <message>
+            <source>Connect Earth Engine</source>
+            <translation>Підключити Earth Engine</translation>
+        </message>
+        <message>
+            <source>Connected</source>
+            <translation>Підключено</translation>
+        </message>
+        <message>
+            <source>Earth Engine needs Google's earthengine-api package. It installs into QGIS in about a minute, then you sign in with Google.</source>
+            <translation>Earth Engine потребує пакета earthengine-api від Google. Він встановлюється в QGIS приблизно за хвилину, потім ви входите через Google.</translation>
+        </message>
+        <message>
+            <source>Earth Engine refused your project {project}.</source>
+            <translation>Earth Engine відхилив ваш проєкт {project}.</translation>
+        </message>
+        <message>
+            <source>Earth Engine runs on one of your Google Cloud projects.</source>
+            <translation>Earth Engine працює на одному з ваших проєктів Google Cloud.</translation>
+        </message>
+        <message>
+            <source>Finish signing in to Google in your browser.</source>
+            <translation>Завершіть вхід у Google у браузері.</translation>
+        </message>
+        <message>
+            <source>Google refused the sign-in ({error}).</source>
+            <translation>Google відхилив вхід ({error}).</translation>
+        </message>
+        <message>
+            <source>Google refused your saved sign-in.</source>
+            <translation>Google відхилив ваш збережений вхід.</translation>
+        </message>
+        <message>
+            <source>Install</source>
+            <translation>Встановити</translation>
+        </message>
+        <message>
+            <source>Installing earthengine-api...</source>
+            <translation>Встановлення earthengine-api...</translation>
+        </message>
+        <message>
+            <source>No Earth Engine project on this account yet. Registering one is free for noncommercial use.</source>
+            <translation>У цьому обліковому записі ще немає проєкту Earth Engine. Реєстрація безкоштовна для некомерційного використання.</translation>
+        </message>
+        <message>
+            <source>Not saved: QGIS's vault stayed locked. Connect again and set the master password when QGIS asks.</source>
+            <translation>Не збережено: сховище облікових даних QGIS залишилося заблокованим. Підключіться ще раз і задайте головний пароль, коли QGIS попросить.</translation>
+        </message>
+        <message>
+            <source>Open the sign-in page again</source>
+            <translation>Відкрити сторінку входу ще раз</translation>
+        </message>
+        <message>
+            <source>Pick the Cloud project Earth Engine runs on.</source>
+            <translation>Виберіть проєкт Cloud, на якому працює Earth Engine.</translation>
+        </message>
+        <message>
+            <source>Project refused</source>
+            <translation>Проєкт відхилено</translation>
+        </message>
+        <message>
+            <source>Reading your Cloud projects...</source>
+            <translation>Читання ваших проєктів Cloud...</translation>
+        </message>
+        <message>
+            <source>Refresh</source>
+            <translation>Оновити</translation>
+        </message>
+        <message>
+            <source>Register a project</source>
+            <translation>Зареєструвати проєкт</translation>
+        </message>
+        <message>
+            <source>Sign in again</source>
+            <translation>Увійти ще раз</translation>
+        </message>
+        <message>
+            <source>Sign in with Google</source>
+            <translation>Увійти через Google</translation>
+        </message>
+        <message>
+            <source>Sign in with Google and pick your own Cloud project.</source>
+            <translation>Увійдіть через Google і виберіть власний проєкт Cloud.</translation>
+        </message>
+        <message>
+            <source>Sign-in didn't finish ({error}).</source>
+            <translation>Вхід не завершився ({error}).</translation>
+        </message>
+        <message>
+            <source>Sign-in didn't finish within 5 minutes.</source>
+            <translation>Вхід не завершився протягом 5 хвилин.</translation>
+        </message>
+        <message>
+            <source>Sign-in didn't finish. You can close this window and return to QGIS.</source>
+            <translation>Вхід не завершився. Можете закрити це вікно і повернутися до QGIS.</translation>
+        </message>
+        <message>
+            <source>Sign-in expired</source>
+            <translation>Термін дії входу минув</translation>
+        </message>
+        <message>
+            <source>The Earth Engine API is off in your project {project}.</source>
+            <translation>API Earth Engine вимкнено у вашому проєкті {project}.</translation>
+        </message>
+        <message>
+            <source>Try again</source>
+            <translation>Спробувати ще раз</translation>
+        </message>
+        <message>
+            <source>Turn on the Earth Engine API</source>
+            <translation>Увімкнути API Earth Engine</translation>
+        </message>
+        <message>
+            <source>Use this project</source>
+            <translation>Використати цей проєкт</translation>
+        </message>
+        <message>
+            <source>You're signed in. You can close this window and return to QGIS.</source>
+            <translation>Ви увійшли. Можете закрити це вікно і повернутися до QGIS.</translation>
+        </message>
+        <message>
+            <source>Your Cloud projects could not be read ({error}).</source>
+            <translation>Не вдалося прочитати ваші проєкти Cloud ({error}).</translation>
+        </message>
+        <message>
+            <source>Your Earth Engine sign-in expired.</source>
+            <translation>Термін дії вашого входу в Earth Engine минув.</translation>
+        </message>
+        <message>
+            <source>Your Google sign-in stays in QGIS's encrypted vault on this computer. Never sent to TerraLab or the AI agent.</source>
+            <translation>Ваш вхід у Google зберігається в зашифрованому сховищі облікових даних QGIS на цьому комп'ютері. Його ніколи не надсилають до TerraLab чи AI Agent.</translation>
+        </message>
+        <message>
+            <source>Your browser opens Google's sign-in. Earth Engine then runs on your own Google Cloud project, under that project's terms.</source>
+            <translation>Браузер відкриє вхід у Google. Потім Earth Engine працює на вашому власному проєкті Google Cloud за умовами цього проєкту.</translation>
+        </message>
+        <message>
+            <source>Your project {project} is not registered for Earth Engine.</source>
+            <translation>Ваш проєкт {project} не зареєстровано для Earth Engine.</translation>
+        </message>
+        <message>
+            <source>earthengine-api did not install: {error}</source>
+            <translation>earthengine-api не вдалося встановити: {error}</translation>
+        </message>
+        <message>
+            <source>{count} other projects do not have Earth Engine.</source>
+            <translation>Інші проєкти ({count}) не мають Earth Engine.</translation>
+        </message>
+        <message>
+            <source>QGIS will ask you to choose a master password. It locks every sign-in saved in QGIS and cannot be recovered, so keep it somewhere safe.</source>
+            <translation>QGIS попросить вас вибрати головний пароль. Він блокує всі збережені в QGIS входи, і його не можна відновити, тож зберігайте його в безпечному місці.</translation>
+        </message>
+    </context>
+    <context>
+        <name>BrowserWait</name>
+        <message>
+            <source>Cancel</source>
+            <translation>Скасувати</translation>
+        </message>
+        <message>
+            <source>Check that the page shows the code {code}, then sign in.</source>
+            <translation>Переконайтеся, що на сторінці показано код {code}, а потім увійдіть.</translation>
+        </message>
+        <message>
+            <source>Connecting…</source>
+            <translation>Підключення…</translation>
+        </message>
+        <message>
+            <source>Finish signing in to {name} in your browser.</source>
+            <translation>Завершіть вхід до {name} у браузері.</translation>
+        </message>
+        <message>
+            <source>Not saved. Unlock QGIS's vault with its master password when QGIS asks.</source>
+            <translation>Не збережено. Розблокуйте сховище QGIS його головним паролем, коли QGIS запитає.</translation>
+        </message>
+        <message>
+            <source>Open the page again</source>
+            <translation>Відкрити сторінку ще раз</translation>
+        </message>
+        <message>
+            <source>Opening your browser…</source>
+            <translation>Відкриваємо браузер…</translation>
+        </message>
+        <message>
+            <source>Sign-in didn't finish.</source>
+            <translation>Вхід не завершено.</translation>
+        </message>
+        <message>
+            <source>The sign-in was declined in the browser.</source>
+            <translation>Вхід відхилено в браузері.</translation>
+        </message>
+        <message>
+            <source>{label} did not answer. Check your connection.</source>
+            <translation>{label} не відповів. Перевірте підключення.</translation>
+        </message>
+        <message>
+            <source>{label} did not create the S3 keys.</source>
+            <translation>{label} не створив ключі S3.</translation>
+        </message>
+        <message>
+            <source>{label} refused the sign-in.</source>
+            <translation>{label} відмовив у вході.</translation>
+        </message>
+        <message>
+            <source>Send this approval link to your IT admin: {link}</source>
+            <translation>Надішліть це посилання для схвалення вашому ІТ-адміністратору: {link}</translation>
+        </message>
+        <message>
+            <source>Your organization lets only an admin approve TerraLab AI Agent for {label}.</source>
+            <translation>Ваша організація дозволяє лише адміністратору схвалювати TerraLab AI Agent для {label}.</translation>
+        </message>
+    </context>
+    <context>
+        <name>CloudKeysDialog</name>
+        <message>
+            <source>Access key ID</source>
+            <translation>Ідентифікатор ключа доступу</translation>
+        </message>
+        <message>
+            <source>Account key</source>
+            <translation>Ключ облікового запису</translation>
+        </message>
+        <message>
+            <source>Cancel</source>
+            <translation>Скасувати</translation>
+        </message>
+        <message>
+            <source>Checking…</source>
+            <translation>Перевірка…</translation>
+        </message>
+        <message>
+            <source>Connect</source>
+            <translation>Підключити</translation>
+        </message>
+        <message>
+            <source>Connect {label}</source>
+            <translation>Підключити {label}</translation>
+        </message>
+        <message>
+            <source>Connect {store}</source>
+            <translation>Підключити {store}</translation>
+        </message>
+        <message>
+            <source>Connected</source>
+            <translation>Підключено</translation>
+        </message>
+        <message>
+            <source>Endpoint, empty for Amazon S3</source>
+            <translation>Кінцева точка, порожня для Amazon S3</translation>
+        </message>
+        <message>
+            <source>For {address}. A read-only key is enough: the AI agent only reads from it.</source>
+            <translation>Для {address}. Достатньо ключа лише для читання: ШІ-агент лише читає з нього.</translation>
+        </message>
+        <message>
+            <source>HMAC access key</source>
+            <translation>Ключ доступу HMAC</translation>
+        </message>
+        <message>
+            <source>HMAC secret</source>
+            <translation>Секрет HMAC</translation>
+        </message>
+        <message>
+            <source>Header name</source>
+            <translation>Назва заголовка</translation>
+        </message>
+        <message>
+            <source>Hide</source>
+            <translation>Сховати</translation>
+        </message>
+        <message>
+            <source>JSON key (*.json)</source>
+            <translation>Ключ JSON (*.json)</translation>
+        </message>
+        <message>
+            <source>Key</source>
+            <translation>Ключ</translation>
+        </message>
+        <message>
+            <source>Keys expired</source>
+            <translation>Термін дії ключів минув</translation>
+        </message>
+        <message>
+            <source>Keys refused</source>
+            <translation>Ключі відхилено</translation>
+        </message>
+        <message>
+            <source>Not saved. Fill in the fields, and unlock QGIS's vault with its master password when QGIS asks.</source>
+            <translation>Не збережено. Заповніть поля та розблокуйте сховище QGIS його головним паролем, коли QGIS запитає.</translation>
+        </message>
+        <message>
+            <source>Open {host}</source>
+            <translation>Відкрити {host}</translation>
+        </message>
+        <message>
+            <source>Password</source>
+            <translation>Пароль</translation>
+        </message>
+        <message>
+            <source>QGIS will ask you to choose a master password. It locks every sign-in saved in QGIS and cannot be recovered, so keep it somewhere safe.</source>
+            <translation>QGIS попросить вас вибрати головний пароль. Він захищає всі входи, збережені в QGIS, і його неможливо відновити, тому зберігайте його в надійному місці.</translation>
+        </message>
+        <message>
+            <source>Region (optional)</source>
+            <translation>Регіон (необов'язково)</translation>
+        </message>
+        <message>
+            <source>SAS token</source>
+            <translation>SAS-токен</translation>
+        </message>
+        <message>
+            <source>Secret access key</source>
+            <translation>Секретний ключ доступу</translation>
+        </message>
+        <message>
+            <source>Service account key (JSON file)</source>
+            <translation>Ключ облікового запису служби (файл JSON)</translation>
+        </message>
+        <message>
+            <source>Show</source>
+            <translation>Показати</translation>
+        </message>
+        <message>
+            <source>Sign in</source>
+            <translation>Увійти</translation>
+        </message>
+        <message>
+            <source>Sign in to {host}</source>
+            <translation>Увійти в {host}</translation>
+        </message>
+        <message>
+            <source>Storage account name</source>
+            <translation>Ім'я облікового запису сховища</translation>
+        </message>
+        <message>
+            <source>Stored encrypted in QGIS on this computer, behind your QGIS master password. Never sent to TerraLab or the AI agent.</source>
+            <translation>Зберігається в QGIS на цьому комп'ютері в зашифрованому вигляді, під вашим головним паролем QGIS. Ніколи не надсилається до TerraLab або ШІ-агента.</translation>
+        </message>
+        <message>
+            <source>The keys could not be checked: {error}</source>
+            <translation>Не вдалося перевірити ключі: {error}</translation>
+        </message>
+        <message>
+            <source>This bucket opens only with a service account key.</source>
+            <translation>Цей бакет відкривається лише за допомогою ключа облікового запису служби.</translation>
+        </message>
+        <message>
+            <source>This bucket opens only with your access keys.</source>
+            <translation>Цей бакет відкривається лише за допомогою ваших ключів доступу.</translation>
+        </message>
+        <message>
+            <source>This container opens only with your account key or a SAS token.</source>
+            <translation>Цей контейнер відкривається лише за допомогою ключа облікового запису або SAS-токена.</translation>
+        </message>
+        <message>
+            <source>This file is not a service account key. In the Google Cloud console, open the service account, then Keys, Add key, JSON.</source>
+            <translation>Цей файл не є ключем облікового запису служби. У консолі Google Cloud відкрийте обліковий запис служби, потім Ключі, Додати ключ, JSON.</translation>
+        </message>
+        <message>
+            <source>Use a SAS token instead</source>
+            <translation>Натомість використати SAS-токен</translation>
+        </message>
+        <message>
+            <source>Use a service account key instead</source>
+            <translation>Натомість використати ключ облікового запису служби</translation>
+        </message>
+        <message>
+            <source>Use a username and password instead</source>
+            <translation>Натомість використати ім'я користувача та пароль</translation>
+        </message>
+        <message>
+            <source>Use an API key instead</source>
+            <translation>Натомість використати ключ API</translation>
+        </message>
+        <message>
+            <source>Use an HMAC key instead</source>
+            <translation>Натомість використати ключ HMAC</translation>
+        </message>
+        <message>
+            <source>Use the account key instead</source>
+            <translation>Натомість використати ключ облікового запису</translation>
+        </message>
+        <message>
+            <source>Username</source>
+            <translation>Ім'я користувача</translation>
+        </message>
+        <message>
+            <source>{host} refused these details. Check them and try again.</source>
+            <translation>{host} відхилив ці дані. Перевірте їх і спробуйте ще раз.</translation>
+        </message>
+        <message>
+            <source>{store} no longer accepts your saved keys.</source>
+            <translation>{store} більше не приймає ваші збережені ключі.</translation>
+        </message>
+        <message>
+            <source>{store} refused your saved keys.</source>
+            <translation>{store} відхилив ваші збережені ключі.</translation>
+        </message>
+        <message>
+            <source>{where} refused these keys.</source>
+            <translation>{where} відхилив ці ключі.</translation>
+        </message>
+    </context>
+    <context>
+        <name>AccountDrive</name>
+        <message>
+            <source>Allow SharePoint sites</source>
+            <translation>Дозволити сайти SharePoint</translation>
+        </message>
+        <message>
+            <source>Cancel</source>
+            <translation>Скасувати</translation>
+        </message>
+        <message>
+            <source>Choose this file in Google Drive</source>
+            <translation>Вибрати цей файл у Google Drive</translation>
+        </message>
+        <message>
+            <source>Connect Google Drive</source>
+            <translation>Підключити Google Drive</translation>
+        </message>
+        <message>
+            <source>Connect OneDrive and SharePoint</source>
+            <translation>Підключити OneDrive і SharePoint</translation>
+        </message>
+        <message>
+            <source>Connect SharePoint</source>
+            <translation>Підключити SharePoint</translation>
+        </message>
+        <message>
+            <source>Read with your account, only for this request.</source>
+            <translation>Читання з вашого облікового запису, лише для цього запиту.</translation>
+        </message>
+        <message>
+            <source>Read-only: the AI agent can open your files, never change or delete them.</source>
+            <translation>Лише читання: ШІ-агент може відкривати ваші файли, але ніколи не змінює і не видаляє їх.</translation>
+        </message>
+        <message>
+            <source>Reading SharePoint sites needs one more permission. Your organization's admin may have to approve it.</source>
+            <translation>Для читання сайтів SharePoint потрібен ще один дозвіл. Його може знадобитися схвалити адміністратору вашої організації.</translation>
+        </message>
+        <message>
+            <source>Sign in again</source>
+            <translation>Увійти знову</translation>
+        </message>
+        <message>
+            <source>Sign in with {name}</source>
+            <translation>Увійти через {name}</translation>
+        </message>
+        <message>
+            <source>The AI agent sees only the files you pick. Pick this one to let it open it.</source>
+            <translation>ШІ-агент бачить лише файли, які ви вибираєте. Виберіть цей, щоб він міг його відкрити.</translation>
+        </message>
+        <message>
+            <source>Try again</source>
+            <translation>Спробувати ще раз</translation>
+        </message>
+        <message>
+            <source>Use your {label} access?</source>
+            <translation>Використати ваш доступ до {label}?</translation>
+        </message>
+        <message>
+            <source>You pick the files the AI agent may open. It sees nothing else in your Drive.</source>
+            <translation>Ви вибираєте файли, які ШІ-агент може відкривати. Більше нічого у вашому Drive він не бачить.</translation>
+        </message>
+        <message>
+            <source>Your sign-in stays in QGIS's encrypted vault on this computer. Never sent to TerraLab or the AI agent.</source>
+            <translation>Ваш вхід зберігається в зашифрованому сховищі QGIS на цьому комп'ютері. Його ніколи не надсилають до TerraLab або ШІ-агенту.</translation>
+        </message>
+        <message>
+            <source>{name} no longer accepts your saved sign-in.</source>
+            <translation>{name} більше не приймає ваш збережений вхід.</translation>
+        </message>
+    </context>
+    <context>
+        <name>RatingCard</name>
+        <message>
+            <source>Add details (optional)</source>
+            <translation>Додайте подробиці (необов'язково)</translation>
+        </message>
+        <message>
+            <source>Close</source>
+            <translation>Закрити</translation>
+        </message>
+        <message>
+            <source>Could not send. Try again.</source>
+            <translation>Не вдалося надіслати. Спробуйте ще раз.</translation>
+        </message>
+        <message>
+            <source>Not what I asked</source>
+            <translation>Не те, що я просив(-ла)</translation>
+        </message>
+        <message>
+            <source>Send</source>
+            <translation>Надіслати</translation>
+        </message>
+        <message>
+            <source>Tell us more (optional)</source>
+            <translation>Розкажіть більше (необов'язково)</translation>
+        </message>
+        <message>
+            <source>Thanks for the feedback</source>
+            <translation>Дякуємо за відгук</translation>
+        </message>
+        <message>
+            <source>Too slow</source>
+            <translation>Надто повільно</translation>
+        </message>
+        <message>
+            <source>What went wrong?</source>
+            <translation>Що пішло не так?</translation>
+        </message>
+        <message>
+            <source>What worked well?</source>
+            <translation>Що спрацювало добре?</translation>
+        </message>
+        <message>
+            <source>Wrong result</source>
+            <translation>Хибний результат</translation>
+        </message>
+        <message>
+            <source>Your words are sent with this chat and recent logs.</source>
+            <translation>Ваші слова надсилаються разом із цим чатом і нещодавніми журналами.</translation>
         </message>
     </context>
 </TS>

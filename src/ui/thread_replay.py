@@ -12,10 +12,11 @@
 
 from __future__ import annotations
 
+from ..core.numbers import as_float, as_int
 from ..core.tool_registry import spec
 from .bubbles import AgentBubble, UserBubble
 from .cards import ErrorCard, PermissionCard, QuestionCard, RunSummaryCard, ToolCard
-from .cards_run import _first_sentence
+from .cards_run import _first_sentence, run_ending
 from .shared import tr
 
 
@@ -25,12 +26,6 @@ _NOTHING_CHANGED = "No layer, feature or file changed"
 
 def _is_nothing_changed(line: str) -> bool:
     return line in (_NOTHING_CHANGED, tr(_NOTHING_CHANGED))
-
-
-def replay(panel, messages) -> None:
-
-    for step in replay_steps(panel, messages):
-        step()
 
 
 def replay_steps(panel, messages) -> list:
@@ -101,7 +96,8 @@ def _replay_simple(panel, m: dict, role: str, run_id: str, resendable=None) -> N
         panel._add(card, animate=False)
     elif role == "error":
         retryable = bool(m.get("retryable")) and (resendable is None or run_id in resendable)
-        short, more = _first_sentence(str(m.get("message") or ""))
+        short, more = (run_ending(str(m.get("code") or ""), str(m["reason"]), "") if m.get("reason")
+                       else _first_sentence(str(m.get("message") or "")))
         run = panel._runs.get(run_id)
         card = ErrorCard(run_id, str(m.get("code") or ""), short,
                          retryable, str(m.get("details") or ""), more=more,
@@ -137,10 +133,7 @@ def _split(m: dict) -> tuple[str, str]:
 
 
     text = str(m.get("text") or "")
-    try:
-        start = int(m.get("answer_start") or 0)
-    except (TypeError, ValueError):
-        start = 0
+    start = as_int(m.get("answer_start") or 0, 0)
     if not m.get("tool_calls") or not 0 < start < len(text):
         return "", text.strip()
     commentary, answer = text[:start].strip(), text[start:].strip()
@@ -256,8 +249,8 @@ def _replay_summary(panel, status: str, summary: str, usage, verification, has_t
     if has_text:
         summary = ""
     if summary or lines or (status not in ("done", "cancelled") and not has_block):
-        panel._add(RunSummaryCard(status, summary, usage, {"lines": lines} if lines else None),
-                   animate=False)
+        panel._add(RunSummaryCard(status, summary, usage, {"lines": lines} if lines else None,
+                                  headed=has_block), animate=False)
 
 
 def _replay_tool(panel, run_id: str, call: dict) -> None:
@@ -285,10 +278,7 @@ def _replay_tool(panel, run_id: str, call: dict) -> None:
     card = ToolCard(tool_id, str(call.get("name") or ""), call.get("args") or {},
                     str(call.get("danger") or "read"), str(call.get("sentence") or ""))
     if call.get("ok") is not None:
-        try:
-            duration = float(call.get("duration_s") or 0.0)
-        except (TypeError, ValueError):
-            duration = 0.0
+        duration = as_float(call.get("duration_s") or 0.0, 0.0)
         card.finish(bool(call.get("ok")), str(call.get("summary") or ""), duration,
                     str(call.get("detail") or ""), str(call.get("hint") or ""))
     else:

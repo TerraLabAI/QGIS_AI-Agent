@@ -46,7 +46,8 @@ from . import guards, kml_description, vector_write
 from ._compat import FIELD_TYPES, QVAR_DOUBLE, WKB_NO_GEOMETRY, is_raster, is_vector, py_value
 from ._layers import layer_not_found, resolve_layer
 from .danger import sql_mutates
-from .layer_lookup import require_vector
+from .layer_lookup import _field_not_found_error, require_vector
+from .query_tools import _measurement
 
 _SQL_ROW_CAP = 1000
 
@@ -66,6 +67,8 @@ def register_harvest_analysis_tools(registry: ToolRegistry):
     registry.register(Tool(
         name="execute_sql",
         danger="write",
+        mutates_data=True,
+        creates_layer_at=("layer_name",),
         label=QT_TRANSLATE_NOOP("AIAgent", "Run a SQL query"),
         input_schema={
             "type": "object",
@@ -106,6 +109,7 @@ def register_harvest_analysis_tools(registry: ToolRegistry):
     registry.register(Tool(
         name="field_calculator",
         danger="write",
+        mutates_data=True, reads_whole_layer=True, check_shape="field",
         label=QT_TRANSLATE_NOOP("AIAgent", "Calculate {field_name} in {layer_name}"),
         input_schema={
             "type": "object",
@@ -235,7 +239,6 @@ def register_harvest_analysis_tools(registry: ToolRegistry):
 
 
 def _field_error(layer, field_name: str) -> dict:
-    from .layer_lookup import _field_not_found_error
 
     return _field_not_found_error(layer, field_name)
 
@@ -598,8 +601,6 @@ def _calc_open(args: dict) -> dict:
 
 
 
-
-    from .query_tools import _measurement
 
     measurement = _measurement(expr, layer)
     expr.prepare(ctx)

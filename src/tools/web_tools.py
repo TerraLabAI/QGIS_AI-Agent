@@ -12,7 +12,6 @@
 from __future__ import annotations
 
 import json
-import math
 import posixpath
 import re
 import urllib.error
@@ -32,14 +31,15 @@ from qgis.core import (
 )
 from qgis.PyQt.QtCore import QT_TRANSLATE_NOOP
 
-from ..core import http_headers, limits, links, net
+from ..core import accounts, http_headers, limits, links, net, source_rules
 from ..core.background import run_on_main_thread
+from ..core.numbers import as_finite
 from ..core.qt_compat import field_type
-from ..core.security import is_local_url, local_url_refusal
+from ..core.security_urls import is_local_url, local_url_refusal
 from ..core.serialization import CodedText
 from ..core.tool_registry import Tool, ToolRegistry, coded_fact, tool_error
 from . import volume_guard
-from .data_tools import _USER_AGENT, expand_link
+from .data_inspect import expand_link
 
 _TIMEOUT_S = 30
 _MAX_BYTES = 25 * 1024 * 1024
@@ -54,6 +54,11 @@ _MAX_RECORDS = limits.MAX_FEATURES_PER_CALL
 _MAX_FIELDS = 30
 _DEFAULT_MAX_CHARS = 6000
 _MAX_CHARS_CAP = 40000
+_BINARY_DATA_TYPES = ("application/zip", "application/x-zip", "image/tiff", "application/geopackage",
+                      "application/vnd.sqlite3", "application/x-sqlite3", "application/vnd.google-earth.kmz",
+                      "application/flatgeobuf", "application/vnd.apache.parquet", "application/x-parquet",
+                      "application/geo+json", "application/vnd.geo+json", "application/octet-stream",
+                      "application/vnd.pmtiles", "application/vnd.openxmlformats-officedocument")
 _ACCEPT = "application/json, application/geo+json;q=0.9, */*;q=0.5"
 
 
@@ -95,6 +100,7 @@ def register_web_tools(registry: ToolRegistry):
     registry.register(Tool(
         name="add_points_from_json",
         danger="write",
+        held_in_memory=True, check_shape="arrives",
         input_schema={
             "type": "object",
             "properties": {
@@ -127,7 +133,7 @@ def _fetch(url: str) -> tuple[object | None, dict | None]:
         return None, tool_error("URL must use http or https.", "INVALID_ARGS")
     if is_local_url(url):
         return None, _local_url_error(url)
-    req = urllib.request.Request(url, headers={"User-Agent": _USER_AGENT, "Accept": _ACCEPT})
+    req = urllib.request.Request(url, headers={"Accept": _ACCEPT})
     try:
         answer = net.fetch(req, timeout=_TIMEOUT_S, max_bytes=_MAX_BYTES,
                            total_timeout=_TOTAL_TIMEOUT_S, cache_ttl=_CACHE_S)
@@ -271,17 +277,6 @@ _EMBEDDED_JSON_RES = (
 )
 _MAX_LINKS = 30
 
-_SERVICE_HINTS = ("service=wms", "service=wfs", "service=wmts", "service=wcs", "/wms", "/wfs", "/wmts", "/ows",
-                  "/rest/services", "/geoserver", "/api/", "/download", "/export", "/datasets/", "/dataset/",
-                  "/collections", "getcapabilities", "f=geojson", "/resource/", "/files/")
-
-_BINARY_DATA_TYPES = ("application/zip", "application/x-zip", "image/tiff", "application/geopackage",
-                      "application/vnd.sqlite3", "application/x-sqlite3", "application/vnd.google-earth.kmz",
-                      "application/flatgeobuf", "application/vnd.apache.parquet", "application/x-parquet",
-                      "application/geo+json", "application/vnd.geo+json", "application/octet-stream",
-                      "application/vnd.pmtiles", "application/vnd.openxmlformats-officedocument")
-_BINARY_EXTS = (".zip", ".tif", ".tiff", ".gpkg", ".kmz", ".fgb", ".parquet", ".geoparquet", ".pmtiles",
-                ".xlsx", ".ods", ".geojson", ".shp", ".jp2", ".nc", ".laz", ".las", ".gz")
 
 
 def _fetch_raw(url: str) -> tuple[bytes | None, str, dict | None]:
@@ -290,10 +285,13 @@ def _fetch_raw(url: str) -> tuple[bytes | None, str, dict | None]:
         return None, "", tool_error("URL must use http or https.", "INVALID_ARGS")
     if is_local_url(url):
         return None, "", _local_url_error(url)
-    req = urllib.request.Request(url, headers={"User-Agent": _USER_AGENT, "Accept": _ACCEPT_TEXT})
+    asked = accounts.check(url, "Read this page")
+    if asked:
+        return None, "", asked
+    req, signed = accounts.signed(url, headers={"Accept": _ACCEPT_TEXT})
     try:
         answer = net.fetch(req, timeout=_TIMEOUT_S, max_bytes=_MAX_BYTES,
-                           total_timeout=_TOTAL_TIMEOUT_S, cache_ttl=_CACHE_S)
+                           total_timeout=_TOTAL_TIMEOUT_S, cache_ttl=0.0 if signed else _CACHE_S)
         return answer.body, str(answer.headers.get("content-type") or ""), None
     except net.FetchTooLarge:
         return None, "", tool_error(f"The document is over {_MAX_BYTES // (1024 * 1024)} MB.",
@@ -305,7 +303,8 @@ def _fetch_raw(url: str) -> tuple[bytes | None, str, dict | None]:
     except net.FetchCancelled:
         return None, "", tool_error("The run was stopped.", "CANCELLED")
     except urllib.error.HTTPError as e:
-        return None, "", tool_error(f"HTTP {e.code} from {url}", "HTTP_ERROR")
+        failure = tool_error(f"HTTP {e.code} from {url}", "HTTP_ERROR")
+        return None, "", accounts.refused(url, e.code, failure, "page") if accounts.is_refusal(e.code, url) else failure
     except (urllib.error.URLError, OSError) as e:
         return None, "", tool_error(f"Could not fetch {url}: {e}", "NETWORK_ERROR")
 
@@ -381,9 +380,9 @@ def _page_links(body: str, base: str) -> list[dict]:
         seen.add(url)
         lowered = url.lower()
         ext = links.extension(url)
-        if ext in links.DATA_EXTENSIONS and ext != ".json":
+        if ext in links.data_extensions() and ext != ".json":
             score = 0
-        elif any(hint in lowered for hint in _SERVICE_HINTS):
+        elif any(hint in lowered for hint in source_rules.table("pages", "service_hints", [])):
             score = 1
         elif parts.hostname == host and (lowered.endswith((".html", ".htm", ".md", ".pdf", "/")) or "doc" in lowered):
             score = 2
@@ -508,7 +507,7 @@ def _fetch_text(args: dict) -> dict:
 
     head = raw[:512].lstrip()[:15].lower()
     binary = mime.startswith(_BINARY_DATA_TYPES) or (
-        ext in _BINARY_EXTS and not head.startswith((b"<!doctype", b"<html")))
+        ext in source_rules.table("pages", "binary_exts", []) and not head.startswith((b"<!doctype", b"<html")))
     if (binary and not raw.startswith(b"%PDF")) or raw[:4] == b"PK\x03\x04" or raw[:15] == b"SQLite format 3":
         name = posixpath.splitext(posixpath.basename(urllib.parse.urlsplit(url).path))[0] or "dataset"
         out.update({"chars": 0, "text": "", "data_file": True, "size_bytes": len(raw),
@@ -531,7 +530,7 @@ def _fetch_text(args: dict) -> dict:
         is_html = "html" in mime or body.lstrip()[:200].lower().startswith(("<!doctype", "<html"))
         if not is_html:
             body_text = body
-            if ext in links.DATA_EXTENSIONS:
+            if ext in links.data_extensions():
                 out["call"] = {"tool": "add_data", "args": {"source": url}}
         else:
             title = _TITLE_RE.search(body) or _OG_TITLE_RE.search(body)
@@ -608,16 +607,6 @@ def _cut(out: dict, text: str, max_chars: int) -> dict:
     return out
 
 
-def _number(value) -> float | None:
-    if isinstance(value, bool) or value is None:
-        return None
-    try:
-        number = float(value)
-    except (TypeError, ValueError):
-        return None
-    return None if math.isnan(number) else number
-
-
 def _attribute(value):
     if value is None or isinstance(value, (int, float, str)) and not isinstance(value, bool):
         return value
@@ -690,8 +679,8 @@ def _add_points_from_json(args: dict) -> dict:
     rows = []
     skipped = 0
     for record in records[:limit]:
-        lat = _number(_walk(record, lat_key))
-        lon = _number(_walk(record, lon_key))
+        lat = as_finite(_walk(record, lat_key))
+        lon = as_finite(_walk(record, lon_key))
         if lat is None or lon is None or not (-90 <= lat <= 90 and -180 <= lon <= 180):
             skipped += 1
             continue

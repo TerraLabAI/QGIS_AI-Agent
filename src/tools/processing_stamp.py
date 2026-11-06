@@ -12,6 +12,7 @@ from __future__ import annotations
 import os
 
 from ..core.logger import log_warning
+from ..core.provenance import was_there
 
 _PROVENANCE_COMMAND_MAX = 2000
 
@@ -88,8 +89,6 @@ def write_metadata_to_file(layer, existed=None) -> None:
 
 
     from qgis.core import QgsProviderRegistry
-
-    from ..core.provenance import was_there
 
     try:
         registry = QgsProviderRegistry.instance()

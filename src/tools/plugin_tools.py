@@ -16,6 +16,8 @@ from ..core.logger import log_warning
 from ..core.qgis_plugins import explore_menu as _explore_menu
 from ..core.qgis_plugins import menu_of as _menu_of
 from ..core.tool_registry import Tool, ToolRegistry, tool_error
+from ..ui.cross_plugin_discovery import open_plugin_manager_later
+from .sibling_setup import plugin_presence
 
 
 def _known() -> dict:
@@ -25,7 +27,7 @@ def _known() -> dict:
 
 
     try:
-        from ..ui.shared import known_plugins_by_folder
+        from ..core.served_state import known_plugins_by_folder
 
         return known_plugins_by_folder()
     except Exception:  # noqa: BLE001
@@ -598,13 +600,10 @@ def _open_plugin_manager(args: dict) -> dict:
     if not asked:
         return tool_error("plugin_name is empty; it takes the name as the QGIS Plugin Manager lists it.",
                           "INVALID_ARGS")
-    from ..ui.cross_plugin_discovery import open_plugin_manager_later
-    from .sibling_setup import presence
-
     folder = resolve_plugin(asked)
     if folder:
         name = _display_name(folder) or folder
-        state = presence((folder,))["state"]
+        state = plugin_presence(folder)["state"]
         if state == "loaded":
             return {"installed": True, "enabled": True, "plugin": name, "folder": folder,
                     "registers": _reach(folder), "opened": False,

@@ -18,10 +18,10 @@
 from __future__ import annotations
 
 import math
+import re
 
 from qgis.core import QgsCoordinateReferenceSystem, QgsPointXY, QgsRasterLayer, QgsRectangle
 
-from ..core.context_layers import box_to_4326
 from ..core.tool_registry import coded_fact
 from .csv_loader import _project_candidates
 from .processing_crs_checks import _centre_in_area_of_use, degree_slack, fits_degrees
@@ -69,6 +69,8 @@ def _swapped(extent) -> QgsRectangle:
 def verdict(layer, crs, declared: bool = True) -> dict:
 
 
+
+
     try:
         extent = QgsRectangle(layer.extent())
     except Exception:  # noqa: BLE001
@@ -77,8 +79,7 @@ def verdict(layer, crs, declared: bool = True) -> dict:
                                                               extent.yMinimum(), extent.yMaximum())):
         return {}
     x0, x1, y0, y1 = extent.xMinimum(), extent.xMaximum(), extent.yMinimum(), extent.yMaximum()
-    numbers = f"x {_num(x0)} to {_num(x1)}, y {_num(y0)} to {_num(y1)}"
-    name = layer.name()
+    numbers = {"x_min": _num(x0), "x_max": _num(x1), "y_min": _num(y0), "y_max": _num(y1)}
 
 
     slack_x, slack_y = degree_slack(layer)
@@ -86,61 +87,44 @@ def verdict(layer, crs, declared: bool = True) -> dict:
     swapped_degrees = not degrees and fits_degrees(y0, y1, x0, x1, slack_y, slack_x)
 
     def projected_candidates(exclude: str = "") -> list:
-        return [(c.authid(), origin) for c, origin in _project_candidates(extent)
-                if c.authid() and c.authid() != exclude]
+        return [c.authid() for c, _origin in _project_candidates(extent) if c.authid() and c.authid() != exclude]
+
+    def found(kind: str, label: str, candidates: list, detail: str = "") -> dict:
+        return {"verdict": kind, "crs": label, "candidates": candidates, "numbers": numbers,
+                **({"detail_hint": detail} if detail else {})}
 
     if _not_georeferenced(layer, extent):
-        return {"verdict": "not_georeferenced", "crs": "", "candidates": [],
-                "detail": (f"'{name}' has no georeferencing: its extent is its own pixel grid ({numbers}), so it "
-                           f"sits at 0,0 whatever CRS it is given.")}
+        return found("not_georeferenced", "", [], "crs_detail_not_georeferenced")
     if not declared or not crs.isValid():
-        if degrees:
-            candidates = [(_WGS84, "the coordinates read as longitude/latitude")]
-        elif swapped_degrees:
-            candidates = [(_WGS84, "longitude/latitude, with x and y swapped")]
+        if degrees or swapped_degrees:
+            candidates = [_WGS84]
         else:
             candidates = projected_candidates()
-        return {"verdict": "missing", "crs": "", "candidates": candidates,
-                "detail": (f"'{name}' declares no CRS ({numbers}): QGIS cannot place it, and any measure or "
-                           f"overlay on it would be wrong.")}
+        return found("missing", "", candidates, "crs_detail_missing")
     label = _authid(crs)
     if crs.isGeographic():
         if degrees:
             inside = _in_area(crs, extent)
             if inside is False:
-                return {"verdict": "outside_area_of_use", "crs": label, "candidates": [(_WGS84, "")] if
-                        label != _WGS84 else [],
-                        "detail": (f"'{name}' declares {label}, and its coordinates ({numbers}) fall outside the "
-                                   f"area that CRS is defined for.")}
+                return found("outside_area_of_use", label, [_WGS84] if label != _WGS84 else [])
             return {}
         if swapped_degrees:
-            return {"verdict": "swapped_axes", "crs": label, "candidates": [],
-                    "detail": (f"'{name}' declares {label}, and its coordinates ({numbers}) fit it only with x and "
-                               f"y swapped: latitude is in x.")}
-        return {"verdict": "projected_declared_geographic", "crs": label, "candidates": projected_candidates(),
-                "detail": (f"'{name}' declares {label}, a CRS in degrees, but its coordinates ({numbers}) cannot "
-                           f"be degrees: they are projected, and the layer lands nowhere.")}
+            return found("swapped_axes", label, [], "crs_detail_swapped_axes")
+        return found("projected_declared_geographic", label, projected_candidates(),
+                     "crs_detail_projected_declared_geographic")
     inside = _in_area(crs, extent)
     if inside is not False:
         return {}
     if degrees:
-        candidates = [(c, "the coordinates read as longitude/latitude")
-                      for c in dict.fromkeys(filter(None, (_geographic_of(crs), _WGS84)))]
-        return {"verdict": "degrees_declared_projected", "crs": label, "candidates": candidates,
-                "detail": (f"'{name}' declares {label}, a CRS in metres, but its coordinates ({numbers}) are "
-                           f"degrees: it sits near that CRS's origin, far from its ground.")}
+        return found("degrees_declared_projected", label,
+                     list(dict.fromkeys(filter(None, (_geographic_of(crs), _WGS84)))),
+                     "crs_detail_degrees_declared_projected")
     if _in_area(crs, _swapped(extent)) is True:
-        return {"verdict": "swapped_axes", "crs": label, "candidates": [],
-                "detail": (f"'{name}' declares {label}, and its coordinates ({numbers}) fall inside that CRS's area "
-                           f"only with x and y swapped.")}
+        return found("swapped_axes", label, [], "crs_detail_swapped_axes_area")
 
 
-    box = box_to_4326(extent, crs)
-    lands = (f"; read in it they land at lon {box.xMinimum():.3f} to {box.xMaximum():.3f}, lat "
-             f"{box.yMinimum():.3f} to {box.yMaximum():.3f} (EPSG:4326)" if box is not None else "")
-    return {"verdict": "outside_area_of_use", "crs": label, "candidates": projected_candidates(crs.authid()),
-            "detail": (f"'{name}' declares {label}, and its coordinates ({numbers}) fall outside the area of use "
-                       f"that CRS publishes{lands}.")}
+    return found("outside_area_of_use", label, projected_candidates(crs.authid()))
+
 
 
 
@@ -170,13 +154,43 @@ def check_loaded(layer, crs_assigned: bool = False) -> dict:
     found = verdict(layer, crs, declared=declared)
     if not found:
         return {}
-    candidates = [authid for authid, _why in found["candidates"]]
+    candidates = found["candidates"]
 
 
     check = {"verdict": found["verdict"], "declared": found["crs"], "candidates": candidates,
              "layer": layer.name(), "variant": "candidates" if candidates else "none",
-             **_VERDICT_FACT.get(found["verdict"], {})}
-    return {"crs_check": check, "warning": found["detail"]}
+             **found["numbers"], **_VERDICT_FACT.get(found["verdict"], {}),
+             **({"detail_hint": found["detail_hint"]} if found.get("detail_hint") else {})}
+    return {"crs_check": check}
 
 
-__all__ = ["check_loaded", "verdict"]
+def normalise_crs(layer) -> str:
+
+
+
+
+
+
+
+
+
+    try:
+        crs = layer.crs()
+        if not crs.isValid() or crs.authid():
+            return ""
+        candidate = None
+        name = (crs.description() or "").strip()
+        if re.fullmatch(r"(?i)EPSG:\d{4,6}", name):
+            candidate = QgsCoordinateReferenceSystem(name.upper())
+        if candidate is None or not candidate.isValid():
+            srsid = int(crs.findMatchingProj() or 0)
+            candidate = QgsCoordinateReferenceSystem.fromSrsId(srsid) if srsid else None
+        if candidate is None or not candidate.isValid() or not candidate.authid():
+            return ""
+        layer.setCrs(candidate)
+        return candidate.authid()
+    except Exception:  # noqa: BLE001
+        return ""
+
+
+__all__ = ["check_loaded", "normalise_crs", "verdict"]

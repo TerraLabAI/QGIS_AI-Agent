@@ -68,7 +68,7 @@ class SliderView(PictureView):
             button.setAutoDefault(False)
             button.setToolTip(tr("Enlarge"))
             button.setAccessibleName(tr("Enlarge"))
-            button.setIcon(icon_for(button, "expand", 16, QColor("#ffffff")))
+            button.setIcon(icon_for(button, C.line_glyph("expand"), 16, QColor("#ffffff")))
             button.setIconSize(QSize(16, 16))
             button.setStyleSheet(
                 f"QPushButton {{ background: rgba(0,0,0,140); border: none; border-radius: {side // 2}px; }}"
@@ -217,7 +217,7 @@ class Enlarged(QWidget):
         close.setAutoDefault(False)
         close.setToolTip(tr("Close"))
         close.setAccessibleName(tr("Close"))
-        close.setIcon(icon_for(close, "close", 18, QColor("#ffffff")))
+        close.setIcon(icon_for(close, C.line_glyph("close"), 18, QColor("#ffffff")))
         close.setIconSize(QSize(18, 18))
         close.setStyleSheet(f"QPushButton {{ background: rgba(255,255,255,40); border: none;"
                             f" border-radius: {side // 2}px; }}"

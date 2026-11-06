@@ -1163,14 +1163,6 @@ De verwijdering is definitief zodra de respijtperiode is verstreken. Tot die tij
             <translation>{raster} georefereren</translation>
         </message>
         <message>
-            <source>Get a Sentinel image</source>
-            <translation>Een Sentinel-beeld ophalen</translation>
-        </message>
-        <message>
-            <source>Get an elevation model</source>
-            <translation>Een hoogtemodel ophalen</translation>
-        </message>
-        <message>
             <source>Hans van der Kwast's review, recorded in QGIS.</source>
             <translation>De review van Hans van der Kwast, opgenomen in QGIS.</translation>
         </message>
@@ -1231,10 +1223,6 @@ De verwijdering is definitief zodra de respijtperiode is verstreken. Tot die tij
             <translation>De plugins tonen</translation>
         </message>
         <message>
-            <source>List the satellite catalogs</source>
-            <translation>De satellietcatalogi tonen</translation>
-        </message>
-        <message>
             <source>Load 3D Tiles[ from {url}]</source>
             <translation>3D Tiles[ van {url}] laden</translation>
         </message>
@@ -1255,20 +1243,12 @@ De verwijdering is definitief zodra de respijtperiode is verstreken. Tot die tij
             <translation>De interface bekijken</translation>
         </message>
         <message>
-            <source>Look for data on the web[ for {query}]</source>
-            <translation>Gegevens zoeken op het web[ over {query}]</translation>
-        </message>
-        <message>
             <source>Look for data on this computer</source>
             <translation>Gegevens zoeken op deze computer</translation>
         </message>
         <message>
             <source>Look for relief anomalies[ in {lrm_layer}][ in {dem}]</source>
             <translation>Naar reliëfanomalieën zoeken[ in {lrm_layer}][ in {dem}]</translation>
-        </message>
-        <message>
-            <source>Look up the place[ {query}]</source>
-            <translation>De plaats opzoeken[ {query}]</translation>
         </message>
         <message>
             <source>Make the temporary layers permanent[ in {gpkg_path}]</source>
@@ -1327,10 +1307,6 @@ De verwijdering is definitief zodra de respijtperiode is verstreken. Tot die tij
             <translation>Rasterberekening[ als {name}]</translation>
         </message>
         <message>
-            <source>Read a NASA Earthdata collection[ {short_name}]</source>
-            <translation>Een NASA Earthdata-collectie uitlezen[ {short_name}]</translation>
-        </message>
-        <message>
             <source>Read a coordinate from the map</source>
             <translation>Een coördinaat op de kaart uitlezen</translation>
         </message>
@@ -1339,20 +1315,12 @@ De verwijdering is definitief zodra de respijtperiode is verstreken. Tot die tij
             <translation>Objecten van {layer_name} lezen</translation>
         </message>
         <message>
-            <source>Read the AI Agent documentation[ on {query}]</source>
-            <translation>De documentatie van AI Agent lezen[ over {query}]</translation>
-        </message>
-        <message>
             <source>Read the CRS of {layer_name}</source>
             <translation>Het CRS van {layer_name} uitlezen</translation>
         </message>
         <message>
             <source>Read the Python errors</source>
             <translation>De Python-fouten lezen</translation>
-        </message>
-        <message>
-            <source>Read the QGIS documentation[ on {query}]</source>
-            <translation>De QGIS-documentatie lezen[ over {query}]</translation>
         </message>
         <message>
             <source>Read the extent of {layer_name}</source>
@@ -1471,48 +1439,16 @@ De verwijdering is definitief zodra de respijtperiode is verstreken. Tot die tij
             <translation>Een Processing-script opgeslagen</translation>
         </message>
         <message>
-            <source>Search Copernicus images[ of {collection}]</source>
-            <translation>Copernicus-beelden zoeken[ van {collection}]</translation>
-        </message>
-        <message>
-            <source>Search NASA Earthdata files</source>
-            <translation>NASA Earthdata-bestanden zoeken</translation>
-        </message>
-        <message>
-            <source>Search NASA Earthdata[ for {query}]</source>
-            <translation>Zoeken in NASA Earthdata[ naar {query}]</translation>
-        </message>
-        <message>
             <source>Search open data[ for {query}]</source>
             <translation>Open data zoeken[ naar {query}]</translation>
-        </message>
-        <message>
-            <source>Search satellite images</source>
-            <translation>Satellietbeelden zoeken</translation>
-        </message>
-        <message>
-            <source>Search statistics[ on {topic}]</source>
-            <translation>Statistieken zoeken[ over {topic}]</translation>
-        </message>
-        <message>
-            <source>Search the Earth Engine catalog[ for {query}]</source>
-            <translation>Zoeken in de Earth Engine-catalogus[ naar {query}]</translation>
         </message>
         <message>
             <source>Search the QGIS Hub[ for {query}]</source>
             <translation>Zoeken in de QGIS Hub[ naar {query}]</translation>
         </message>
         <message>
-            <source>Search the data catalog[ for {query}]</source>
-            <translation>Zoeken in de datacatalogus[ naar {query}]</translation>
-        </message>
-        <message>
             <source>Search the processing tools[ for {query}]</source>
             <translation>Zoeken in de Processing-tools[ naar {query}]</translation>
-        </message>
-        <message>
-            <source>Search the web[ for {query}]</source>
-            <translation>Op het web zoeken[ naar {query}]</translation>
         </message>
         <message>
             <source>Select features in {layer_name}</source>
@@ -2546,6 +2482,38 @@ De verwijdering is definitief zodra de respijtperiode is verstreken. Tot die tij
             <source>This report includes your description and the current conversation. We use it to fix issues and improve AI Agent.</source>
             <translation>Dit rapport bevat je beschrijving en het huidige gesprek. We gebruiken het om problemen op te lossen en AI Agent te verbeteren.</translation>
         </message>
+        <message>
+            <source>Copy</source>
+            <translation>Kopiëren</translation>
+        </message>
+        <message>
+            <source>Real tasks the AI agent does from one sentence.</source>
+            <translation>Echte taken die de AI-agent uitvoert op basis van één zin.</translation>
+        </message>
+        <message>
+            <source>Uses</source>
+            <translation>Gebruikt</translation>
+        </message>
+        <message>
+            <source>What you type</source>
+            <translation>Wat je typt</translation>
+        </message>
+        <message>
+            <source>Expired on {day}.</source>
+            <translation>Verlopen op {day}.</translation>
+        </message>
+        <message>
+            <source>Expires on {day}.</source>
+            <translation>Verloopt op {day}.</translation>
+        </message>
+        <message>
+            <source>Private link: its signature stays on this computer. TerraLab and the AI agent see only the site and the file name.</source>
+            <translation>Privélink: de handtekening blijft op deze computer. TerraLab en de AI-agent zien alleen de site en de bestandsnaam.</translation>
+        </message>
+        <message>
+            <source>expired</source>
+            <translation>verlopen</translation>
+        </message>
     </context>
     <context>
         <name>AIAgentContext</name>
@@ -3288,6 +3256,18 @@ De verwijdering is definitief zodra de respijtperiode is verstreken. Tot die tij
             <source>Type the code shown in your browser:</source>
             <translation>Typ de code die in je browser staat:</translation>
         </message>
+        <message>
+            <source>Ask it to load data, style layers, run analyses or edit features.</source>
+            <translation>Vraag om gegevens te laden, lagen op te maken, analyses uit te voeren of objecten te bewerken.</translation>
+        </message>
+        <message>
+            <source>Free. Opens your browser, takes about 15 seconds.</source>
+            <translation>Gratis. Opent je browser, duurt ongeveer 15 seconden.</translation>
+        </message>
+        <message>
+            <source>Sign in or create an account</source>
+            <translation>Log in of maak een account aan</translation>
+        </message>
     </context>
     <context>
         <name>ActivityRow</name>
@@ -3475,6 +3455,10 @@ De verwijdering is definitief zodra de respijtperiode is verstreken. Tot die tij
         <message>
             <source>Write the request for an HTML report of this analysis, with its maps and charts</source>
             <translation>Schrijf het verzoek voor een HTML-rapport van deze analyse, met de kaarten en grafieken</translation>
+        </message>
+        <message>
+            <source>Remove rating</source>
+            <translation>Beoordeling verwijderen</translation>
         </message>
     </context>
     <context>
@@ -4109,6 +4093,42 @@ De verwijdering is definitief zodra de respijtperiode is verstreken. Tot die tij
             <source>a temporary layer</source>
             <translation>een tijdelijke laag</translation>
         </message>
+        <message>
+            <source>Not handled, the AI agent is offline: {0}</source>
+            <translation>Niet verwerkt, de AI-agent is offline: {0}</translation>
+        </message>
+        <message>
+            <source>Nothing is kept about this project yet.</source>
+            <translation>Er is nog niets bewaard over dit project.</translation>
+        </message>
+        <message>
+            <source>Project memory</source>
+            <translation>Projectgeheugen</translation>
+        </message>
+        <message>
+            <source>Project memory cleared.</source>
+            <translation>Projectgeheugen gewist.</translation>
+        </message>
+        <message>
+            <source>Watched folder: not handled, no answer from the server: {0}</source>
+            <translation>Bewaakte map: niet verwerkt, geen antwoord van de server: {0}</translation>
+        </message>
+        <message>
+            <source>Watched folder: not handled, the AI agent is offline: {0}</source>
+            <translation>Bewaakte map: niet verwerkt, de AI-agent is offline: {0}</translation>
+        </message>
+        <message>
+            <source>Clear what the AI agent remembers about this project?</source>
+            <translation>Wissen wat de AI-agent onthoudt over dit project?</translation>
+        </message>
+        <message>
+            <source>Save the project first: its memory is kept under the project file.</source>
+            <translation>Sla het project eerst op: het geheugen wordt bewaard bij het projectbestand.</translation>
+        </message>
+        <message>
+            <source>The AI agent is not connected. Try again in a moment.</source>
+            <translation>De AI-agent is niet verbonden. Probeer het zo opnieuw.</translation>
+        </message>
     </context>
     <context>
         <name>AgentSession</name>
@@ -4633,6 +4653,14 @@ De verwijdering is definitief zodra de respijtperiode is verstreken. Tot die tij
         <message>
             <source>Make an HTML report of this analysis, with its maps, charts and method.</source>
             <translation>Maak een HTML-rapport van deze analyse, met de kaarten, grafieken en methode.</translation>
+        </message>
+        <message>
+            <source>Pay to get Pro back</source>
+            <translation>Betaal om Pro terug te krijgen</translation>
+        </message>
+        <message>
+            <source>Task ended</source>
+            <translation>Taak beëindigd</translation>
         </message>
     </context>
     <context>
@@ -5475,6 +5503,30 @@ De verwijdering is definitief zodra de respijtperiode is verstreken. Tot die tij
             <source>Try in chat</source>
             <translation>Probeer in de chat</translation>
         </message>
+        <message>
+            <source>All %n</source>
+            <translation>Alle %n</translation>
+        </message>
+        <message>
+            <source>Examples with this source</source>
+            <translation>Voorbeelden met deze bron</translation>
+        </message>
+        <message>
+            <source>Fewer</source>
+            <translation>Minder</translation>
+        </message>
+        <message>
+            <source>More</source>
+            <translation>Meer</translation>
+        </message>
+        <message>
+            <source>More in {shelf}</source>
+            <translation>Meer in {shelf}</translation>
+        </message>
+        <message>
+            <source>{first} and %n more licences</source>
+            <translation>{first} en %n andere licenties</translation>
+        </message>
     </context>
     <context>
         <name>ConnectorsPage</name>
@@ -5653,6 +5705,14 @@ De verwijdering is definitief zodra de respijtperiode is verstreken. Tot die tij
         <message>
             <source>sources</source>
             <translation>bronnen</translation>
+        </message>
+        <message>
+            <source>Search sources, datasets or a country</source>
+            <translation>Zoek bronnen, datasets of een land</translation>
+        </message>
+        <message>
+            <source>{sources} sources the AI agent finds and loads by itself: {datasets} datasets in {countries} countries.</source>
+            <translation>{sources} bronnen die de AI-agent zelf vindt en laadt: {datasets} datasets in {countries} landen.</translation>
         </message>
     </context>
     <context>
@@ -5840,8 +5900,8 @@ De verwijdering is definitief zodra de respijtperiode is verstreken. Tot die tij
             <translation>Tutorial</translation>
         </message>
         <message>
-            <source>You are talking to an AI system. It can be wrong: check its changes.</source>
-            <translation>Je praat met een AI-systeem. Het kan fouten maken: controleer de wijzigingen.</translation>
+            <source>AI can make mistakes. Check its changes.</source>
+            <translation>AI kan fouten maken. Controleer de wijzigingen.</translation>
         </message>
         <message>
             <source>Asks before it acts.</source>
@@ -6195,6 +6255,14 @@ Klik om de pagina te openen.</translation>
             <source>Videos and guides to get started. They open in your browser.</source>
             <translation>Video's en handleidingen om aan de slag te gaan. Ze openen in je browser.</translation>
         </message>
+        <message>
+            <source>Learn</source>
+            <translation>Leren</translation>
+        </message>
+        <message>
+            <source>Videos, guides and the other TerraLab plugins. Links open in your browser.</source>
+            <translation>Video's, handleidingen en de andere TerraLab-plugins. Links openen in je browser.</translation>
+        </message>
     </context>
     <context>
         <name>MapHooks</name>
@@ -6462,6 +6530,46 @@ Klik om de pagina te openen.</translation>
         <message>
             <source>The page links to {hosts}, a site the agent does not know.</source>
             <translation>De pagina verwijst naar {hosts}, een site die de assistent niet kent.</translation>
+        </message>
+        <message>
+            <source>Adds: {}</source>
+            <translation>Voegt toe: {}</translation>
+        </message>
+        <message>
+            <source>Also covers the next calls of this kind in this answer</source>
+            <translation>Geldt ook voor de volgende aanroepen van dit soort in dit antwoord</translation>
+        </message>
+        <message>
+            <source>Changes: {}</source>
+            <translation>Wijzigt: {}</translation>
+        </message>
+        <message>
+            <source>Deletes files: {}</source>
+            <translation>Verwijdert bestanden: {}</translation>
+        </message>
+        <message>
+            <source>Deletes: {}</source>
+            <translation>Verwijdert: {}</translation>
+        </message>
+        <message>
+            <source>Not in this project: {}</source>
+            <translation>Niet in dit project: {}</translation>
+        </message>
+        <message>
+            <source>Other effects the preview could not read: {}</source>
+            <translation>Andere effecten die het voorbeeld niet kon lezen: {}</translation>
+        </message>
+        <message>
+            <source>Reads: {}</source>
+            <translation>Leest: {}</translation>
+        </message>
+        <message>
+            <source>Runs: {}</source>
+            <translation>Voert uit: {}</translation>
+        </message>
+        <message>
+            <source>Writes files: {}</source>
+            <translation>Schrijft bestanden: {}</translation>
         </message>
     </context>
     <context>
@@ -6949,6 +7057,26 @@ Klik om de pagina te openen.</translation>
             <source>{n} free tasks left</source>
             <translation>Nog {n} gratis taken</translation>
         </message>
+        <message>
+            <source>Pay now</source>
+            <translation>Nu betalen</translation>
+        </message>
+        <message>
+            <source>Pay {amount} now</source>
+            <translation>Betaal nu {amount}</translation>
+        </message>
+        <message>
+            <source>Pro is off until it's paid. You're on the free plan for now.</source>
+            <translation>Pro staat uit tot er is betaald. Je gebruikt voorlopig het gratis abonnement.</translation>
+        </message>
+        <message>
+            <source>Your Pro payment failed</source>
+            <translation>Je Pro-betaling is mislukt</translation>
+        </message>
+        <message>
+            <source>Your payment of {amount} failed</source>
+            <translation>Je betaling van {amount} is mislukt</translation>
+        </message>
     </context>
     <context>
         <name>QuotaPauseCard</name>
@@ -7177,6 +7305,10 @@ Klik om de pagina te openen.</translation>
             <source>{n} steps</source>
             <translation>{n} stappen</translation>
         </message>
+        <message>
+            <source>Thought</source>
+            <translation>Gedachte</translation>
+        </message>
     </context>
     <context>
         <name>SettingsDialog</name>
@@ -7189,8 +7321,8 @@ Klik om de pagina te openen.</translation>
             <translation>Alle {n} notities verwijderen? De AI voegt ze niet terug toe.</translation>
         </message>
         <message>
-            <source>Lets us read a chat only to fix a bug. Chats are kept 30 days.</source>
-            <translation>Hiermee kunnen we een chat alleen lezen om een bug te verhelpen. Chats worden 30 dagen bewaard.</translation>
+            <source>We may read a chat only to fix a bug, never to train AI. Chats are kept 30 days.</source>
+            <translation>Wij mogen een chat alleen lezen om een bug te herstellen, nooit om AI te trainen. Chats worden 30 dagen bewaard.</translation>
         </message>
         <message>
             <source>The AI saves notes on its own</source>
@@ -7371,8 +7503,8 @@ Klik om de pagina te openen.</translation>
         </message>
         <message>
             <location filename="src/ui/settings_dialog.py" />
-            <source>Help improve AI Agent</source>
-            <translation>Help AI Agent verbeteren</translation>
+            <source>Allow chat review</source>
+            <translation>Chatcontrole toestaan</translation>
         </message>
         <message>
             <location filename="src/ui/settings_dialog.py" />
@@ -7937,8 +8069,8 @@ Klik om de pagina te openen.</translation>
         </message>
         <message>
             <location filename="src/ui/settings_account.py" />
-            <source>Lets us read a chat only to fix a wrong answer or a bug.</source>
-            <translation>Laat ons een chat alleen lezen om een verkeerd antwoord of een bug te verhelpen.</translation>
+            <source>We may read a chat only to fix a wrong answer or a bug, never to train AI.</source>
+            <translation>Wij mogen een chat alleen lezen om een fout antwoord of een bug te herstellen, nooit om AI te trainen.</translation>
         </message>
         <message>
             <location filename="src/ui/settings_account.py" />
@@ -8159,6 +8291,95 @@ Klik om de pagina te openen.</translation>
         <message>
             <source>Send feedback</source>
             <translation>Feedback sturen</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_dialog.py" />
+            <source>See usage</source>
+            <translation>Gebruik bekijken</translation>
+        </message>
+        <message>
+            <source>Always answer in French, never delete a layer without asking</source>
+            <translation>Antwoord altijd in het Nederlands, verwijder nooit een laag zonder te vragen</translation>
+        </message>
+        <message>
+            <source>Choose folder...</source>
+            <translation>Map kiezen...</translation>
+        </message>
+        <message>
+            <source>Clear project memory</source>
+            <translation>Projectgeheugen wissen</translation>
+        </message>
+        <message>
+            <source>Connected accounts</source>
+            <translation>Gekoppelde accounts</translation>
+        </message>
+        <message>
+            <source>Folder to watch</source>
+            <translation>Map om te bewaken</translation>
+        </message>
+        <message>
+            <source>Instructions</source>
+            <translation>Instructies</translation>
+        </message>
+        <message>
+            <source>Job</source>
+            <translation>Taak</translation>
+        </message>
+        <message>
+            <source>Learn</source>
+            <translation>Leren</translation>
+        </message>
+        <message>
+            <source>Name</source>
+            <translation>Naam</translation>
+        </message>
+        <message>
+            <source>No folder chosen</source>
+            <translation>Geen map gekozen</translation>
+        </message>
+        <message>
+            <source>Pro reads both before every run.</source>
+            <translation>Pro leest beide vóór elke uitvoering.</translation>
+        </message>
+        <message>
+            <source>Proactive triggers</source>
+            <translation>Proactieve triggers</translation>
+        </message>
+        <message>
+            <source>Project memory</source>
+            <translation>Projectgeheugen</translation>
+        </message>
+        <message>
+            <source>Read by the AI agent at the start of every conversation.</source>
+            <translation>Wordt door de AI-agent gelezen aan het begin van elk gesprek.</translation>
+        </message>
+        <message>
+            <source>Saved notes · {n}</source>
+            <translation>Opgeslagen notities · {n}</translation>
+        </message>
+        <message>
+            <source>Show project memory</source>
+            <translation>Projectgeheugen tonen</translation>
+        </message>
+        <message>
+            <source>The AI agent looks at new data files in this folder and at the schedules you ask for, only while QGIS is open. Nothing runs when QGIS is closed.</source>
+            <translation>De AI-agent kijkt naar nieuwe gegevensbestanden in deze map en naar de schema's waar je om vraagt, alleen terwijl QGIS open is. Er draait niets als QGIS gesloten is.</translation>
+        </message>
+        <message>
+            <source>Urban planner at the city of Lyon, cadastre and PLU layers in EPSG:2154</source>
+            <translation>Stadsplanner bij de stad Lyon, kadaster- en PLU-lagen in EPSG:2154</translation>
+        </message>
+        <message>
+            <source>Watch a folder and run my schedules while QGIS is open</source>
+            <translation>Bewaak een map en voer mijn schema's uit terwijl QGIS open is</translation>
+        </message>
+        <message>
+            <source>What Pro adds: {points}</source>
+            <translation>Wat Pro toevoegt: {points}</translation>
+        </message>
+        <message>
+            <source>commercial use, more tasks, memory, your instructions and higher effort</source>
+            <translation>commercieel gebruik, meer taken, geheugen, je instructies en meer inspanning</translation>
         </message>
     </context>
     <context>
@@ -8602,6 +8823,22 @@ Klik om de pagina te openen.</translation>
             <source>its changes to your project cannot be shown before it runs</source>
             <translation>de wijzigingen in je project kunnen niet worden getoond voordat het wordt uitgevoerd</translation>
         </message>
+        <message>
+            <source>Access to {host}</source>
+            <translation>Toegang tot {host}</translation>
+        </message>
+        <message>
+            <source>Allowed for this conversation</source>
+            <translation>Toegestaan voor dit gesprek</translation>
+        </message>
+        <message>
+            <source>Allowed once</source>
+            <translation>Eenmalig toegestaan</translation>
+        </message>
+        <message>
+            <source>Signed in</source>
+            <translation>Ingelogd</translation>
+        </message>
     </context>
     <context>
         <name>ToolGroup</name>
@@ -8667,6 +8904,14 @@ Klik om de pagina te openen.</translation>
         <message>
             <source>Updating…</source>
             <translation>Bijwerken…</translation>
+        </message>
+        <message>
+            <source>Download</source>
+            <translation>Downloaden</translation>
+        </message>
+        <message>
+            <source>This QGIS has no plugin repository turned on. Download the ZIP, then use Install from ZIP in Plugins &gt; Manage and Install Plugins.</source>
+            <translation>In deze QGIS is geen plug-inrepository ingeschakeld. Download het ZIP-bestand en gebruik daarna Installeren vanuit ZIP in Plug-ins &gt; Plug-ins beheren en installeren.</translation>
         </message>
     </context>
     <context>
@@ -10043,6 +10288,1320 @@ Dit bestand staat niet meer op de plek waar het is weggeschreven.</translation>
         <message>
             <source>Thanks for the feedback</source>
             <translation>Bedankt voor je feedback</translation>
+        </message>
+    </context>
+    <context>
+        <name>ToolDetails</name>
+        <message>
+            <source>Copied</source>
+            <translation>Gekopieerd</translation>
+        </message>
+        <message>
+            <source>Copy as Python</source>
+            <translation>Kopiëren als Python</translation>
+        </message>
+        <message>
+            <source>Open in Processing</source>
+            <translation>Openen in Processing</translation>
+        </message>
+        <message>
+            <source>Open this algorithm's dialog with the same settings, to check them or run it again. The output goes to a new temporary layer.</source>
+            <translation>Open het dialoogvenster van dit algoritme met dezelfde instellingen, om ze te controleren of het opnieuw uit te voeren. Het resultaat komt in een nieuwe tijdelijke laag.</translation>
+        </message>
+        <message>
+            <source>Show less</source>
+            <translation>Minder tonen</translation>
+        </message>
+        <message>
+            <source>Show {n} more</source>
+            <translation>{n} meer tonen</translation>
+        </message>
+        <message>
+            <source>The processing.run line, ready for the QGIS Python console</source>
+            <translation>De regel processing.run, klaar voor de QGIS Python-console</translation>
+        </message>
+        <message>
+            <source>Fewer</source>
+            <translation>Minder</translation>
+        </message>
+        <message>
+            <source>{n} more</source>
+            <translation>{n} meer</translation>
+        </message>
+    </context>
+    <context>
+        <name>AccountCard</name>
+        <message>
+            <source>Add keys</source>
+            <translation>Sleutels toevoegen</translation>
+        </message>
+        <message>
+            <source>Add token</source>
+            <translation>Token toevoegen</translation>
+        </message>
+        <message>
+            <source>Allow</source>
+            <translation>Toestaan</translation>
+        </message>
+        <message>
+            <source>Allow for this conversation</source>
+            <translation>Toestaan voor dit gesprek</translation>
+        </message>
+        <message>
+            <source>Allowed for this conversation</source>
+            <translation>Toegestaan voor dit gesprek</translation>
+        </message>
+        <message>
+            <source>Allowed once</source>
+            <translation>Eenmalig toegestaan</translation>
+        </message>
+        <message>
+            <source>Connect your {label} account</source>
+            <translation>Verbind je {label}-account</translation>
+        </message>
+        <message>
+            <source>Connected</source>
+            <translation>Verbonden</translation>
+        </message>
+        <message>
+            <source>Continue with your {label} account</source>
+            <translation>Ga verder met je {label}-account</translation>
+        </message>
+        <message>
+            <source>Deny</source>
+            <translation>Weigeren</translation>
+        </message>
+        <message>
+            <source>Keys refused</source>
+            <translation>Sleutels geweigerd</translation>
+        </message>
+        <message>
+            <source>Needs your answer</source>
+            <translation>Wacht op je antwoord</translation>
+        </message>
+        <message>
+            <source>Not allowed</source>
+            <translation>Niet toegestaan</translation>
+        </message>
+        <message>
+            <source>Replace keys</source>
+            <translation>Sleutels vervangen</translation>
+        </message>
+        <message>
+            <source>Replace token</source>
+            <translation>Token vervangen</translation>
+        </message>
+        <message>
+            <source>Sent to {host} only.</source>
+            <translation>Alleen naar {host} verstuurd.</translation>
+        </message>
+        <message>
+            <source>Sign in</source>
+            <translation>Inloggen</translation>
+        </message>
+        <message>
+            <source>Sign in again</source>
+            <translation>Opnieuw inloggen</translation>
+        </message>
+        <message>
+            <source>Sign in to {host}</source>
+            <translation>Inloggen bij {host}</translation>
+        </message>
+        <message>
+            <source>Sign-in refused</source>
+            <translation>Inloggen geweigerd</translation>
+        </message>
+        <message>
+            <source>Skip</source>
+            <translation>Overslaan</translation>
+        </message>
+        <message>
+            <source>Skipped</source>
+            <translation>Overgeslagen</translation>
+        </message>
+        <message>
+            <source>Stored encrypted in QGIS on this computer. Never sent to TerraLab or the AI agent.</source>
+            <translation>Versleuteld opgeslagen in QGIS op deze computer. Nooit naar TerraLab of de AI-agent gestuurd.</translation>
+        </message>
+        <message>
+            <source>TerraLab's shared access is used up. A free token keeps you going.</source>
+            <translation>De gedeelde toegang van TerraLab is op. Met een gratis token kun je doorgaan.</translation>
+        </message>
+        <message>
+            <source>TerraLab's shared access is used up. Free S3 keys keep you going.</source>
+            <translation>De gedeelde toegang van TerraLab is op. Met gratis S3-sleutels kun je doorgaan.</translation>
+        </message>
+        <message>
+            <source>This service answers only a signed-in user.</source>
+            <translation>Deze dienst antwoordt alleen aan ingelogde gebruikers.</translation>
+        </message>
+        <message>
+            <source>Token refused</source>
+            <translation>Token geweigerd</translation>
+        </message>
+        <message>
+            <source>Use your {label} access?</source>
+            <translation>Je {label}-toegang gebruiken?</translation>
+        </message>
+        <message>
+            <source>{host} opens with a token or an API key from your account.</source>
+            <translation>{host} opent met een token of een API-sleutel uit je account.</translation>
+        </message>
+        <message>
+            <source>{host} refused your saved access ({user}).</source>
+            <translation>{host} heeft je opgeslagen toegang ({user}) geweigerd.</translation>
+        </message>
+        <message>
+            <source>{host} refused your saved access.</source>
+            <translation>{host} heeft je opgeslagen toegang geweigerd.</translation>
+        </message>
+        <message>
+            <source>{label} answers only a signed-in user.</source>
+            <translation>{label} antwoordt alleen aan ingelogde gebruikers.</translation>
+        </message>
+        <message>
+            <source>{label} refused your saved S3 keys.</source>
+            <translation>{label} heeft je opgeslagen S3-sleutels geweigerd.</translation>
+        </message>
+        <message>
+            <source>{label} refused your saved token.</source>
+            <translation>{label} heeft je opgeslagen token geweigerd.</translation>
+        </message>
+        <message>
+            <source>{service} needs a token</source>
+            <translation>{service} heeft een token nodig</translation>
+        </message>
+        <message>
+            <source>Sign in with {name}</source>
+            <translation>Aanmelden met {name}</translation>
+        </message>
+        <message>
+            <source>TerraLab's shared access is used up. Your free account keeps you going.</source>
+            <translation>De gedeelde toegang van TerraLab is op. Met je gratis account kun je gewoon doorgaan.</translation>
+        </message>
+        <message>
+            <source>Try again</source>
+            <translation>Opnieuw proberen</translation>
+        </message>
+        <message>
+            <source>Use S3 keys instead</source>
+            <translation>Gebruik liever S3-sleutels</translation>
+        </message>
+        <message>
+            <source>{name} no longer accepts your saved sign-in.</source>
+            <translation>{name} accepteert je opgeslagen aanmelding niet meer.</translation>
+        </message>
+        <message>
+            <source>Keys expired</source>
+            <translation>Sleutels verlopen</translation>
+        </message>
+        <message>
+            <source>Sign-in expired</source>
+            <translation>Aanmelding verlopen</translation>
+        </message>
+        <message>
+            <source>Token expired</source>
+            <translation>Token verlopen</translation>
+        </message>
+        <message>
+            <source>{host} no longer accepts your saved access.</source>
+            <translation>{host} accepteert je opgeslagen toegang niet meer.</translation>
+        </message>
+        <message>
+            <source>{label} no longer accepts your saved S3 keys.</source>
+            <translation>{label} accepteert je opgeslagen S3-sleutels niet meer.</translation>
+        </message>
+        <message>
+            <source>{label} no longer accepts your saved token.</source>
+            <translation>{label} accepteert je opgeslagen token niet meer.</translation>
+        </message>
+        <message>
+            <source>Your {name} sign-in expired.</source>
+            <translation>Je aanmelding bij {name} is verlopen.</translation>
+        </message>
+        <message>
+            <source>Details</source>
+            <translation>Details</translation>
+        </message>
+        <message>
+            <source>File: {value}</source>
+            <translation>Bestand: {value}</translation>
+        </message>
+        <message>
+            <source>Only this file is read with it; nothing is written.</source>
+            <translation>Hiermee wordt alleen dit bestand gelezen; er wordt niets geschreven.</translation>
+        </message>
+        <message>
+            <source>Saved access: {value}</source>
+            <translation>Opgeslagen toegang: {value}</translation>
+        </message>
+        <message>
+            <source>Sent to: {value}</source>
+            <translation>Verzonden naar: {value}</translation>
+        </message>
+        <message>
+            <source>Choose in Google Drive</source>
+            <translation>Kiezen in Google Drive</translation>
+        </message>
+    </context>
+    <context>
+        <name>ConnectedAccountsPage</name>
+        <message>
+            <source>API key</source>
+            <translation>API-sleutel</translation>
+        </message>
+        <message>
+            <source>Connected accounts</source>
+            <translation>Gekoppelde accounts</translation>
+        </message>
+        <message>
+            <source>Kept in QGIS's encrypted vault, on this computer. Neither TerraLab nor the AI agent sees them.</source>
+            <translation>Bewaard in de versleutelde kluis van QGIS, op deze computer. Noch TerraLab noch de AI-agent ziet ze.</translation>
+        </message>
+        <message>
+            <source>No account yet. When a source asks you to sign in, the AI agent shows a card, and the access you save appears here.</source>
+            <translation>Nog geen account. Als een bron je vraagt in te loggen, toont de AI-agent een kaart en verschijnt de toegang die je opslaat hier.</translation>
+        </message>
+        <message>
+            <source>Remove</source>
+            <translation>Verwijderen</translation>
+        </message>
+        <message>
+            <source>Remove the access to {host}</source>
+            <translation>Toegang tot {host} verwijderen</translation>
+        </message>
+        <message>
+            <source>S3 keys</source>
+            <translation>S3-sleutels</translation>
+        </message>
+        <message>
+            <source>The sign-ins the AI agent may use, each only after you allow it.</source>
+            <translation>De logins die de AI-agent mag gebruiken, elk pas nadat je het toestaat.</translation>
+        </message>
+        <message>
+            <source>Token</source>
+            <translation>Token</translation>
+        </message>
+        <message>
+            <source>Username and password</source>
+            <translation>Gebruikersnaam en wachtwoord</translation>
+        </message>
+        <message>
+            <source>Google account</source>
+            <translation>Google-account</translation>
+        </message>
+        <message>
+            <source>No project picked</source>
+            <translation>Geen project gekozen</translation>
+        </message>
+        <message>
+            <source>Project {project}</source>
+            <translation>Project {project}</translation>
+        </message>
+        <message>
+            <source>Change project…</source>
+            <translation>Project wijzigen…</translation>
+        </message>
+        <message>
+            <source>Google sign-in</source>
+            <translation>Google-aanmelding</translation>
+        </message>
+        <message>
+            <source>Signed in with the browser</source>
+            <translation>Aangemeld via de browser</translation>
+        </message>
+        <message>
+            <source>Add account</source>
+            <translation>Account toevoegen</translation>
+        </message>
+        <message>
+            <source>Expired</source>
+            <translation>Verlopen</translation>
+        </message>
+        <message>
+            <source>Expires on {day}</source>
+            <translation>Verloopt op {day}</translation>
+        </message>
+        <message>
+            <source>More actions for {label}</source>
+            <translation>Meer acties voor {label}</translation>
+        </message>
+        <message>
+            <source>QGIS deletes it from its vault. Layers loaded with it stop loading, and the AI agent asks you to sign in again the next time {host} needs it.</source>
+            <translation>QGIS verwijdert het uit de authenticatiedatabase. Lagen die ermee zijn geladen worden niet meer geladen en de AI-agent vraagt je opnieuw in te loggen als {host} het de volgende keer nodig heeft.</translation>
+        </message>
+        <message>
+            <source>Refused at its last use</source>
+            <translation>Geweigerd bij het laatste gebruik</translation>
+        </message>
+        <message>
+            <source>Remove your {label} access?</source>
+            <translation>Je toegang tot {label} verwijderen?</translation>
+        </message>
+        <message>
+            <source>Remove…</source>
+            <translation>Verwijderen…</translation>
+        </message>
+        <message>
+            <source>Replace…</source>
+            <translation>Vervangen…</translation>
+        </message>
+        <message>
+            <source>Storage keys</source>
+            <translation>Opslagsleutels</translation>
+        </message>
+        <message>
+            <source>Choose files…</source>
+            <translation>Bestanden kiezen…</translation>
+        </message>
+        <message>
+            <source>{name} sign-in</source>
+            <translation>Inloggen bij {name}</translation>
+        </message>
+    </context>
+    <context>
+        <name>KeysDialog</name>
+        <message>
+            <source>Access key</source>
+            <translation>Toegangssleutel</translation>
+        </message>
+        <message>
+            <source>Cancel</source>
+            <translation>Annuleren</translation>
+        </message>
+        <message>
+            <source>Connect</source>
+            <translation>Verbinden</translation>
+        </message>
+        <message>
+            <source>Connect {label}</source>
+            <translation>{label} verbinden</translation>
+        </message>
+        <message>
+            <source>Connected</source>
+            <translation>Verbonden</translation>
+        </message>
+        <message>
+            <source>Header name</source>
+            <translation>Headernaam</translation>
+        </message>
+        <message>
+            <source>Hide</source>
+            <translation>Verbergen</translation>
+        </message>
+        <message>
+            <source>Key</source>
+            <translation>Sleutel</translation>
+        </message>
+        <message>
+            <source>Not saved. Fill in the fields, and unlock QGIS's vault with its master password when QGIS asks.</source>
+            <translation>Niet opgeslagen. Vul de velden in en ontgrendel de kluis van QGIS met het hoofdwachtwoord wanneer QGIS erom vraagt.</translation>
+        </message>
+        <message>
+            <source>Not saved. Paste both keys, and unlock QGIS's vault with its master password when QGIS asks.</source>
+            <translation>Niet opgeslagen. Plak beide sleutels en ontgrendel de kluis van QGIS met het hoofdwachtwoord wanneer QGIS erom vraagt.</translation>
+        </message>
+        <message>
+            <source>Open {host}</source>
+            <translation>{host} openen</translation>
+        </message>
+        <message>
+            <source>Password</source>
+            <translation>Wachtwoord</translation>
+        </message>
+        <message>
+            <source>Secret key</source>
+            <translation>Geheime sleutel</translation>
+        </message>
+        <message>
+            <source>Show</source>
+            <translation>Tonen</translation>
+        </message>
+        <message>
+            <source>Sign in</source>
+            <translation>Inloggen</translation>
+        </message>
+        <message>
+            <source>Sign in to {host}</source>
+            <translation>Inloggen bij {host}</translation>
+        </message>
+        <message>
+            <source>Sign in with a free account, add a credential and paste both keys here.</source>
+            <translation>Log in met een gratis account, voeg een inloggegeven toe en plak beide sleutels hier.</translation>
+        </message>
+        <message>
+            <source>Stored encrypted in QGIS on this computer, behind your QGIS master password. Never sent to TerraLab or the AI agent.</source>
+            <translation>Versleuteld opgeslagen in QGIS op deze computer, achter je hoofdwachtwoord van QGIS. Nooit naar TerraLab of de AI-agent gestuurd.</translation>
+        </message>
+        <message>
+            <source>Use a username and password instead</source>
+            <translation>Gebruik in plaats daarvan een gebruikersnaam en wachtwoord</translation>
+        </message>
+        <message>
+            <source>Use an API key instead</source>
+            <translation>Gebruik in plaats daarvan een API-sleutel</translation>
+        </message>
+        <message>
+            <source>Username</source>
+            <translation>Gebruikersnaam</translation>
+        </message>
+        <message>
+            <source>the S3 keys manager</source>
+            <translation>de S3-sleutelbeheerder</translation>
+        </message>
+        <message>
+            <source>Checking…</source>
+            <translation>Controleren…</translation>
+        </message>
+        <message>
+            <source>QGIS will ask you to choose a master password. It locks every sign-in saved in QGIS and cannot be recovered, so keep it somewhere safe.</source>
+            <translation>QGIS vraagt je een hoofdwachtwoord te kiezen. Het vergrendelt elke in QGIS opgeslagen aanmelding en kan niet worden hersteld, dus bewaar het op een veilige plek.</translation>
+        </message>
+        <message>
+            <source>{host} refused these details. Check them and try again.</source>
+            <translation>{host} heeft deze gegevens geweigerd. Controleer ze en probeer het opnieuw.</translation>
+        </message>
+    </context>
+    <context>
+        <name>ProLock</name>
+        <message>
+            <source>Pro</source>
+            <translation>Pro</translation>
+        </message>
+    </context>
+    <context>
+        <name>ProNote</name>
+        <message>
+            <source>Get Pro</source>
+            <translation>Pro nemen</translation>
+        </message>
+    </context>
+    <context>
+        <name>SectionHead</name>
+        <message>
+            <source>See all</source>
+            <translation>Alles bekijken</translation>
+        </message>
+    </context>
+    <context>
+        <name>SiblingRow</name>
+        <message>
+            <source>Install</source>
+            <translation>Installeren</translation>
+        </message>
+        <message>
+            <source>Installed</source>
+            <translation>Geïnstalleerd</translation>
+        </message>
+        <message>
+            <source>Open</source>
+            <translation>Openen</translation>
+        </message>
+        <message>
+            <source>Opens the QGIS plugin manager on this plugin.</source>
+            <translation>Opent de QGIS-pluginbeheerder bij deze plugin.</translation>
+        </message>
+        <message>
+            <source>Show the plugin's panel.</source>
+            <translation>Toon het paneel van de plugin.</translation>
+        </message>
+    </context>
+    <context>
+        <name>SiblingsSection</name>
+        <message>
+            <source>Edit your imagery with a single sentence.</source>
+            <translation>Bewerk je beeldmateriaal met één zin.</translation>
+        </message>
+        <message>
+            <source>Other TerraLab plugins</source>
+            <translation>Andere TerraLab-plugins</translation>
+        </message>
+        <message>
+            <source>Turn buildings, trees or water into polygons.</source>
+            <translation>Zet gebouwen, bomen of water om in polygonen.</translation>
+        </message>
+    </context>
+    <context>
+        <name>SignInDialog</name>
+        <message>
+            <source>Cancel</source>
+            <translation>Annuleren</translation>
+        </message>
+        <message>
+            <source>Connect</source>
+            <translation>Verbinden</translation>
+        </message>
+        <message>
+            <source>Connected</source>
+            <translation>Verbonden</translation>
+        </message>
+        <message>
+            <source>Header name</source>
+            <translation>Headernaam</translation>
+        </message>
+        <message>
+            <source>Hide</source>
+            <translation>Verbergen</translation>
+        </message>
+        <message>
+            <source>Key</source>
+            <translation>Sleutel</translation>
+        </message>
+        <message>
+            <source>Not saved. Fill in the fields, and unlock QGIS's vault with its master password when QGIS asks.</source>
+            <translation>Niet opgeslagen. Vul de velden in en ontgrendel de kluis van QGIS met het hoofdwachtwoord wanneer QGIS erom vraagt.</translation>
+        </message>
+        <message>
+            <source>Open {host}</source>
+            <translation>{host} openen</translation>
+        </message>
+        <message>
+            <source>Password</source>
+            <translation>Wachtwoord</translation>
+        </message>
+        <message>
+            <source>Show</source>
+            <translation>Tonen</translation>
+        </message>
+        <message>
+            <source>Sign in</source>
+            <translation>Inloggen</translation>
+        </message>
+        <message>
+            <source>Sign in to {host}</source>
+            <translation>Inloggen bij {host}</translation>
+        </message>
+        <message>
+            <source>Stored encrypted in QGIS on this computer, behind your QGIS master password. Never sent to TerraLab or the AI agent.</source>
+            <translation>Versleuteld opgeslagen in QGIS op deze computer, achter je hoofdwachtwoord van QGIS. Nooit naar TerraLab of de AI-agent gestuurd.</translation>
+        </message>
+        <message>
+            <source>Use a username and password instead</source>
+            <translation>Gebruik in plaats daarvan een gebruikersnaam en wachtwoord</translation>
+        </message>
+        <message>
+            <source>Use an API key instead</source>
+            <translation>Gebruik in plaats daarvan een API-sleutel</translation>
+        </message>
+        <message>
+            <source>Username</source>
+            <translation>Gebruikersnaam</translation>
+        </message>
+        <message>
+            <source>Checking…</source>
+            <translation>Controleren…</translation>
+        </message>
+        <message>
+            <source>QGIS will ask you to choose a master password. It locks every sign-in saved in QGIS and cannot be recovered, so keep it somewhere safe.</source>
+            <translation>QGIS vraagt je een hoofdwachtwoord te kiezen. Het vergrendelt elke in QGIS opgeslagen aanmelding en kan niet worden hersteld, dus bewaar het op een veilige plek.</translation>
+        </message>
+        <message>
+            <source>{host} refused these details. Check them and try again.</source>
+            <translation>{host} heeft deze gegevens geweigerd. Controleer ze en probeer het opnieuw.</translation>
+        </message>
+    </context>
+    <context>
+        <name>TasksPanel</name>
+        <message>
+            <source>Done</source>
+            <translation>Klaar</translation>
+        </message>
+        <message>
+            <source>Failed</source>
+            <translation>Mislukt</translation>
+        </message>
+        <message>
+            <source>Paused</source>
+            <translation>Gepauzeerd</translation>
+        </message>
+        <message>
+            <source>Queued</source>
+            <translation>In de wachtrij</translation>
+        </message>
+        <message>
+            <source>Stopped</source>
+            <translation>Gestopt</translation>
+        </message>
+        <message>
+            <source>Stopping...</source>
+            <translation>Stoppen...</translation>
+        </message>
+        <message>
+            <source>Tasks</source>
+            <translation>Taken</translation>
+        </message>
+        <message>
+            <source>Working</source>
+            <translation>Bezig</translation>
+        </message>
+    </context>
+    <context>
+        <name>TokenDialog</name>
+        <message>
+            <source>A token or an API key from your {service} account. Sent to {host} only.</source>
+            <translation>Een token of een API-sleutel uit je {service}-account. Alleen naar {host} verstuurd.</translation>
+        </message>
+        <message>
+            <source>Cancel</source>
+            <translation>Annuleren</translation>
+        </message>
+        <message>
+            <source>Connect</source>
+            <translation>Verbinden</translation>
+        </message>
+        <message>
+            <source>Connect {label}</source>
+            <translation>{label} verbinden</translation>
+        </message>
+        <message>
+            <source>Connect {service}</source>
+            <translation>{service} verbinden</translation>
+        </message>
+        <message>
+            <source>Connected</source>
+            <translation>Verbonden</translation>
+        </message>
+        <message>
+            <source>Header name</source>
+            <translation>Headernaam</translation>
+        </message>
+        <message>
+            <source>Hide</source>
+            <translation>Verbergen</translation>
+        </message>
+        <message>
+            <source>Key</source>
+            <translation>Sleutel</translation>
+        </message>
+        <message>
+            <source>Not saved. Fill in the fields, and unlock QGIS's vault with its master password when QGIS asks.</source>
+            <translation>Niet opgeslagen. Vul de velden in en ontgrendel de kluis van QGIS met het hoofdwachtwoord wanneer QGIS erom vraagt.</translation>
+        </message>
+        <message>
+            <source>Not saved. Paste the token, and unlock QGIS's vault with its master password when QGIS asks.</source>
+            <translation>Niet opgeslagen. Plak het token en ontgrendel de kluis van QGIS met het hoofdwachtwoord wanneer QGIS erom vraagt.</translation>
+        </message>
+        <message>
+            <source>Open {host}</source>
+            <translation>{host} openen</translation>
+        </message>
+        <message>
+            <source>Password</source>
+            <translation>Wachtwoord</translation>
+        </message>
+        <message>
+            <source>Paste your token</source>
+            <translation>Plak je token</translation>
+        </message>
+        <message>
+            <source>Show</source>
+            <translation>Tonen</translation>
+        </message>
+        <message>
+            <source>Sign in</source>
+            <translation>Inloggen</translation>
+        </message>
+        <message>
+            <source>Sign in to {host}</source>
+            <translation>Inloggen bij {host}</translation>
+        </message>
+        <message>
+            <source>Sign in with a free account, choose Generate Token, copy it and paste it here.</source>
+            <translation>Log in met een gratis account, kies Generate Token, kopieer het en plak het hier.</translation>
+        </message>
+        <message>
+            <source>Stored encrypted in QGIS on this computer, behind your QGIS master password. Never sent to TerraLab or the AI agent.</source>
+            <translation>Versleuteld opgeslagen in QGIS op deze computer, achter je hoofdwachtwoord van QGIS. Nooit naar TerraLab of de AI-agent gestuurd.</translation>
+        </message>
+        <message>
+            <source>Token</source>
+            <translation>Token</translation>
+        </message>
+        <message>
+            <source>Token for {host}</source>
+            <translation>Token voor {host}</translation>
+        </message>
+        <message>
+            <source>Use a username and password instead</source>
+            <translation>Gebruik in plaats daarvan een gebruikersnaam en wachtwoord</translation>
+        </message>
+        <message>
+            <source>Use an API key instead</source>
+            <translation>Gebruik in plaats daarvan een API-sleutel</translation>
+        </message>
+        <message>
+            <source>Username</source>
+            <translation>Gebruikersnaam</translation>
+        </message>
+        <message>
+            <source>Checking…</source>
+            <translation>Controleren…</translation>
+        </message>
+        <message>
+            <source>QGIS will ask you to choose a master password. It locks every sign-in saved in QGIS and cannot be recovered, so keep it somewhere safe.</source>
+            <translation>QGIS vraagt je een hoofdwachtwoord te kiezen. Het vergrendelt elke in QGIS opgeslagen aanmelding en kan niet worden hersteld, dus bewaar het op een veilige plek.</translation>
+        </message>
+        <message>
+            <source>{host} refused these details. Check them and try again.</source>
+            <translation>{host} heeft deze gegevens geweigerd. Controleer ze en probeer het opnieuw.</translation>
+        </message>
+    </context>
+    <context>
+        <name>_TaskRow</name>
+        <message>
+            <source>Stop</source>
+            <translation>Stoppen</translation>
+        </message>
+    </context>
+    <context>
+        <name>EarthEngineConnect</name>
+        <message>
+            <source>A non-commercial Earth Engine project is not for commercial work.</source>
+            <translation>Een niet-commercieel Earth Engine-project is niet bedoeld voor commercieel werk.</translation>
+        </message>
+        <message>
+            <source>Cancel</source>
+            <translation>Annuleren</translation>
+        </message>
+        <message>
+            <source>Change project</source>
+            <translation>Project wijzigen</translation>
+        </message>
+        <message>
+            <source>Choose project</source>
+            <translation>Project kiezen</translation>
+        </message>
+        <message>
+            <source>Choose your Earth Engine project</source>
+            <translation>Kies je Earth Engine-project</translation>
+        </message>
+        <message>
+            <source>Connect</source>
+            <translation>Verbinden</translation>
+        </message>
+        <message>
+            <source>Connect Earth Engine</source>
+            <translation>Earth Engine verbinden</translation>
+        </message>
+        <message>
+            <source>Connected</source>
+            <translation>Verbonden</translation>
+        </message>
+        <message>
+            <source>Earth Engine needs Google's earthengine-api package. It installs into QGIS in about a minute, then you sign in with Google.</source>
+            <translation>Earth Engine heeft het earthengine-api-pakket van Google nodig. Het wordt in ongeveer een minuut in QGIS geïnstalleerd, daarna meld je je aan met Google.</translation>
+        </message>
+        <message>
+            <source>Earth Engine refused your project {project}.</source>
+            <translation>Earth Engine heeft je project {project} geweigerd.</translation>
+        </message>
+        <message>
+            <source>Earth Engine runs on one of your Google Cloud projects.</source>
+            <translation>Earth Engine draait op een van je Google Cloud-projecten.</translation>
+        </message>
+        <message>
+            <source>Finish signing in to Google in your browser.</source>
+            <translation>Rond het aanmelden bij Google af in je browser.</translation>
+        </message>
+        <message>
+            <source>Google refused the sign-in ({error}).</source>
+            <translation>Google heeft de aanmelding geweigerd ({error}).</translation>
+        </message>
+        <message>
+            <source>Google refused your saved sign-in.</source>
+            <translation>Google heeft je opgeslagen aanmelding geweigerd.</translation>
+        </message>
+        <message>
+            <source>Install</source>
+            <translation>Installeren</translation>
+        </message>
+        <message>
+            <source>Installing earthengine-api...</source>
+            <translation>earthengine-api wordt geïnstalleerd...</translation>
+        </message>
+        <message>
+            <source>No Earth Engine project on this account yet. Registering one is free for noncommercial use.</source>
+            <translation>Nog geen Earth Engine-project op dit account. Een project registreren is gratis voor niet-commercieel gebruik.</translation>
+        </message>
+        <message>
+            <source>Not saved: QGIS's vault stayed locked. Connect again and set the master password when QGIS asks.</source>
+            <translation>Niet opgeslagen: de kluis van QGIS bleef vergrendeld. Verbind opnieuw en stel het hoofdwachtwoord in wanneer QGIS erom vraagt.</translation>
+        </message>
+        <message>
+            <source>Open the sign-in page again</source>
+            <translation>Open de aanmeldpagina opnieuw</translation>
+        </message>
+        <message>
+            <source>Pick the Cloud project Earth Engine runs on.</source>
+            <translation>Kies het Cloud-project waarop Earth Engine draait.</translation>
+        </message>
+        <message>
+            <source>Project refused</source>
+            <translation>Project geweigerd</translation>
+        </message>
+        <message>
+            <source>Reading your Cloud projects...</source>
+            <translation>Je Cloud-projecten worden gelezen...</translation>
+        </message>
+        <message>
+            <source>Refresh</source>
+            <translation>Vernieuwen</translation>
+        </message>
+        <message>
+            <source>Register a project</source>
+            <translation>Project registreren</translation>
+        </message>
+        <message>
+            <source>Sign in again</source>
+            <translation>Opnieuw aanmelden</translation>
+        </message>
+        <message>
+            <source>Sign in with Google</source>
+            <translation>Aanmelden met Google</translation>
+        </message>
+        <message>
+            <source>Sign in with Google and pick your own Cloud project.</source>
+            <translation>Meld je aan met Google en kies je eigen Cloud-project.</translation>
+        </message>
+        <message>
+            <source>Sign-in didn't finish ({error}).</source>
+            <translation>Aanmelden is niet voltooid ({error}).</translation>
+        </message>
+        <message>
+            <source>Sign-in didn't finish within 5 minutes.</source>
+            <translation>Aanmelden is niet voltooid binnen 5 minuten.</translation>
+        </message>
+        <message>
+            <source>Sign-in didn't finish. You can close this window and return to QGIS.</source>
+            <translation>Aanmelden is niet voltooid. Je kunt dit venster sluiten en terugkeren naar QGIS.</translation>
+        </message>
+        <message>
+            <source>Sign-in expired</source>
+            <translation>Aanmelding verlopen</translation>
+        </message>
+        <message>
+            <source>The Earth Engine API is off in your project {project}.</source>
+            <translation>De Earth Engine API staat uit in je project {project}.</translation>
+        </message>
+        <message>
+            <source>Try again</source>
+            <translation>Opnieuw proberen</translation>
+        </message>
+        <message>
+            <source>Turn on the Earth Engine API</source>
+            <translation>Zet de Earth Engine API aan</translation>
+        </message>
+        <message>
+            <source>Use this project</source>
+            <translation>Dit project gebruiken</translation>
+        </message>
+        <message>
+            <source>You're signed in. You can close this window and return to QGIS.</source>
+            <translation>Je bent aangemeld. Je kunt dit venster sluiten en terugkeren naar QGIS.</translation>
+        </message>
+        <message>
+            <source>Your Cloud projects could not be read ({error}).</source>
+            <translation>Je Cloud-projecten konden niet worden gelezen ({error}).</translation>
+        </message>
+        <message>
+            <source>Your Earth Engine sign-in expired.</source>
+            <translation>Je Earth Engine-aanmelding is verlopen.</translation>
+        </message>
+        <message>
+            <source>Your Google sign-in stays in QGIS's encrypted vault on this computer. Never sent to TerraLab or the AI agent.</source>
+            <translation>Je Google-aanmelding blijft in de versleutelde kluis van QGIS op deze computer. Wordt nooit naar TerraLab of de AI-agent gestuurd.</translation>
+        </message>
+        <message>
+            <source>Your browser opens Google's sign-in. Earth Engine then runs on your own Google Cloud project, under that project's terms.</source>
+            <translation>Je browser opent de aanmelding van Google. Earth Engine draait dan op je eigen Google Cloud-project, onder de voorwaarden van dat project.</translation>
+        </message>
+        <message>
+            <source>Your project {project} is not registered for Earth Engine.</source>
+            <translation>Je project {project} is niet geregistreerd voor Earth Engine.</translation>
+        </message>
+        <message>
+            <source>earthengine-api did not install: {error}</source>
+            <translation>earthengine-api is niet geïnstalleerd: {error}</translation>
+        </message>
+        <message>
+            <source>{count} other projects do not have Earth Engine.</source>
+            <translation>{count} andere projecten hebben geen Earth Engine.</translation>
+        </message>
+        <message>
+            <source>QGIS will ask you to choose a master password. It locks every sign-in saved in QGIS and cannot be recovered, so keep it somewhere safe.</source>
+            <translation>QGIS vraagt je een hoofdwachtwoord te kiezen. Het vergrendelt alle aanmeldingen die in QGIS zijn opgeslagen en kan niet worden hersteld, dus bewaar het op een veilige plek.</translation>
+        </message>
+    </context>
+    <context>
+        <name>BrowserWait</name>
+        <message>
+            <source>Cancel</source>
+            <translation>Annuleren</translation>
+        </message>
+        <message>
+            <source>Check that the page shows the code {code}, then sign in.</source>
+            <translation>Controleer of de pagina de code {code} toont en meld je dan aan.</translation>
+        </message>
+        <message>
+            <source>Connecting…</source>
+            <translation>Verbinden…</translation>
+        </message>
+        <message>
+            <source>Finish signing in to {name} in your browser.</source>
+            <translation>Rond het aanmelden bij {name} af in je browser.</translation>
+        </message>
+        <message>
+            <source>Not saved. Unlock QGIS's vault with its master password when QGIS asks.</source>
+            <translation>Niet opgeslagen. Ontgrendel de authenticatiedatabase van QGIS met het hoofdwachtwoord wanneer QGIS erom vraagt.</translation>
+        </message>
+        <message>
+            <source>Open the page again</source>
+            <translation>Open de pagina opnieuw</translation>
+        </message>
+        <message>
+            <source>Opening your browser…</source>
+            <translation>Je browser wordt geopend…</translation>
+        </message>
+        <message>
+            <source>Sign-in didn't finish.</source>
+            <translation>Aanmelden is niet voltooid.</translation>
+        </message>
+        <message>
+            <source>The sign-in was declined in the browser.</source>
+            <translation>De aanmelding is in de browser geweigerd.</translation>
+        </message>
+        <message>
+            <source>{label} did not answer. Check your connection.</source>
+            <translation>{label} reageerde niet. Controleer je verbinding.</translation>
+        </message>
+        <message>
+            <source>{label} did not create the S3 keys.</source>
+            <translation>{label} heeft de S3-sleutels niet aangemaakt.</translation>
+        </message>
+        <message>
+            <source>{label} refused the sign-in.</source>
+            <translation>{label} heeft de aanmelding geweigerd.</translation>
+        </message>
+        <message>
+            <source>Send this approval link to your IT admin: {link}</source>
+            <translation>Stuur deze goedkeuringslink naar je IT-beheerder: {link}</translation>
+        </message>
+        <message>
+            <source>Your organization lets only an admin approve TerraLab AI Agent for {label}.</source>
+            <translation>Je organisatie laat alleen een beheerder TerraLab AI Agent goedkeuren voor {label}.</translation>
+        </message>
+    </context>
+    <context>
+        <name>CloudKeysDialog</name>
+        <message>
+            <source>Access key ID</source>
+            <translation>Toegangssleutel-ID</translation>
+        </message>
+        <message>
+            <source>Account key</source>
+            <translation>Accountsleutel</translation>
+        </message>
+        <message>
+            <source>Cancel</source>
+            <translation>Annuleren</translation>
+        </message>
+        <message>
+            <source>Checking…</source>
+            <translation>Controleren…</translation>
+        </message>
+        <message>
+            <source>Connect</source>
+            <translation>Verbinden</translation>
+        </message>
+        <message>
+            <source>Connect {label}</source>
+            <translation>{label} verbinden</translation>
+        </message>
+        <message>
+            <source>Connect {store}</source>
+            <translation>{store} verbinden</translation>
+        </message>
+        <message>
+            <source>Connected</source>
+            <translation>Verbonden</translation>
+        </message>
+        <message>
+            <source>Endpoint, empty for Amazon S3</source>
+            <translation>Eindpunt, leeg voor Amazon S3</translation>
+        </message>
+        <message>
+            <source>For {address}. A read-only key is enough: the AI agent only reads from it.</source>
+            <translation>Voor {address}. Een sleutel met alleen leesrechten is genoeg: de AI-agent leest er alleen uit.</translation>
+        </message>
+        <message>
+            <source>HMAC access key</source>
+            <translation>HMAC-toegangssleutel</translation>
+        </message>
+        <message>
+            <source>HMAC secret</source>
+            <translation>HMAC-geheim</translation>
+        </message>
+        <message>
+            <source>Header name</source>
+            <translation>Headernaam</translation>
+        </message>
+        <message>
+            <source>Hide</source>
+            <translation>Verbergen</translation>
+        </message>
+        <message>
+            <source>JSON key (*.json)</source>
+            <translation>JSON-sleutel (*.json)</translation>
+        </message>
+        <message>
+            <source>Key</source>
+            <translation>Sleutel</translation>
+        </message>
+        <message>
+            <source>Keys expired</source>
+            <translation>Sleutels verlopen</translation>
+        </message>
+        <message>
+            <source>Keys refused</source>
+            <translation>Sleutels geweigerd</translation>
+        </message>
+        <message>
+            <source>Not saved. Fill in the fields, and unlock QGIS's vault with its master password when QGIS asks.</source>
+            <translation>Niet opgeslagen. Vul de velden in en ontgrendel de kluis van QGIS met het hoofdwachtwoord wanneer QGIS erom vraagt.</translation>
+        </message>
+        <message>
+            <source>Open {host}</source>
+            <translation>{host} openen</translation>
+        </message>
+        <message>
+            <source>Password</source>
+            <translation>Wachtwoord</translation>
+        </message>
+        <message>
+            <source>QGIS will ask you to choose a master password. It locks every sign-in saved in QGIS and cannot be recovered, so keep it somewhere safe.</source>
+            <translation>QGIS vraagt je een hoofdwachtwoord te kiezen. Het vergrendelt elke aanmelding die in QGIS is opgeslagen en kan niet worden hersteld, dus bewaar het op een veilige plek.</translation>
+        </message>
+        <message>
+            <source>Region (optional)</source>
+            <translation>Regio (optioneel)</translation>
+        </message>
+        <message>
+            <source>SAS token</source>
+            <translation>SAS-token</translation>
+        </message>
+        <message>
+            <source>Secret access key</source>
+            <translation>Geheime toegangssleutel</translation>
+        </message>
+        <message>
+            <source>Service account key (JSON file)</source>
+            <translation>Serviceaccountsleutel (JSON-bestand)</translation>
+        </message>
+        <message>
+            <source>Show</source>
+            <translation>Tonen</translation>
+        </message>
+        <message>
+            <source>Sign in</source>
+            <translation>Aanmelden</translation>
+        </message>
+        <message>
+            <source>Sign in to {host}</source>
+            <translation>Aanmelden bij {host}</translation>
+        </message>
+        <message>
+            <source>Storage account name</source>
+            <translation>Naam van opslagaccount</translation>
+        </message>
+        <message>
+            <source>Stored encrypted in QGIS on this computer, behind your QGIS master password. Never sent to TerraLab or the AI agent.</source>
+            <translation>Versleuteld opgeslagen in QGIS op deze computer, achter je QGIS-hoofdwachtwoord. Nooit verzonden naar TerraLab of de AI-agent.</translation>
+        </message>
+        <message>
+            <source>The keys could not be checked: {error}</source>
+            <translation>De sleutels konden niet worden gecontroleerd: {error}</translation>
+        </message>
+        <message>
+            <source>This bucket opens only with a service account key.</source>
+            <translation>Deze bucket gaat alleen open met een serviceaccountsleutel.</translation>
+        </message>
+        <message>
+            <source>This bucket opens only with your access keys.</source>
+            <translation>Deze bucket gaat alleen open met je toegangssleutels.</translation>
+        </message>
+        <message>
+            <source>This container opens only with your account key or a SAS token.</source>
+            <translation>Deze container gaat alleen open met je accountsleutel of een SAS-token.</translation>
+        </message>
+        <message>
+            <source>This file is not a service account key. In the Google Cloud console, open the service account, then Keys, Add key, JSON.</source>
+            <translation>Dit bestand is geen serviceaccountsleutel. Open in de Google Cloud console het serviceaccount, dan Sleutels, Sleutel toevoegen, JSON.</translation>
+        </message>
+        <message>
+            <source>Use a SAS token instead</source>
+            <translation>Gebruik in plaats daarvan een SAS-token</translation>
+        </message>
+        <message>
+            <source>Use a service account key instead</source>
+            <translation>Gebruik in plaats daarvan een serviceaccountsleutel</translation>
+        </message>
+        <message>
+            <source>Use a username and password instead</source>
+            <translation>Gebruik in plaats daarvan een gebruikersnaam en wachtwoord</translation>
+        </message>
+        <message>
+            <source>Use an API key instead</source>
+            <translation>Gebruik in plaats daarvan een API-sleutel</translation>
+        </message>
+        <message>
+            <source>Use an HMAC key instead</source>
+            <translation>Gebruik in plaats daarvan een HMAC-sleutel</translation>
+        </message>
+        <message>
+            <source>Use the account key instead</source>
+            <translation>Gebruik in plaats daarvan de accountsleutel</translation>
+        </message>
+        <message>
+            <source>Username</source>
+            <translation>Gebruikersnaam</translation>
+        </message>
+        <message>
+            <source>{host} refused these details. Check them and try again.</source>
+            <translation>{host} heeft deze gegevens geweigerd. Controleer ze en probeer het opnieuw.</translation>
+        </message>
+        <message>
+            <source>{store} no longer accepts your saved keys.</source>
+            <translation>{store} accepteert je opgeslagen sleutels niet meer.</translation>
+        </message>
+        <message>
+            <source>{store} refused your saved keys.</source>
+            <translation>{store} heeft je opgeslagen sleutels geweigerd.</translation>
+        </message>
+        <message>
+            <source>{where} refused these keys.</source>
+            <translation>{where} heeft deze sleutels geweigerd.</translation>
+        </message>
+    </context>
+    <context>
+        <name>AccountDrive</name>
+        <message>
+            <source>Allow SharePoint sites</source>
+            <translation>SharePoint-sites toestaan</translation>
+        </message>
+        <message>
+            <source>Cancel</source>
+            <translation>Annuleren</translation>
+        </message>
+        <message>
+            <source>Choose this file in Google Drive</source>
+            <translation>Dit bestand kiezen in Google Drive</translation>
+        </message>
+        <message>
+            <source>Connect Google Drive</source>
+            <translation>Google Drive koppelen</translation>
+        </message>
+        <message>
+            <source>Connect OneDrive and SharePoint</source>
+            <translation>OneDrive en SharePoint koppelen</translation>
+        </message>
+        <message>
+            <source>Connect SharePoint</source>
+            <translation>SharePoint koppelen</translation>
+        </message>
+        <message>
+            <source>Read with your account, only for this request.</source>
+            <translation>Gelezen met je account, alleen voor dit verzoek.</translation>
+        </message>
+        <message>
+            <source>Read-only: the AI agent can open your files, never change or delete them.</source>
+            <translation>Alleen lezen: de AI-agent kan je bestanden openen, maar nooit wijzigen of verwijderen.</translation>
+        </message>
+        <message>
+            <source>Reading SharePoint sites needs one more permission. Your organization's admin may have to approve it.</source>
+            <translation>Voor het lezen van SharePoint-sites is nog één toestemming nodig. Mogelijk moet de beheerder van je organisatie die goedkeuren.</translation>
+        </message>
+        <message>
+            <source>Sign in again</source>
+            <translation>Opnieuw inloggen</translation>
+        </message>
+        <message>
+            <source>Sign in with {name}</source>
+            <translation>Inloggen met {name}</translation>
+        </message>
+        <message>
+            <source>The AI agent sees only the files you pick. Pick this one to let it open it.</source>
+            <translation>De AI-agent ziet alleen de bestanden die je kiest. Kies dit bestand zodat hij het kan openen.</translation>
+        </message>
+        <message>
+            <source>Try again</source>
+            <translation>Opnieuw proberen</translation>
+        </message>
+        <message>
+            <source>Use your {label} access?</source>
+            <translation>Je {label}-toegang gebruiken?</translation>
+        </message>
+        <message>
+            <source>You pick the files the AI agent may open. It sees nothing else in your Drive.</source>
+            <translation>Jij kiest welke bestanden de AI-agent mag openen. Verder ziet hij niets in je Drive.</translation>
+        </message>
+        <message>
+            <source>Your sign-in stays in QGIS's encrypted vault on this computer. Never sent to TerraLab or the AI agent.</source>
+            <translation>Je inlog blijft in de versleutelde kluis van QGIS op deze computer. Wordt nooit naar TerraLab of de AI-agent gestuurd.</translation>
+        </message>
+        <message>
+            <source>{name} no longer accepts your saved sign-in.</source>
+            <translation>{name} accepteert je opgeslagen inlog niet meer.</translation>
+        </message>
+    </context>
+    <context>
+        <name>RatingCard</name>
+        <message>
+            <source>Add details (optional)</source>
+            <translation>Details toevoegen (optioneel)</translation>
+        </message>
+        <message>
+            <source>Close</source>
+            <translation>Sluiten</translation>
+        </message>
+        <message>
+            <source>Could not send. Try again.</source>
+            <translation>Verzenden mislukt. Probeer het opnieuw.</translation>
+        </message>
+        <message>
+            <source>Not what I asked</source>
+            <translation>Niet wat ik vroeg</translation>
+        </message>
+        <message>
+            <source>Send</source>
+            <translation>Verzenden</translation>
+        </message>
+        <message>
+            <source>Tell us more (optional)</source>
+            <translation>Vertel ons meer (optioneel)</translation>
+        </message>
+        <message>
+            <source>Thanks for the feedback</source>
+            <translation>Bedankt voor je feedback</translation>
+        </message>
+        <message>
+            <source>Too slow</source>
+            <translation>Te traag</translation>
+        </message>
+        <message>
+            <source>What went wrong?</source>
+            <translation>Wat ging er mis?</translation>
+        </message>
+        <message>
+            <source>What worked well?</source>
+            <translation>Wat werkte goed?</translation>
+        </message>
+        <message>
+            <source>Wrong result</source>
+            <translation>Verkeerd resultaat</translation>
+        </message>
+        <message>
+            <source>Your words are sent with this chat and recent logs.</source>
+            <translation>Je woorden worden verstuurd met deze chat en recente logs.</translation>
         </message>
     </context>
 </TS>

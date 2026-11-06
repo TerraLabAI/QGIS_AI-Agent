@@ -36,6 +36,7 @@ from ..core.context import tr
 from ..core.security import validate_path, validate_read
 from ..core.tool_registry import Tool, ToolRegistry, coded_fact, tool_error
 from ..core.writeback import write_atomic
+from .advanced_render import _render_map
 
 MAX_FIGURES = 12
 MAX_FIGURE_WIDTH = 1600
@@ -47,6 +48,7 @@ def register_html_report_tools(registry: ToolRegistry):
     registry.register(Tool(
         name="write_html_report",
         danger="write",
+        writes_at=("path",),
         replaces_file_at="path",
         writes_page="html",
         label=QT_TRANSLATE_NOOP("AIAgent", "Save the report {title}"),
@@ -173,7 +175,6 @@ def _write_html_report(args: dict) -> dict:
 
 def _render_figures(declared) -> tuple[dict, dict, list]:
 
-    from .advanced_render import _render_map
 
     figures: dict[str, tuple[str, bytes]] = {}
     facts: dict[str, dict] = {}

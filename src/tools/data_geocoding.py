@@ -7,7 +7,6 @@
 
 
 
-
 from __future__ import annotations
 
 import concurrent.futures
@@ -20,9 +19,10 @@ import urllib.request
 
 from qgis.core import QgsCoordinateReferenceSystem, QgsDistanceArea, QgsPointXY, QgsProject
 
-from ..core import canvas_glide, net, place_search, tuning
+from ..core import canvas_glide, geodata_rules, net, tuning
 from ..core.background import run_on_main_thread
 from ..core.logger import log_warning
+from ..core.settings import Settings
 from ..core.tool_registry import tool_error
 from .data_common import (
     _CACHE_CATALOG_S,
@@ -33,7 +33,6 @@ from .data_common import (
     _OWN_GEOCODE_TIMEOUT,
     _ROUTE_TIMEOUT,
     _TOTAL_TIMEOUT_FACTOR,
-    _USER_AGENT,
     _canvas_viewbox_4326,
     _fold,
     _http_get,
@@ -61,40 +60,38 @@ _DEFAULT_GEOCODE_PROVIDER = "photon"
 
 
 
+_COMPILED: dict = {}
 
-_GENERIC_PLACE_WORDS = re.compile(
-    r"\b(?:city\s+cent(?:re|er)|town\s+cent(?:re|er)|centre[\s-]?ville|downtown|cent(?:re|er)|"
-    r"old\s+town|inner\s+city|cbd)\b", re.IGNORECASE)
+
+def _compiled(key: str, build):
+
+    doc = tuning.service_doc("geodata_rules")
+    if _COMPILED.get("doc") is not doc:
+        _COMPILED.clear()
+        _COMPILED["doc"] = doc
+    if key not in _COMPILED:
+        _COMPILED[key] = build(geodata_rules.rule("geocode", *key.split(".")))
+    return _COMPILED[key]
+
+
+def _phrase_regex(phrases) -> re.Pattern:
+    ordered = sorted(phrases, key=len, reverse=True)
+    return re.compile(r"\b(?:" + "|".join(r"\s+".join(re.escape(w) for w in p.split()) for p in ordered) + r")\b",
+                      re.IGNORECASE)
 
 
 def _without_generic_place_words(query: str) -> str:
 
+    filler = _compiled("generic_place_words", _phrase_regex)
+    leading = _compiled("leading_words", lambda words: re.compile(
+        r"^(?:" + "|".join(re.escape(w) for w in words) + r")\s+", re.IGNORECASE))
     parts = [part.strip() for part in query.split(",")]
-    head = _GENERIC_PLACE_WORDS.sub(" ", parts[0])
+    head = filler.sub(" ", parts[0])
     head = re.sub(r"\s{2,}", " ", head).strip(" -,")
-    head = re.sub(r"^(?:de|du|d'|of|the)\s+", "", head, flags=re.IGNORECASE)
+    head = leading.sub("", head)
     if not head:
         return query
     return ", ".join([head] + [part for part in parts[1:] if part])
-
-
-def _answers_by_name(query: str, results: list) -> bool:
-
-
-
-
-
-
-    asked = _fold(query.split(",")[0])
-    if not asked:
-        return True
-    for hit in results:
-        label = _fold(hit.get("display_name"))
-        if label.startswith(asked) and not label[len(asked):len(asked) + 1].isalnum():
-            return True
-    return False
-
-
 
 
 
@@ -108,265 +105,8 @@ def _rules() -> dict:
     if doc is None:
         return {}
     if _RULES[0] is not doc:
-        _RULES[:] = [doc, {
-            "tiers": list(doc.get("tiers") or ()),
-            "big_places": list(doc.get("big_places") or ()),
-            "natural": {cls: frozenset(values) for cls, values in (doc.get("natural_places") or {}).items()},
-            "feature_words": frozenset(doc.get("feature_words") or ()),
-            "country_words": dict(doc.get("country_words") or {}),
-            "local_view_deg": float(doc.get("local_view_deg") or 0.0),
-            "candidates": int(doc.get("candidates") or 0),
-        }]
+        _RULES[:] = [doc, {"country_words": dict(doc.get("country_words") or {})}]
     return _RULES[1]
-
-
-
-
-_PLACE_TAGS = ("natural", "water", "waterway", "place:island", "place:archipelago")
-
-
-def _natural_place(hit: dict) -> bool:
-    natural = _rules().get("natural") or {}
-    return str(hit.get("osm_value") or "").lower() in natural.get(str(hit.get("class") or "").lower(), ())
-
-
-def _matches(row: dict, hit: dict) -> bool:
-
-    if "type" in row and str(hit.get("type") or "").lower() != row["type"]:
-        return False
-    if "osm_value" in row and str(hit.get("osm_value") or "").lower() not in row["osm_value"]:
-        return False
-    if "class" in row and _fold(hit.get("class")) != row["class"]:
-        return False
-    return not row.get("natural") or _natural_place(hit)
-
-
-def _geo_tier(hit: dict) -> int:
-
-    return next((int(row["tier"]) for row in _rules().get("tiers", ()) if _matches(row, hit)), 0)
-
-
-def _named_as(asked: str, hit: dict, exact: bool = False) -> bool:
-
-
-
-
-
-
-
-    words = re.findall(r"\w+", _fold(asked))
-    name = re.findall(r"\w+", _fold(str(hit.get("display_name") or "").split(",")[0]))
-    kind = _fold(hit.get("type"))
-    feature_words = _rules().get("feature_words", frozenset())
-    distinctive = {word for word in words if word not in feature_words and word != kind} or set(words)
-    if not distinctive or not distinctive <= set(name):
-        return False
-    return not exact or ({word for word in name if word not in feature_words} or set(name)) == distinctive
-
-
-def _big_place(hit: dict) -> bool:
-
-    return any(_matches(row, hit) for row in _rules().get("big_places", ()))
-
-
-
-_AROUND = ("city", "county", "state", "country")
-
-
-def _words(text) -> set:
-    return set(re.findall(r"\w+", _fold(text)))
-
-
-def _own_words(hit: dict) -> set:
-
-    name = (hit.get("_photon") or {}).get("name") or str(hit.get("display_name") or "").split(",")[0]
-    return _words(name) - _rules().get("feature_words", frozenset()) - {_fold(hit.get("type"))}
-
-
-def _holders(hit: dict) -> list:
-
-    photon = hit.get("_photon") or {}
-    return [_words(photon[key]) for key in ("city", "county", "state") if photon.get(key)]
-
-
-def _answers_name(query: str, hit: dict) -> bool:
-
-
-
-
-    words = _words(query.split(",")[0]) - _rules().get("feature_words", frozenset())
-    own = _own_words(hit)
-    kind = _words(hit.get("type")) | _words(hit.get("osm_value"))
-    photon = hit.get("_photon") or {}
-    larger = set().union(*(_words(photon.get(key)) for key in ("county", "state", "country")))
-    return bool(own) and own <= words and words <= own | kind | larger
-
-
-def _placed_as_asked(query: str, place: dict, first: dict, wanted) -> bool:
-
-
-
-    if wanted and place.get("country_code") not in wanted:
-        return False
-    if _words((place.get("_photon") or {}).get("name")) in _holders(first):
-        return True
-    later = _words(",".join(query.split(",")[1:]))
-    return len(later & _words(place.get("display_name"))) >= len(later & _words(first.get("display_name")))
-
-
-def _place_for_object(query: str, first: dict, candidates, wanted):
-
-
-    holders = _holders(first)
-    return next((hit for hit in sorted(candidates, key=lambda hit: _words((hit.get("_photon") or {}).get("name"))
-                                       not in holders)
-                 if _geo_tier(hit) >= 2 and _answers_name(query, hit) and _placed_as_asked(query, hit, first, wanted)),
-                None)
-
-
-def _surrounding_names(query: str, hits: list) -> list:
-
-
-    if not hits or re.search(r"\d", query) or _geo_tier(hits[0]) > 0:
-        return []
-    feature_words = _rules().get("feature_words", frozenset())
-    asked = _words(query.split(",")[0]) - feature_words
-    photon = hits[0].get("_photon") or {}
-    names = []
-    for key in ("city", "county", "state"):
-        name = photon.get(key, "")
-        if name and (_words(name) - feature_words) and _words(name) - feature_words <= asked:
-            names.append(", ".join(part for part in (name, photon.get("country", "")) if part))
-    return list(dict.fromkeys(names))
-
-
-def _in_local_view(hit: dict, viewbox) -> bool:
-    bounds = _viewbox_bounds(viewbox)
-    if not bounds or max(bounds[2] - bounds[0], bounds[3] - bounds[1]) > _rules().get("local_view_deg", 0.0):
-        return False
-    return bounds[0] <= float(hit["lon"]) <= bounds[2] and bounds[1] <= float(hit["lat"]) <= bounds[3]
-
-
-def _place_filters() -> list:
-
-    return [[("osm_tag", tag) for tag in _PLACE_TAGS], [("layer", layer) for layer in _PLACE_AREA_LAYERS]]
-
-
-def _around_place_hits(base: str, query: str, hits: list) -> list:
-
-    lang = "en" if _latin_script(query) else ""
-    areas = [("layer", layer) for layer in _PLACE_AREA_LAYERS]
-    return [hit for name in _surrounding_names(query, hits)
-            for hit in _photon_place_hits_by(base, name, None, lang, areas)]
-
-
-def _photon_place_hits_by(base: str, query: str, viewbox, lang: str, filters: list) -> list:
-
-    extra = filters + ([("lang", lang)] if lang else [])
-    try:
-        payload = _geocode_fetch(_photon_forward_url(base, query, _rules().get("candidates") or 5, None, viewbox,
-                                                     extra=extra))
-    except (urllib.error.URLError, OSError, ValueError) as exc:
-        log_warning(f"Place lookup by kind failed for {query!r}: {exc}")
-        return []
-    return [hit for hit in (_parse_photon_forward(payload, True) or []) if _is_number(hit.get("lon"))]
-
-
-def _photon_place_hits(base: str, query: str, viewbox, lang: str) -> list:
-
-    found: list = []
-    for filters in _place_filters():
-        found.extend(_photon_place_hits_by(base, query, viewbox, lang, filters))
-    return found
-
-
-def _start_place_lookups(pool, base: str, query: str, viewbox):
-
-
-
-
-
-
-
-    cancel = net.current_cancel_check()
-
-    def ask(lang: str, filters: list) -> list:
-        net.set_cancel_check(cancel)
-        try:
-            return _photon_place_hits_by(base, query, viewbox, lang, filters)
-        finally:
-            net.set_cancel_check(None)
-
-    asked = {lang: [pool.submit(ask, lang, filters) for filters in _place_filters()] for lang in ("en", "")}
-    return lambda lang: [hit for future in asked[lang] for hit in future.result()]
-
-
-def _better_among(query: str, hits: list):
-
-    asked = query.split(",")[0]
-    one_name = "," not in query
-
-
-
-    return next((hit for hit in hits[1:]
-                 if _geo_tier(hit) >= 3 and not _natural_place(hit)
-                 and (_named_as(asked, hit, exact=True) or (one_name and _big_place(hit)))), None)
-
-
-def _needs_place_lookups(query: str, hits: list, viewbox) -> bool:
-
-    if not hits or re.search(r"\d", query) or not _rules().get("tiers"):
-        return False
-    first = hits[0]
-    tier = _geo_tier(first)
-    if tier >= 3 or (tier >= 1 and _in_local_view(first, viewbox)):
-        return False
-    return _better_among(query, hits) is None
-
-
-def _rank_places(query: str, hits: list, viewbox, base: str, place_hits=None, wanted=frozenset()) -> list:
-
-
-
-
-
-
-
-
-
-
-
-
-
-    if not hits or re.search(r"\d", query) or not _rules().get("tiers"):
-        return hits
-    asked = query.split(",")[0]
-    first = hits[0]
-    tier = _geo_tier(first)
-    if tier >= 3 or (tier >= 1 and _in_local_view(first, viewbox)):
-        return hits
-    better = _better_among(query, hits)
-    if place_hits is None:
-        def place_hits(lang):
-            return _photon_place_hits(base, query, viewbox, lang)
-    for lang in ("en", ""):
-        if better is not None:
-            break
-        better = next((hit for hit in place_hits(lang)
-                       if _geo_tier(hit) > max(tier, 2) and _named_as(asked, hit, exact=True)), None)
-    if better is None and tier == 0:
-
-        better = _place_for_object(query, first, place_hits("en") + place_hits(""), wanted)
-        if better is None and _surrounding_names(query, hits):
-            better = _place_for_object(query, first, _around_place_hits(base, query, hits), wanted)
-    if better is None:
-        return hits
-
-    def same(hit):
-        return (hit.get("osm_id"), hit.get("lat"), hit.get("lon")) == (better.get("osm_id"), better.get("lat"),
-                                                                       better.get("lon"))
-
-    return [better] + [hit for hit in hits if not same(hit)]
 
 
 def _country_list(country_codes: str) -> list:
@@ -533,8 +273,6 @@ def _photon_hit(feature: dict, verbose: bool) -> dict | None:
         "lon": point[0],
         "type": props.get("type") or props.get("osm_value"),
         "class": props.get("osm_key"),
-
-        "_photon": {key: _text(props.get(key)) for key in ("name",) + _AROUND if _text(props.get(key))},
     }
     if props.get("countrycode"):
         hit["country_code"] = str(props["countrycode"]).lower()
@@ -580,23 +318,15 @@ def _parse_photon_reverse(payload) -> dict | None:
 
 
 
-
-
-
-_BAN_COUNTRY_WORDS = ("france", "fr", "francia", "frankreich")
-
-
-
-
-
-
-_ARRONDISSEMENT_CITIES = "paris|lyon|marseille"
-_ARRONDISSEMENT_NAMED = re.compile(
-    r"^\s*(\d{1,2})\s*(?:er|re|e|ème|eme|è|th|st|nd|rd)?\s+arrondissement\s+(?:de\s+|du\s+|of\s+)?"
-    r"(" + _ARRONDISSEMENT_CITIES + r")\s*$", re.IGNORECASE)
-_ARRONDISSEMENT_OFFICIAL = re.compile(
-    r"^\s*(" + _ARRONDISSEMENT_CITIES + r")\s+(\d{1,2})\s*(?:er|re|e|ème|eme)?\s+arrondissement\s*$",
-    re.IGNORECASE)
+def _arrondissement_patterns(rows: dict) -> tuple:
+    cities = "|".join(re.escape(c) for c in rows["cities"])
+    word = re.escape(rows["word"])
+    linkers = "".join(re.escape(w) + r"\s+|" for w in rows["linkers"]).rstrip("|")
+    any_ord = "|".join(re.escape(o) for o in sorted(rows["ordinals"], key=len, reverse=True))
+    official = "|".join(re.escape(o) for o in sorted(rows["official_ordinals"], key=len, reverse=True))
+    named = re.compile(rf"^\s*(\d{{1,2}})\s*(?:{any_ord})?\s+{word}\s+(?:{linkers})?({cities})\s*$", re.IGNORECASE)
+    spelled = re.compile(rf"^\s*({cities})\s+(\d{{1,2}})\s*(?:{official})?\s+{word}\s*$", re.IGNORECASE)
+    return named, spelled, rows
 
 
 def _arrondissement_key(text: str):
@@ -606,11 +336,12 @@ def _arrondissement_key(text: str):
 
 
 
+    named, official, _rows = _compiled("arrondissement", _arrondissement_patterns)
     value = str(text or "").split(",")[0]
-    match = _ARRONDISSEMENT_NAMED.match(value)
+    match = named.match(value)
     if match:
         return match.group(2).lower(), int(match.group(1))
-    match = _ARRONDISSEMENT_OFFICIAL.match(value)
+    match = official.match(value)
     if match:
         return match.group(1).lower(), int(match.group(2))
     return None
@@ -619,13 +350,16 @@ def _arrondissement_key(text: str):
 def _ban_query(query: str) -> str:
 
     parts = [part.strip() for part in str(query or "").split(",")]
-    while len(parts) > 1 and parts[-1].lower().strip(". ") in _BAN_COUNTRY_WORDS:
+    countries = geodata_rules.rule("geocode", "ban_country_words")
+    while len(parts) > 1 and parts[-1].lower().strip(". ") in countries:
         parts.pop()
     trimmed = ", ".join(part for part in parts if part)
     key = _arrondissement_key(trimmed) if len(parts) == 1 else None
     if key:
         city, number = key
-        trimmed = "{} {}{} Arrondissement".format(city.capitalize(), number, "er" if number == 1 else "e")
+        rows = _compiled("arrondissement", _arrondissement_patterns)[2]
+        trimmed = geodata_rules.fill(rows["form"], city=city.capitalize(), number=number,
+                                     ordinal=rows["first_ordinal"] if number == 1 else rows["other_ordinal"])
     return trimmed or str(query or "").strip()
 
 
@@ -879,7 +613,7 @@ def _parse_pelias_reverse(payload) -> dict | None:
 _GEOCODE_PROVIDERS = {
     "nominatim": {
         "name": "OpenStreetMap Nominatim",
-        "licence": "ODbL 1.0", "attribution": "© OpenStreetMap contributors",
+        "credit_from": "osm",
         "service": "nominatim",
         "forward_url": _nominatim_forward_url,
         "reverse_url": _nominatim_reverse_url,
@@ -888,7 +622,7 @@ _GEOCODE_PROVIDERS = {
     },
     "photon": {
         "name": "Photon (TerraLab, OpenStreetMap)",
-        "licence": "ODbL 1.0", "attribution": "© OpenStreetMap contributors",
+        "credit_from": "osm",
         "service": "photon",
         "forward_url": _photon_forward_url,
         "reverse_url": _photon_reverse_url,
@@ -990,6 +724,13 @@ def _fallback_provider(answer: dict) -> str:
     return name[:40] if re.fullmatch(r"[A-Za-z0-9_.-]{1,40}", name) else "terralab_fallback"
 
 
+def _provider_credit(provider: dict) -> dict:
+
+    if provider.get("credit_from") == "osm":
+        return {key: geodata_rules.rule("osm", key) for key in ("licence", "attribution")}
+    return {key: provider[key] for key in ("licence", "attribution") if provider.get(key)}
+
+
 def _fallback_attribution(answer: dict) -> str:
     notice = " ".join(str((answer or {}).get("attribution") or "").split())
     return notice[:300] or "credit the data source the AI Agent backend used."
@@ -997,14 +738,14 @@ def _fallback_attribution(answer: dict) -> str:
 
 def _backend_geo_url(path: str) -> str:
 
-    from ..core.settings import Settings
 
     parts = urllib.parse.urlsplit(Settings().server_url)
     scheme = "http" if parts.scheme == "ws" else "https"
     return f"{scheme}://{parts.netloc}{path}"
 
 
-def _backend_geo(path: str, params: dict, cache_ttl: float = 0.0) -> dict | None:
+def _backend_geo(path: str, params: dict, cache_ttl: float = 0.0,
+                timeout: float = _BACKEND_GEO_TIMEOUT) -> dict | None:
 
 
 
@@ -1014,7 +755,6 @@ def _backend_geo(path: str, params: dict, cache_ttl: float = 0.0) -> dict | None
 
 
 
-    from ..core.settings import Settings
 
     key = Settings().activation_key
     if not key:
@@ -1022,10 +762,10 @@ def _backend_geo(path: str, params: dict, cache_ttl: float = 0.0) -> dict | None
     try:
         url = f"{_backend_geo_url(path)}?{urllib.parse.urlencode(params, doseq=True)}"
         request = urllib.request.Request(url, headers={
-            "User-Agent": _USER_AGENT, "Accept": "application/json",
+            "Accept": "application/json",
             "Authorization": f"Bearer {key}"})
-        raw = net.fetch(request, timeout=_BACKEND_GEO_TIMEOUT, max_bytes=_MAX_DOWNLOAD_SIZE,
-                        total_timeout=_BACKEND_GEO_TIMEOUT * _TOTAL_TIMEOUT_FACTOR,
+        raw = net.fetch(request, timeout=timeout, max_bytes=_MAX_DOWNLOAD_SIZE,
+                        total_timeout=timeout * _TOTAL_TIMEOUT_FACTOR,
                         cache_ttl=cache_ttl).body
         answer = json.loads(raw)
         return answer if isinstance(answer, dict) and not answer.get("error") else None
@@ -1100,41 +840,24 @@ def _geocode_one_address(address: str, own_host: bool = True) -> tuple:
     return (dict(hits[0]) if hits else None), own_failed
 
 
-def _place_search(query: str, limit: int, base: str, verbose: bool):
 
 
-    rounds = place_search.search(query, limit, base, tuning.service_url("ban", ""))
-    with concurrent.futures.ThreadPoolExecutor(max_workers=8, thread_name_prefix="geocode-places") as pool:
-        try:
-            urls = next(rounds)
-            while True:
-                futures = [(url, pool.submit(_geocode_fetch, url)) for url in urls]
-                answers = {}
-                for url, future in futures:
-                    try:
-                        answers[url] = future.result()
-                    except (urllib.error.URLError, OSError, ValueError):
-                        answers[url] = None
-                urls = rounds.send(answers)
-        except StopIteration as done:
-            places = done.value or []
-        except place_search.Unavailable:
-            return None
+_FIND_TIMEOUT = 15
 
-    local_names = not _latin_script(query)
-    hits = []
-    for place in places:
-        ban = place.get("ban")
-        if ban is None:
-            hit = _photon_hit(place.get("local_feature") if local_names and place.get("local_feature")
-                              else place["feature"], verbose)
-        else:
-            hit = _ban_hit(ban, verbose)
-            if hit:
-                hit.update(display_name=place["address"], country_code="fr", provider="ban")
-        if hit:
-            hits.append(hit)
-    return hits
+
+def _ranked_on_server(query: str, limit: int, country_codes: str, verbose: bool, viewbox) -> list | None:
+
+
+    params = {"q": query, "limit": limit}
+    if country_codes:
+        params["country_codes"] = country_codes
+    if verbose:
+        params["verbose"] = 1
+    if viewbox:
+        params["viewbox"] = viewbox
+    answer = _backend_geo("/geo/find", params, cache_ttl=_CACHE_GEOCODE_S, timeout=_FIND_TIMEOUT)
+    hits = (answer or {}).get("results")
+    return [dict(hit) for hit in hits if isinstance(hit, dict)] if isinstance(hits, list) else None
 
 
 def _geocode(args: dict) -> dict:
@@ -1166,10 +889,7 @@ def _geocode(args: dict) -> dict:
     except Exception:  # nosec B110
         viewbox = None
 
-
-
-    fetched = max(limit, _rules().get("candidates") or 0) if provider_id == "photon" else limit
-    url = provider["forward_url"](base, query, fetched, country_codes, viewbox)
+    url = provider["forward_url"](base, query, limit, country_codes, viewbox)
 
     def ask(address: str):
 
@@ -1178,17 +898,15 @@ def _geocode(args: dict) -> dict:
 
 
 
-    unbiased = None
-    if provider_id == "photon" and viewbox is None:
-        unbiased = _place_search(str(args.get("query") or "").strip(), max(limit, 10), base,
-                                 bool(args.get("verbose", False)))
+
+    ranked = None
+    if provider_id == "photon" and _is_own_geocode(base):
+        ranked = _ranked_on_server(str(args.get("query") or "").strip(), limit, country_codes,
+                                   bool(args.get("verbose", False)), viewbox)
 
     fell_back = False
-    if unbiased is not None:
-        failure, results = None, unbiased
-    elif provider_id == "photon" and viewbox is None:
-
-        failure, results, fell_back = tool_error("Geocoding request failed: Photon did not answer."), [], True
+    if ranked is not None:
+        failure, results = None, ranked
     else:
         try:
             payload = ask(url)
@@ -1229,48 +947,8 @@ def _geocode(args: dict) -> dict:
 
 
     wanted = set(_country_list(args.get("country_codes") or ""))
-
-    def _keep_wanted(hits: list) -> list:
-        if not (wanted and hits):
-            return hits
-        kept = [hit for hit in hits if not hit.get("country_code") or hit["country_code"] in wanted]
-        return kept or hits
-
-    results = _keep_wanted(results)
-
-
-
-
-
-    check_plain = bool(viewbox and results and not fell_back and not _answers_by_name(query, results))
-    ranks = provider_id == "photon" and bool(results) and not fell_back and unbiased is None
-
-
-
-    pool = None
-    place_hits = None
-    if ranks and (check_plain or _needs_place_lookups(query, results, viewbox)):
-        pool = concurrent.futures.ThreadPoolExecutor(max_workers=2 * len(_place_filters()),
-                                                     thread_name_prefix="geocode-kinds")
-        place_hits = _start_place_lookups(pool, base, query, viewbox)
-    try:
-        if check_plain:
-            try:
-                plain = provider["parse_forward"](
-                    ask(provider["forward_url"](base, query, fetched, country_codes, None)),
-                    bool(args.get("verbose", False)))
-            except (urllib.error.URLError, OSError, ValueError):
-                plain = None
-            if plain and _answers_by_name(query, _keep_wanted(plain)):
-                results = _keep_wanted(plain)
-
-        if ranks:
-
-
-            results = _rank_places(query, results, viewbox, base, place_hits, wanted)
-    finally:
-        if pool is not None:
-            pool.shutdown(wait=False)
+    if wanted and results:
+        results = [hit for hit in results if not hit.get("country_code") or hit["country_code"] in wanted] or results
 
     if fell_back:
 
@@ -1289,7 +967,6 @@ def _geocode(args: dict) -> dict:
 
     verbose = bool(args.get("verbose", False))
     for hit in output:
-        hit.pop("_photon", None)
         if not verbose:
             hit.pop("osm_value", None)
 
@@ -1346,7 +1023,7 @@ def _geocode(args: dict) -> dict:
             if fell_back:
                 out["layer"]["attribution"] = _fallback_attribution(answer)
             else:
-                out["layer"].update({key: provider[key] for key in ("licence", "attribution") if provider.get(key)})
+                out["layer"].update(_provider_credit(provider))
         except Exception as e:  # noqa: BLE001
             out["layer_error"] = f"Could not add the point layer: {e}"
     return out

@@ -29,7 +29,7 @@ from qgis.PyQt.QtCore import QT_TRANSLATE_NOOP
 from ..core.qt_compat import enum_member
 from ..core.tool_registry import Tool, ToolRegistry, tool_error
 from ._compat import QVAR_DOUBLE, QVAR_LONGLONG
-from .layer_lookup import _find_layer
+from ._layers import resolve_layer
 
 
 def register_raster_data_tools(registry: ToolRegistry) -> None:
@@ -69,7 +69,7 @@ def register_raster_data_tools(registry: ToolRegistry) -> None:
 
 
 def _set_raster_nodata(args: dict) -> dict:
-    layer = _find_layer(str(args.get("layer_name") or ""))
+    layer = resolve_layer(str(args.get("layer_name") or ""))
     if layer is None:
         return tool_error(f"Layer {args.get('layer_name')!r} was not found.", "LAYER_NOT_FOUND")
     if not isinstance(layer, QgsRasterLayer):
@@ -117,7 +117,7 @@ def _field_name(name: str, used: set[str], prefix: str) -> str:
 
 
 def _sample_rasters_at_points(args: dict) -> dict:
-    points = _find_layer(str(args.get("point_layer") or ""))
+    points = resolve_layer(str(args.get("point_layer") or ""))
     if points is None:
         return tool_error(f"Layer {args.get('point_layer')!r} was not found.", "LAYER_NOT_FOUND")
     if not isinstance(points, QgsVectorLayer) or points.geometryType() != 0:
@@ -127,7 +127,7 @@ def _sample_rasters_at_points(args: dict) -> dict:
         return tool_error("raster_layers must contain at least one raster layer.", "INVALID_ARGS")
     rasters = []
     for requested in names:
-        layer = _find_layer(str(requested or ""))
+        layer = resolve_layer(str(requested or ""))
         if not isinstance(layer, QgsRasterLayer):
             return tool_error(f"{requested!r} is not a loaded raster layer.", "INVALID_ARGS")
         rasters.append(layer)

@@ -22,12 +22,14 @@ import zlib
 
 from qgis.core import QgsProject, QgsVectorLayer
 
-from . import tuning
+from . import background, tuning
 from .host_platform import remove_quietly
 from .layer_order import is_web_service
 from .logger import log, log_warning
+from .net import current_cancel_check
 from .qt_compat import enum_member, field_type
 from .snapshot_files import sqlite_read_only_uri
+from .snapshot_paths import layer_file_path
 
 
 def _bytes_field_type():
@@ -441,7 +443,6 @@ class _FeaturePass:
 
                 source = QgsVectorLayerFeatureSource(layer)
                 fields = layer.fields()
-
             job = (lid, name, source, fields, count, _copy_table(lid))
         except Exception as exc:  # noqa: BLE001
             log_warning(f"Snapshot cannot copy memory layer {name}: {exc}")
@@ -645,7 +646,6 @@ class _FeaturePass:
 
     def _read_and_copy(self):
         request = _no_geometry_request()
-        from .net import current_cancel_check
 
         cancelled = current_cancel_check() or (lambda: False)
         for lid, source, signed, memory, count, full in self._plan:
@@ -762,8 +762,6 @@ def _reparses_per_pass(layer) -> bool:
     try:
         if layer.providerType() != "ogr":
             return False
-        from .snapshot import layer_file_path
-
         path = layer_file_path(layer) or ""
         if not path.lower().endswith(_REPARSED_SUFFIXES):
             return False
@@ -849,7 +847,6 @@ class _SignatureReader:
         self.out: dict | None = None
 
     def start(self) -> None:
-        from . import background
 
         background.start_kept_thread(self.run, name="AI Agent snapshot signatures")
 

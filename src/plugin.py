@@ -11,6 +11,7 @@
 from __future__ import annotations
 
 import contextlib
+import importlib
 import os
 import sys
 import time
@@ -21,27 +22,23 @@ from qgis.PyQt.QtGui import QIcon, QKeySequence
 from qgis.PyQt.QtWidgets import QAction, QApplication, QDockWidget, QMenu
 
 from . import LOADED_AT, plugin_self_update
+from .api.terralab_client import HARD_CONNECTIVITY_CODES
 from .core import first_run_funnel, i18n, policy, telemetry, tuning
 from .core import telemetry_events as ev
+from .core.dev_env import dev_env
 from .core.logger import log, log_warning, start_log_capture, stop_log_capture
+from .core.qt_compat import disconnect_quietly
+from .core.served_state import set_server_config
 from .core.settings import Settings
 from .ui.shared import TOGGLE_PANEL_KEYS
-
-try:
-    from .ui.terralab_toolbar import add_action_to_toolbar, get_or_create_terralab_toolbar, remove_action_from_toolbar
-except ImportError:
-    add_action_to_toolbar = get_or_create_terralab_toolbar = remove_action_from_toolbar = None
-try:
-    from .ui.terralab_menu import (
-        add_plugin_to_menu,
-        add_to_plugins_menu,
-        get_or_create_terralab_menu,
-        remove_from_plugins_menu,
-        remove_plugin_from_menu,
-    )
-except ImportError:
-    add_plugin_to_menu = add_to_plugins_menu = get_or_create_terralab_menu = None
-    remove_from_plugins_menu = remove_plugin_from_menu = None
+from .ui.terralab_menu import (
+    add_plugin_to_menu,
+    add_to_plugins_menu,
+    get_or_create_terralab_menu,
+    remove_from_plugins_menu,
+    remove_plugin_from_menu,
+)
+from .ui.terralab_toolbar import add_action_to_toolbar, get_or_create_terralab_toolbar, remove_action_from_toolbar
 
 PRODUCT_ID = "ai-agent"
 PLUGIN_NAME = "AI Agent"
@@ -109,6 +106,7 @@ class AIAgentPlugin:
         self._shown_update_version = ""
         self._suppressed_update_versions: set[str] = set()
         self._update_refresh_requested = False
+        self._update_no_repository = False
         self._update_refresh_timer = None
         self._released_version = ""
         self._release_reply = None
@@ -155,6 +153,11 @@ class AIAgentPlugin:
 
 
 
+    @property
+    def panel(self):
+
+        return self.dock.panel if self.dock is not None else None
+
     def initGui(self):
         i18n.install()
         start_log_capture()
@@ -196,25 +199,7 @@ class AIAgentPlugin:
                 self.action.setShortcutContext(shortcut_context)
         self.action.triggered.connect(self.toggle_dock)
         try:
-            from .core import view3d_guard
-
-            view3d_guard.install()
-        except Exception as exc:  # noqa: BLE001
-            log_warning(f"3D view guard not installed: {exc}")
-        try:
-            from .core.host_platform import watch_layer_removals
-
-            watch_layer_removals()
-        except Exception as exc:  # noqa: BLE001
-            log_warning(f"Layer removal watch not installed: {exc}")
-        try:
-            from .core import designer_guard
-
-            designer_guard.install()
-        except Exception as exc:  # noqa: BLE001
-            log_warning(f"Layout designer guard not installed: {exc}")
-        try:
-            from .core.save_guard import SaveGuard
+            from .tools.save_guard import SaveGuard
 
             self._save_guard = SaveGuard(self.iface, busy=self._run_open, keep_layers=self._keep_layers,
                                          writing=self._layers_writing)
@@ -222,20 +207,7 @@ class AIAgentPlugin:
         except Exception as exc:  # noqa: BLE001
             self._save_guard = None
             log_warning(f"Save and quit guard not installed: {exc}")
-        try:
-            from .core import stream_fallback
-
-            stream_fallback.install()
-        except Exception as exc:  # noqa: BLE001
-            log_warning(f"Streamed raster fallback not installed: {exc}")
-        try:
-
-
-            from .core import data_access
-
-            data_access.install()
-        except Exception as exc:  # noqa: BLE001
-            log_warning(f"Data key not installed: {exc}")
+        self._install_host_hooks()
         try:
 
 
@@ -260,33 +232,25 @@ class AIAgentPlugin:
         except Exception as exc:  # noqa: BLE001
             log_warning(f"Options page not installed: {exc}")
 
-        if get_or_create_terralab_toolbar is not None:
-            try:
-                self.terralab_toolbar = get_or_create_terralab_toolbar(self.iface)
-                add_action_to_toolbar(self.terralab_toolbar, self.action, PRODUCT_ID)
-            except Exception as exc:  # noqa: BLE001
-                log_warning(f"Shared toolbar unavailable: {exc}")
-                self.terralab_toolbar = None
+        try:
+            self.terralab_toolbar = get_or_create_terralab_toolbar(self.iface)
+            add_action_to_toolbar(self.terralab_toolbar, self.action, PRODUCT_ID)
+        except Exception as exc:  # noqa: BLE001
+            log_warning(f"Shared toolbar unavailable: {exc}")
+            self.terralab_toolbar = None
         if self.terralab_toolbar is None:
             self.iface.addToolBarIcon(self.action)
 
-        if get_or_create_terralab_menu is not None:
-            try:
-                self.terralab_menu = get_or_create_terralab_menu(self.iface.mainWindow())
-                add_plugin_to_menu(self.terralab_menu, self.action, PRODUCT_ID)
-                add_to_plugins_menu(self.iface, self.action)
-            except Exception as exc:  # noqa: BLE001
-                log_warning(f"Shared menu unavailable: {exc}")
-                self.terralab_menu = None
+        try:
+            self.terralab_menu = get_or_create_terralab_menu(self.iface.mainWindow())
+            add_plugin_to_menu(self.terralab_menu, self.action, PRODUCT_ID)
+            add_to_plugins_menu(self.iface, self.action)
+        except Exception as exc:  # noqa: BLE001
+            log_warning(f"Shared menu unavailable: {exc}")
+            self.terralab_menu = None
         if self.terralab_menu is None:
             self.iface.addPluginToMenu("AI Agent by TerraLab", self.action)
         self._note_version_change()
-        try:
-            from .core import net_timing
-
-            net_timing.install()
-        except Exception as exc:  # noqa: BLE001
-            log_warning(f"Fetch timings not installed: {exc}")
         settings = self._settings or Settings()
         if settings.dock_visible:
 
@@ -405,7 +369,7 @@ class AIAgentPlugin:
 
 
         try:
-            from .api.terralab_client import plugin_version
+            from .core.host_platform import plugin_version
 
             settings = self._settings or Settings()
             self._settings = settings
@@ -607,6 +571,11 @@ class AIAgentPlugin:
         if self._unloading:
             return
         log_warning(f"AI Agent settings not refreshed ({code}): {message}")
+
+
+
+        if str(code or "") in HARD_CONNECTIVITY_CODES:
+            return
         if not self._config_failure_reported:
             self._config_failure_reported = True
             from .core.telemetry_errors import track_plugin_error
@@ -620,12 +589,10 @@ class AIAgentPlugin:
 
         if self._unloading or not isinstance(payload, dict):
             return
-        from .ui.shared import set_server_config
 
         set_server_config(payload)
-        panel = getattr(self.dock, "panel", None)
-        if panel is not None and hasattr(panel, "apply_server_config"):
-            panel.apply_server_config(payload)
+        if self.panel is not None:
+            self.panel.apply_server_config(payload)
         plugin_self_update.offer_upgradeable_update(self, payload)
 
     def _read_released(self) -> None:
@@ -654,8 +621,7 @@ class AIAgentPlugin:
 
         for module, name in (("net", "clear_cache"), ("net", "politeness_reset"),
                              ("net", "forget_link_state"), ("net", "close_idle_connections"),
-                             ("net_timing", "uninstall"),
-                             ("security", "forget_resolved_hosts"), ("security", "forget_resolved_roots")):
+                             ("security_urls", "forget_resolved_hosts"), ("security", "forget_resolved_roots")):
             try:
                 target = __import__(f"{__package__}.core.{module}", fromlist=[name])
                 getattr(target, name)()
@@ -699,10 +665,6 @@ class AIAgentPlugin:
         if isolated is not None:
             isolated.shutdown()
 
-        from .core import settings
-
-        settings.stop_watching_project()
-
     def _stop_save_guard(self) -> None:
         guard, self._save_guard = getattr(self, "_save_guard", None), None
         if guard is not None:
@@ -714,8 +676,8 @@ class AIAgentPlugin:
 
     @staticmethod
     def _layers_writing() -> int:
-        persist = sys.modules.get(f"{__package__}.tools.persist_tools")
-        return len(persist.writing()) if persist is not None else 0
+        scan = sys.modules.get(f"{__package__}.tools.scratch_scan")
+        return len(scan.writing()) if scan is not None else 0
 
     @staticmethod
     def _keep_layers() -> dict:
@@ -723,23 +685,39 @@ class AIAgentPlugin:
 
         return _make_layers_permanent({})
 
-    @staticmethod
-    def _stop_3d_view_guard() -> None:
-        from .core import view3d_guard
 
-        view3d_guard.shutdown()
 
-        from .core.host_platform import stop_watching_layer_removals
 
-        stop_watching_layer_removals()
+    _HOST_HOOKS = (
+        ("3D view guard", "core.view3d_guard", "install", "shutdown"),
 
-        from .core import designer_guard
+        ("layer removal watch", "core.layer_release", "watch_layer_removals", "stop_watching_layer_removals"),
+        ("layout designer guard", "core.designer_guard", "install", "shutdown"),
+        ("streamed raster fallback", "tools.stream_fallback", "install", "shutdown"),
 
-        designer_guard.shutdown()
 
-        from .core import stream_fallback
+        ("data key", "core.data_access", "install", "uninstall"),
 
-        stream_fallback.shutdown()
+        ("fetch timings", "core.net_timing", "install", "uninstall"),
+
+        ("account paths in GDAL", "core.accounts", "forget_gdal", "forget_gdal"),
+
+        ("Earth Engine session", "core.earthengine_account", "forget_session", "forget_session"),
+    )
+
+    def _install_host_hooks(self) -> None:
+        for what, module, install, _remove in self._HOST_HOOKS:
+            try:
+                getattr(importlib.import_module(f"{__package__}.{module}"), install)()
+            except Exception as exc:  # noqa: BLE001
+                log_warning(f"{what} not installed: {exc}")
+
+    def _remove_host_hooks(self) -> None:
+        for what, module, _install, remove in reversed(self._HOST_HOOKS):
+            try:
+                getattr(importlib.import_module(f"{__package__}.{module}"), remove)()
+            except Exception as exc:  # noqa: BLE001
+                log_warning(f"Unload ({what}): {exc}")
 
     @staticmethod
     def _stop_dependency_installs() -> None:
@@ -851,7 +829,7 @@ class AIAgentPlugin:
         ("stall profiler", "_stop_profiler"),
         ("snapshot jobs", "_stop_snapshot_jobs"),
         ("style watch", "_stop_style_watch"),
-        ("3D view and layout designer guards", "_stop_3d_view_guard"),
+        ("host hooks", "_remove_host_hooks"),
         ("save and quit guard", "_stop_save_guard"),
         ("dependency installs", "_stop_dependency_installs"),
         ("background algorithms", "_stop_processing_tasks"),
@@ -871,7 +849,11 @@ class AIAgentPlugin:
             from .core import canvas_glide
             canvas_glide.stop()
         try:
-            telemetry.track(ev.PLUGIN_UNLOADED, {"session_ms": int((time.monotonic() - self._loaded_at) * 1000)})
+            from .core import crash_note
+
+            telemetry.track(ev.PLUGIN_UNLOADED, {
+                "session_ms": int((time.monotonic() - self._loaded_at) * 1000),
+                "reason": "qgis_quit" if crash_note.quitting() else "unloaded"})
             telemetry.flush(final=True)
         except Exception:  # nosec B110
             pass
@@ -908,18 +890,17 @@ class AIAgentPlugin:
 
             with contextlib.suppress(RuntimeError, TypeError):
                 self._release_reply.finished.disconnect()
+            with contextlib.suppress(RuntimeError):
                 self._release_reply.abort()
             self._release_reply = None
         if self._config_refresh_timer is not None:
-            self._config_refresh_timer.stop()
+            with contextlib.suppress(RuntimeError):
+                self._config_refresh_timer.stop()
             self._config_refresh_timer = None
         if self._config_task is not None:
 
 
-            try:
-                self._config_task.succeeded.disconnect(self._on_server_config_loaded)
-            except Exception:  # nosec B110
-                pass
+            disconnect_quietly(self._config_task, "succeeded", self._on_server_config_loaded)
             try:
                 self._config_task.cancel()
             except Exception:  # nosec B110
@@ -935,7 +916,6 @@ class AIAgentPlugin:
             ("start-up wait", self._drop_startup_watch),
             ("i18n", i18n.uninstall),
             ("layer address check", self._remove_layer_egress),
-            ("data key cookies", self._remove_data_access),
             ("shared zone hooks", self._remove_zone_hooks),
             ("map hooks", self._remove_map_hooks),
             ("locator", self._remove_locator),
@@ -959,10 +939,7 @@ class AIAgentPlugin:
         if self.dock is not None:
             self._drop_window_watches(self.dock)
             for slot in (self._remember_visibility, self._on_dock_visibility_changed):
-                try:
-                    self.dock.visibilityChanged.disconnect(slot)
-                except Exception:  # nosec B110
-                    pass
+                disconnect_quietly(self.dock, "visibilityChanged", slot)
             try:
                 self.dock.cleanup()
             except (RuntimeError, AttributeError) as exc:
@@ -978,11 +955,8 @@ class AIAgentPlugin:
             self._drop_package_modules()
             return
         self._unregister_shortcut()
-        try:
-            self.action.triggered.disconnect(self.toggle_dock)
-        except (TypeError, RuntimeError, AttributeError):
-            pass
-        if self.terralab_menu is not None and remove_plugin_from_menu is not None:
+        disconnect_quietly(self.action, "triggered", self.toggle_dock)
+        if self.terralab_menu is not None:
             for fn in (lambda: remove_from_plugins_menu(self.iface, self.action),
                        lambda: remove_plugin_from_menu(self.terralab_menu, self.action, self.iface.mainWindow())):
                 try:
@@ -995,7 +969,7 @@ class AIAgentPlugin:
                 self.iface.removePluginMenu("AI Agent by TerraLab", self.action)
             except (RuntimeError, AttributeError) as exc:
                 log_warning(f"Unload (plugin menu): {exc}")
-        if self.terralab_toolbar is not None and remove_action_from_toolbar is not None:
+        if self.terralab_toolbar is not None:
             try:
                 remove_action_from_toolbar(self.terralab_toolbar, self.action, self.iface.mainWindow())
             except (RuntimeError, AttributeError):
@@ -1012,12 +986,6 @@ class AIAgentPlugin:
             pass
         self.action = None
         self._drop_package_modules()
-
-    @staticmethod
-    def _remove_data_access() -> None:
-        from .core import data_access
-
-        data_access.uninstall()
 
     @staticmethod
     def _remove_layer_egress() -> None:
@@ -1091,16 +1059,14 @@ class AIAgentPlugin:
         self.dock.show()
         self.dock.raise_()
         self._wire_dock()
-        panel = getattr(self.dock, "panel", None)
-        if panel is not None and hasattr(panel, "composer"):
-            panel.composer.focus_input()
+        if self.panel is not None:
+            self.panel.composer.focus_input()
 
     def _prefill_composer(self, text: str, chip=None):
 
-        panel = getattr(self.dock, "panel", None) if self.dock is not None else None
-        composer = getattr(panel, "composer", None)
-        if composer is None:
+        if self.panel is None:
             return
+        composer = self.panel.composer
         if isinstance(chip, dict) and chip.get("value"):
 
 
@@ -1112,9 +1078,8 @@ class AIAgentPlugin:
         composer.focus_input()
 
     def _pin_chip(self, chip: dict):
-        panel = getattr(self.dock, "panel", None) if self.dock is not None else None
-        if panel is not None:
-            panel.add_context_chip(chip)
+        if self.panel is not None:
+            self.panel.add_context_chip(chip)
 
     def toggle_dock(self):
         if self._click_open_pending:
@@ -1167,7 +1132,7 @@ class AIAgentPlugin:
 
 
 
-        include_debug = os.environ.get("AI_AGENT_DEBUG_TOOLS", "1") != "0"
+        include_debug = dev_env("AI_AGENT_DEBUG_TOOLS", "1") != "0"
         registry = build_registry(include_debug=include_debug)
         self._open_facts["registry_ms"] = int((time.monotonic() - began) * 1000)
         log(f"Tool registry built: {len(registry.visible_names())} visible tools, "
@@ -1176,7 +1141,7 @@ class AIAgentPlugin:
 
 
         try:
-            from .ui.shared import set_tool_names
+            from .core.served_state import set_tool_names
 
             set_tool_names(registry.tool_names)
         except Exception as exc:  # noqa: BLE001
@@ -1199,17 +1164,15 @@ class AIAgentPlugin:
                 dock = AIAgentDock()
             self._open_facts["dock_ms"] = int((time.monotonic() - began) * 1000)
             began = time.monotonic()
-            from .core.controller import AgentController
+            from .agent.controller import AgentController
 
             self._settings = Settings()
             self.controller = AgentController(self.iface, dock.panel, self.registry, self._settings)
             self.controller.layer_action_requested.connect(self._on_layer_action)
             self.controller.settings_requested.connect(self.open_settings)
             self.controller.notice.connect(self._on_notice)
-            if hasattr(self.controller, "approval_waiting"):
-                self.controller.approval_waiting.connect(self._on_approval_waiting)
-            if hasattr(self.controller, "run_finished"):
-                self.controller.run_finished.connect(self._on_run_finished)
+            self.controller.approval_waiting.connect(self._on_approval_waiting)
+            self.controller.run_finished.connect(self._on_run_finished)
             self._add_dock(dock)
             self.dock = dock
             self._watch_screen(dock)
@@ -1283,10 +1246,9 @@ class AIAgentPlugin:
 
 
 
-        panel = getattr(self.dock, "panel", None)
-        composer = getattr(panel, "composer", None)
+        composer = self.panel.composer if self.panel is not None else None
         try:
-            shown = (self.dock is not None and composer is not None
+            shown = (composer is not None
                      and composer.isVisible() and QApplication.activeModalWidget() is None)
         except RuntimeError:
             shown = False
@@ -1490,10 +1452,9 @@ class AIAgentPlugin:
 
     def _apply_send_shortcut(self, value: str) -> None:
 
-        panel = getattr(self.dock, "panel", None)
-        composer = getattr(panel, "composer", None)
-        if composer is None:
+        if self.panel is None:
             return
+        composer = self.panel.composer
         try:
             composer.set_send_shortcut(str(value))
         except (AttributeError, RuntimeError):

@@ -1000,7 +1000,6 @@ class WsConnection:
     def abort(self) -> None:
         self._stop.set()
         self.open = False
-
         with self._send_state:
             self._discard_queued()
             self._outbox.put_nowait(None)

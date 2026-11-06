@@ -25,6 +25,8 @@ from qgis.PyQt.QtWidgets import (
     QWidget,
 )
 
+from ...core.host_platform import plugin_version
+from ...core.served_state import SUPPORT_EMAIL
 from ..external_links import open_external_url
 from ..font_scale import apply_font_scale_to_tree, scale_px_length, scale_qss_font_px, widget_pixel_ratio
 from ..shared import (
@@ -33,9 +35,7 @@ from ..shared import (
     PRODUCT_NAME,
     STEP_BACK_KEYS,
     STEP_FORWARD_KEYS,
-    SUPPORT_EMAIL,
     exec_dialog,
-    plugin_version,
     size_within_screen,
     toggle_panel_key_text,
     tr,
@@ -52,7 +52,6 @@ from ..style import (
     FONT_BASE,
     FONT_BODY,
     FONT_HINT,
-    FONT_MICRO,
     INK,
     INK_2,
     INK_3,
@@ -82,8 +81,8 @@ _SHORTCUTS_QSS = scale_qss_font_px(
     f" border-radius: {RADIUS_CARD}px; }}"
     f"QFrame#shColumnRule {{ background: {LINE}; border: none;"
     " min-width: 1px; max-width: 1px; }"
-    f"QLabel#shSection {{ font-size: {FONT_MICRO}px; font-weight: 600;"
-    f" letter-spacing: 0.7px; color: {INK_3}; background: transparent; }}"
+    f"QLabel#shSection {{ font-size: {FONT_HINT}px; font-weight: 500;"
+    f" color: {INK_3}; background: transparent; }}"
     f"QLabel#shAction {{ font-size: {FONT_BASE}px; color: {INK}; background: transparent; }}"
     f"QLabel#shNote {{ font-size: {FONT_HINT}px; color: {INK_3}; background: transparent; }}"
     f"QLabel#shJoin {{ font-size: {FONT_HINT}px; color: {INK_3}; background: transparent; }}"
@@ -101,11 +100,13 @@ class UpdateBanner(QWidget):
 
 
     update_clicked = pyqtSignal(str)
+    download_clicked = pyqtSignal(str)
     dismissed = pyqtSignal(str)
 
     def __init__(self, parent=None):
         super().__init__(parent)
         self.version = ""
+        self._download = False
 
 
 
@@ -196,13 +197,29 @@ class UpdateBanner(QWidget):
     def offer(self, version: str, note: str = "") -> None:
 
         self.version = version or ""
+        self._download = False
+        self._update_btn.setText(self.tr("Update now"))
         self._title.setText(self.tr("{product} {version} is out").format(
             product=PRODUCT_NAME, version=self.version))
         self._note.setText(note or "")
         self._note.setVisible(bool(note))
         self.setVisible(bool(self.version))
 
+    def offer_download(self, version: str) -> None:
+
+
+        self.offer(version, self.tr("This QGIS has no plugin repository turned on. Download the ZIP, "
+                                    "then use Install from ZIP in Plugins > Manage and Install Plugins."))
+        self._download = True
+        self._update_btn.setText(self.tr("Download"))
+
     def _on_update(self) -> None:
+        if self._download:
+            from ...core.plugin_release import PLUGIN_PAGE_URL
+
+            open_external_url(PLUGIN_PAGE_URL, parent=self)
+            self.download_clicked.emit(self.version)
+            return
         self.update_clicked.emit(self.version)
 
     def set_busy(self, busy: bool) -> None:
@@ -222,7 +239,27 @@ def _kbd(text: str, parent, mono: bool = True) -> QLabel:
     cap.setObjectName("shKey" if mono else "shWord")
     cap.setAlignment(Qt.AlignmentFlag.AlignCenter)
     cap.setFixedHeight(scale_px_length(CHIP_PX))
+    cap.setMinimumWidth(scale_px_length(CHIP_PX))
     return cap
+
+
+_MAC_MODIFIERS = "⌃⌥⇧⌘"
+
+
+def _key_parts(label: str) -> list:
+
+
+
+    if label == "⎋":
+        return ["esc"]
+    if "+" in label.strip("+"):
+        return [part for part in label.split("+") if part]
+    parts = []
+    rest = label
+    while len(rest) > 1 and rest[0] in _MAC_MODIFIERS:
+        parts.append(rest[0])
+        rest = rest[1:]
+    return parts + [rest] if rest else parts
 
 
 def _shortcut_row(parent, action: str, note: str, caps: tuple) -> QWidget:
@@ -256,7 +293,8 @@ def _shortcut_row(parent, action: str, note: str, caps: tuple) -> QWidget:
             joiner = QLabel(tr("or"), row)
             joiner.setObjectName("shJoin")
             keys.addWidget(joiner)
-        keys.addWidget(_kbd(label, row, mono))
+        for part in (_key_parts(label) if mono else [label]):
+            keys.addWidget(_kbd(part, row, mono))
     line.addLayout(keys, 0)
     line.setAlignment(keys, Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignRight)
     return row
@@ -269,7 +307,7 @@ def _shortcut_column(parent, sections: tuple) -> QWidget:
     col.setContentsMargins(0, 0, 0, 0)
     col.setSpacing(6)
     for index, (heading, rows) in enumerate(sections):
-        label = QLabel(heading.upper(), column)
+        label = QLabel(heading, column)
         label.setObjectName("shSection")
         label.setContentsMargins(0, 14 if index else 0, 0, 6)
         col.addWidget(label)

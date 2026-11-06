@@ -20,7 +20,7 @@ from ..core.qt_compat import enum_member
 from ..core.serialization import size_budget
 from ..core.tool_registry import Tool, ToolRegistry, coded_fact, tool_error
 from . import vector_write
-from .layer_lookup import require_vector
+from .layer_lookup import _field_not_found_error, require_vector
 
 
 
@@ -31,6 +31,7 @@ def register_feature_tools(registry: ToolRegistry):
     registry.register(Tool(
         name="add_features",
         danger="write",
+        mutates_data=True, check_shape="layer",
         label=QT_TRANSLATE_NOOP("AIAgent", "Add features to {layer_name}"),
         input_schema={
             "type": "object",
@@ -57,6 +58,7 @@ def register_feature_tools(registry: ToolRegistry):
     registry.register(Tool(
         name="update_features",
         danger="write",
+        mutates_data=True, check_shape="field",
         label=QT_TRANSLATE_NOOP("AIAgent", "Update features of {layer_name}"),
         input_schema={
             "type": "object",
@@ -82,6 +84,7 @@ def register_feature_tools(registry: ToolRegistry):
     registry.register(Tool(
         name="delete_features",
         danger="destructive",
+        check_shape="layer",
         label=QT_TRANSLATE_NOOP("AIAgent", "Delete features from {layer_name}"),
         input_schema={
             "type": "object",
@@ -100,6 +103,7 @@ def register_feature_tools(registry: ToolRegistry):
     registry.register(Tool(
         name="select_features",
         danger="write",
+        check_shape="layer",
         label=QT_TRANSLATE_NOOP("AIAgent", "Select features in {layer_name}"),
         input_schema={
             "type": "object",
@@ -148,6 +152,7 @@ def register_feature_tools(registry: ToolRegistry):
     registry.register(Tool(
         name="select_by_attribute",
         danger="write",
+        check_shape="layer",
         label=QT_TRANSLATE_NOOP("AIAgent", "Select in {layer_name} where {field_name} {operator} {value}"),
         input_schema={
             "type": "object",
@@ -169,6 +174,7 @@ def register_feature_tools(registry: ToolRegistry):
     registry.register(Tool(
         name="select_by_geometry",
         danger="write",
+        reads_whole_layer=True, check_shape="layer",
         label=QT_TRANSLATE_NOOP("AIAgent", "Select in {layer_name} by shape"),
         input_schema={
             "type": "object",
@@ -306,7 +312,6 @@ def _add_features(args: dict) -> dict:
         if truncations:
             result["truncated_values"] = truncations[:20]
         return result
-
 
     started, error = vector_write.open_edit(layer, "add features")
     if error:
@@ -721,7 +726,6 @@ def _field_is_text(layer, index: int) -> bool:
 
 
 def _select_by_attribute(args: dict) -> dict:
-    from .layer_lookup import _field_not_found_error
     layer, error = _feature_layer(args["layer_name"])
     if error:
         return error

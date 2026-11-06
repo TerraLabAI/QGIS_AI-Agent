@@ -57,9 +57,12 @@ from qgis.PyQt.QtWidgets import (
 from ..core.i18n import day_pattern, words_locale
 from ..core.licence import date_text
 from ..core.links import open_data_chip, open_data_label
+from ..core.served_state import get_connectors
 from .external_links import open_external_url
 from .font_scale import scale_point_size, scale_px_length, scale_qss_font_px, widget_pixel_ratio
 from .icons import pixmap_for, render_pixmap
+from .library.common import accent_of
+from .library.pictures import source_pixmap, store
 from .shared import event_pos, paint_styled_ground, round_popup_corners
 from .style import (
     DARK,
@@ -288,7 +291,6 @@ def _logo_path(item: dict) -> str:
 
             return TERRALAB_LOGO_PATH
         return ""
-    from .library.pictures import store
 
     return store().want_file(url)
 
@@ -311,8 +313,6 @@ def item_mark_pixmap(item: dict, size: int, ratio: float = 1.0, round_: bool = T
 def family_pixmap(row: dict, size: int, ratio: float = 1.0, round_: bool = True) -> QPixmap:
 
 
-    from .connectors_page import accent_of
-    from .library.pictures import source_pixmap
 
     chip = source_pixmap(row, accent_of(row.get("category")), size, ratio)
     if not round_ and not str(row.get("logo_url") or ""):
@@ -336,7 +336,6 @@ def connector_row(cid: str = "", host: str = "", name: str = "") -> dict:
 
 
 
-    from .shared import get_connectors
 
     cid = str(cid or "").strip().lower()
     host = source_host(str(host or "")).lower().strip(".")
@@ -416,7 +415,6 @@ def _logo_watch(widget, items) -> None:
     urls = {str(item.get("logo_url") or "") for item in items} - {""}
     if not urls:
         return
-    from .library.pictures import store
 
     widget._logo_urls = urls
     store().ready.connect(widget._on_logo_ready)
@@ -662,6 +660,11 @@ class _TextButton(QWidget):
     def set_text(self, text: str) -> None:
         self._words.setText(text)
 
+    def set_glyph(self, glyph: str) -> None:
+        self._glyph_name = glyph
+        self._glyph.setVisible(bool(glyph))
+        self._paint(self.underMouse() or self.hasFocus())
+
     def _paint(self, hot: bool) -> None:
         ink = INK if hot else INK_2
         self._words.setStyleSheet(scale_qss_font_px(
@@ -780,7 +783,6 @@ class _SourceDetails(QWidget):
         col.addLayout(grid)
         if url:
             link = _TextButton(self.tr("Open page") if page else self.tr("Open dataset page"), "external", self)
-            link.setToolTip(url)
             link.clicked.connect(lambda: self.open_url.emit(url))
             col.addWidget(link)
         self.hide()
@@ -822,10 +824,8 @@ class _SourceRow(QWidget):
         product = item.get("product", "")
         top = product or item["name"]
         self._maker = item["name"] if product and not product.lower().startswith(item["name"].lower()) else ""
-
         name = ElidedLabel(top, words, mode=Qt.TextElideMode.ElideRight)
         name.setStyleSheet(_NAME_QSS)
-        name.setToolTip(top)
         col.addWidget(name)
         self._fact_text = self._fact(item)
         under = self._under(False)
@@ -847,7 +847,6 @@ class _SourceRow(QWidget):
         else:
             self._chevron.setPixmap(pixmap_for(self, "link", _LINK_PX, qcolor(INK_3)))
             self._chevron.setVisible(False)
-            self.setToolTip(self._url)
         self.setCursor(Qt.CursorShape.PointingHandCursor if (self.expandable or self._url)
                        else Qt.CursorShape.ArrowCursor)
         self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
@@ -1141,7 +1140,7 @@ class SourcesPopover(QFrame):
         self.adjustSize()
         origin = anchor.mapToGlobal(anchor.rect().bottomLeft())
         x, y = origin.x(), origin.y() + 4
-        screen = anchor.screen() if hasattr(anchor, "screen") else None
+        screen = anchor.screen()
         if screen is not None:
             area = screen.availableGeometry()
 

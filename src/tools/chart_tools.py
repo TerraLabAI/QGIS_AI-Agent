@@ -51,10 +51,12 @@ from qgis.PyQt.QtCore import QT_TRANSLATE_NOOP
 from ..core import background, limits, net, output_paths, security
 from ..core.background import run_on_main_thread
 from ..core.host_platform import remove_quietly, retry_file_op
+from ..core.numbers import as_float
 from ..core.qt_compat import enum_member
 from ..core.serialization import CodedText
 from ..core.tool_registry import Tool, ToolRegistry, tool_error
-from .layer_lookup import _field_not_found_error, _find_layer, _is_qgis_null, _layer_not_found_error
+from ._layers import layer_not_found, resolve_layer
+from .layer_lookup import _field_not_found_error, _is_qgis_null
 
 KINDS = ("histogram", "bar", "scatter", "line")
 AGGREGATES = ("count", "sum", "mean")
@@ -90,6 +92,7 @@ def register_chart_tools(registry: ToolRegistry):
     registry.register(Tool(
         name="create_chart",
         danger="read",
+        writes_at=("output_path",), file_extensions=(".png",),
         label=QT_TRANSLATE_NOOP("AIAgent", "Chart {x_field}[ and {y_field}] of {layer}"),
         input_schema={
             "type": "object",
@@ -184,9 +187,9 @@ def _not_numeric(layer, field: dict, kind: str, axis: str) -> dict:
 def _plan(args: dict) -> dict:
 
     ref = str(args.get("layer") or "").strip()
-    layer = _find_layer(ref)
+    layer = resolve_layer(ref)
     if layer is None:
-        return _layer_not_found_error(ref)
+        return layer_not_found(ref)
     if not isinstance(layer, QgsVectorLayer):
         return tool_error(
             f"{layer.name()} is not a vector layer, and a chart draws the values of a layer's fields.",
@@ -423,9 +426,8 @@ def _plain(value, kind: str):
     if kind == "number":
         if isinstance(value, bool):
             return None
-        try:
-            number = float(value)
-        except (TypeError, ValueError):
+        number = as_float(value)
+        if number is None:
             return None
         return number if math.isfinite(number) else None
     if kind in ("date", "time"):

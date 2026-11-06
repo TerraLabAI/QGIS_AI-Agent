@@ -128,8 +128,14 @@ def _from_this_plugin(error: BaseException) -> bool:
         return False
 
 
+
+_CONTROL_FLOW_SIGNALS = frozenset({"NeedsPermission", "Refused", "CodeTimeout"})
+
+
 def _report_uncaught(error: BaseException | None) -> None:
     if error is None or getattr(_reporting, "busy", False) or not _from_this_plugin(error):
+        return
+    if type(error).__name__ in _CONTROL_FLOW_SIGNALS:
         return
     _reporting.busy = True
     try:

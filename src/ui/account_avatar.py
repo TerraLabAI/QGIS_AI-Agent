@@ -23,8 +23,9 @@ from qgis.PyQt.QtGui import QImage, QPainter, QPainterPath, QPixmap
 from qgis.PyQt.QtNetwork import QNetworkReply, QNetworkRequest
 
 from ..core.host_platform import retry_file_op
+from ..core.policy import PLUGIN_CACHE_DIR
 from .image_guard import read_bounded_image
-from .shared import PLUGIN_CACHE_DIR, resolve_qt_enum
+from .shared import resolve_qt_enum
 
 
 

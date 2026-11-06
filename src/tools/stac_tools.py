@@ -24,6 +24,7 @@ import contextlib
 import hashlib
 import json
 import os
+import posixpath
 import re
 import threading
 import time
@@ -39,21 +40,39 @@ from qgis.core import (
 )
 from qgis.PyQt.QtCore import QT_TRANSLATE_NOOP
 
-from ..core import data_date, dataset_docs, ground, limits, net, read_clock, tuning, vsi
+from ..core import (
+    accounts,
+    accounts_cdse,
+    data_date,
+    dataset_docs,
+    geodata_rules,
+    ground,
+    limits,
+    link_vault,
+    net,
+    read_clock,
+    tuning,
+    vsi,
+)
 from ..core.background import run_on_main_thread, still_awaited, take
 from ..core.context_layers import canvas_bbox_4326
 from ..core.crs_ref import crs_ref
+from ..core.data_date import from_range
 from ..core.host_platform import remove_tree, retry_file_op
+from ..core.links import open_data_hosts
 from ..core.logger import log_warning
-from ..core.policy import create_managed_temp_dir
+from ..core.output_paths import file_stem
+from ..core.policy import AGENT_TMP_DIR, create_managed_temp_dir
 from ..core.provider_uri import encode_uri_url
+from ..core.settings import Settings
 from ..core.tool_registry import Tool, ToolRegistry, coded_fact, tool_error
+from ..core.vsi import thread_options
 from . import volume_guard
-from .data_common import built_here, worker_options
-from .data_tools import _avoid_reserved_name
+from .crs_at_load import normalise_crs
+from .data_common import built_here, raster_variables, worker_options
+from .elevation_style import apply_elevation_style, elevation_stretch
 
 
-_USER_AGENT = net.user_agent()
 
 _DEFAULT_STAC_ROOT = "https://planetarycomputer.microsoft.com/api/stac/v1"
 _PC_SIGN_URL = "https://planetarycomputer.microsoft.com/api/sas/v1/sign"
@@ -67,9 +86,6 @@ _CACHE_STAC_S = 600
 
 _RASTER_MEDIA_HINTS = ("geotiff", "image/tiff")
 
-
-
-_BROWSE_ASSET_KEYS = ("rendered_preview", "preview", "thumbnail", "overview")
 
 
 _COG_PROFILE_HINT = "cloud-optimized"
@@ -124,6 +140,7 @@ def register_stac_tools(registry: ToolRegistry):
     registry.register(Tool(
         name="add_cog_layer",
         danger="write",
+        own_area_rule=True, loads_source=True, check_shape="arrives",
         label=QT_TRANSLATE_NOOP("AIAgent", "Add the raster[ {name}]"),
         input_schema={
             "type": "object",
@@ -141,6 +158,7 @@ def register_stac_tools(registry: ToolRegistry):
     registry.register(Tool(
         name="add_stac_layer",
         danger="write",
+        own_area_rule=True,
         label=QT_TRANSLATE_NOOP("AIAgent", "Add the satellite image[ {name}]"),
         input_schema={
             "type": "object",
@@ -172,7 +190,6 @@ def _stac_get(url: str, timeout: int = _STAC_GET_TIMEOUT):
     req = urllib.request.Request(
         url,
         headers={
-            "User-Agent": _USER_AGENT,
             "Content-Type": "application/json",
             "Accept": "application/json",
         },
@@ -215,7 +232,6 @@ def _public_blob_hosts() -> frozenset:
 
 
 
-    from ..core.links import open_data_hosts
 
     return frozenset(open_data_hosts())
 
@@ -288,37 +304,28 @@ def _pc_container_token(account: str, container: str) -> str | None:
 
 
 
-_CDSE_S3_PREFIX = "s3://eodata/"
-_CDSE_HTTPS_PREFIX = "https://eodata.dataspace.copernicus.eu/"
-
-
-
-_EARTHDATA_HOSTS = ("data.lpdaac.earthdatacloud.nasa.gov", "e4ftl01.cr.usgs.gov")
-_EARTHDATA_SUFFIXES = (".earthdata.nasa.gov", ".earthdatacloud.nasa.gov")
-
-
 def _needs_backend_signing(url: str) -> bool:
 
     lowered = (url or "").strip()
-    if lowered.startswith(_CDSE_S3_PREFIX) or lowered.startswith(_CDSE_HTTPS_PREFIX):
+    if lowered.startswith(tuple(geodata_rules.rule("stac", "signed_prefixes"))):
         return True
     parts = urllib.parse.urlsplit(lowered)
     if parts.scheme != "https":
         return False
     host = (parts.hostname or "").lower().rstrip(".")
-    return host in _EARTHDATA_HOSTS or host.endswith(_EARTHDATA_SUFFIXES)
+    return host in geodata_rules.rule("stac", "signed_hosts") or host.endswith(
+        tuple(geodata_rules.rule("stac", "signed_suffixes")))
 
 
 def _backend_sign_url() -> str:
 
-    from ..core.settings import Settings
 
     parts = urllib.parse.urlsplit(Settings().server_url)
     scheme = "http" if parts.scheme == "ws" else "https"
     return f"{scheme}://{parts.netloc}/eodata/sign"
 
 
-def _sign_backend_href(url: str) -> tuple[str, str | None]:
+def _sign_backend_href(url: str) -> tuple[str, str | None, int]:
 
 
 
@@ -326,26 +333,34 @@ def _sign_backend_href(url: str) -> tuple[str, str | None]:
 
 
 
-    from ..core.settings import Settings
 
     key = Settings().activation_key
     if not key:
-        return url, "This asset needs a signed address; sign in to AI Agent first"
+        return url, "This asset needs a signed address; sign in to AI Agent first", 0
     try:
         request = urllib.request.Request(
             f"{_backend_sign_url()}?href={urllib.parse.quote(url, safe='')}",
-            headers={"User-Agent": _USER_AGENT, "Accept": "application/json",
+            headers={"Accept": "application/json",
                      "Authorization": f"Bearer {key}"},
         )
         raw = net.fetch(request, timeout=_SIGN_TIMEOUT, max_bytes=_MAX_RESPONSE_SIZE,
                         total_timeout=_SIGN_TIMEOUT * _TOTAL_TIMEOUT_FACTOR).body
         signed = (json.loads(raw) or {}).get("href")
         if signed:
-            return signed, None
-        return url, "Signing this asset address failed, the layer may not load"
+            return signed, None, 200
+        return url, "Signing this asset address failed, the layer may not load", 0
+    except urllib.error.HTTPError as exc:
+
+
+        log_warning(f"eodata signing refused: HTTP {exc.code}")
+        try:
+            said = str((json.loads(exc.read(4096) or b"{}") or {}).get("error") or "")
+        except (OSError, ValueError, AttributeError):
+            said = ""
+        return url, said or "Signing this asset address failed, the layer may not load", exc.code
     except (urllib.error.URLError, OSError, ValueError) as exc:
         log_warning(f"eodata signing failed: {exc}")
-        return url, "Signing this asset address failed, the layer may not load"
+        return url, "Signing this asset address failed, the layer may not load", 0
 
 
 def _public_s3_https(url: str) -> str:
@@ -363,7 +378,7 @@ def _public_s3_https(url: str) -> str:
 
 
 
-    if not url.startswith("s3://") or url.startswith(_CDSE_S3_PREFIX):
+    if not url.startswith("s3://"):
         return url
     bucket, _, key = url[len("s3://"):].partition("/")
     if not bucket or not key:
@@ -371,10 +386,16 @@ def _public_s3_https(url: str) -> str:
     return f"https://{bucket}.s3.amazonaws.com/{urllib.parse.quote(key)}"
 
 
-def _signed_href(url: str) -> tuple[str, str | None]:
+def _signed_href(url: str) -> tuple[str, str | dict | None]:
+
+
 
     if _needs_backend_signing(url):
-        return _sign_backend_href(url)
+        signed, note, status = _sign_backend_href(url)
+        if status in (429, 503) and accounts.provider_of(url):
+            card = accounts.spent(url, note or "", f"Load {url.rsplit('/', 1)[-1]} with your account")
+            return (url, None) if card is None else (url, card)
+        return signed, note
     return _sign_pc_href(_public_s3_https(url))
 
 
@@ -431,6 +452,7 @@ def _one_shot(key: str, shipped: int, low: int, high: int) -> int:
 
 _ONE_SHOT_RETRY_BASE_S = 1.0
 _ONE_SHOT_RETRY_CODES = (429, 500, 502, 503, 504)
+_ONE_SHOT_LOCKS = tuple(threading.Lock() for _ in range(32))
 
 
 def _is_one_shot_result(url: str) -> bool:
@@ -443,7 +465,6 @@ def _is_one_shot_result(url: str) -> bool:
 
 def _one_shot_part_paths(url: str) -> tuple[str, str]:
 
-    from ..core.policy import AGENT_TMP_DIR
 
     query = urllib.parse.parse_qs(urllib.parse.urlsplit(url).query)
     token = (query.get("t") or [url])[0]
@@ -525,6 +546,23 @@ def _read_piece(ask, start: int, end: int, stopped) -> tuple[bytes, dict]:
 
 def _download_one_shot(url: str, polite: bool) -> tuple[str, dict]:
 
+    part, _record_path = _one_shot_part_paths(url)
+    lock = _ONE_SHOT_LOCKS[int(os.path.basename(part).split(".")[0], 16) % len(_ONE_SHOT_LOCKS)]
+    cancel = net.current_cancel_check()
+    while not lock.acquire(timeout=0.2):
+        if net.is_cancelled(cancel):
+            raise net.FetchCancelled("The run was stopped.")
+    try:
+        downloaded, headers = _download_one_shot_parts(url, polite)
+        path = os.path.join(create_managed_temp_dir("eodata"), "result")
+        retry_file_op(os.replace, downloaded, path)
+        return path, headers
+    finally:
+        lock.release()
+
+
+def _download_one_shot_parts(url: str, polite: bool) -> tuple[str, dict]:
+
 
 
 
@@ -556,7 +594,7 @@ def _download_one_shot(url: str, polite: bool) -> tuple[str, dict]:
 
     def ask(start: int, end: int, whole: bool = False):
         request = urllib.request.Request(url, headers={
-            "User-Agent": _USER_AGENT, "Range": f"bytes={start}-{end}",
+            "Range": f"bytes={start}-{end}",
 
             "Accept-encoding": "identity"})
 
@@ -621,7 +659,7 @@ def _download_one_shot(url: str, polite: bool) -> tuple[str, dict]:
         finally:
 
 
-            pool.shutdown(wait=False, cancel_futures=True)
+            pool.shutdown(wait=True, cancel_futures=True)
         if failures:
             failure = failures[0]
             with lock:
@@ -632,6 +670,8 @@ def _download_one_shot(url: str, polite: bool) -> tuple[str, dict]:
                                        "computer, and the same url asks only for the rest.",
                                        getattr(failure, "host", "")) from failure
             raise failure
+        for future in futures:
+            future.result()
     with contextlib.suppress(OSError):
         os.remove(record_path)
     return part, record["headers"]
@@ -675,33 +715,6 @@ def _declare_nan_nodata(path: str) -> None:
         log_warning(f"Downloaded raster: nodata not declared: {exc}")
 
 
-def raster_variables(path: str) -> list:
-
-
-
-
-
-    try:
-        from osgeo import gdal
-    except ImportError:  # nosec B110
-        return []
-    gdal.PushErrorHandler("CPLQuietErrorHandler")
-    try:
-        from .processing_paths import narrow_open_path
-
-        dataset = gdal.Open(narrow_open_path(path)[0])
-        meta = {} if dataset is None or dataset.RasterCount else (dataset.GetMetadata("SUBDATASETS") or {})
-        del dataset
-    except Exception:  # noqa: BLE001
-        meta = {}
-    finally:
-        gdal.PopErrorHandler()
-    numbered = sorted((int(key.split("_")[1]), value) for key, value in meta.items()
-                      if key.endswith("_NAME") and key.split("_")[1].isdigit())
-    return [(source, source.rsplit(":", 1)[-1].lstrip("/"), meta.get(f"SUBDATASET_{index}_DESC", ""))
-            for index, source in numbered]
-
-
 def add_raster_downloaded(url: str, name: str | None, *, polite: bool = True,
                           one_shot: bool = False, layer: str | None = None) -> dict:
 
@@ -712,7 +725,7 @@ def add_raster_downloaded(url: str, name: str | None, *, polite: bool = True,
 
 
 
-    request = urllib.request.Request(url, headers={"User-Agent": _USER_AGENT})
+    request = urllib.request.Request(url)
     downloaded = body = None
     try:
         if one_shot:
@@ -770,17 +783,16 @@ def add_raster_downloaded(url: str, name: str | None, *, polite: bool = True,
                 os.remove(downloaded)
         return tool_error(f"This raster is not opened: {refused}.", "PERMISSION_DENIED",
                           hint="asset_address_refused", url=url)
-    stem = re.sub(r"[^A-Za-z0-9_.-]+", "_", (name or "result").strip()) or "result"
+    stem = file_stem(name, "result")
 
 
 
     own = os.path.splitext(urllib.parse.urlsplit(url).path)[1].lower()
     suffix = own if own[1:].isascii() and own[1:].isalnum() and len(own) <= 6 else ".tif"
-
-    path = os.path.join(create_managed_temp_dir("eodata"), f"{_avoid_reserved_name(stem[:60])}{suffix}")
+    folder = os.path.dirname(downloaded) if downloaded else create_managed_temp_dir("eodata")
+    path = os.path.join(folder, f"{stem}{suffix}")
     try:
         if downloaded is not None:
-
 
             retry_file_op(os.replace, downloaded, path)
         else:
@@ -805,7 +817,6 @@ def add_raster_downloaded(url: str, name: str | None, *, polite: bool = True,
         source = picked[0]
     else:
         _declare_nan_nodata(path)
-    from .elevation_style import apply_elevation_style, elevation_stretch
     stretch = elevation_stretch(source, name)
     built = _raster_built_here(source, name or "Result")
 
@@ -852,7 +863,7 @@ def _probe_raster_url(url: str) -> tuple[int, str, str, str]:
 
 
 
-    request = urllib.request.Request(url, headers={"Range": "bytes=0-3"})
+    request, _ = accounts.signed(url, headers={"Range": "bytes=0-3"})
     try:
         response = net.fetch(request, timeout=10, max_bytes=64, total_timeout=15)
     except urllib.error.HTTPError as exc:
@@ -912,6 +923,11 @@ def _add_cog(final_url: str, name: str | None, note: str | None = None, extra: d
 
 
 
+
+
+    own_s3 = accounts.gdal_path(final_url)
+    if own_s3:
+        return _add_own_s3(final_url, own_s3, name, note, extra, bbox)
     if final_url.startswith("s3://"):
         return tool_error(note or ("This s3:// address was not opened: it needs a signature this server "
                                    "did not provide, or its bucket is not public."),
@@ -924,6 +940,11 @@ def _add_cog(final_url: str, name: str | None, note: str | None = None, extra: d
     except Exception as exc:  # noqa: BLE001
         return tool_error(f"This asset address is not fetched: {exc}", "PERMISSION_DENIED",
                           hint="asset_address_refused", url=final_url)
+    asked = accounts.check(final_url, f"Load the raster {name or final_url.rsplit('/', 1)[-1]}")
+    if asked:
+        return asked
+
+    accounts.allow_gdal(final_url)
     local = _localise_one_shot(final_url, name)
     if local is None:
         refused = vsi.remote_dataset_refusal(final_url)
@@ -934,6 +955,11 @@ def _add_cog(final_url: str, name: str | None, note: str | None = None, extra: d
         if note and not local.get("_error"):
             local["_note"] = f"{note} {local.get('_note', '')}".strip()
         return local
+    if link_vault.from_user_link(final_url) and not bbox:
+
+
+        stem = posixpath.splitext(posixpath.basename(urllib.parse.urlsplit(final_url).path))[0]
+        return _read_whole(final_url, name or urllib.parse.unquote(stem) or None, note, extra)
     source, window = f"/vsicurl/{final_url}", None
     if bbox:
         window = _read_window(final_url, bbox, name)
@@ -951,7 +977,6 @@ def _add_cog(final_url: str, name: str | None, note: str | None = None, extra: d
             window.pop("_unopened", None)
             return window
         source = window.pop("path")
-    from .elevation_style import apply_elevation_style, elevation_stretch
 
 
     vsi.apply_persistent()
@@ -1007,7 +1032,8 @@ def _add_cog(final_url: str, name: str | None, note: str | None = None, extra: d
             if status in (401, 403):
                 result["code"] = "PERMISSION_DENIED"
                 result.update(coded_fact(hint="cog_host_refused", url=final_url, http_status=status))
-            elif status and status != 200 and status != 206:
+                return accounts.refused(final_url, status, result, "raster")
+            if status and status != 200 and status != 206:
                 result["code"] = "NETWORK_ERROR" if status >= 500 or status == 429 else "INVALID_ARGS"
                 if status in (404, 410):
                     result.update(coded_fact(hint="cog_nothing_served", url=final_url))
@@ -1042,7 +1068,112 @@ def _bounds(transformation, xmin: float, ymin: float, xmax: float, ymax: float) 
     return min(xs), min(ys), max(xs), max(ys)
 
 
-def _read_window(url: str, bbox: list, name: str | None) -> dict:
+def _add_own_s3(final_url: str, path: str, name: str | None, note: str | None, extra: dict | None,
+                bbox: list | None, on_refused=None) -> dict:
+
+
+
+
+    if on_refused is not None:
+        return _add_own_s3_once(final_url, path, name, note, extra, bbox, on_refused)
+    result = _add_own_s3_once(final_url, path, name, note, extra, bbox)
+    if (result.get(accounts.MARK) or {}).get("kind") != "retry" or not accounts_cdse.renew_from_worker():
+        return result
+    path = accounts.gdal_path(final_url)
+    if not path:
+        return result
+    from osgeo import gdal
+    if hasattr(gdal, "VSICurlPartialClearCache"):
+        gdal.VSICurlPartialClearCache(path)
+    return _add_own_s3_once(final_url, path, name, note, extra, bbox)
+
+
+def _add_own_s3_once(final_url: str, path: str, name: str | None, note: str | None, extra: dict | None,
+                     bbox: list | None, on_refused=None) -> dict:
+    if on_refused is None:
+        def on_refused(failure):
+            return _own_s3_refused(final_url, failure, path)
+    source, window = path, None
+    if bbox:
+        window = _read_window(final_url, bbox, name, source=path)
+        if window.get("_error"):
+            window.pop("_unopened", None)
+            return on_refused(window)
+        source = window.pop("path")
+    vsi.apply_persistent()
+    stretch = elevation_stretch(source, name)
+    built = _raster_built_here(source, name or "COG")
+
+    def _create():
+        layer = take(built)
+        if layer is None:
+            layer = QgsRasterLayer(source, name or "COG", "gdal")
+        if not layer.isValid():
+            said = str(layer.error().summary() or "").strip().splitlines()
+            return tool_error("Could not open the raster.", "INVALID_ARGS", hint="cog_unopened", url=final_url,
+                              **({"gdal_error": said[-1][:300]} if said else {}))
+        normalised = normalise_crs(layer)
+        styled = apply_elevation_style(layer, stretch)
+        if not still_awaited():
+            return dict(_NOT_AWAITED)
+        QgsProject.instance().addMapLayer(layer)
+        return {"layer_name": layer.name(), "layer_id": layer.id(), "url": final_url,
+                "read_with": "own_account",
+                **({"path": source, "window": window} if window else {}),
+                **({"styled": styled} if styled else {}),
+                **({"crs_note": f"The file names no CRS authority; read as {normalised}."} if normalised else {}),
+                "width": layer.width(), "height": layer.height(), "band_count": layer.bandCount(),
+                **ground.pixel_facts(layer), "crs": _crs_label(layer.crs())}
+
+    result = run_on_main_thread(_create, timeout=60)
+    if result.get("_error"):
+        return on_refused(result)
+    if note:
+        result["_note"] = note
+    if extra:
+        result.update(extra)
+    return result
+
+
+
+_S3_REFUSALS = ("AccessDenied", "InvalidAccessKeyId", "SignatureDoesNotMatch")
+
+
+def _s3_error_code(path: str) -> str:
+
+
+
+    from osgeo import gdal
+    said: list[str] = []
+    gdal.PushErrorHandler(lambda _cls, _no, msg: said.append(str(msg)))
+    gdal.SetThreadLocalConfigOption("CPL_DEBUG", "ON")
+    try:
+        if hasattr(gdal, "VSICurlPartialClearCache"):
+            gdal.VSICurlPartialClearCache(path)
+        gdal.VSIStatL(path)
+    except RuntimeError:
+        pass
+    finally:
+        gdal.SetThreadLocalConfigOption("CPL_DEBUG", None)
+        gdal.PopErrorHandler()
+    for text in said:
+        found = re.search(r"<Code>([A-Za-z]+)</Code>", text)
+        if found:
+            return found.group(1)
+    return ""
+
+
+def _own_s3_refused(final_url: str, failure: dict, path: str) -> dict:
+    code = _s3_error_code(path)
+    if code:
+        failure["s3_error"] = code
+    if code in _S3_REFUSALS:
+        failure["code"] = "PERMISSION_DENIED"
+        return accounts.refused(final_url, 403, failure, "Copernicus")
+    return failure
+
+
+def _read_window(url: str, bbox: list, name: str | None, source: str = "") -> dict:
 
 
 
@@ -1054,7 +1185,7 @@ def _read_window(url: str, bbox: list, name: str | None) -> dict:
     clock = read_clock.ReadClock()
     vsi.apply_persistent()
     try:
-        dataset = gdal.Open(f"/vsicurl/{url}")
+        dataset = gdal.Open(source or f"/vsicurl/{url}")
     except RuntimeError:
         dataset = None
     if dataset is None:
@@ -1100,7 +1231,7 @@ def _read_window(url: str, bbox: list, name: str | None) -> dict:
                           limits.CEILING_CODE, hint="cog_window_too_large", url=url, cells=[cols, rows],
                           size_mb=size // 1048576, limit_mb=ceiling // 1048576)
     directory = create_managed_temp_dir("cog")
-    path = os.path.join(directory, f"{_safe_file_stem(name or 'raster')}.tif")
+    path = os.path.join(directory, f"{file_stem(name, 'raster')}.tif")
     late: dict = {}
     try:
         failure = _copy_window(gdal, dataset, path, x0, y0, cols, rows,
@@ -1206,58 +1337,23 @@ def _copy_window(gdal, dataset, path: str, x0: int, y0: int, cols: int, rows: in
         return 1
 
 
-    set_option = getattr(gdal, "SetThreadLocalConfigOption", None)
-    if set_option is not None:
-        pixel_bytes = sum(gdal.GetDataTypeSize(dataset.GetRasterBand(i + 1).DataType) // 8
-                          for i in range(dataset.RasterCount))
-        tile_rows = min(rows, dataset.GetRasterBand(1).GetBlockSize()[1])
-        swath = cols * tile_rows * max(1, pixel_bytes)
-        set_option("GDAL_SWATH_SIZE", str(min(_WINDOW_SWATH_MAX_BYTES, max(_WINDOW_SWATH_BYTES, swath))))
+    pixel_bytes = sum(gdal.GetDataTypeSize(dataset.GetRasterBand(i + 1).DataType) // 8
+                      for i in range(dataset.RasterCount))
+    tile_rows = min(rows, dataset.GetRasterBand(1).GetBlockSize()[1])
+    swath = cols * tile_rows * max(1, pixel_bytes)
     try:
-        written = gdal.Translate(path, dataset, srcWin=[x0, y0, cols, rows], callback=keep_going,
-                                 creationOptions=["COMPRESS=DEFLATE", "TILED=YES", "BIGTIFF=IF_SAFER"],
-                                 **({"outputSRS": srs_wkt} if srs_wkt else {}))
+        with thread_options(gdal, GDAL_SWATH_SIZE=str(min(_WINDOW_SWATH_MAX_BYTES, max(_WINDOW_SWATH_BYTES, swath)))):
+            written = gdal.Translate(path, dataset, srcWin=[x0, y0, cols, rows], callback=keep_going,
+                                     creationOptions=["COMPRESS=DEFLATE", "TILED=YES", "BIGTIFF=IF_SAFER"],
+                                     **({"outputSRS": srs_wkt} if srs_wkt else {}))
     except RuntimeError as exc:
         written, failure = None, str(exc)
     else:
         failure = gdal.GetLastErrorMsg()
-    finally:
-        if set_option is not None:
-            set_option("GDAL_SWATH_SIZE", None)
     if written is None:
         return "" if _pmtiles_cancelled() else (failure or "GDAL could not write the window")
     written = None
     return None
-
-
-def normalise_crs(layer) -> str:
-
-
-
-
-
-
-
-
-
-    try:
-        from qgis.core import QgsCoordinateReferenceSystem
-        crs = layer.crs()
-        if not crs.isValid() or crs.authid():
-            return ""
-        candidate = None
-        name = (crs.description() or "").strip()
-        if re.fullmatch(r"(?i)EPSG:\d{4,6}", name):
-            candidate = QgsCoordinateReferenceSystem(name.upper())
-        if candidate is None or not candidate.isValid():
-            srsid = int(crs.findMatchingProj() or 0)
-            candidate = QgsCoordinateReferenceSystem.fromSrsId(srsid) if srsid else None
-        if candidate is None or not candidate.isValid() or not candidate.authid():
-            return ""
-        layer.setCrs(candidate)
-        return candidate.authid()
-    except Exception:  # noqa: BLE001
-        return ""
 
 
 def _crs_label(crs) -> str:
@@ -1290,6 +1386,8 @@ def _add_cog_layer(args: dict) -> dict:
         if bbox is None:
             return tool_error("That bbox is not a usable box.", "INVALID_ARGS", hint="bbox_not_usable")
     final_url, note = _signed_href(url)
+    if isinstance(note, dict):
+        return note
     result = _add_cog(final_url, name, note=note, bbox=bbox)
 
 
@@ -1305,13 +1403,6 @@ def _is_raster_asset(asset: object) -> bool:
     return any(hint in media for hint in _RASTER_MEDIA_HINTS)
 
 
-
-
-_S2_BAND_NAMES = {"B01": "coastal", "B02": "blue", "B03": "green", "B04": "red", "B05": "rededge1",
-                  "B06": "rededge2", "B07": "rededge3", "B08": "nir", "B8A": "nir08", "B09": "nir09",
-                  "B11": "swir16", "B12": "swir22", "SCL": "scl", "TCI": "visual", "AOT": "aot", "WVP": "wvp"}
-
-
 def _asset_alias(assets: dict, asset_key: str) -> str | None:
 
     wanted = str(asset_key or "").strip()
@@ -1321,18 +1412,12 @@ def _asset_alias(assets: dict, asset_key: str) -> str | None:
     band = wanted.upper()
     if len(band) == 2 and band[0] == "B" and band[1].isdigit():
         band = "B0" + band[1]
-    candidates = [_S2_BAND_NAMES.get(band)] + [key for key, name in _S2_BAND_NAMES.items() if name == wanted.lower()]
+    names = geodata_rules.rule("stac", "band_names")
+    candidates = [names.get(band)] + [key for key, name in names.items() if name == wanted.lower()]
     for candidate in candidates:
         if candidate and candidate.lower() in by_lower:
             return by_lower[candidate.lower()]
     return None
-
-
-
-
-_MASK_ROLES = frozenset({"cloud", "cloud-shadow", "snow-ice", "water-mask", "land-water", "data-mask",
-                         "saturation", "metadata", "thumbnail", "overview"})
-_TRUE_COLOUR = ("red", "green", "blue")
 
 
 def _band_colours(asset: dict) -> list:
@@ -1354,39 +1439,36 @@ def _imagery_choice(assets: dict, candidates: list) -> tuple | None:
 
 
 
-
-
-
-
+    picture = geodata_rules.rule("stac", "picture_role")
+    colours = tuple(geodata_rules.rule("stac", "true_colour"))
+    masks = frozenset(geodata_rules.rule("stac", "mask_roles"))
     for key in candidates:
-        if "visual" in _roles(assets[key]):
+        if picture in _roles(assets[key]):
             return assets[key]["href"], key, None, None
     for key in candidates:
-        if all(colour in _band_colours(assets[key]) for colour in _TRUE_COLOUR):
+        if all(colour in _band_colours(assets[key]) for colour in colours):
             return assets[key]["href"], key, None, None
     colour_keys = []
-    for colour in _TRUE_COLOUR:
+    for colour in colours:
         for key in candidates:
-            if _band_colours(assets[key]) == [colour] and not _MASK_ROLES.intersection(_roles(assets[key])):
+            if _band_colours(assets[key]) == [colour] and not masks.intersection(_roles(assets[key])):
                 colour_keys.append(key)
                 break
-    if colour_keys and _band_colours(assets[colour_keys[0]]) == ["red"]:
+    if colour_keys and _band_colours(assets[colour_keys[0]]) == [colours[0]]:
         key = colour_keys[0]
-        note = f"Added the '{key}' band: this item has no true-colour asset, so one band shows as a grey image."
-        if len(colour_keys) == len(_TRUE_COLOUR):
-            note += (f" For true colour add '{colour_keys[1]}' and '{colour_keys[2]}' too and stack the three in "
-                     f"that order ({', '.join(colour_keys)}) with gdal:buildvirtualraster, SEPARATE true.")
+        note = geodata_rules.note("stac", "single_band", key=key)
+        if len(colour_keys) == len(colours) and note is not None:
+            note += " " + (geodata_rules.note("stac", "true_colour", keys=", ".join(colour_keys), red=colour_keys[0],
+                                              green=colour_keys[1], blue=colour_keys[2]) or "")
         return assets[key]["href"], key, note, None
+    reflectance = geodata_rules.rule("stac", "reflectance_role")
     for key in candidates:
-        if "reflectance" in _roles(assets[key]):
-            return assets[key]["href"], key, f"Added the '{key}' reflectance band.", None
+        if reflectance in _roles(assets[key]):
+            return assets[key]["href"], key, geodata_rules.note("stac", "reflectance", key=key), None
     return None
 
 
 def _pick_asset_href(assets: dict, asset_key: str | None) -> tuple[str | None, str | None, str | None, str | None]:
-
-
-
 
 
 
@@ -1402,7 +1484,7 @@ def _pick_asset_href(assets: dict, asset_key: str | None) -> tuple[str | None, s
             alias = _asset_alias(assets, asset_key)
             aliased = assets.get(alias) if alias else None
             if isinstance(aliased, dict) and aliased.get("href"):
-                return aliased["href"], alias, f"Asset '{asset_key}' is named '{alias}' in this catalog.", None
+                return aliased["href"], alias, geodata_rules.note("stac", "alias", asked=asset_key, key=alias), None
             return None, None, None, f"Asset '{asset_key}' not found. Available: {', '.join(assets.keys())}"
         return asset["href"], asset_key, None, None
 
@@ -1420,30 +1502,18 @@ def _pick_asset_href(assets: dict, asset_key: str | None) -> tuple[str | None, s
         key, others = ranked[0], ranked[1:]
         note = None
         if not cogs:
-
-
-
-
-            note = (f"Added the '{key}' asset. No asset of this item is tagged cloud-optimized, so it may be "
-                    f"read whole rather than by area: expect tens of seconds.")
+            note = geodata_rules.note("stac", "not_cloud_optimized", key=key)
         elif others:
-
-
-
-
-            note = (f"Added the '{key}' asset. This item has other GeoTIFF assets "
-                    f"({', '.join(others[:8])}); asset= picks one of them.")
+            note = geodata_rules.note("stac", "other_assets", key=key, others=", ".join(others[:8]))
         return assets[key]["href"], key, note, None
 
     if isinstance(visual, dict) and visual.get("href"):
         return visual["href"], "visual", None, None
 
-    for key in _BROWSE_ASSET_KEYS:
+    for key in geodata_rules.rule("stac", "browse_keys"):
         asset = assets.get(key)
         if isinstance(asset, dict) and asset.get("href"):
-            note = (f"This item has no GeoTIFF asset, so '{key}' was added: it is a browse image of the "
-                    "scene, not georeferenced data.")
-            return asset["href"], key, note, None
+            return asset["href"], key, geodata_rules.note("stac", "browse", key=key), None
 
     return None, None, None, f"No display or GeoTIFF asset found. Available: {', '.join(assets.keys())}"
 
@@ -1480,6 +1550,8 @@ def _add_stac_layer(args: dict) -> dict:
 
     href = urllib.parse.urljoin(item_url, href)
     final_url, sign_note = _signed_href(href)
+    if isinstance(sign_note, dict):
+        return sign_note
     note = " ".join(part for part in (choice_note, sign_note) if part) or None
     name = args.get("name") or item.get("id")
     extra = {
@@ -1488,8 +1560,6 @@ def _add_stac_layer(args: dict) -> dict:
         "asset_key": chosen_key,
     }
 
-
-    from ..core.data_date import from_range
 
     props = item.get("properties") if isinstance(item.get("properties"), dict) else {}
     acquired = from_range(props.get("start_datetime") or props.get("datetime"),
@@ -1564,7 +1634,7 @@ def _probe_pmtiles(url: str) -> dict:
 
     request = urllib.request.Request(
         url,
-        headers={"User-Agent": _USER_AGENT, "Range": f"bytes=0-{_PMTILES_PROBE_BYTES - 1}"},
+        headers={"Range": f"bytes=0-{_PMTILES_PROBE_BYTES - 1}"},
     )
     try:
 
@@ -1714,12 +1784,6 @@ def _pmtiles_stopped(url: str) -> dict:
                       url=url)
 
 
-def _safe_file_stem(text: str) -> str:
-    stem = re.sub(r"[^A-Za-z0-9_.-]+", "_", str(text)).strip("_.")
-
-
-    return _avoid_reserved_name(stem[:60] or "pmtiles")
-
 
 def _pmtiles_blocks(bbox: list, zoom: int) -> list:
 
@@ -1861,7 +1925,7 @@ def _extract_pmtiles(url: str, bbox: list, sublayer: str | None, name: str | Non
             return _pmtiles_stopped(url)
 
         directory = create_managed_temp_dir("pmtiles")
-        path = os.path.join(directory, f"{_safe_file_stem(name or chosen)}.gpkg")
+        path = os.path.join(directory, f"{file_stem(name or chosen, 'pmtiles')}.gpkg")
         if deadline is not None:
 
             blocks = _pmtiles_read_blocks(gdal, dataset, url, bbox, chosen, zoom, path, deadline)
@@ -2246,7 +2310,7 @@ def _add_pmtiles_as_tiles(url: str, name: str | None, args: dict) -> dict:
 
 
 
-        from .data_tools import _add_vector_over_range_requests
+        from .data_inspect import _add_vector_over_range_requests
 
         try:
             fallback = _add_vector_over_range_requests(url, name, args.get("layer"))

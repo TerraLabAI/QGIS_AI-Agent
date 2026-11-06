@@ -68,8 +68,6 @@ from .style import (
 )
 from .widgets import ChatLabel
 
-
-
 _ASK_CARD_QSS = (
     "QWidget#{name} { background: " + SURFACE + "; border: 1px solid " + LINE + ";"
     f" border-radius: {RADIUS_CARD}px; }}"

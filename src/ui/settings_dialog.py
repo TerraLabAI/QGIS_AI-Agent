@@ -51,6 +51,7 @@
 
 
 
+
 from __future__ import annotations
 
 from qgis.PyQt.QtCore import QSize, Qt, QTimer, pyqtSignal
@@ -62,24 +63,31 @@ from qgis.PyQt.QtWidgets import (
     QLabel,
     QListWidget,
     QListWidgetItem,
-    QPushButton,
+    QProgressBar,
     QStackedWidget,
     QVBoxLayout,
     QWidget,
 )
 
+from ..core import accounts
 from ..core.logger import log_warning
 from ..core.plan import memory_allowed
 from ..core.profile import profile_context
+from ..core.qt_compat import one_shot
+from ..core.served_state import get_privacy_url, get_product_url, get_site_url, get_terms_url
 from ..core.settings import Settings
 from .external_links import open_external_url
 from .font_scale import apply_font_scale_to_tree, scale_px_length
 from .icons import icon_for, logo_pixmap, logo_size
 from .learn_page import LearnPage
+from .library.dialog import SOURCES_KEY, ExamplesDialog
 from .permission_chip import glyph_tile
 from .settings_account import AccountPageMixin
+from .settings_connected import ConnectedAccountsPage
 from .settings_pages import (
+    HAIRLINE,
     MUTED,
+    PROGRESS_QSS,
     SAVED_HINT_QSS,
     Page,
     nav_qss,
@@ -87,17 +95,9 @@ from .settings_pages import (
     sidebar_qss,
 )
 from .settings_personalisation import PersonalisationPageMixin
-from .shared import (
-    event_pos,
-    get_privacy_url,
-    get_product_url,
-    get_site_url,
-    get_terms_url,
-    safe_disconnect,
-    size_within_screen,
-)
-from .siblings_page import SiblingsPage
-from .style import ACCENT, ACCENT_DARK, FONT_HINT, ON_ACCENT, with_platform_font
+from .settings_project_memory import ProjectMemoryPageMixin
+from .shared import event_pos, exec_dialog, safe_disconnect, size_within_screen
+from .style import ACCENT, FONT_HINT, with_platform_font
 
 
 
@@ -115,24 +115,6 @@ _NAV_QSS = nav_qss("settingsNav")
 _SIDEBAR_QSS = sidebar_qss("settingsSidebar")
 
 
-
-
-
-_NAV_TINTS = {
-    "gear": "#6B7A8F",
-    "shield": "#C98A2E",
-    "pencil": "#7C6CD0",
-    "spark": "#1F9E96",
-    "globe": "#3E86D6",
-    "person": ACCENT,
-    "book": "#C96A8C",
-    "gem": "#C98A2E",
-    "play": "#D0533C",
-    "terminal": "#6B7A8F",
-    "puzzle": "#7C6CD0",
-    "chat_bubble": "#3E86D6",
-    "lu.bug": "#D0533C",
-}
 _WORDMARK_PX = 22
 _WORDMARK_QSS = ("font-size: 13px; font-weight: 700; color: palette(text);"
                  " background: transparent;")
@@ -140,16 +122,6 @@ _WORDMARK_NOTE_QSS = f"font-size: {FONT_HINT}px; color: {MUTED}; background: tra
 _IDENTITY_QSS = (f"QLabel#settingsIdentity {{ font-size: {FONT_HINT}px; color: {MUTED};"
                  " background: transparent; }"
                  "QLabel#settingsIdentity:hover { color: palette(text); }")
-
-
-_RAIL_CTA_QSS = (
-    f"QPushButton {{ background: {ACCENT}; color: {ON_ACCENT}; border: none;"
-    " border-radius: 8px; margin: 4px 12px 6px 14px; padding: 7px 10px;"
-    " font-size: 12px; font-weight: 700; }"
-    f"QPushButton:hover {{ background: {ACCENT_DARK}; }}"
-)
-
-
 class _LinkTile(QWidget):
 
 
@@ -163,7 +135,7 @@ class _LinkTile(QWidget):
         super().mouseReleaseEvent(event)
 
 
-class SettingsDialog(PersonalisationPageMixin, AccountPageMixin, QDialog):
+class SettingsDialog(PersonalisationPageMixin, ProjectMemoryPageMixin, AccountPageMixin, QDialog):
 
 
     values_changed = pyqtSignal(dict)
@@ -174,6 +146,7 @@ class SettingsDialog(PersonalisationPageMixin, AccountPageMixin, QDialog):
     refresh_requested = pyqtSignal()
     telemetry_toggled = pyqtSignal(bool)
     improve_toggled = pyqtSignal(bool)
+    project_memory_requested = pyqtSignal(str)
     dashboard_opened = pyqtSignal(str)
     upgrade_requested = pyqtSignal()
     help_requested = pyqtSignal(str)
@@ -211,6 +184,7 @@ class SettingsDialog(PersonalisationPageMixin, AccountPageMixin, QDialog):
 
 
         self._plan_sections: list = []
+        self._pro_notes: list = []
 
         self.setObjectName("AIAgentSettingsDialog")
         self.setWindowTitle(self.tr("AI Agent settings"))
@@ -235,27 +209,30 @@ class SettingsDialog(PersonalisationPageMixin, AccountPageMixin, QDialog):
         self._saved_hint.setStyleSheet(SAVED_HINT_QSS)
         self._saved_hint.adjustSize()
         self._saved_hint.hide()
-        self._saved_timer = QTimer(self)
-        self._saved_timer.setSingleShot(True)
-        self._saved_timer.timeout.connect(self._saved_hint.hide)
+        self._saved_timer = one_shot(self, self._saved_hint.hide)
         self._right = right
 
-        self._add_page("pencil", self.tr("Personalisation"), self._build_personalisation())
-        self._add_action("globe", self.tr("Data sources"), "sources")
-        self._add_page("terminal", self.tr("Keyboard shortcuts"), self._build_shortcuts())
-        self._add_page("play", self.tr("Tutorials"), self._build_tutorials())
+
+
+
+        self._add_page("lu.pencil", self.tr("Personalisation"), self._build_personalisation())
+        self._add_page("lu.keyboard", self.tr("Keyboard shortcuts"), self._build_shortcuts())
+        self._account_row = self._nav.count()
+        self._add_page("lu.user", self.tr("Account"), self._build_account())
+        if accounts.enabled():
+            self._add_page("lu.lock", self.tr("Connected accounts"), ConnectedAccountsPage(self))
+        self._add_separator()
+
+
+
+        self._add_page("lu.book-open", self.tr("Learn"), self._build_learn())
+        self._add_action("lu.globe", self.tr("Data sources"), "sources")
+        self._add_separator()
 
 
 
 
-
-        self._add_page("puzzle", self.tr("More plugins"), self._build_siblings())
-        self._add_page("person", self.tr("Account"), self._build_account())
-
-
-
-
-        self._add_action("chat_bubble", self.tr("Contact us"), "contact")
+        self._add_action("lu.message-circle", self.tr("Contact us"), "contact")
         self._add_action("lu.bug", self.tr("Send feedback"), "report")
         self._nav.setCurrentRow(0)
         self.set_account_info(info)
@@ -288,42 +265,54 @@ class SettingsDialog(PersonalisationPageMixin, AccountPageMixin, QDialog):
 
 
 
+        self._rail_plan = _LinkTile(side)
+        self._rail_plan.setCursor(Qt.CursorShape.PointingHandCursor)
+        self._rail_plan.setToolTip(self.tr("See usage"))
+        self._rail_plan.clicked.connect(lambda: self._nav.setCurrentRow(self._account_row))
+        plan_col = QVBoxLayout(self._rail_plan)
+        plan_col.setContentsMargins(16, 10, 14, 8)
+        plan_col.setSpacing(6)
+        rule = QFrame(self._rail_plan)
+        rule.setFixedHeight(1)
+        rule.setStyleSheet(f"background: {HAIRLINE}; border: none;")
+        plan_col.addWidget(rule)
+        plan_col.addSpacing(4)
+        plan_line = QHBoxLayout()
+        plan_line.setContentsMargins(0, 0, 0, 0)
+        plan_line.setSpacing(8)
+        self._rail_plan_name = QLabel(self._rail_plan)
+        self._rail_plan_name.setStyleSheet(
+            f"font-size: {FONT_HINT + 1}px; font-weight: 500; color: palette(text); background: transparent;")
+        plan_line.addWidget(self._rail_plan_name)
+        plan_line.addStretch(1)
+        self._rail_plan_runs = QLabel(self._rail_plan)
+        self._rail_plan_runs.setStyleSheet(_IDENTITY_QSS.replace("QLabel#settingsIdentity", "QLabel"))
+        plan_line.addWidget(self._rail_plan_runs)
+        plan_col.addLayout(plan_line)
+        self._rail_plan_bar = QProgressBar(self._rail_plan)
+        self._rail_plan_bar.setTextVisible(False)
+        self._rail_plan_bar.setFixedHeight(3)
+        self._rail_plan_bar.setStyleSheet(PROGRESS_QSS)
+        plan_col.addWidget(self._rail_plan_bar)
+        self._rail_plan.hide()
+        col.addWidget(self._rail_plan)
 
 
 
 
-        self._upgrade_pill = QPushButton(self.tr("Get Pro"), side)
-        self._upgrade_pill.setStyleSheet(_RAIL_CTA_QSS)
-        self._upgrade_pill.setCursor(Qt.CursorShape.PointingHandCursor)
-        self._upgrade_pill.setAutoDefault(False)
-        self._upgrade_pill.setToolTip(self.tr("What Pro unlocks, on the TerraLab website."))
-        self._upgrade_pill.clicked.connect(self._on_upgrade)
-        self._upgrade_pill.hide()
-        col.addWidget(self._upgrade_pill)
-
-
-
-
-        self._identity = QLabel(
-            f'<a href="{get_site_url()}" style="color: {MUTED}; text-decoration: none;">'
-            f'{self.tr("TerraLab")}</a>', side)
-        self._identity.setObjectName("settingsIdentity")
-        self._identity.setStyleSheet(_IDENTITY_QSS)
-        self._identity.setContentsMargins(16, 0, 12, 2)
-        self._identity.setCursor(Qt.CursorShape.PointingHandCursor)
-        self._identity.setToolTip(self.tr("Open terra-lab.ai"))
-        self._identity.setOpenExternalLinks(False)
-        self._identity.linkActivated.connect(self._open_site)
-        col.addWidget(self._identity)
-
+        dot = ' <span style="color: rgba(128,128,128,0.5);">·</span> '
         legal = QLabel(
-            f'<a href="{get_terms_url()}" style="color: {MUTED}; text-decoration: none;">{self.tr("Terms")}</a>'
-            f' <span style="color: rgba(128,128,128,0.5);">·</span> '
+            f'<a href="site" style="color: {MUTED}; text-decoration: none;">{self.tr("TerraLab")}</a>'
+            f'{dot}<a href="{get_terms_url()}" style="color: {MUTED}; text-decoration: none;">'
+            f'{self.tr("Terms")}</a>{dot}'
             f'<a href="{get_privacy_url()}" style="color: {MUTED}; text-decoration: none;">'
             f'{self.tr("Privacy")}</a>', side)
-        legal.setOpenExternalLinks(True)
-        legal.setStyleSheet(f"font-size: {FONT_HINT}px;")
-        legal.setContentsMargins(16, 0, 0, 0)
+        legal.setObjectName("settingsIdentity")
+        legal.setStyleSheet(_IDENTITY_QSS)
+        legal.setOpenExternalLinks(False)
+        legal.linkActivated.connect(
+            lambda href: self._open_site() if href == "site" else open_external_url(href, parent=self))
+        legal.setContentsMargins(16, 0, 12, 0)
         col.addWidget(legal)
 
 
@@ -376,12 +365,37 @@ class SettingsDialog(PersonalisationPageMixin, AccountPageMixin, QDialog):
         open_external_url(get_site_url(), parent=self)
 
     def _add_page(self, glyph: str, label: str, page: QWidget) -> None:
-        tint = _NAV_TINTS.get(glyph)
-        icon = icon_for(self, glyph, 16, QColor(tint)) if tint else icon_for(self, glyph, 16)
-        item = QListWidgetItem(icon, label)
+        item = QListWidgetItem(icon_for(self, glyph, 16, QColor(MUTED)), label)
         item.setSizeHint(QSize(0, scale_px_length(32)))
         item.setData(Qt.ItemDataRole.UserRole, self._pages.addWidget(page))
         self._nav.addItem(item)
+
+    def set_rail_plan(self, name: str, runs: str, left: int | None, limit: int | None) -> None:
+
+        self._rail_plan_name.setText(name)
+        self._rail_plan_runs.setText(runs)
+        has_bar = limit is not None and left is not None
+        if has_bar:
+            self._rail_plan_bar.setRange(0, max(int(limit), 1))
+            self._rail_plan_bar.setValue(max(0, min(int(left), int(limit))))
+        self._rail_plan_bar.setVisible(has_bar)
+        self._rail_plan.setVisible(bool(name))
+
+    def _add_separator(self) -> None:
+
+        item = QListWidgetItem()
+        item.setFlags(Qt.ItemFlag.NoItemFlags)
+        item.setSizeHint(QSize(0, scale_px_length(13)))
+        self._nav.addItem(item)
+        host = QWidget(self._nav)
+        line = QVBoxLayout(host)
+        line.setContentsMargins(14, 6, 14, 6)
+        rule = QFrame(host)
+        rule.setFixedHeight(1)
+        rule.setStyleSheet(f"background: {HAIRLINE}; border: none;")
+        line.addWidget(rule)
+        host.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, True)
+        self._nav.setItemWidget(item, host)
 
     def _add_action(self, glyph: str, label: str, kind: str) -> None:
 
@@ -390,9 +404,7 @@ class SettingsDialog(PersonalisationPageMixin, AccountPageMixin, QDialog):
 
 
 
-        tint = _NAV_TINTS.get(glyph)
-        icon = icon_for(self, glyph, 16, QColor(tint)) if tint else icon_for(self, glyph, 16)
-        item = QListWidgetItem(icon, label)
+        item = QListWidgetItem(icon_for(self, glyph, 16, QColor(MUTED)), label)
         item.setSizeHint(QSize(0, scale_px_length(32)))
         item.setData(Qt.ItemDataRole.UserRole, f"action:{kind}")
         item.setToolTip(self.tr("Opens a window"))
@@ -405,7 +417,7 @@ class SettingsDialog(PersonalisationPageMixin, AccountPageMixin, QDialog):
         line.setContentsMargins(0, 0, 10, 0)
         line.addStretch(1)
         glyph_label = QLabel(mark)
-        glyph_label.setPixmap(icon_for(self, "external", 12, QColor(MUTED)).pixmap(12, 12))
+        glyph_label.setPixmap(icon_for(self, "lu.external-link", 12, QColor(MUTED)).pixmap(12, 12))
         glyph_label.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, True)
         line.addWidget(glyph_label, 0, Qt.AlignmentFlag.AlignVCenter)
         mark.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, True)
@@ -484,21 +496,23 @@ class SettingsDialog(PersonalisationPageMixin, AccountPageMixin, QDialog):
 
         return not memory_allowed()
 
-    def _build_tutorials(self) -> LearnPage:
+    def _build_learn(self) -> LearnPage:
+
+
+
 
 
 
 
         page = LearnPage(self)
         page.opened.connect(self._on_learn_opened)
+        page.siblings.opened.connect(self._on_sibling_opened)
         return page
 
     def _open_sources(self) -> None:
 
 
 
-        from .library.dialog import SOURCES_KEY, ExamplesDialog
-        from .shared import exec_dialog
 
         library = ExamplesDialog(self, opened_from="settings", place=SOURCES_KEY)
         library.example_chosen.connect(self.example_chosen.emit)
@@ -511,18 +525,6 @@ class SettingsDialog(PersonalisationPageMixin, AccountPageMixin, QDialog):
     def _on_library_prompt(self, text: str, chip) -> None:
         self.accept()
         self.prompt_chosen.emit(str(text or ""), dict(chip) if isinstance(chip, dict) else {})
-
-    def _build_siblings(self) -> SiblingsPage:
-
-
-
-
-
-
-
-        page = SiblingsPage(self)
-        page.opened.connect(self._on_sibling_opened)
-        return page
 
     def _on_sibling_opened(self, product_id: str, outcome: str) -> None:
         self.help_requested.emit(f"sibling:{product_id}:{outcome}")
@@ -542,7 +544,13 @@ class SettingsDialog(PersonalisationPageMixin, AccountPageMixin, QDialog):
         try:
             from .dock.about import build_shortcuts_card
 
-            page.add(build_shortcuts_card(page))
+            card = build_shortcuts_card(page)
+
+
+            card.setStyleSheet(card.styleSheet()
+                               + "QFrame#shCard { background: transparent; border: none; }")
+            card.layout().setContentsMargins(14, 0, 14, 0)
+            page.add(card)
         except Exception as exc:  # noqa: BLE001
             log_warning(f"Keyboard shortcuts not shown: {exc}")
             page.add(self._muted(self.tr("The shortcuts could not be listed.")))

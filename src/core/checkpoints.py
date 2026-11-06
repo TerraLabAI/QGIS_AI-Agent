@@ -25,8 +25,10 @@ import uuid
 
 from qgis.core import QgsProject
 
+from . import limits
 from .host_platform import resolved, retry_file_op
 from .logger import log_warning
+from .numbers import as_float, as_int
 from .snapshot import (
     MAX_HASH_FILE_BYTES,
     MAX_INDEX_BYTES,
@@ -40,6 +42,7 @@ from .snapshot import (
     snapshots_dir,
 )
 from .snapshot_features import _jobs
+from .snapshot_style import cached_style_digest
 from .writeback import write_atomic
 
 
@@ -59,10 +62,7 @@ def _opening(text: str) -> str:
 
 def _count(value) -> int:
 
-    try:
-        return int(value or 0)
-    except (TypeError, ValueError, OverflowError):
-        return 0
+    return as_int(value or 0, 0)
 
 
 def _open_project_file() -> str:
@@ -159,7 +159,6 @@ NOT_PUT_BACK = "not_put_back"
 
 def _clean_log(value) -> list:
 
-    from . import limits
     from .journal import MAX_FIELDS, MAX_ITEMS, MAX_TEXT
 
     try:
@@ -425,7 +424,6 @@ def _light_styles(snapshot) -> None:
 
 
 
-    from .snapshot_style import cached_style_digest
 
     for lid, record in (getattr(snapshot, "layers", None) or {}).items():
         if isinstance(record, dict) and record.get("light") and record.get("style") is None:
@@ -567,10 +565,7 @@ class Checkpoint:
         prompt = record.get("prompt")
 
         entry.prompt = prompt if isinstance(prompt, str) else ""
-        try:
-            entry.created_at = float(record.get("created_at") or 0.0)
-        except (TypeError, ValueError):
-            entry.created_at = 0.0
+        entry.created_at = as_float(record.get("created_at") or 0.0, 0.0)
         project_file = record.get("project_file")
         entry.project_file = project_file if isinstance(project_file, str) else ""
         files = record.get("project_files")
@@ -855,7 +850,6 @@ class CheckpointHistory:
 
 
 
-        from . import limits
 
         entries = self._entries.get(thread_id, [])
         if not entries:
@@ -1302,7 +1296,6 @@ class CheckpointHistory:
         if index is None:
             index = len(entries)
         twins = self.twins(thread_id) | set(same)
-
         while 0 < index < len(entries) and entries[index].id in twins:
             index -= 1
         for entry in reversed(entries[:index]):

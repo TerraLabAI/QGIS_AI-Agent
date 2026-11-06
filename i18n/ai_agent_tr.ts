@@ -599,14 +599,6 @@
             <translation>{raster} rasterini coğrafi referansla</translation>
         </message>
         <message>
-            <source>Get a Sentinel image</source>
-            <translation>Bir Sentinel görüntüsü al</translation>
-        </message>
-        <message>
-            <source>Get an elevation model</source>
-            <translation>Bir yükseklik modeli al</translation>
-        </message>
-        <message>
             <source>Get {what}</source>
             <translation>{what} al</translation>
         </message>
@@ -751,10 +743,6 @@
             <translation>Eklentileri listele</translation>
         </message>
         <message>
-            <source>List the satellite catalogs</source>
-            <translation>Uydu kataloglarını listele</translation>
-        </message>
-        <message>
             <source>Load 3D Tiles[ from {url}]</source>
             <translation>3D Tiles yükle[ ({url} adresinden)]</translation>
         </message>
@@ -771,20 +759,12 @@
             <translation>QGIS penceresine bak</translation>
         </message>
         <message>
-            <source>Look for data on the web[ for {query}]</source>
-            <translation>Web'de veri ara[ ({query})]</translation>
-        </message>
-        <message>
             <source>Look for data on this computer</source>
             <translation>Bu bilgisayarda veri ara</translation>
         </message>
         <message>
             <source>Look for relief anomalies[ in {lrm_layer}][ in {dem}]</source>
             <translation>Kabartma anomalilerini ara[ ({lrm_layer} içinde)][ ({dem} içinde)]</translation>
-        </message>
-        <message>
-            <source>Look up the place[ {query}]</source>
-            <translation>Yeri ara[ {query}]</translation>
         </message>
         <message>
             <source>Make the temporary layers permanent[ in {gpkg_path}]</source>
@@ -967,10 +947,6 @@
             <translation>{INPUT} katmanını rasterleştir</translation>
         </message>
         <message>
-            <source>Read a NASA Earthdata collection[ {short_name}]</source>
-            <translation>NASA Earthdata koleksiyonunu oku[ {short_name}]</translation>
-        </message>
-        <message>
             <source>Read a web page</source>
             <translation>Bir web sayfasını oku</translation>
         </message>
@@ -983,16 +959,8 @@
             <translation>{layer_name} nesnelerini oku</translation>
         </message>
         <message>
-            <source>Read the AI Agent documentation[ on {query}]</source>
-            <translation>AI Agent belgelerini oku[ ({query})]</translation>
-        </message>
-        <message>
             <source>Read the CRS of {layer_name}</source>
             <translation>{layer_name} katmanının CRS'sini oku</translation>
-        </message>
-        <message>
-            <source>Read the QGIS documentation[ on {query}]</source>
-            <translation>QGIS belgelerini oku[ ({query})]</translation>
         </message>
         <message>
             <source>Read the extent of {layer_name}</source>
@@ -1155,18 +1123,6 @@
             <translation>Kaydedildi: {file}, klasör: {folder}.</translation>
         </message>
         <message>
-            <source>Search Copernicus images[ of {collection}]</source>
-            <translation>Copernicus görüntülerini ara[: {collection}]</translation>
-        </message>
-        <message>
-            <source>Search NASA Earthdata files</source>
-            <translation>NASA Earthdata dosyalarını ara</translation>
-        </message>
-        <message>
-            <source>Search NASA Earthdata[ for {query}]</source>
-            <translation>NASA Earthdata'da ara[: {query}]</translation>
-        </message>
-        <message>
             <source>Search examples</source>
             <translation>Örnekleri ara</translation>
         </message>
@@ -1175,24 +1131,8 @@
             <translation>Açık veride ara[: {query}]</translation>
         </message>
         <message>
-            <source>Search satellite images</source>
-            <translation>Uydu görüntülerini ara</translation>
-        </message>
-        <message>
-            <source>Search statistics[ on {topic}]</source>
-            <translation>İstatistikleri ara[: {topic}]</translation>
-        </message>
-        <message>
-            <source>Search the Earth Engine catalog[ for {query}]</source>
-            <translation>Earth Engine kataloğunda ara[: {query}]</translation>
-        </message>
-        <message>
             <source>Search the QGIS Hub[ for {query}]</source>
             <translation>QGIS Hub'da ara[: {query}]</translation>
-        </message>
-        <message>
-            <source>Search the data catalog[ for {query}]</source>
-            <translation>Veri kataloğunda ara[: {query}]</translation>
         </message>
         <message>
             <source>Search the processing tools[ for {query}]</source>
@@ -1201,10 +1141,6 @@
         <message>
             <source>Search the processing tools[ for {search}]</source>
             <translation>İşleme araçlarında ara[: {search}]</translation>
-        </message>
-        <message>
-            <source>Search the web[ for {query}]</source>
-            <translation>Web'de ara[: {query}]</translation>
         </message>
         <message>
             <source>Select features in {layer_name}</source>
@@ -1842,6 +1778,38 @@ Silme, bekleme süresi bitince kesinleşir. O zamana kadar terra-lab.ai üzerind
             <source>This report includes your description and the current conversation. We use it to fix issues and improve AI Agent.</source>
             <translation>Bu rapor açıklamanızı ve mevcut konuşmayı içerir. Sorunları gidermek ve AI Agent'ı geliştirmek için kullanırız.</translation>
         </message>
+        <message>
+            <source>Copy</source>
+            <translation>Kopyala</translation>
+        </message>
+        <message>
+            <source>Real tasks the AI agent does from one sentence.</source>
+            <translation>Yapay zeka ajanının tek bir cümleden yaptığı gerçek görevler.</translation>
+        </message>
+        <message>
+            <source>Uses</source>
+            <translation>Kullanır</translation>
+        </message>
+        <message>
+            <source>What you type</source>
+            <translation>Yazdığın</translation>
+        </message>
+        <message>
+            <source>Expired on {day}.</source>
+            <translation>{day} tarihinde süresi doldu.</translation>
+        </message>
+        <message>
+            <source>Expires on {day}.</source>
+            <translation>Süresi {day} tarihinde doluyor.</translation>
+        </message>
+        <message>
+            <source>Private link: its signature stays on this computer. TerraLab and the AI agent see only the site and the file name.</source>
+            <translation>Özel bağlantı: imzası bu bilgisayarda kalır. TerraLab ve yapay zeka ajanı yalnızca siteyi ve dosya adını görür.</translation>
+        </message>
+        <message>
+            <source>expired</source>
+            <translation>süresi doldu</translation>
+        </message>
     </context>
     <context>
         <name>AIAgentContext</name>
@@ -2314,6 +2282,18 @@ Silme, bekleme süresi bitince kesinleşir. O zamana kadar terra-lab.ai üzerind
             <source>Your AI agent inside QGIS</source>
             <translation>QGIS içindeki yapay zeka asistanınız</translation>
         </message>
+        <message>
+            <source>Ask it to load data, style layers, run analyses or edit features.</source>
+            <translation>Ondan veri yüklemesini, katmanları biçimlendirmesini, analiz çalıştırmasını veya objeleri düzenlemesini iste.</translation>
+        </message>
+        <message>
+            <source>Free. Opens your browser, takes about 15 seconds.</source>
+            <translation>Ücretsiz. Tarayıcını açar, yaklaşık 15 saniye sürer.</translation>
+        </message>
+        <message>
+            <source>Sign in or create an account</source>
+            <translation>Oturum aç veya hesap oluştur</translation>
+        </message>
     </context>
     <context>
         <name>ActivityRow</name>
@@ -2451,6 +2431,10 @@ Silme, bekleme süresi bitince kesinleşir. O zamana kadar terra-lab.ai üzerind
         <message>
             <source>Write the request for an HTML report of this analysis, with its maps and charts</source>
             <translation>Bu analizin haritalarını ve grafiklerini içeren bir HTML raporu için isteği yaz</translation>
+        </message>
+        <message>
+            <source>Remove rating</source>
+            <translation>Puanı kaldır</translation>
         </message>
     </context>
     <context>
@@ -2794,6 +2778,42 @@ Silme, bekleme süresi bitince kesinleşir. O zamana kadar terra-lab.ai üzerind
         <message>
             <source>a temporary layer</source>
             <translation>geçici bir katman</translation>
+        </message>
+        <message>
+            <source>Not handled, the AI agent is offline: {0}</source>
+            <translation>İşlenmedi, yapay zeka ajanı çevrimdışı: {0}</translation>
+        </message>
+        <message>
+            <source>Nothing is kept about this project yet.</source>
+            <translation>Bu proje hakkında henüz hiçbir şey saklanmıyor.</translation>
+        </message>
+        <message>
+            <source>Project memory</source>
+            <translation>Proje belleği</translation>
+        </message>
+        <message>
+            <source>Project memory cleared.</source>
+            <translation>Proje belleği temizlendi.</translation>
+        </message>
+        <message>
+            <source>Watched folder: not handled, no answer from the server: {0}</source>
+            <translation>İzlenen klasör: işlenmedi, sunucudan yanıt yok: {0}</translation>
+        </message>
+        <message>
+            <source>Watched folder: not handled, the AI agent is offline: {0}</source>
+            <translation>İzlenen klasör: işlenmedi, yapay zeka ajanı çevrimdışı: {0}</translation>
+        </message>
+        <message>
+            <source>Clear what the AI agent remembers about this project?</source>
+            <translation>AI Agent'ın bu proje hakkında hatırladıkları silinsin mi?</translation>
+        </message>
+        <message>
+            <source>Save the project first: its memory is kept under the project file.</source>
+            <translation>Önce projeyi kaydedin: belleği proje dosyasının altında tutulur.</translation>
+        </message>
+        <message>
+            <source>The AI agent is not connected. Try again in a moment.</source>
+            <translation>AI Agent bağlı değil. Birazdan tekrar deneyin.</translation>
         </message>
     </context>
     <context>
@@ -3189,6 +3209,14 @@ Silme, bekleme süresi bitince kesinleşir. O zamana kadar terra-lab.ai üzerind
             <source>Make an HTML report of this analysis, with its maps, charts and method.</source>
             <translation>Bu analizin haritalarını, grafiklerini ve yöntemini içeren bir HTML raporu hazırla.</translation>
         </message>
+        <message>
+            <source>Pay to get Pro back</source>
+            <translation>Pro'yu geri almak için öde</translation>
+        </message>
+        <message>
+            <source>Task ended</source>
+            <translation>Görev sona erdi</translation>
+        </message>
     </context>
     <context>
         <name>ChatSidebar</name>
@@ -3574,6 +3602,34 @@ Silme, bekleme süresi bitince kesinleşir. O zamana kadar terra-lab.ai üzerind
             <source>Your own account with the provider: it will ask for a key.</source>
             <translation>Sağlayıcıdaki kendi hesabınız: bir anahtar isteyecek.</translation>
         </message>
+        <message>
+            <source>All %n</source>
+            <translation>Tümü %n</translation>
+        </message>
+        <message>
+            <source>Examples with this source</source>
+            <translation>Bu kaynakla örnekler</translation>
+        </message>
+        <message>
+            <source>Fewer</source>
+            <translation>Daha az</translation>
+        </message>
+        <message>
+            <source>More</source>
+            <translation>Daha fazla</translation>
+        </message>
+        <message>
+            <source>More in {shelf}</source>
+            <translation>{shelf} içinde daha fazlası</translation>
+        </message>
+        <message>
+            <source>{first} and %n more licences</source>
+            <translation>{first} ve %n lisans daha</translation>
+        </message>
+        <message>
+            <source>Use in chat</source>
+            <translation>Sohbette kullan</translation>
+        </message>
     </context>
     <context>
         <name>ConnectorsPage</name>
@@ -3636,6 +3692,14 @@ Silme, bekleme süresi bitince kesinleşir. O zamana kadar terra-lab.ai üzerind
         <message>
             <source>sources</source>
             <translation>kaynak</translation>
+        </message>
+        <message>
+            <source>Search sources, datasets or a country</source>
+            <translation>Kaynak, veri seti veya ülke ara</translation>
+        </message>
+        <message>
+            <source>{sources} sources the AI agent finds and loads by itself: {datasets} datasets in {countries} countries.</source>
+            <translation>Yapay zeka ajanının kendi bulup yüklediği {sources} kaynak: {countries} ülkede {datasets} veri seti.</translation>
         </message>
     </context>
     <context>
@@ -3774,8 +3838,8 @@ Silme, bekleme süresi bitince kesinleşir. O zamana kadar terra-lab.ai üzerind
             <translation>Ne üzerinde çalışıyoruz?</translation>
         </message>
         <message>
-            <source>You are talking to an AI system. It can be wrong: check its changes.</source>
-            <translation>Bir yapay zekâ sistemiyle konuşuyorsunuz. Yanılabilir: yaptığı değişiklikleri kontrol edin.</translation>
+            <source>AI can make mistakes. Check its changes.</source>
+            <translation>YZ hata yapabilir. Yaptığı değişiklikleri kontrol edin.</translation>
         </message>
     </context>
     <context>
@@ -4125,6 +4189,14 @@ Katmanlar panelinde göstermek için tıklayın.</translation>
             <source>Videos and guides to get started. They open in your browser.</source>
             <translation>Başlamak için videolar ve kılavuzlar. Tarayıcınızda açılırlar.</translation>
         </message>
+        <message>
+            <source>Learn</source>
+            <translation>Öğren</translation>
+        </message>
+        <message>
+            <source>Videos, guides and the other TerraLab plugins. Links open in your browser.</source>
+            <translation>Videolar, kılavuzlar ve diğer TerraLab eklentileri. Bağlantılar tarayıcında açılır.</translation>
+        </message>
     </context>
     <context>
         <name>LibraryRail</name>
@@ -4404,6 +4476,46 @@ Katmanlar panelinde göstermek için tıklayın.</translation>
         <message>
             <source>{n} actions wait for your approval.</source>
             <translation>{n} eylem onayınızı bekliyor.</translation>
+        </message>
+        <message>
+            <source>Adds: {}</source>
+            <translation>Ekler: {}</translation>
+        </message>
+        <message>
+            <source>Also covers the next calls of this kind in this answer</source>
+            <translation>Bu yanıttaki bu türden sonraki çağrıları da kapsar</translation>
+        </message>
+        <message>
+            <source>Changes: {}</source>
+            <translation>Değiştirir: {}</translation>
+        </message>
+        <message>
+            <source>Deletes files: {}</source>
+            <translation>Dosyaları siler: {}</translation>
+        </message>
+        <message>
+            <source>Deletes: {}</source>
+            <translation>Siler: {}</translation>
+        </message>
+        <message>
+            <source>Not in this project: {}</source>
+            <translation>Bu projede yok: {}</translation>
+        </message>
+        <message>
+            <source>Other effects the preview could not read: {}</source>
+            <translation>Önizlemenin okuyamadığı diğer etkiler: {}</translation>
+        </message>
+        <message>
+            <source>Reads: {}</source>
+            <translation>Okur: {}</translation>
+        </message>
+        <message>
+            <source>Runs: {}</source>
+            <translation>Çalıştırır: {}</translation>
+        </message>
+        <message>
+            <source>Writes files: {}</source>
+            <translation>Dosyalara yazar: {}</translation>
         </message>
     </context>
     <context>
@@ -4721,6 +4833,26 @@ Katmanlar panelinde göstermek için tıklayın.</translation>
             <source>{n} free tasks left</source>
             <translation>{n} ücretsiz görev kaldı</translation>
         </message>
+        <message>
+            <source>Pay now</source>
+            <translation>Şimdi öde</translation>
+        </message>
+        <message>
+            <source>Pay {amount} now</source>
+            <translation>Şimdi {amount} öde</translation>
+        </message>
+        <message>
+            <source>Pro is off until it's paid. You're on the free plan for now.</source>
+            <translation>Pro, ödeme yapılana kadar kapalı. Şimdilik ücretsiz plandasınız.</translation>
+        </message>
+        <message>
+            <source>Your Pro payment failed</source>
+            <translation>Pro ödemeniz başarısız oldu</translation>
+        </message>
+        <message>
+            <source>Your payment of {amount} failed</source>
+            <translation>{amount} tutarındaki ödemeniz başarısız oldu</translation>
+        </message>
     </context>
     <context>
         <name>QuotaPauseCard</name>
@@ -4952,6 +5084,10 @@ Katmanlar panelinde göstermek için tıklayın.</translation>
             <source>{n} steps</source>
             <translation>{n} adım</translation>
         </message>
+        <message>
+            <source>Thought</source>
+            <translation>Düşünce</translation>
+        </message>
     </context>
     <context>
         <name>RunsLeftLine</name>
@@ -5139,8 +5275,8 @@ Katmanlar panelinde göstermek için tıklayın.</translation>
             <translation>Pro'ya geç</translation>
         </message>
         <message>
-            <source>Help improve AI Agent</source>
-            <translation>AI Agent'ı geliştirmeye yardım edin</translation>
+            <source>Allow chat review</source>
+            <translation>Sohbet incelemesine izin ver</translation>
         </message>
         <message>
             <source>How it should work. Example: always answer in French, name new layers in snake_case, never delete a layer without asking.</source>
@@ -5187,12 +5323,12 @@ Katmanlar panelinde göstermek için tıklayın.</translation>
             <translation>Katman adları</translation>
         </message>
         <message>
-            <source>Lets us read a chat only to fix a bug. Chats are kept 30 days.</source>
-            <translation>Bir sohbeti yalnızca hata düzeltmek için okumamıza izin verir. Sohbetler 30 gün saklanır.</translation>
+            <source>We may read a chat only to fix a bug, never to train AI. Chats are kept 30 days.</source>
+            <translation>Bir sohbeti yalnızca bir hatayı düzeltmek için okuyabiliriz, yapay zekâyı eğitmek için asla. Sohbetler 30 gün saklanır.</translation>
         </message>
         <message>
-            <source>Lets us read a chat only to fix a wrong answer or a bug.</source>
-            <translation>Bir sohbeti yalnızca yanlış bir yanıtı veya bir hatayı düzeltmek için okumamıza izin verir.</translation>
+            <source>We may read a chat only to fix a wrong answer or a bug, never to train AI.</source>
+            <translation>Bir sohbeti yalnızca yanlış bir yanıtı veya bir hatayı düzeltmek için okuyabiliriz, yapay zekâyı eğitmek için asla.</translation>
         </message>
         <message>
             <source>Loading account info...</source>
@@ -5557,6 +5693,95 @@ Katmanlar panelinde göstermek için tıklayın.</translation>
         <message>
             <source>Send feedback</source>
             <translation>Geri bildirim gönder</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_dialog.py" />
+            <source>See usage</source>
+            <translation>Kullanımı gör</translation>
+        </message>
+        <message>
+            <source>Always answer in French, never delete a layer without asking</source>
+            <translation>Her zaman Fransızca yanıtla, sormadan hiçbir katmanı silme</translation>
+        </message>
+        <message>
+            <source>Choose folder...</source>
+            <translation>Klasör seç...</translation>
+        </message>
+        <message>
+            <source>Clear project memory</source>
+            <translation>Proje belleğini temizle</translation>
+        </message>
+        <message>
+            <source>Connected accounts</source>
+            <translation>Bağlı hesaplar</translation>
+        </message>
+        <message>
+            <source>Folder to watch</source>
+            <translation>İzlenecek klasör</translation>
+        </message>
+        <message>
+            <source>Instructions</source>
+            <translation>Talimatlar</translation>
+        </message>
+        <message>
+            <source>Job</source>
+            <translation>İş</translation>
+        </message>
+        <message>
+            <source>Learn</source>
+            <translation>Öğren</translation>
+        </message>
+        <message>
+            <source>Name</source>
+            <translation>Ad</translation>
+        </message>
+        <message>
+            <source>No folder chosen</source>
+            <translation>Klasör seçilmedi</translation>
+        </message>
+        <message>
+            <source>Pro reads both before every run.</source>
+            <translation>Pro, her çalıştırmadan önce ikisini de okur.</translation>
+        </message>
+        <message>
+            <source>Proactive triggers</source>
+            <translation>Proaktif tetikleyiciler</translation>
+        </message>
+        <message>
+            <source>Project memory</source>
+            <translation>Proje belleği</translation>
+        </message>
+        <message>
+            <source>Read by the AI agent at the start of every conversation.</source>
+            <translation>Yapay zeka ajanı her konuşmanın başında okur.</translation>
+        </message>
+        <message>
+            <source>Saved notes · {n}</source>
+            <translation>Kayıtlı notlar · {n}</translation>
+        </message>
+        <message>
+            <source>Show project memory</source>
+            <translation>Proje belleğini göster</translation>
+        </message>
+        <message>
+            <source>The AI agent looks at new data files in this folder and at the schedules you ask for, only while QGIS is open. Nothing runs when QGIS is closed.</source>
+            <translation>Yapay zeka ajanı bu klasördeki yeni veri dosyalarına ve istediğin zamanlamalara yalnızca QGIS açıkken bakar. QGIS kapalıyken hiçbir şey çalışmaz.</translation>
+        </message>
+        <message>
+            <source>Urban planner at the city of Lyon, cadastre and PLU layers in EPSG:2154</source>
+            <translation>Lyon şehrinde şehir plancısı, EPSG:2154'te kadastro ve PLU katmanları</translation>
+        </message>
+        <message>
+            <source>Watch a folder and run my schedules while QGIS is open</source>
+            <translation>Bir klasörü izle ve QGIS açıkken zamanlamalarımı çalıştır</translation>
+        </message>
+        <message>
+            <source>What Pro adds: {points}</source>
+            <translation>Pro'nun eklediği: {points}</translation>
+        </message>
+        <message>
+            <source>commercial use, more tasks, memory, your instructions and higher effort</source>
+            <translation>ticari kullanım, daha fazla görev, bellek, kendi talimatların ve daha yüksek efor</translation>
         </message>
     </context>
     <context>
@@ -5941,6 +6166,22 @@ Katmanlar panelinde göstermek için tıklayın.</translation>
             <source>{what} on '{layer}' whose CRS {crs} is geographic: the distance would be in degrees, not meters.</source>
             <translation>{what}, '{layer}' katmanında, CRS {crs} coğrafi: mesafe metre değil derece cinsinden olurdu.</translation>
         </message>
+        <message>
+            <source>Access to {host}</source>
+            <translation>{host} erişimi</translation>
+        </message>
+        <message>
+            <source>Allowed for this conversation</source>
+            <translation>Bu konuşma için izin verildi</translation>
+        </message>
+        <message>
+            <source>Allowed once</source>
+            <translation>Bir kez izin verildi</translation>
+        </message>
+        <message>
+            <source>Signed in</source>
+            <translation>Oturum açıldı</translation>
+        </message>
     </context>
     <context>
         <name>UpdateBanner</name>
@@ -5959,6 +6200,14 @@ Katmanlar panelinde göstermek için tıklayın.</translation>
         <message>
             <source>{product} {version} is out</source>
             <translation>{product} {version} yayında</translation>
+        </message>
+        <message>
+            <source>Download</source>
+            <translation>İndir</translation>
+        </message>
+        <message>
+            <source>This QGIS has no plugin repository turned on. Download the ZIP, then use Install from ZIP in Plugins &gt; Manage and Install Plugins.</source>
+            <translation>Bu QGIS'te etkinleştirilmiş bir eklenti deposu yok. ZIP dosyasını indirin, ardından Eklentiler &gt; Eklentileri Yönet ve Kur bölümündeki ZIP'ten Yükle seçeneğini kullanın.</translation>
         </message>
     </context>
     <context>
@@ -6370,6 +6619,1320 @@ Katmanlar panelinde göstermek için tıklayın.</translation>
         <message>
             <source>Thanks for the feedback</source>
             <translation>Geri bildiriminiz için teşekkürler</translation>
+        </message>
+    </context>
+    <context>
+        <name>ToolDetails</name>
+        <message>
+            <source>Copied</source>
+            <translation>Kopyalandı</translation>
+        </message>
+        <message>
+            <source>Copy as Python</source>
+            <translation>Python olarak kopyala</translation>
+        </message>
+        <message>
+            <source>Open in Processing</source>
+            <translation>İşleme'de aç</translation>
+        </message>
+        <message>
+            <source>Open this algorithm's dialog with the same settings, to check them or run it again. The output goes to a new temporary layer.</source>
+            <translation>Bu algoritmanın iletişim kutusunu aynı ayarlarla açar; ayarları kontrol edebilir veya yeniden çalıştırabilirsiniz. Çıktı yeni bir geçici katmana gider.</translation>
+        </message>
+        <message>
+            <source>Show less</source>
+            <translation>Daha az göster</translation>
+        </message>
+        <message>
+            <source>Show {n} more</source>
+            <translation>{n} tane daha göster</translation>
+        </message>
+        <message>
+            <source>The processing.run line, ready for the QGIS Python console</source>
+            <translation>QGIS Python konsolu için hazır processing.run satırı</translation>
+        </message>
+        <message>
+            <source>Fewer</source>
+            <translation>Daha az</translation>
+        </message>
+        <message>
+            <source>{n} more</source>
+            <translation>{n} tane daha</translation>
+        </message>
+    </context>
+    <context>
+        <name>AccountCard</name>
+        <message>
+            <source>Add keys</source>
+            <translation>Anahtar ekle</translation>
+        </message>
+        <message>
+            <source>Add token</source>
+            <translation>Token ekle</translation>
+        </message>
+        <message>
+            <source>Allow</source>
+            <translation>İzin ver</translation>
+        </message>
+        <message>
+            <source>Allow for this conversation</source>
+            <translation>Bu konuşma için izin ver</translation>
+        </message>
+        <message>
+            <source>Allowed for this conversation</source>
+            <translation>Bu konuşma için izin verildi</translation>
+        </message>
+        <message>
+            <source>Allowed once</source>
+            <translation>Bir kez izin verildi</translation>
+        </message>
+        <message>
+            <source>Connect your {label} account</source>
+            <translation>{label} hesabını bağla</translation>
+        </message>
+        <message>
+            <source>Connected</source>
+            <translation>Bağlandı</translation>
+        </message>
+        <message>
+            <source>Continue with your {label} account</source>
+            <translation>{label} hesabınla devam et</translation>
+        </message>
+        <message>
+            <source>Deny</source>
+            <translation>Reddet</translation>
+        </message>
+        <message>
+            <source>Keys refused</source>
+            <translation>Anahtarlar reddedildi</translation>
+        </message>
+        <message>
+            <source>Needs your answer</source>
+            <translation>Yanıtını bekliyor</translation>
+        </message>
+        <message>
+            <source>Not allowed</source>
+            <translation>İzin verilmedi</translation>
+        </message>
+        <message>
+            <source>Replace keys</source>
+            <translation>Anahtarları değiştir</translation>
+        </message>
+        <message>
+            <source>Replace token</source>
+            <translation>Token'ı değiştir</translation>
+        </message>
+        <message>
+            <source>Sent to {host} only.</source>
+            <translation>Yalnızca {host} adresine gönderilir.</translation>
+        </message>
+        <message>
+            <source>Sign in</source>
+            <translation>Oturum aç</translation>
+        </message>
+        <message>
+            <source>Sign in again</source>
+            <translation>Yeniden oturum aç</translation>
+        </message>
+        <message>
+            <source>Sign in to {host}</source>
+            <translation>{host} için oturum aç</translation>
+        </message>
+        <message>
+            <source>Sign-in refused</source>
+            <translation>Oturum açma reddedildi</translation>
+        </message>
+        <message>
+            <source>Skip</source>
+            <translation>Atla</translation>
+        </message>
+        <message>
+            <source>Skipped</source>
+            <translation>Atlandı</translation>
+        </message>
+        <message>
+            <source>Stored encrypted in QGIS on this computer. Never sent to TerraLab or the AI agent.</source>
+            <translation>Bu bilgisayarda QGIS içinde şifreli olarak saklanır. TerraLab'a veya yapay zeka ajanına asla gönderilmez.</translation>
+        </message>
+        <message>
+            <source>TerraLab's shared access is used up. A free token keeps you going.</source>
+            <translation>TerraLab'ın ortak erişimi tükendi. Ücretsiz bir token ile devam edebilirsin.</translation>
+        </message>
+        <message>
+            <source>TerraLab's shared access is used up. Free S3 keys keep you going.</source>
+            <translation>TerraLab'ın ortak erişimi tükendi. Ücretsiz S3 anahtarlarıyla devam edebilirsin.</translation>
+        </message>
+        <message>
+            <source>This service answers only a signed-in user.</source>
+            <translation>Bu servis yalnızca oturum açmış kullanıcılara yanıt verir.</translation>
+        </message>
+        <message>
+            <source>Token refused</source>
+            <translation>Token reddedildi</translation>
+        </message>
+        <message>
+            <source>Use your {label} access?</source>
+            <translation>{label} erişimin kullanılsın mı?</translation>
+        </message>
+        <message>
+            <source>{host} opens with a token or an API key from your account.</source>
+            <translation>{host}, hesabından alınan bir token veya API anahtarıyla açılır.</translation>
+        </message>
+        <message>
+            <source>{host} refused your saved access ({user}).</source>
+            <translation>{host}, kayıtlı erişimini ({user}) reddetti.</translation>
+        </message>
+        <message>
+            <source>{host} refused your saved access.</source>
+            <translation>{host}, kayıtlı erişimini reddetti.</translation>
+        </message>
+        <message>
+            <source>{label} answers only a signed-in user.</source>
+            <translation>{label} yalnızca oturum açmış kullanıcılara yanıt verir.</translation>
+        </message>
+        <message>
+            <source>{label} refused your saved S3 keys.</source>
+            <translation>{label}, kayıtlı S3 anahtarlarını reddetti.</translation>
+        </message>
+        <message>
+            <source>{label} refused your saved token.</source>
+            <translation>{label}, kayıtlı token'ını reddetti.</translation>
+        </message>
+        <message>
+            <source>{service} needs a token</source>
+            <translation>{service} için token gerekli</translation>
+        </message>
+        <message>
+            <source>Sign in with {name}</source>
+            <translation>{name} ile oturum aç</translation>
+        </message>
+        <message>
+            <source>TerraLab's shared access is used up. Your free account keeps you going.</source>
+            <translation>TerraLab'ın ortak erişimi tükendi. Ücretsiz hesabınız devam etmenizi sağlar.</translation>
+        </message>
+        <message>
+            <source>Try again</source>
+            <translation>Tekrar dene</translation>
+        </message>
+        <message>
+            <source>Use S3 keys instead</source>
+            <translation>Bunun yerine S3 anahtarlarını kullan</translation>
+        </message>
+        <message>
+            <source>{name} no longer accepts your saved sign-in.</source>
+            <translation>{name} artık kayıtlı oturum açma bilginizi kabul etmiyor.</translation>
+        </message>
+        <message>
+            <source>Keys expired</source>
+            <translation>Anahtarların süresi doldu</translation>
+        </message>
+        <message>
+            <source>Sign-in expired</source>
+            <translation>Oturumun süresi doldu</translation>
+        </message>
+        <message>
+            <source>Token expired</source>
+            <translation>Token'ın süresi doldu</translation>
+        </message>
+        <message>
+            <source>{host} no longer accepts your saved access.</source>
+            <translation>{host} artık kayıtlı erişimini kabul etmiyor.</translation>
+        </message>
+        <message>
+            <source>{label} no longer accepts your saved S3 keys.</source>
+            <translation>{label} artık kayıtlı S3 anahtarlarını kabul etmiyor.</translation>
+        </message>
+        <message>
+            <source>{label} no longer accepts your saved token.</source>
+            <translation>{label} artık kayıtlı token'ını kabul etmiyor.</translation>
+        </message>
+        <message>
+            <source>Your {name} sign-in expired.</source>
+            <translation>{name} oturumunuzun süresi doldu.</translation>
+        </message>
+        <message>
+            <source>Details</source>
+            <translation>Ayrıntılar</translation>
+        </message>
+        <message>
+            <source>File: {value}</source>
+            <translation>Dosya: {value}</translation>
+        </message>
+        <message>
+            <source>Only this file is read with it; nothing is written.</source>
+            <translation>Bununla yalnızca bu dosya okunur; hiçbir şey yazılmaz.</translation>
+        </message>
+        <message>
+            <source>Saved access: {value}</source>
+            <translation>Kayıtlı erişim: {value}</translation>
+        </message>
+        <message>
+            <source>Sent to: {value}</source>
+            <translation>Gönderilen yer: {value}</translation>
+        </message>
+        <message>
+            <source>Choose in Google Drive</source>
+            <translation>Google Drive'da seç</translation>
+        </message>
+    </context>
+    <context>
+        <name>ConnectedAccountsPage</name>
+        <message>
+            <source>API key</source>
+            <translation>API anahtarı</translation>
+        </message>
+        <message>
+            <source>Connected accounts</source>
+            <translation>Bağlı hesaplar</translation>
+        </message>
+        <message>
+            <source>Kept in QGIS's encrypted vault, on this computer. Neither TerraLab nor the AI agent sees them.</source>
+            <translation>Bu bilgisayarda, QGIS'in şifreli kasasında tutulur. Ne TerraLab ne de yapay zeka ajanı bunları görür.</translation>
+        </message>
+        <message>
+            <source>No account yet. When a source asks you to sign in, the AI agent shows a card, and the access you save appears here.</source>
+            <translation>Henüz hesap yok. Bir kaynak oturum açmanı istediğinde yapay zeka ajanı bir kart gösterir ve kaydettiğin erişim burada görünür.</translation>
+        </message>
+        <message>
+            <source>Remove</source>
+            <translation>Kaldır</translation>
+        </message>
+        <message>
+            <source>Remove the access to {host}</source>
+            <translation>{host} erişimini kaldır</translation>
+        </message>
+        <message>
+            <source>S3 keys</source>
+            <translation>S3 anahtarları</translation>
+        </message>
+        <message>
+            <source>The sign-ins the AI agent may use, each only after you allow it.</source>
+            <translation>Yapay zeka ajanının kullanabileceği oturumlar, her biri yalnızca sen izin verdikten sonra.</translation>
+        </message>
+        <message>
+            <source>Token</source>
+            <translation>Token</translation>
+        </message>
+        <message>
+            <source>Username and password</source>
+            <translation>Kullanıcı adı ve parola</translation>
+        </message>
+        <message>
+            <source>Google account</source>
+            <translation>Google hesabı</translation>
+        </message>
+        <message>
+            <source>No project picked</source>
+            <translation>Proje seçilmedi</translation>
+        </message>
+        <message>
+            <source>Project {project}</source>
+            <translation>Proje {project}</translation>
+        </message>
+        <message>
+            <source>Change project…</source>
+            <translation>Projeyi değiştir…</translation>
+        </message>
+        <message>
+            <source>Google sign-in</source>
+            <translation>Google ile oturum açma</translation>
+        </message>
+        <message>
+            <source>Signed in with the browser</source>
+            <translation>Tarayıcıyla oturum açıldı</translation>
+        </message>
+        <message>
+            <source>Add account</source>
+            <translation>Hesap ekle</translation>
+        </message>
+        <message>
+            <source>Expired</source>
+            <translation>Süresi doldu</translation>
+        </message>
+        <message>
+            <source>Expires on {day}</source>
+            <translation>Bitiş tarihi: {day}</translation>
+        </message>
+        <message>
+            <source>More actions for {label}</source>
+            <translation>{label} için diğer eylemler</translation>
+        </message>
+        <message>
+            <source>QGIS deletes it from its vault. Layers loaded with it stop loading, and the AI agent asks you to sign in again the next time {host} needs it.</source>
+            <translation>QGIS onu kimlik doğrulama veritabanından siler. Onunla yüklenen katmanlar yüklenmez olur ve yapay zeka ajanı, {host} ona bir sonraki ihtiyaç duyduğunda yeniden oturum açmanı ister.</translation>
+        </message>
+        <message>
+            <source>Refused at its last use</source>
+            <translation>Son kullanımda reddedildi</translation>
+        </message>
+        <message>
+            <source>Remove your {label} access?</source>
+            <translation>{label} erişimin kaldırılsın mı?</translation>
+        </message>
+        <message>
+            <source>Remove…</source>
+            <translation>Kaldır…</translation>
+        </message>
+        <message>
+            <source>Replace…</source>
+            <translation>Değiştir…</translation>
+        </message>
+        <message>
+            <source>Storage keys</source>
+            <translation>Depolama anahtarları</translation>
+        </message>
+        <message>
+            <source>Choose files…</source>
+            <translation>Dosya seç…</translation>
+        </message>
+        <message>
+            <source>{name} sign-in</source>
+            <translation>{name} oturumu</translation>
+        </message>
+    </context>
+    <context>
+        <name>KeysDialog</name>
+        <message>
+            <source>Access key</source>
+            <translation>Erişim anahtarı</translation>
+        </message>
+        <message>
+            <source>Cancel</source>
+            <translation>İptal</translation>
+        </message>
+        <message>
+            <source>Connect</source>
+            <translation>Bağlan</translation>
+        </message>
+        <message>
+            <source>Connect {label}</source>
+            <translation>{label} bağla</translation>
+        </message>
+        <message>
+            <source>Connected</source>
+            <translation>Bağlandı</translation>
+        </message>
+        <message>
+            <source>Header name</source>
+            <translation>Başlık adı</translation>
+        </message>
+        <message>
+            <source>Hide</source>
+            <translation>Gizle</translation>
+        </message>
+        <message>
+            <source>Key</source>
+            <translation>Anahtar</translation>
+        </message>
+        <message>
+            <source>Not saved. Fill in the fields, and unlock QGIS's vault with its master password when QGIS asks.</source>
+            <translation>Kaydedilmedi. Alanları doldur ve QGIS sorduğunda ana parolasıyla QGIS'in kasasının kilidini aç.</translation>
+        </message>
+        <message>
+            <source>Not saved. Paste both keys, and unlock QGIS's vault with its master password when QGIS asks.</source>
+            <translation>Kaydedilmedi. İki anahtarı da yapıştır ve QGIS sorduğunda ana parolasıyla QGIS'in kasasının kilidini aç.</translation>
+        </message>
+        <message>
+            <source>Open {host}</source>
+            <translation>{host} aç</translation>
+        </message>
+        <message>
+            <source>Password</source>
+            <translation>Parola</translation>
+        </message>
+        <message>
+            <source>Secret key</source>
+            <translation>Gizli anahtar</translation>
+        </message>
+        <message>
+            <source>Show</source>
+            <translation>Göster</translation>
+        </message>
+        <message>
+            <source>Sign in</source>
+            <translation>Oturum aç</translation>
+        </message>
+        <message>
+            <source>Sign in to {host}</source>
+            <translation>{host} için oturum aç</translation>
+        </message>
+        <message>
+            <source>Sign in with a free account, add a credential and paste both keys here.</source>
+            <translation>Ücretsiz bir hesapla oturum aç, bir kimlik bilgisi ekle ve iki anahtarı da buraya yapıştır.</translation>
+        </message>
+        <message>
+            <source>Stored encrypted in QGIS on this computer, behind your QGIS master password. Never sent to TerraLab or the AI agent.</source>
+            <translation>Bu bilgisayarda QGIS içinde, QGIS ana parolanın arkasında şifreli olarak saklanır. TerraLab'a veya yapay zeka ajanına asla gönderilmez.</translation>
+        </message>
+        <message>
+            <source>Use a username and password instead</source>
+            <translation>Bunun yerine kullanıcı adı ve parola kullan</translation>
+        </message>
+        <message>
+            <source>Use an API key instead</source>
+            <translation>Bunun yerine API anahtarı kullan</translation>
+        </message>
+        <message>
+            <source>Username</source>
+            <translation>Kullanıcı adı</translation>
+        </message>
+        <message>
+            <source>the S3 keys manager</source>
+            <translation>S3 anahtar yöneticisi</translation>
+        </message>
+        <message>
+            <source>Checking…</source>
+            <translation>Denetleniyor…</translation>
+        </message>
+        <message>
+            <source>QGIS will ask you to choose a master password. It locks every sign-in saved in QGIS and cannot be recovered, so keep it somewhere safe.</source>
+            <translation>QGIS senden bir ana parola belirlemeni isteyecek. QGIS'te kayıtlı tüm oturum bilgilerini kilitler ve kurtarılamaz, bu yüzden güvenli bir yerde sakla.</translation>
+        </message>
+        <message>
+            <source>{host} refused these details. Check them and try again.</source>
+            <translation>{host} bu bilgileri reddetti. Kontrol edip tekrar dene.</translation>
+        </message>
+    </context>
+    <context>
+        <name>ProLock</name>
+        <message>
+            <source>Pro</source>
+            <translation>Pro</translation>
+        </message>
+    </context>
+    <context>
+        <name>ProNote</name>
+        <message>
+            <source>Get Pro</source>
+            <translation>Pro'ya geç</translation>
+        </message>
+    </context>
+    <context>
+        <name>SectionHead</name>
+        <message>
+            <source>See all</source>
+            <translation>Tümünü gör</translation>
+        </message>
+    </context>
+    <context>
+        <name>SiblingRow</name>
+        <message>
+            <source>Install</source>
+            <translation>Yükle</translation>
+        </message>
+        <message>
+            <source>Installed</source>
+            <translation>Yüklendi</translation>
+        </message>
+        <message>
+            <source>Open</source>
+            <translation>Aç</translation>
+        </message>
+        <message>
+            <source>Opens the QGIS plugin manager on this plugin.</source>
+            <translation>QGIS eklenti yöneticisini bu eklentide açar.</translation>
+        </message>
+        <message>
+            <source>Show the plugin's panel.</source>
+            <translation>Eklentinin panelini göster.</translation>
+        </message>
+    </context>
+    <context>
+        <name>SiblingsSection</name>
+        <message>
+            <source>Edit your imagery with a single sentence.</source>
+            <translation>Görüntülerini tek bir cümleyle düzenle.</translation>
+        </message>
+        <message>
+            <source>Other TerraLab plugins</source>
+            <translation>Diğer TerraLab eklentileri</translation>
+        </message>
+        <message>
+            <source>Turn buildings, trees or water into polygons.</source>
+            <translation>Binaları, ağaçları veya suyu poligonlara dönüştür.</translation>
+        </message>
+    </context>
+    <context>
+        <name>SignInDialog</name>
+        <message>
+            <source>Cancel</source>
+            <translation>İptal</translation>
+        </message>
+        <message>
+            <source>Connect</source>
+            <translation>Bağlan</translation>
+        </message>
+        <message>
+            <source>Connected</source>
+            <translation>Bağlandı</translation>
+        </message>
+        <message>
+            <source>Header name</source>
+            <translation>Başlık adı</translation>
+        </message>
+        <message>
+            <source>Hide</source>
+            <translation>Gizle</translation>
+        </message>
+        <message>
+            <source>Key</source>
+            <translation>Anahtar</translation>
+        </message>
+        <message>
+            <source>Not saved. Fill in the fields, and unlock QGIS's vault with its master password when QGIS asks.</source>
+            <translation>Kaydedilmedi. Alanları doldur ve QGIS sorduğunda ana parolasıyla QGIS'in kasasının kilidini aç.</translation>
+        </message>
+        <message>
+            <source>Open {host}</source>
+            <translation>{host} aç</translation>
+        </message>
+        <message>
+            <source>Password</source>
+            <translation>Parola</translation>
+        </message>
+        <message>
+            <source>Show</source>
+            <translation>Göster</translation>
+        </message>
+        <message>
+            <source>Sign in</source>
+            <translation>Oturum aç</translation>
+        </message>
+        <message>
+            <source>Sign in to {host}</source>
+            <translation>{host} için oturum aç</translation>
+        </message>
+        <message>
+            <source>Stored encrypted in QGIS on this computer, behind your QGIS master password. Never sent to TerraLab or the AI agent.</source>
+            <translation>Bu bilgisayarda QGIS içinde, QGIS ana parolanın arkasında şifreli olarak saklanır. TerraLab'a veya yapay zeka ajanına asla gönderilmez.</translation>
+        </message>
+        <message>
+            <source>Use a username and password instead</source>
+            <translation>Bunun yerine kullanıcı adı ve parola kullan</translation>
+        </message>
+        <message>
+            <source>Use an API key instead</source>
+            <translation>Bunun yerine API anahtarı kullan</translation>
+        </message>
+        <message>
+            <source>Username</source>
+            <translation>Kullanıcı adı</translation>
+        </message>
+        <message>
+            <source>Checking…</source>
+            <translation>Denetleniyor…</translation>
+        </message>
+        <message>
+            <source>QGIS will ask you to choose a master password. It locks every sign-in saved in QGIS and cannot be recovered, so keep it somewhere safe.</source>
+            <translation>QGIS senden bir ana parola belirlemeni isteyecek. QGIS'te kayıtlı tüm oturum bilgilerini kilitler ve kurtarılamaz, bu yüzden güvenli bir yerde sakla.</translation>
+        </message>
+        <message>
+            <source>{host} refused these details. Check them and try again.</source>
+            <translation>{host} bu bilgileri reddetti. Kontrol edip tekrar dene.</translation>
+        </message>
+    </context>
+    <context>
+        <name>TasksPanel</name>
+        <message>
+            <source>Done</source>
+            <translation>Bitti</translation>
+        </message>
+        <message>
+            <source>Failed</source>
+            <translation>Başarısız</translation>
+        </message>
+        <message>
+            <source>Paused</source>
+            <translation>Duraklatıldı</translation>
+        </message>
+        <message>
+            <source>Queued</source>
+            <translation>Sırada</translation>
+        </message>
+        <message>
+            <source>Stopped</source>
+            <translation>Durduruldu</translation>
+        </message>
+        <message>
+            <source>Stopping...</source>
+            <translation>Durduruluyor...</translation>
+        </message>
+        <message>
+            <source>Tasks</source>
+            <translation>Görevler</translation>
+        </message>
+        <message>
+            <source>Working</source>
+            <translation>Çalışıyor</translation>
+        </message>
+    </context>
+    <context>
+        <name>TokenDialog</name>
+        <message>
+            <source>A token or an API key from your {service} account. Sent to {host} only.</source>
+            <translation>{service} hesabından bir token veya API anahtarı. Yalnızca {host} adresine gönderilir.</translation>
+        </message>
+        <message>
+            <source>Cancel</source>
+            <translation>İptal</translation>
+        </message>
+        <message>
+            <source>Connect</source>
+            <translation>Bağlan</translation>
+        </message>
+        <message>
+            <source>Connect {label}</source>
+            <translation>{label} bağla</translation>
+        </message>
+        <message>
+            <source>Connect {service}</source>
+            <translation>{service} bağla</translation>
+        </message>
+        <message>
+            <source>Connected</source>
+            <translation>Bağlandı</translation>
+        </message>
+        <message>
+            <source>Header name</source>
+            <translation>Başlık adı</translation>
+        </message>
+        <message>
+            <source>Hide</source>
+            <translation>Gizle</translation>
+        </message>
+        <message>
+            <source>Key</source>
+            <translation>Anahtar</translation>
+        </message>
+        <message>
+            <source>Not saved. Fill in the fields, and unlock QGIS's vault with its master password when QGIS asks.</source>
+            <translation>Kaydedilmedi. Alanları doldur ve QGIS sorduğunda ana parolasıyla QGIS'in kasasının kilidini aç.</translation>
+        </message>
+        <message>
+            <source>Not saved. Paste the token, and unlock QGIS's vault with its master password when QGIS asks.</source>
+            <translation>Kaydedilmedi. Token'ı yapıştır ve QGIS sorduğunda ana parolasıyla QGIS'in kasasının kilidini aç.</translation>
+        </message>
+        <message>
+            <source>Open {host}</source>
+            <translation>{host} aç</translation>
+        </message>
+        <message>
+            <source>Password</source>
+            <translation>Parola</translation>
+        </message>
+        <message>
+            <source>Paste your token</source>
+            <translation>Token'ını yapıştır</translation>
+        </message>
+        <message>
+            <source>Show</source>
+            <translation>Göster</translation>
+        </message>
+        <message>
+            <source>Sign in</source>
+            <translation>Oturum aç</translation>
+        </message>
+        <message>
+            <source>Sign in to {host}</source>
+            <translation>{host} için oturum aç</translation>
+        </message>
+        <message>
+            <source>Sign in with a free account, choose Generate Token, copy it and paste it here.</source>
+            <translation>Ücretsiz bir hesapla oturum aç, Generate Token'ı seç, kopyala ve buraya yapıştır.</translation>
+        </message>
+        <message>
+            <source>Stored encrypted in QGIS on this computer, behind your QGIS master password. Never sent to TerraLab or the AI agent.</source>
+            <translation>Bu bilgisayarda QGIS içinde, QGIS ana parolanın arkasında şifreli olarak saklanır. TerraLab'a veya yapay zeka ajanına asla gönderilmez.</translation>
+        </message>
+        <message>
+            <source>Token</source>
+            <translation>Token</translation>
+        </message>
+        <message>
+            <source>Token for {host}</source>
+            <translation>{host} için token</translation>
+        </message>
+        <message>
+            <source>Use a username and password instead</source>
+            <translation>Bunun yerine kullanıcı adı ve parola kullan</translation>
+        </message>
+        <message>
+            <source>Use an API key instead</source>
+            <translation>Bunun yerine API anahtarı kullan</translation>
+        </message>
+        <message>
+            <source>Username</source>
+            <translation>Kullanıcı adı</translation>
+        </message>
+        <message>
+            <source>Checking…</source>
+            <translation>Denetleniyor…</translation>
+        </message>
+        <message>
+            <source>QGIS will ask you to choose a master password. It locks every sign-in saved in QGIS and cannot be recovered, so keep it somewhere safe.</source>
+            <translation>QGIS senden bir ana parola belirlemeni isteyecek. QGIS'te kayıtlı tüm oturum bilgilerini kilitler ve kurtarılamaz, bu yüzden güvenli bir yerde sakla.</translation>
+        </message>
+        <message>
+            <source>{host} refused these details. Check them and try again.</source>
+            <translation>{host} bu bilgileri reddetti. Kontrol edip tekrar dene.</translation>
+        </message>
+    </context>
+    <context>
+        <name>_TaskRow</name>
+        <message>
+            <source>Stop</source>
+            <translation>Durdur</translation>
+        </message>
+    </context>
+    <context>
+        <name>EarthEngineConnect</name>
+        <message>
+            <source>A non-commercial Earth Engine project is not for commercial work.</source>
+            <translation>Ticari olmayan bir Earth Engine projesi ticari işler için kullanılamaz.</translation>
+        </message>
+        <message>
+            <source>Cancel</source>
+            <translation>İptal</translation>
+        </message>
+        <message>
+            <source>Change project</source>
+            <translation>Projeyi değiştir</translation>
+        </message>
+        <message>
+            <source>Choose project</source>
+            <translation>Proje seç</translation>
+        </message>
+        <message>
+            <source>Choose your Earth Engine project</source>
+            <translation>Earth Engine projenizi seçin</translation>
+        </message>
+        <message>
+            <source>Connect</source>
+            <translation>Bağlan</translation>
+        </message>
+        <message>
+            <source>Connect Earth Engine</source>
+            <translation>Earth Engine'e bağlan</translation>
+        </message>
+        <message>
+            <source>Connected</source>
+            <translation>Bağlandı</translation>
+        </message>
+        <message>
+            <source>Earth Engine needs Google's earthengine-api package. It installs into QGIS in about a minute, then you sign in with Google.</source>
+            <translation>Earth Engine, Google'ın earthengine-api paketine ihtiyaç duyar. Paket yaklaşık bir dakikada QGIS'e kurulur, ardından Google ile oturum açarsınız.</translation>
+        </message>
+        <message>
+            <source>Earth Engine refused your project {project}.</source>
+            <translation>Earth Engine {project} projenizi reddetti.</translation>
+        </message>
+        <message>
+            <source>Earth Engine runs on one of your Google Cloud projects.</source>
+            <translation>Earth Engine, Google Cloud projelerinizden birinde çalışır.</translation>
+        </message>
+        <message>
+            <source>Finish signing in to Google in your browser.</source>
+            <translation>Google oturum açma işlemini tarayıcınızda tamamlayın.</translation>
+        </message>
+        <message>
+            <source>Google refused the sign-in ({error}).</source>
+            <translation>Google oturum açmayı reddetti ({error}).</translation>
+        </message>
+        <message>
+            <source>Google refused your saved sign-in.</source>
+            <translation>Google kayıtlı oturumunuzu reddetti.</translation>
+        </message>
+        <message>
+            <source>Install</source>
+            <translation>Kur</translation>
+        </message>
+        <message>
+            <source>Installing earthengine-api...</source>
+            <translation>earthengine-api kuruluyor...</translation>
+        </message>
+        <message>
+            <source>No Earth Engine project on this account yet. Registering one is free for noncommercial use.</source>
+            <translation>Bu hesapta henüz Earth Engine projesi yok. Ticari olmayan kullanım için proje kaydetmek ücretsizdir.</translation>
+        </message>
+        <message>
+            <source>Not saved: QGIS's vault stayed locked. Connect again and set the master password when QGIS asks.</source>
+            <translation>Kaydedilmedi: QGIS'in kimlik kasası kilitli kaldı. Yeniden bağlanın ve QGIS isteyince ana parolayı belirleyin.</translation>
+        </message>
+        <message>
+            <source>Open the sign-in page again</source>
+            <translation>Oturum açma sayfasını yeniden aç</translation>
+        </message>
+        <message>
+            <source>Pick the Cloud project Earth Engine runs on.</source>
+            <translation>Earth Engine'in çalıştığı Cloud projesini seçin.</translation>
+        </message>
+        <message>
+            <source>Project refused</source>
+            <translation>Proje reddedildi</translation>
+        </message>
+        <message>
+            <source>Reading your Cloud projects...</source>
+            <translation>Cloud projeleriniz okunuyor...</translation>
+        </message>
+        <message>
+            <source>Refresh</source>
+            <translation>Yenile</translation>
+        </message>
+        <message>
+            <source>Register a project</source>
+            <translation>Proje kaydet</translation>
+        </message>
+        <message>
+            <source>Sign in again</source>
+            <translation>Yeniden oturum aç</translation>
+        </message>
+        <message>
+            <source>Sign in with Google</source>
+            <translation>Google ile oturum aç</translation>
+        </message>
+        <message>
+            <source>Sign in with Google and pick your own Cloud project.</source>
+            <translation>Google ile oturum açın ve kendi Cloud projenizi seçin.</translation>
+        </message>
+        <message>
+            <source>Sign-in didn't finish ({error}).</source>
+            <translation>Oturum açma tamamlanmadı ({error}).</translation>
+        </message>
+        <message>
+            <source>Sign-in didn't finish within 5 minutes.</source>
+            <translation>Oturum açma 5 dakika içinde tamamlanmadı.</translation>
+        </message>
+        <message>
+            <source>Sign-in didn't finish. You can close this window and return to QGIS.</source>
+            <translation>Oturum açma tamamlanmadı. Bu pencereyi kapatıp QGIS'e dönebilirsiniz.</translation>
+        </message>
+        <message>
+            <source>Sign-in expired</source>
+            <translation>Oturumun süresi doldu</translation>
+        </message>
+        <message>
+            <source>The Earth Engine API is off in your project {project}.</source>
+            <translation>Earth Engine API'si {project} projenizde kapalı.</translation>
+        </message>
+        <message>
+            <source>Try again</source>
+            <translation>Yeniden dene</translation>
+        </message>
+        <message>
+            <source>Turn on the Earth Engine API</source>
+            <translation>Earth Engine API'sini aç</translation>
+        </message>
+        <message>
+            <source>Use this project</source>
+            <translation>Bu projeyi kullan</translation>
+        </message>
+        <message>
+            <source>You're signed in. You can close this window and return to QGIS.</source>
+            <translation>Oturum açtınız. Bu pencereyi kapatıp QGIS'e dönebilirsiniz.</translation>
+        </message>
+        <message>
+            <source>Your Cloud projects could not be read ({error}).</source>
+            <translation>Cloud projeleriniz okunamadı ({error}).</translation>
+        </message>
+        <message>
+            <source>Your Earth Engine sign-in expired.</source>
+            <translation>Earth Engine oturumunuzun süresi doldu.</translation>
+        </message>
+        <message>
+            <source>Your Google sign-in stays in QGIS's encrypted vault on this computer. Never sent to TerraLab or the AI agent.</source>
+            <translation>Google oturumunuz bu bilgisayarda QGIS'in şifreli kimlik kasasında kalır. TerraLab'a veya AI Agent'a asla gönderilmez.</translation>
+        </message>
+        <message>
+            <source>Your browser opens Google's sign-in. Earth Engine then runs on your own Google Cloud project, under that project's terms.</source>
+            <translation>Tarayıcınız Google'ın oturum açma sayfasını açar. Earth Engine daha sonra kendi Google Cloud projenizde, o projenin koşulları altında çalışır.</translation>
+        </message>
+        <message>
+            <source>Your project {project} is not registered for Earth Engine.</source>
+            <translation>{project} projeniz Earth Engine için kayıtlı değil.</translation>
+        </message>
+        <message>
+            <source>earthengine-api did not install: {error}</source>
+            <translation>earthengine-api kurulamadı: {error}</translation>
+        </message>
+        <message>
+            <source>{count} other projects do not have Earth Engine.</source>
+            <translation>Diğer {count} projede Earth Engine yok.</translation>
+        </message>
+        <message>
+            <source>QGIS will ask you to choose a master password. It locks every sign-in saved in QGIS and cannot be recovered, so keep it somewhere safe.</source>
+            <translation>QGIS sizden bir ana parola seçmenizi isteyecek. QGIS'te kayıtlı tüm oturum açma bilgilerini kilitler ve kurtarılamaz, bu yüzden güvenli bir yerde saklayın.</translation>
+        </message>
+    </context>
+    <context>
+        <name>BrowserWait</name>
+        <message>
+            <source>Cancel</source>
+            <translation>İptal</translation>
+        </message>
+        <message>
+            <source>Check that the page shows the code {code}, then sign in.</source>
+            <translation>Sayfada {code} kodunun göründüğünü kontrol edin, sonra oturum açın.</translation>
+        </message>
+        <message>
+            <source>Connecting…</source>
+            <translation>Bağlanılıyor…</translation>
+        </message>
+        <message>
+            <source>Finish signing in to {name} in your browser.</source>
+            <translation>{name} oturumunu tarayıcınızda tamamlayın.</translation>
+        </message>
+        <message>
+            <source>Not saved. Unlock QGIS's vault with its master password when QGIS asks.</source>
+            <translation>Kaydedilmedi. QGIS sorduğunda, QGIS'in kimlik doğrulama veritabanının kilidini ana parolasıyla açın.</translation>
+        </message>
+        <message>
+            <source>Open the page again</source>
+            <translation>Sayfayı yeniden aç</translation>
+        </message>
+        <message>
+            <source>Opening your browser…</source>
+            <translation>Tarayıcınız açılıyor…</translation>
+        </message>
+        <message>
+            <source>Sign-in didn't finish.</source>
+            <translation>Oturum açma tamamlanmadı.</translation>
+        </message>
+        <message>
+            <source>The sign-in was declined in the browser.</source>
+            <translation>Oturum açma tarayıcıda reddedildi.</translation>
+        </message>
+        <message>
+            <source>{label} did not answer. Check your connection.</source>
+            <translation>{label} yanıt vermedi. Bağlantınızı kontrol edin.</translation>
+        </message>
+        <message>
+            <source>{label} did not create the S3 keys.</source>
+            <translation>{label} S3 anahtarlarını oluşturmadı.</translation>
+        </message>
+        <message>
+            <source>{label} refused the sign-in.</source>
+            <translation>{label} oturum açmayı reddetti.</translation>
+        </message>
+        <message>
+            <source>Send this approval link to your IT admin: {link}</source>
+            <translation>Bu onay bağlantısını BT yöneticinize gönderin: {link}</translation>
+        </message>
+        <message>
+            <source>Your organization lets only an admin approve TerraLab AI Agent for {label}.</source>
+            <translation>Kuruluşunuz, TerraLab AI Agent'ın {label} için yalnızca bir yönetici tarafından onaylanmasına izin veriyor.</translation>
+        </message>
+    </context>
+    <context>
+        <name>CloudKeysDialog</name>
+        <message>
+            <source>Access key ID</source>
+            <translation>Erişim anahtarı kimliği</translation>
+        </message>
+        <message>
+            <source>Account key</source>
+            <translation>Hesap anahtarı</translation>
+        </message>
+        <message>
+            <source>Cancel</source>
+            <translation>İptal</translation>
+        </message>
+        <message>
+            <source>Checking…</source>
+            <translation>Denetleniyor…</translation>
+        </message>
+        <message>
+            <source>Connect</source>
+            <translation>Bağlan</translation>
+        </message>
+        <message>
+            <source>Connect {label}</source>
+            <translation>{label} bağlantısı kur</translation>
+        </message>
+        <message>
+            <source>Connect {store}</source>
+            <translation>{store} bağlantısı kur</translation>
+        </message>
+        <message>
+            <source>Connected</source>
+            <translation>Bağlandı</translation>
+        </message>
+        <message>
+            <source>Endpoint, empty for Amazon S3</source>
+            <translation>Uç nokta, Amazon S3 için boş bırakın</translation>
+        </message>
+        <message>
+            <source>For {address}. A read-only key is enough: the AI agent only reads from it.</source>
+            <translation>{address} için. Salt okunur bir anahtar yeterlidir: AI Agent ondan yalnızca okur.</translation>
+        </message>
+        <message>
+            <source>HMAC access key</source>
+            <translation>HMAC erişim anahtarı</translation>
+        </message>
+        <message>
+            <source>HMAC secret</source>
+            <translation>HMAC gizli anahtarı</translation>
+        </message>
+        <message>
+            <source>Header name</source>
+            <translation>Üstbilgi adı</translation>
+        </message>
+        <message>
+            <source>Hide</source>
+            <translation>Gizle</translation>
+        </message>
+        <message>
+            <source>JSON key (*.json)</source>
+            <translation>JSON anahtarı (*.json)</translation>
+        </message>
+        <message>
+            <source>Key</source>
+            <translation>Anahtar</translation>
+        </message>
+        <message>
+            <source>Keys expired</source>
+            <translation>Anahtarların süresi doldu</translation>
+        </message>
+        <message>
+            <source>Keys refused</source>
+            <translation>Anahtarlar reddedildi</translation>
+        </message>
+        <message>
+            <source>Not saved. Fill in the fields, and unlock QGIS's vault with its master password when QGIS asks.</source>
+            <translation>Kaydedilmedi. Alanları doldurun ve QGIS sorduğunda QGIS kasasının kilidini ana parolasıyla açın.</translation>
+        </message>
+        <message>
+            <source>Open {host}</source>
+            <translation>{host} sitesini aç</translation>
+        </message>
+        <message>
+            <source>Password</source>
+            <translation>Parola</translation>
+        </message>
+        <message>
+            <source>QGIS will ask you to choose a master password. It locks every sign-in saved in QGIS and cannot be recovered, so keep it somewhere safe.</source>
+            <translation>QGIS sizden bir ana parola seçmenizi isteyecek. Bu parola QGIS'te kayıtlı tüm oturum bilgilerini kilitler ve kurtarılamaz, bu yüzden güvenli bir yerde saklayın.</translation>
+        </message>
+        <message>
+            <source>Region (optional)</source>
+            <translation>Bölge (isteğe bağlı)</translation>
+        </message>
+        <message>
+            <source>SAS token</source>
+            <translation>SAS belirteci</translation>
+        </message>
+        <message>
+            <source>Secret access key</source>
+            <translation>Gizli erişim anahtarı</translation>
+        </message>
+        <message>
+            <source>Service account key (JSON file)</source>
+            <translation>Hizmet hesabı anahtarı (JSON dosyası)</translation>
+        </message>
+        <message>
+            <source>Show</source>
+            <translation>Göster</translation>
+        </message>
+        <message>
+            <source>Sign in</source>
+            <translation>Oturum aç</translation>
+        </message>
+        <message>
+            <source>Sign in to {host}</source>
+            <translation>{host} için oturum aç</translation>
+        </message>
+        <message>
+            <source>Storage account name</source>
+            <translation>Depolama hesabı adı</translation>
+        </message>
+        <message>
+            <source>Stored encrypted in QGIS on this computer, behind your QGIS master password. Never sent to TerraLab or the AI agent.</source>
+            <translation>Bu bilgisayarda QGIS içinde, QGIS ana parolanızın arkasında şifreli olarak saklanır. TerraLab'a veya AI Agent'a asla gönderilmez.</translation>
+        </message>
+        <message>
+            <source>The keys could not be checked: {error}</source>
+            <translation>Anahtarlar denetlenemedi: {error}</translation>
+        </message>
+        <message>
+            <source>This bucket opens only with a service account key.</source>
+            <translation>Bu bucket yalnızca bir hizmet hesabı anahtarıyla açılır.</translation>
+        </message>
+        <message>
+            <source>This bucket opens only with your access keys.</source>
+            <translation>Bu bucket yalnızca erişim anahtarlarınızla açılır.</translation>
+        </message>
+        <message>
+            <source>This container opens only with your account key or a SAS token.</source>
+            <translation>Bu kapsayıcı yalnızca hesap anahtarınızla veya bir SAS belirteciyle açılır.</translation>
+        </message>
+        <message>
+            <source>This file is not a service account key. In the Google Cloud console, open the service account, then Keys, Add key, JSON.</source>
+            <translation>Bu dosya bir hizmet hesabı anahtarı değil. Google Cloud konsolunda hizmet hesabını açın, ardından Anahtarlar, Anahtar ekle, JSON seçeneklerine gidin.</translation>
+        </message>
+        <message>
+            <source>Use a SAS token instead</source>
+            <translation>Bunun yerine SAS belirteci kullan</translation>
+        </message>
+        <message>
+            <source>Use a service account key instead</source>
+            <translation>Bunun yerine hizmet hesabı anahtarı kullan</translation>
+        </message>
+        <message>
+            <source>Use a username and password instead</source>
+            <translation>Bunun yerine kullanıcı adı ve parola kullan</translation>
+        </message>
+        <message>
+            <source>Use an API key instead</source>
+            <translation>Bunun yerine API anahtarı kullan</translation>
+        </message>
+        <message>
+            <source>Use an HMAC key instead</source>
+            <translation>Bunun yerine HMAC anahtarı kullan</translation>
+        </message>
+        <message>
+            <source>Use the account key instead</source>
+            <translation>Bunun yerine hesap anahtarını kullan</translation>
+        </message>
+        <message>
+            <source>Username</source>
+            <translation>Kullanıcı adı</translation>
+        </message>
+        <message>
+            <source>{host} refused these details. Check them and try again.</source>
+            <translation>{host} bu bilgileri reddetti. Kontrol edip yeniden deneyin.</translation>
+        </message>
+        <message>
+            <source>{store} no longer accepts your saved keys.</source>
+            <translation>{store} artık kayıtlı anahtarlarınızı kabul etmiyor.</translation>
+        </message>
+        <message>
+            <source>{store} refused your saved keys.</source>
+            <translation>{store} kayıtlı anahtarlarınızı reddetti.</translation>
+        </message>
+        <message>
+            <source>{where} refused these keys.</source>
+            <translation>{where} bu anahtarları reddetti.</translation>
+        </message>
+    </context>
+    <context>
+        <name>AccountDrive</name>
+        <message>
+            <source>Allow SharePoint sites</source>
+            <translation>SharePoint sitelerine izin ver</translation>
+        </message>
+        <message>
+            <source>Cancel</source>
+            <translation>İptal</translation>
+        </message>
+        <message>
+            <source>Choose this file in Google Drive</source>
+            <translation>Bu dosyayı Google Drive'da seç</translation>
+        </message>
+        <message>
+            <source>Connect Google Drive</source>
+            <translation>Google Drive'ı bağla</translation>
+        </message>
+        <message>
+            <source>Connect OneDrive and SharePoint</source>
+            <translation>OneDrive ve SharePoint'i bağla</translation>
+        </message>
+        <message>
+            <source>Connect SharePoint</source>
+            <translation>SharePoint'i bağla</translation>
+        </message>
+        <message>
+            <source>Read with your account, only for this request.</source>
+            <translation>Hesabınızla okunur, yalnızca bu istek için.</translation>
+        </message>
+        <message>
+            <source>Read-only: the AI agent can open your files, never change or delete them.</source>
+            <translation>Salt okunur: yapay zeka ajanı dosyalarınızı açabilir, ama asla değiştiremez veya silemez.</translation>
+        </message>
+        <message>
+            <source>Reading SharePoint sites needs one more permission. Your organization's admin may have to approve it.</source>
+            <translation>SharePoint sitelerini okumak için bir izin daha gerekir. Kuruluşunuzun yöneticisinin onaylaması gerekebilir.</translation>
+        </message>
+        <message>
+            <source>Sign in again</source>
+            <translation>Yeniden oturum aç</translation>
+        </message>
+        <message>
+            <source>Sign in with {name}</source>
+            <translation>{name} ile oturum aç</translation>
+        </message>
+        <message>
+            <source>The AI agent sees only the files you pick. Pick this one to let it open it.</source>
+            <translation>Yapay zeka ajanı yalnızca seçtiğiniz dosyaları görür. Açabilmesi için bunu seçin.</translation>
+        </message>
+        <message>
+            <source>Try again</source>
+            <translation>Tekrar dene</translation>
+        </message>
+        <message>
+            <source>Use your {label} access?</source>
+            <translation>{label} erişiminiz kullanılsın mı?</translation>
+        </message>
+        <message>
+            <source>You pick the files the AI agent may open. It sees nothing else in your Drive.</source>
+            <translation>Yapay zeka ajanının açabileceği dosyaları siz seçersiniz. Drive'ınızdaki başka hiçbir şeyi görmez.</translation>
+        </message>
+        <message>
+            <source>Your sign-in stays in QGIS's encrypted vault on this computer. Never sent to TerraLab or the AI agent.</source>
+            <translation>Oturum bilginiz bu bilgisayarda QGIS'in şifreli kasasında kalır. TerraLab'a veya yapay zeka ajanına asla gönderilmez.</translation>
+        </message>
+        <message>
+            <source>{name} no longer accepts your saved sign-in.</source>
+            <translation>{name} kayıtlı oturumunuzu artık kabul etmiyor.</translation>
+        </message>
+    </context>
+    <context>
+        <name>RatingCard</name>
+        <message>
+            <source>Add details (optional)</source>
+            <translation>Ayrıntı ekleyin (isteğe bağlı)</translation>
+        </message>
+        <message>
+            <source>Close</source>
+            <translation>Kapat</translation>
+        </message>
+        <message>
+            <source>Could not send. Try again.</source>
+            <translation>Gönderilemedi. Tekrar deneyin.</translation>
+        </message>
+        <message>
+            <source>Not what I asked</source>
+            <translation>İstediğim bu değildi</translation>
+        </message>
+        <message>
+            <source>Send</source>
+            <translation>Gönder</translation>
+        </message>
+        <message>
+            <source>Tell us more (optional)</source>
+            <translation>Daha fazlasını anlatın (isteğe bağlı)</translation>
+        </message>
+        <message>
+            <source>Thanks for the feedback</source>
+            <translation>Geri bildiriminiz için teşekkürler</translation>
+        </message>
+        <message>
+            <source>Too slow</source>
+            <translation>Çok yavaş</translation>
+        </message>
+        <message>
+            <source>What went wrong?</source>
+            <translation>Ne ters gitti?</translation>
+        </message>
+        <message>
+            <source>What worked well?</source>
+            <translation>Ne iyi çalıştı?</translation>
+        </message>
+        <message>
+            <source>Wrong result</source>
+            <translation>Yanlış sonuç</translation>
+        </message>
+        <message>
+            <source>Your words are sent with this chat and recent logs.</source>
+            <translation>Yazdıklarınız bu sohbet ve son günlüklerle birlikte gönderilir.</translation>
         </message>
     </context>
 </TS>

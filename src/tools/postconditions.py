@@ -41,12 +41,12 @@ from qgis.core import (
     QgsVectorLayer,
 )
 
-from ..core import tuning
+from ..core import ground, invariants, tuning
 from ..core.feature_requests import feature_request
 from ..core.geometry_budget import VertexBudget
 from ..core.layer_order import is_remote_vector
-from ._layers import loaded_feature_count
-from .layer_lookup import _find_layer
+from ._layers import _source_key, loaded_feature_count, resolve_layer
+from .processing_crs_checks import _TERRAIN_BY_CELL, is_metric
 
 
 
@@ -89,7 +89,12 @@ _JOIN_ALGORITHMS = frozenset()
 
 _OVERLAY_ALGORITHMS = frozenset()
 
-_OVERLAY_PARAMS = ("OVERLAY", "CLIP", "JOIN", "INTERSECT", "MASK", "LINES")
+
+def _parameter_names(section: str) -> tuple:
+
+    return tuple((tuning.service_doc("processing_rules") or {}).get(section) or ())
+
+
 
 _REDUCES_ROWS = frozenset()
 _PRESERVES_ROWS = frozenset()
@@ -115,8 +120,6 @@ _RASTER_PRESERVES = frozenset()
 
 
 _RASTER_MASKED = frozenset()
-
-_RESOLUTION_PARAMS = ("TR", "TARGET_RESOLUTION", "RESOLUTION", "XRES", "YRES", "CELL_SIZE", "PIXEL_SIZE")
 
 
 _RASTER_SAMPLE_PIXELS = 250_000
@@ -165,7 +168,7 @@ def _layer_of(value):
         try:
             if "/" in value or "\\" in value or "|" in value:
                 return _layer_reading(value)
-            return _find_layer(value)
+            return resolve_layer(value)
         except Exception:  # nosec B110
             return None
     return None
@@ -178,7 +181,6 @@ def _layer_reading(path: str):
 
 
 
-    from ._layers import _source_key
 
     wanted = _source_key(path)
     matches = [layer for layer in QgsProject.instance().mapLayers().values()
@@ -215,7 +217,8 @@ def _features_read(parameters: dict, layer) -> int | None:
 
 
 def _overlay_layer(parameters: dict):
-    for key in _OVERLAY_PARAMS:
+
+    for key in _parameter_names("overlay_parameters"):
         layer = _layer_of(parameters.get(key))
         if layer is not None:
             return layer
@@ -607,7 +610,7 @@ def _request() -> QgsFeatureRequest:
     return QgsFeatureRequest().setLimit(_GEOMETRY_SAMPLE).setNoAttributes()
 
 
-def _invalid_geometries(layer) -> dict | None:
+def sampled_invalid_geometries(layer) -> dict | None:
 
 
     if not isinstance(layer, QgsVectorLayer):
@@ -743,7 +746,7 @@ def _alpha_band(layer) -> int | None:
     return None
 
 
-def _has_any_data(layer) -> bool | None:
+def has_any_data(layer) -> bool | None:
 
 
 
@@ -831,7 +834,8 @@ def _raster_checks(algorithm_id: str, parameters: dict, input_layer, output_laye
     size_in = _pixel_size(input_layer) if _is_raster(input_layer) else None
     if size_in:
         checks["pixel_size_in"] = [round(size_in[0], 6), round(size_in[1], 6)]
-    asked = any(parameters.get(key) not in (None, "", 0) for key in _RESOLUTION_PARAMS)
+
+    asked = any(parameters.get(key) not in (None, "", 0) for key in _parameter_names("resolution_parameters"))
     same_crs = False
     try:
         source_crs, output_crs = input_layer.crs(), output_layer.crs()
@@ -856,7 +860,7 @@ def _raster_checks(algorithm_id: str, parameters: dict, input_layer, output_laye
     if width and height:
         checks["size_out"] = [width, height]
 
-    has_data = _has_any_data(output_layer)
+    has_data = has_any_data(output_layer)
     if has_data is not None:
         checks["has_data"] = has_data
         if not has_data:
@@ -987,7 +991,7 @@ def compute_checks(algorithm_id: str, parameters: dict, outputs: dict) -> dict |
 
         geometry = _READ_AHEAD.pop(("geometries", output_layer.id()), None) if output_layer is not None else None
         if geometry is None:
-            geometry = _invalid_geometries(output_layer)
+            geometry = sampled_invalid_geometries(output_layer)
         if geometry is not None:
             _reported(output_layer, geometry)
             checks["invalid_geometries"] = geometry
@@ -1042,16 +1046,13 @@ def _terrain_cell_note(algorithm_id: str, parameters: dict, input_layer):
 
 
 
-    from ..core import ground
-    from .processing_crs_checks import _TERRAIN_BY_CELL
-    from .processing_guards import _metric
 
     if algorithm_id not in tuning.check_algs("terrain_by_cell", _TERRAIN_BY_CELL) or not _is_raster(input_layer):
         return None
     crs = input_layer.crs()
 
 
-    if not crs.isValid() or crs.isGeographic() or not _metric(crs):
+    if not crs.isValid() or crs.isGeographic() or not is_metric(crs):
         return None
     metres = ground.layer_metres_per_unit(input_layer)
     try:
@@ -1082,7 +1083,6 @@ def _invariant_checks(algorithm_id: str, parameters: dict, output_layer, feature
 
 
 
-    from ..core import invariants
 
     note = invariants.join_rows(algorithm_id, parameters, features_in, features_out)
     if note:

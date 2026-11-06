@@ -21,6 +21,7 @@ from qgis.PyQt.QtGui import QColor, QPainter
 from qgis.PyQt.QtWidgets import QFrame, QLabel, QWidget
 
 from ..shared import event_pos
+from . import common
 
 
 def mouse_through(*widgets) -> None:
@@ -41,7 +42,6 @@ class Pressable(QFrame):
     def __init__(self, parent=None, radius: int = 10, rest=None, hover=None, press=None,
                  static: bool = False):
         super().__init__(parent)
-        from . import common
 
         self._radius = radius
         self._rest = rest

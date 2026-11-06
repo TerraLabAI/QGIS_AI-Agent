@@ -46,27 +46,25 @@ import io
 import json
 import os
 import pickle  # nosec B403
-import shutil
-import site
 import subprocess  # nosec B404
-import sys
 import tempfile
 import threading
 import time
 import types
 from collections import OrderedDict
 
-from ..core import background, code_guard, code_namespace, code_split, code_tripwire, limits, net, security, tuning
+from ..core import background, limits, net, security, tuning
 from ..core import code_effects as ce
 from ..core.background import run_on_main_thread
 from ..core.host_platform import IS_WINDOWS, remove_tree
 from ..core.layer_order import WEB_SERVICE_PROVIDERS
 from ..core.logger import log_warning
-from ..core.policy import AGENT_HOME, create_managed_temp_dir
+from ..core.policy import create_managed_temp_dir
 from ..core.serialization import cut_string
 from ..core.tool_registry import tool_error
-from . import code_runtime
-from .isolated_centerlines import _child_environment, usable_python
+from . import code_guard, code_guard_runtime, code_hints, code_namespace, code_runtime, code_split, code_tripwire
+from .child_python import environment as _environment
+from .child_python import python_for_child
 
 _PLUGIN_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 _WORKER = os.path.join(_PLUGIN_ROOT, "src", "workers", "isolated_code_worker.py")
@@ -118,14 +116,18 @@ _CLOSES_PROJECT = frozenset({"QgsProject.clear", "QgsProject.read", "QgsProject.
 
 
 _COPY_FAILED: set[str] = set()
-_PYTHON: list[str] = []
 
 
 
 
 
 
-SPARE_IDLE_S = 600.0
+
+
+
+
+
+SPARE_IDLE_S = 86_400.0
 _SPARE: list = []
 _SPARE_LOCK = threading.Lock()
 _SPARE_OFF = [False]
@@ -133,45 +135,6 @@ _SPARE_OFF = [False]
 
 def _fingerprint(code: str) -> str:
     return hashlib.sha1(code.encode("utf-8")).hexdigest()  # nosec B324
-
-
-def python_for_child() -> str:
-
-
-
-
-
-    if _PYTHON:
-        return _PYTHON[0]
-    candidates: list[str] = []
-    if os.path.basename(sys.executable or "").lower().startswith("python"):
-        candidates.append(sys.executable)
-    versioned = f"python{sys.version_info.major}.{sys.version_info.minor}"
-    for base in (sys.prefix, sys.exec_prefix):
-        candidates.extend((
-            os.path.join(base, "python.exe"),
-            os.path.join(base, "bin", versioned),
-            os.path.join(base, "bin", "python3"),
-        ))
-    try:
-        from qgis.core import QgsApplication
-
-        app_dir = QgsApplication.applicationDirPath()
-    except Exception:  # noqa: BLE001
-        app_dir = ""
-    if app_dir:
-        candidates.extend((
-            os.path.join(app_dir, versioned),
-            os.path.join(app_dir, "python3"),
-            os.path.join(app_dir, "python.exe"),
-        ))
-    for name in (versioned, "python3", "python"):
-        found = shutil.which(name)
-        if found:
-            candidates.append(found)
-    answer = next((path for path in candidates if usable_python(path)), "")
-    _PYTHON.append(answer)
-    return answer
 
 
 def _ineligible(layer) -> str:
@@ -460,8 +423,7 @@ def plan(code: str) -> dict:
     workspace = security.workspace_dir()
 
 
-
-    read_roots = _read_roots()
+    read_roots = security.read_roots()
     if not code_split.needs_qgis(code):
         return {"reason": "", "needs_qgis": False, "layers": [], "project": {}, "workspace": workspace,
                 "read_roots": read_roots, "write_roots": security.write_roots()}
@@ -562,10 +524,6 @@ def plan(code: str) -> dict:
     }
 
 
-def _read_roots():
-    return security.read_roots() if security.read_scope_enabled() else None
-
-
 def isolation_enabled() -> bool:
 
 
@@ -595,61 +553,6 @@ def runs_isolated(args: dict) -> bool:
         return False
 
     return not (planned.get("needs_qgis") and _QGIS_CHILD_UNAVAILABLE[0])
-
-
-def _is_user_site(entry: str) -> bool:
-
-
-
-
-
-
-
-
-    target = os.path.normcase(os.path.abspath(entry))
-    roots: list[str] = []
-    try:
-        user_site = site.getusersitepackages()
-    except Exception:  # noqa: BLE001
-        user_site = ""
-    if isinstance(user_site, str) and user_site:
-        roots.append(user_site)
-    user_base = getattr(site, "USER_BASE", None)
-    if isinstance(user_base, str) and user_base:
-        roots.append(user_base)
-    for root in roots:
-        root = os.path.normcase(os.path.abspath(root))
-        if target == root or target.startswith(root + os.sep):
-            return True
-    return False
-
-
-def _environment(python: str, work_dir: str) -> dict:
-
-    if "qgis" in python.lower():
-        environment = _child_environment(python, work_dir)
-    else:
-        environment = dict(os.environ)
-        environment["QT_QPA_PLATFORM"] = "offscreen"
-    environment["QGIS_CUSTOM_CONFIG_PATH"] = os.path.join(work_dir, "qgis-profile")
-    environment["QGIS_AI_AGENT_HOME"] = AGENT_HOME
-    environment["PYTHONNOUSERSITE"] = "1"
-    environment["PYTHONDONTWRITEBYTECODE"] = "1"
-
-
-    environment["PYTHONIOENCODING"] = "utf-8"
-    environment.pop("PYTHONSTARTUP", None)
-
-
-
-
-    inherited = [entry for entry in sys.path if isinstance(entry, str) and entry and os.path.exists(entry)]
-    application = [entry for entry in inherited if not _is_user_site(entry)]
-    user_site = [entry for entry in inherited if _is_user_site(entry)]
-    existing = environment.get("PYTHONPATH", "")
-    environment["PYTHONPATH"] = os.pathsep.join(
-        application + user_site + ([existing] if existing else []))
-    return environment
 
 
 def _stop(process) -> None:
@@ -736,7 +639,7 @@ class _PlainData(pickle.Unpickler):
 
 def _module(name: str):
 
-    importer = code_guard.build_safe_builtins()["__import__"]
+    importer = code_guard_runtime.build_safe_builtins()["__import__"]
     parent, _, leaf = name.rpartition(".")
     return getattr(importer(parent, None, None, (leaf,), 0), leaf) if parent else importer(name)
 
@@ -794,7 +697,13 @@ def _store_names(chat: str, values: dict, drop: list, lost: dict | None = None) 
     for name in drop:
         names.pop(name, None)
     names.update(values)
-    code_runtime.keep(chat, names, set(), lost=lost)
+
+    held = {name for name, kind in (lost or {}).items() if kind == "QgsProject"}
+    if held:
+        from qgis.core import QgsProject
+
+        names.update(dict.fromkeys(held, QgsProject.instance()))
+    code_runtime.keep(chat, names, set(), lost={k: v for k, v in (lost or {}).items() if k not in held})
 
 
 def _put_names(out: dict, status: dict, folder: str) -> None:
@@ -879,7 +788,8 @@ def _take_spare(python: str):
         _SPARE_OFF[0] = True
         remove_tree(work_dir)
         return None
-    if time.monotonic() - started > SPARE_IDLE_S or key != _spare_key(python):
+    idle_s = tuning.threshold("code_spare_idle_s", SPARE_IDLE_S, 0.0, SPARE_IDLE_S)
+    if time.monotonic() - started > idle_s or key != _spare_key(python):
         _drop(process, work_dir)
         return None
     return process, work_dir
@@ -930,7 +840,7 @@ def run_child(code: str, planned: dict, python: str, cancel_check, timeout_s: fl
             "layer_names": planned.get("layer_names") or [],
             "project": planned.get("project") or {},
             "workspace": planned.get("workspace") or "",
-            "read_roots": planned["read_roots"] if "read_roots" in planned else _read_roots(),
+            "read_roots": planned["read_roots"] if "read_roots" in planned else security.read_roots(),
             "write_roots": planned.get("write_roots") or {},
 
             "granted": planned.get("granted") or ce.D,
@@ -1250,8 +1160,7 @@ def _run(args: dict, run_in_qgis, api_help) -> dict:
     if planned.get("reason"):
         return _in_qgis(args, run_in_qgis)
 
-
-    planned["granted"] = code_runtime.current().granted if code_tripwire.enabled() else ce.D
+    planned["granted"] = code_runtime.current().granted
     planned["own_files"] = sorted(code_runtime.current().own_files)
 
 
@@ -1357,9 +1266,7 @@ def _run(args: dict, run_in_qgis, api_help) -> dict:
 
 
         try:
-            from .advanced_code import code_help
-
-            help_text = code_help(exc_type, exc_message)
+            help_text = code_hints.code_help(exc_type, exc_message)
         except Exception:  # noqa: BLE001
             help_text = ""
     if help_text:

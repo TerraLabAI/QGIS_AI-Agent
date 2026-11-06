@@ -33,9 +33,10 @@
 from __future__ import annotations
 
 from qgis.core import QgsProject
-from qgis.PyQt.QtCore import QObject, QTimer
+from qgis.PyQt.QtCore import QObject
 
 from ..core.logger import log_warning
+from ..core.qt_compat import one_shot
 from .layer_icons import layer_followers
 
 
@@ -60,10 +61,7 @@ class LayerWatch(QObject):
         super().__init__(parent)
         self._root = root
         self._bound: list = []
-        self._later = QTimer(self)
-        self._later.setSingleShot(True)
-        self._later.setInterval(0)
-        self._later.timeout.connect(self.refresh)
+        self._later = one_shot(self, self.refresh, 0)
         try:
             project = QgsProject.instance()
             pairs = ((project.layersWillBeRemoved, self._on_removing),

@@ -19,8 +19,6 @@
 
 
 
-
-
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
@@ -28,6 +26,9 @@ from datetime import datetime, timedelta, timezone
 from qgis.core import QgsProject, QgsRasterLayer
 from qgis.PyQt.QtCore import QT_TRANSLATE_NOOP
 
+from ..core import earthengine_account
+from ..core.background import run_on_main_thread
+from ..core.data_date import from_range
 from ..core.provider_uri import encode_uri_url
 from ..core.tool_registry import Tool, ToolRegistry, tool_error
 
@@ -44,48 +45,20 @@ _INDEX_BANDS = {
     "NBR": ("nir_band", "swir2_band"),
 }
 
-def _has_credentials() -> bool:
-
-
-
-
-
-
-    import os
-    home = os.path.expanduser("~")
-    paths = [os.path.join(home, ".config", "earthengine", "credentials"),
-             os.path.join(home, ".config", "gcloud", "application_default_credentials.json"),
-             os.environ.get("GOOGLE_APPLICATION_CREDENTIALS") or ""]
-    if os.environ.get("APPDATA"):
-        paths.append(os.path.join(os.environ["APPDATA"], "gcloud", "application_default_credentials.json"))
-    return any(p and os.path.isfile(p) for p in paths)
-
-
-
-
-_LOADED = False
-
-
 def session_state() -> dict:
 
-
-
-
-    return {"signed_in": _has_credentials(), "tools_loaded": _LOADED}
+    return {"signed_in": earthengine_account.connected(), "tools_loaded": True}
 
 
 def register_earthengine_tools(registry: ToolRegistry):
-    global _LOADED
-    import importlib.util
-    if importlib.util.find_spec("ee") is None or not _has_credentials():
-        return
-    _LOADED = True
-
     registry.register(Tool(
         name="initialize_earth_engine",
         danger="read",
         input_schema={
             "type": "object",
+
+
+            "x-connect-card": True,
             "properties": {
                 "project": {
                     "type": "string",
@@ -100,9 +73,11 @@ def register_earthengine_tools(registry: ToolRegistry):
     registry.register(Tool(
         name="add_gee_dataset",
         danger="write",
+        own_area_rule=True,
         label=QT_TRANSLATE_NOOP("AIAgent", "Add the Earth Engine dataset[ {name}]"),
         input_schema={
             "type": "object",
+            "x-connect-card": True,
             "properties": {
                 "ee_id": {
                     "type": "string",
@@ -146,6 +121,7 @@ def register_earthengine_tools(registry: ToolRegistry):
         label=QT_TRANSLATE_NOOP("AIAgent", "Compute an index with Earth Engine"),
         input_schema={
             "type": "object",
+            "x-connect-card": True,
             "properties": {
                 "layer_name": {
                     "type": "string",
@@ -175,35 +151,17 @@ def register_earthengine_tools(registry: ToolRegistry):
     ))
 
 
-def _ensure_initialized(project: str | None = None):
+def _ensure_initialized(what: str, project: str | None = None):
 
 
-
-
-
-
-    try:
-        import ee
-    except Exception as exc:
-        return None, tool_error(f"earthengine-api is not importable: {exc}", "PERMISSION_DENIED",
-                                hint="gee_not_authenticated")
-    try:
-        if project:
-            ee.Initialize(project=project)
-        else:
-            ee.Initialize()
-    except Exception as exc:
-        return None, tool_error(f"Earth Engine could not initialize: {exc}", "PERMISSION_DENIED",
-                                hint="gee_not_authenticated")
-    return ee, None
+    return earthengine_account.session(what, project)
 
 
 def _initialize_earth_engine(args: dict) -> dict:
-    project = args.get("project")
-    ee, err = _ensure_initialized(project)
+    ee, err = _ensure_initialized("Start Earth Engine", args.get("project"))
     if err:
         return err
-    return {"initialized": True, "project": project}
+    return {"initialized": True, "project": earthengine_account.project() or args.get("project")}
 
 
 def _today_iso() -> str:
@@ -235,8 +193,6 @@ def _add_ee_image_layer(image, vis_params: dict, name: str, ee_id: str) -> dict:
         QgsProject.instance().addMapLayer(layer)
         return {"layer_name": layer.name(), "layer_id": layer.id()}
 
-    from ..core.background import run_on_main_thread
-
     created = run_on_main_thread(_create, timeout=30)
     if created is None:
         return tool_error(f"Failed to create XYZ layer from Earth Engine tiles for '{ee_id}'", "LAYER_INVALID")
@@ -250,7 +206,7 @@ def _add_gee_dataset(args: dict) -> dict:
     if not ee_id:
         return tool_error("ee_id is required", "MISSING_EE_ID")
 
-    ee, err = _ensure_initialized()
+    ee, err = _ensure_initialized(f"Add {ee_id}")
     if err:
         return err
 
@@ -263,7 +219,6 @@ def _add_gee_dataset(args: dict) -> dict:
 
     reducer_used = None
     image = None
-
 
     collection = None
     try:
@@ -334,7 +289,6 @@ def _acquired(ee, image, reduced: bool, date_start, date_end) -> str:
 
 
 
-    from ..core.data_date import from_range
 
     try:
         if reduced:
@@ -361,10 +315,10 @@ def _resolve_source_image(args: dict, ee):
 
     if layer_name:
         from ..core.background import run_on_main_thread
-        from .layer_lookup import _find_layer
+        from ._layers import resolve_layer
 
 
-        layer = run_on_main_thread(_find_layer, layer_name)
+        layer = run_on_main_thread(resolve_layer, layer_name)
         if layer is None:
             return None, tool_error(f"Layer '{layer_name}' not found or ambiguous", "LAYER_NOT_FOUND")
         cached = _EE_LAYERS.get(run_on_main_thread(layer.id))
@@ -387,7 +341,7 @@ def _gee_compute_index(args: dict) -> dict:
     if index not in _INDEX_BANDS:
         return tool_error(f"Unknown index '{index}'. Valid: NDVI, NDWI, NDBI, NBR.", "INVALID_ARGS")
 
-    ee, err = _ensure_initialized()
+    ee, err = _ensure_initialized(f"Compute {index}")
     if err:
         return err
 

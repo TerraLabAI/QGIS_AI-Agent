@@ -8,23 +8,18 @@
 
 
 
+
 from __future__ import annotations
 
 import re
 
-
-
-_SIGNED_URL_RE = re.compile(
-    r"https?://[^\s<>()\[\]\"']*[?&](?:sig|signature|token|access_token|X-Amz-[A-Za-z-]+)="
-    r"[^\s<>()\[\]\"']*",
-    re.IGNORECASE,
-)
+from ..core import link_vault
 
 REDACTED = "<signed url>"
 
 
 def redact_signed_urls(text: str) -> str:
-    return _SIGNED_URL_RE.sub(REDACTED, text or "")
+    return link_vault.redact(text or "", REDACTED)
 
 
 def fence(text: str, language: str = "") -> str:

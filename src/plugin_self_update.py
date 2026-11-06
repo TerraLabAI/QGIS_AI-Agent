@@ -24,7 +24,9 @@ from qgis.PyQt.QtCore import QTimer
 
 from .core import telemetry, tuning
 from .core import telemetry_events as ev
+from .core.host_platform import plugin_version
 from .core.logger import log_warning
+from .core.served_state import get_latest_version, get_min_supported_version, get_release_notes_line, get_update_policy
 
 
 
@@ -48,17 +50,10 @@ def offer_upgradeable_update(plugin, payload: dict | None = None) -> None:
 
 
 
-    from .api.terralab_client import plugin_version
     from .core.plugin_release import put_off_version
     from .core.versions import is_newer
-    from .ui.shared import (
-        get_latest_version,
-        get_min_supported_version,
-        get_release_notes_line,
-        get_update_policy,
-    )
 
-    panel = getattr(plugin.dock, "panel", None)
+    panel = plugin.panel
     installed = plugin_version()
     served_version = get_latest_version()
     listed = upgradeable_version(plugin)
@@ -68,7 +63,7 @@ def offer_upgradeable_update(plugin, payload: dict | None = None) -> None:
     if not available:
         if is_newer(served_version, installed) or too_old:
             refresh_plugin_repository(plugin, served_version)
-        elif panel is not None and hasattr(panel, "clear_update"):
+        elif panel is not None:
             panel.clear_update()
         return
     if not listed or is_newer(available, listed):
@@ -77,7 +72,10 @@ def offer_upgradeable_update(plugin, payload: dict | None = None) -> None:
 
         refresh_plugin_repository(plugin, available)
     if not listed:
-        if panel is not None and hasattr(panel, "clear_update"):
+        if (panel is not None and released and plugin._update_no_repository
+                and put_off_version() != released):
+            panel.show_update_download(released)
+        elif panel is not None:
             panel.clear_update()
         return
     available = listed
@@ -90,8 +88,7 @@ def offer_upgradeable_update(plugin, payload: dict | None = None) -> None:
 
         log_warning(f"The plugin repository only offers {available}, below the "
                     f"{get_min_supported_version()} the service requires; no update is offered.")
-        if hasattr(panel, "clear_update"):
-            panel.clear_update()
+        panel.clear_update()
         return
     if not required and put_off_version() == available:
         return
@@ -146,6 +143,8 @@ def refresh_plugin_repository(plugin, served_version: str) -> None:
 
         enabled = list(repositories.allEnabled())
         if not enabled:
+
+            plugin._update_no_repository = True
             suppress_update(plugin, served_version, "no_repository")
             return
         repositories.checkingDone.connect(plugin._on_plugin_repository_checked)

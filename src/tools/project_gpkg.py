@@ -40,8 +40,8 @@ from qgis.core import (
 )
 from qgis.PyQt.QtXml import QDomDocument
 
-from ..core import tuning
-from ..core.background import heartbeat
+from ..core import net, tuning
+from ..core.background import heartbeat, run_on_main_thread
 from ..core.host_platform import release_pooled_handles, remove_quietly, retry_file_op
 from ..core.logger import log_warning
 from ..core.output_paths import safe_file_name
@@ -64,9 +64,21 @@ def _is_local_file(path: str) -> bool:
 
 
 def _source_path(layer) -> str:
-    from .gis_case_tools import _source_path as decoded
 
-    return decoded(layer)
+
+
+
+
+
+    source = layer.source() or ""
+    try:
+        from qgis.core import QgsProviderRegistry
+
+        decoded = QgsProviderRegistry.instance().decodeUri(layer.providerType(), source)
+        path = decoded.get("path") if isinstance(decoded, dict) else ""
+    except Exception:  # noqa: BLE001
+        path = ""
+    return path or source.split("|", 1)[0]
 
 
 def _table_name(name: str, taken: set) -> str:
@@ -446,8 +458,6 @@ def finish(snap: dict, written: dict) -> dict:
 
 def package(args: dict) -> dict:
 
-    from ..core import net
-    from ..core.background import run_on_main_thread
 
     cancelled_answer = tool_error("Project packaging was cancelled.", "CANCELLED",
                                   hint="package_cancelled")

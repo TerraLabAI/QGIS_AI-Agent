@@ -29,10 +29,11 @@ from qgis.PyQt.QtCore import QT_TRANSLATE_NOOP, QDate, QDateTime, QLocale, Qt, Q
 from ..core import layer_order, limits
 from ..core.context_layers import crs_units
 from ..core.crs_ref import crs_ref
+from ..core.numbers import as_int
 from ..core.qt_compat import enum_member
 from ..core.serialization import CodedText
 from ..core.tool_registry import Tool, ToolRegistry, tool_error
-from . import raster_overviews, vector_write
+from . import band_reads, raster_overviews, vector_write
 from ._compat import (
     CONTRAST_CLIP_MINMAX,
     CONTRAST_NONE,
@@ -50,8 +51,10 @@ from ._compat import (
 )
 from ._layers import layer_not_found, resolve_layer
 from .colour_text import hex_from_qcolor, qcolor_from_text
-from .layer_lookup import require_raster, require_vector
+from .elevation_style import degrees_z_factor, min_max_origin
+from .layer_lookup import _field_not_found_error, require_raster, require_vector
 from .processing_crs_checks import crs_plausibility
+from .style_defaults import long_tail_cut, paletted_renderer, raster_codes
 
 RASTER_STYLES = ("singleband_pseudocolor", "singleband_gray", "multiband_color", "hillshade", "paletted")
 
@@ -82,6 +85,7 @@ LAYER_PROPERTIES = ("opacity", "name", "min_scale", "max_scale", "scale_visibili
 def register_harvest_layers_tools(registry: ToolRegistry):
     registry.register(Tool(
         name="set_raster_style",
+        layer_use="keep",
         danger="write",
         label=QT_TRANSLATE_NOOP("AIAgent", "Style {layer_name}"),
         input_schema={
@@ -135,6 +139,7 @@ def register_harvest_layers_tools(registry: ToolRegistry):
 
     registry.register(Tool(
         name="apply_style_qml",
+        layer_use="keep",
         danger="write",
         label=QT_TRANSLATE_NOOP("AIAgent", "Apply the style {path} to {layer_name}"),
         input_schema={
@@ -152,6 +157,7 @@ def register_harvest_layers_tools(registry: ToolRegistry):
     registry.register(Tool(
         name="save_style_qml",
         danger="destructive",
+        writes_at=("path", "output_path", "qml_path"),
         label=QT_TRANSLATE_NOOP("AIAgent", "Save the style of {layer_name}"),
         input_schema={
             "type": "object",
@@ -212,6 +218,7 @@ def register_harvest_layers_tools(registry: ToolRegistry):
     registry.register(Tool(
         name="set_layer_crs",
         danger="write",
+        mutates_data=True, check_shape="layer",
         label=QT_TRANSLATE_NOOP("AIAgent", "Set the CRS of {layer_name} to {crs}"),
         input_schema={
             "type": "object",
@@ -256,6 +263,7 @@ def register_harvest_layers_tools(registry: ToolRegistry):
     registry.register(Tool(
         name="rename_field",
         danger="write",
+        mutates_data=True, check_shape="field",
         label=QT_TRANSLATE_NOOP("AIAgent", "Rename {old_name} to {new_name} in {layer_name}"),
         input_schema={
             "type": "object",
@@ -272,6 +280,7 @@ def register_harvest_layers_tools(registry: ToolRegistry):
     registry.register(Tool(
         name="add_table_join",
         danger="write",
+        mutates_data=True, check_shape="layer",
         label=QT_TRANSLATE_NOOP("AIAgent", "Join a table to {layer_name}"),
         input_schema={
             "type": "object",
@@ -328,7 +337,9 @@ def register_harvest_layers_tools(registry: ToolRegistry):
 
     registry.register(Tool(
         name="duplicate_layer",
+        derives_layers=True,
         danger="write",
+        reads_whole_layer=True,
         label=QT_TRANSLATE_NOOP("AIAgent", "Duplicate {layer_name}[ as {new_name}]"),
         input_schema={
             "type": "object",
@@ -350,7 +361,6 @@ def _layer(name: str):
 
 
 def _field_error(layer, field_name: str) -> dict:
-    from .layer_lookup import _field_not_found_error
 
     return _field_not_found_error(layer, field_name)
 
@@ -450,13 +460,11 @@ def _raster_ramp(args: dict, default=None, default_name: str = "Viridis") -> tup
 def _band_span(provider, band: int, low, high) -> tuple:
 
     if low is None or high is None:
-        from .raster_overviews import read_ahead
-
         def measure() -> tuple:
             stats = provider.bandStatistics(band, RASTER_STATS_ALL, QgsRectangle(), _STATS_SAMPLE)
             return stats.minimumValue, stats.maximumValue
 
-        found_low, found_high = read_ahead(("stats", int(band)), measure)
+        found_low, found_high = band_reads.read_ahead(("stats", int(band)), measure)
         low = found_low if low is None else low
         high = found_high if high is None else high
     return float(low), float(high)
@@ -520,7 +528,6 @@ def _band_limits(layer, band: int, plan, min_value, max_value, notes: dict, long
 
 
 
-    from .style_defaults import min_max_origin
 
     provider = layer.dataProvider()
     if plan is not None and plan["cut"] is not None:
@@ -566,7 +573,7 @@ def _set_raster_style(args: dict) -> dict:
     if error:
         return error
 
-    with raster_overviews.answers_for(layer):
+    with band_reads.answers_for(layer):
         return _style_raster(layer, args)
 
 
@@ -623,10 +630,7 @@ def _style_raster(layer, args: dict) -> dict:
     if style_type == "singleband_pseudocolor" and not ramp_shaped:
         from .style_defaults import raster_codes
 
-        try:
-            wanted = int(args.get("band", 1))
-        except (TypeError, ValueError):
-            wanted = 0
+        wanted = as_int(args.get("band", 1), 0)
         codes = raster_codes(layer, wanted) if 1 <= wanted <= band_count else []
         if codes:
             style_type = "paletted"
@@ -803,8 +807,6 @@ def _build_hillshade(job: dict) -> tuple:
     applied = {"band": band, **light, "z_factor": z_factor}
 
 
-    from .elevation_style import degrees_z_factor
-
     metres = degrees_z_factor(job["layer"])
     if metres:
         z_factor *= metres
@@ -818,7 +820,6 @@ def _build_hillshade(job: dict) -> tuple:
 
 def _build_paletted(job: dict) -> tuple:
 
-    from .style_defaults import paletted_renderer, raster_codes
 
     layer, args = job["layer"], job["args"]
     band, error = _band_arg(job, "band", 1)
@@ -858,7 +859,6 @@ _RASTER_BUILDERS = {
 
 def _long_tail(layer, band: int, lo: float, hi: float, notes: dict) -> tuple:
 
-    from .style_defaults import long_tail_cut
 
     cut = long_tail_cut(layer, band, lo, hi)
     if not cut:
@@ -1139,6 +1139,11 @@ def _move_one_layer(args: dict) -> dict:
     if moved and parent is not came_from:
         out["left_group"] = came_from.name() if came_from is not root else "(root)"
     if layer is not None:
+        outlined = layer_order.outline_fills_over(layer, root)
+        if outlined:
+            out["outlined"] = outlined
+            out["outlined_note"] = ("These polygons now draw as outlines so the raster shows inside them; "
+                                    "Undo brings their fill back.")
 
 
         out.update(layer_order.cover_report(layer, root))

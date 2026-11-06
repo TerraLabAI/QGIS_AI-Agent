@@ -15,9 +15,19 @@ from __future__ import annotations
 
 from typing import Any
 
-from .widgets import is_alive
+from .._widgets import is_alive
 
 _PARENT_LEVELS = 3
+
+
+def item_path_of(index) -> str:
+
+    parts = []
+    node = index
+    while node is not None and node.isValid():
+        parts.append(str(node.row()))
+        node = node.parent()
+    return "/".join(reversed(parts))
 
 
 def structural_sig(widget) -> tuple | None:
@@ -56,7 +66,7 @@ def structural_sig(widget) -> tuple | None:
             break
     label = ""
     if not obj_name and index < 0:
-        from .widgets import widget_label
+        from .._widgets import widget_label
 
         try:
             label = widget_label(widget)
@@ -104,8 +114,6 @@ class SessionRefStore:
                 cached = None
             bound = self._by_ref.get(cached) if cached else None
             if cached and self._sig.get(cached) == sig and (bound is widget or not is_alive(bound)):
-
-
                 ref = cached
             else:
                 self._counter += 1
@@ -138,8 +146,6 @@ class SessionRefStore:
 
 
         from qgis.PyQt.QtCore import QPersistentModelIndex
-
-        from .widgets import item_path_of
 
         try:
             view_key = view.property("_mcpRef") or f"obj{id(view)}"

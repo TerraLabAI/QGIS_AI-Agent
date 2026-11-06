@@ -11,7 +11,6 @@
 
 
 
-
 from __future__ import annotations
 
 import importlib
@@ -21,72 +20,9 @@ import sys
 from qgis.PyQt.QtCore import QT_TRANSLATE_NOOP, QCoreApplication
 from qgis.PyQt.QtWidgets import QDialog, QMenu
 
-from ..core.served_state import (  # noqa: F401
-    BOOK_A_CALL_URL,
-    BUSINESS_QUOTE_URL,
-    DASHBOARD_URL,
-    DEFAULT_HIDDEN_PLUGINS,
-    FREE_RUNS,
-    INVOICE_URL,
-    LEGACY_FREE_RUNS_MAX,
-    MAX_TOOL_LABELS,
-    PRICING_URL,
-    PRIVACY_URL,
-    PRO_RUNS_PER_MONTH,
-    PRODUCT_ID,
-    PRODUCT_URL,
-    SITE_HOME_URL,
-    SITE_URL,
-    SUPPORT_EMAIL,
-    TERMS_URL,
-    TERRALAB_MORE_URL,
-    TUTORIAL_URL,
-    UPDATE_POLICIES,
-    UPGRADE_URL,
-    build_utm_url,
-    connector_for_call,
-    get_connectors,
-    get_contact_call_url,
-    get_dashboard_url,
-    get_effort_text,
-    get_free_runs,
-    get_hidden_plugins,
-    get_invoice_url,
-    get_latest_version,
-    get_min_supported_version,
-    get_plan_name,
-    get_pricing_url,
-    get_privacy_notice_heading,
-    get_privacy_notice_rows,
-    get_privacy_notice_version,
-    get_privacy_url,
-    get_pro_offer,
-    get_pro_price,
-    get_pro_price_excludes_tax,
-    get_pro_runs_per_month,
-    get_product_url,
-    get_promo_active,
-    get_qgis_plugins,
-    get_release_notes_line,
-    get_served_learn_items,
-    get_served_pro_points,
-    get_site_url,
-    get_student_offer,
-    get_support_email,
-    get_terms_url,
-    get_tutorial_url,
-    get_update_policy,
-    get_upgrade_url,
-    known_plugins_by_folder,
-    served_label_map,
-    set_connectors,
-    set_hidden_plugins,
-    set_pro_offer,
-    set_qgis_plugins,
-    set_server_config,
-    set_tool_names,
-    watch_connectors,
-)
+from ..core.i18n import day_pattern, words_locale
+from ..core.policy import PLUGIN_CACHE_DIR
+from ..core.served_state import SITE_URL, TUTORIAL_URL, build_utm_url, get_served_learn_items
 
 PRODUCT_NAME = "AI Agent"
 
@@ -225,14 +161,6 @@ TERRALAB_LOGO_PATH = os.path.join(ICONS_DIR, "terralab-logo.png")
 
 
 
-
-
-PLUGIN_CACHE_DIR = os.path.normpath(
-    os.environ.get("AI_AGENT_CACHE_DIR")
-    or os.path.join(os.path.expanduser("~/.qgis_ai-agent"), "ui-cache")
-)
-
-
 _LEGACY_CACHE_DIR = os.path.normpath(os.path.expanduser("~/.qgis_ai_agent"))
 
 
@@ -334,20 +262,6 @@ def get_learn_items() -> list:
     return get_served_learn_items() or _built_in_learn_items()
 
 
-def plugin_version() -> str:
-
-    try:
-        with open(os.path.join(PLUGIN_DIR, "metadata.txt"), encoding="utf-8") as handle:
-            for line in handle:
-                if line.strip().lower().startswith("version="):
-                    return line.split("=", 1)[1].strip()
-    except OSError:
-        pass
-    return ""
-
-
-
-
 def resolve_qt_enum(parent, scope: str | None, name: str):
 
     if scope:
@@ -435,7 +349,6 @@ def format_reset_date(period_end_iso: str) -> str:
         date = stamp.toLocalTime().date()
     if not date.isValid():
         return ""
-    from ..core.i18n import day_pattern, words_locale
 
     locale = words_locale()
     pattern = day_pattern(year=date.year() != QDate.currentDate().year())

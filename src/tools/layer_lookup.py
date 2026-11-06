@@ -17,27 +17,6 @@ from ._compat import is_raster, is_vector
 from ._layers import layer_not_found, resolve_layer
 
 
-def _find_layer(name_or_id: str):
-
-
-
-
-
-
-
-
-    return resolve_layer(name_or_id)
-
-
-def _layer_not_found_error(name_or_id: str) -> dict:
-
-
-
-
-
-    return layer_not_found(name_or_id)
-
-
 def require_vector(name_or_id: str, role: str = "", hint: str = "layer_not_vector"):
 
 
@@ -55,7 +34,7 @@ def require_raster(name_or_id: str, role: str = "", hint: str = "layer_not_raste
 
 
 def _require(name_or_id, role: str, fits, wanted: str, hint: str):
-    layer = _find_layer(str(name_or_id or ""))
+    layer = resolve_layer(str(name_or_id or ""))
     if layer is None:
         error = layer_not_found(str(name_or_id or ""))
         if role:

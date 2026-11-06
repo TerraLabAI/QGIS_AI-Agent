@@ -20,6 +20,7 @@ from __future__ import annotations
 
 from qgis.PyQt.QtCore import QT_TRANSLATE_NOOP
 
+from ..core import siblings
 from ..core.logger import log_warning
 from ..core.tool_registry import Tool, ToolRegistry, tool_error
 
@@ -114,10 +115,8 @@ def register(registry: ToolRegistry) -> None:
 
 def _api():
 
-    from ._widgets import sibling_api_version
-    from .integration_tools import AISEG_KEYS, _find_plugin
-    _, plugin = _find_plugin(AISEG_KEYS)
-    if not plugin or (sibling_api_version(plugin) or 0) < AISEG_REVIEW_API:
+    _, plugin = siblings.find(siblings.AI_SEGMENTATION)
+    if not plugin or (siblings.api_version(plugin) or 0) < AISEG_REVIEW_API:
         return None
     return getattr(plugin, "mcp_api", None)
 
@@ -192,10 +191,40 @@ def review_open() -> bool:
         return False
 
 
+def keep_open_review() -> dict:
+
+
+
+
+
+
+
+
+
+    api = _api()
+    fn = getattr(api, "review_save", None) if api is not None else None
+    if not callable(fn):
+        return {"error": "This AI Segmentation cannot save its review from the agent."}
+    try:
+        saved = fn()
+        if isinstance(saved, dict) and saved.get("saving") and review_open():
+            _, plugin = siblings.find(siblings.AI_SEGMENTATION)
+            join = getattr(plugin, "_finish_auto_review_export_offload", None)
+            if callable(join):
+                join()
+    except Exception as e:  # noqa: BLE001
+        return {"error": f"Saving the open review failed: {e}"}
+    if not isinstance(saved, dict) or saved.get("_error"):
+        return {"error": str((saved or {}).get("_error") or "Saving the open review failed.")}
+    if review_open():
+        return {"error": "The open review is still being written to its layer."}
+    return {"layer_name": str(saved.get("layer_name") or last_saved_layer()),
+            "instances": saved.get("instances")}
+
+
 def last_saved_layer() -> str:
 
-    from .integration_tools import AISEG_KEYS, _find_plugin
-    _, plugin = _find_plugin(AISEG_KEYS)
+    _, plugin = siblings.find(siblings.AI_SEGMENTATION)
     last = getattr(plugin, "_last_auto_result", None) if plugin else None
     if isinstance(last, dict) and last.get("review_exported"):
         return str(last.get("layer_name") or "")

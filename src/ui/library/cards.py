@@ -24,13 +24,15 @@
 
 
 
+
 from __future__ import annotations
 
 from qgis.PyQt.QtCore import Qt
-from qgis.PyQt.QtWidgets import QLabel, QSizePolicy, QVBoxLayout
+from qgis.PyQt.QtWidgets import QHBoxLayout, QLabel, QSizePolicy, QVBoxLayout
 
 from ..shared import event_pos
 from . import common as C
+from .common import escape
 from .pictures import PictureView
 from .pressable import Pressable, labels_through
 
@@ -43,7 +45,6 @@ _CAPTION_LINE = 135
 
 def _lines_html(first: str, second: str) -> str:
 
-    from .common import escape
 
     body = escape(first) + ("<br>" + escape(second) if second else "")
     return f'<div style="line-height: {_CAPTION_LINE}%;">{body}</div>'
@@ -182,3 +183,53 @@ class ExampleTile(PictureHover, Pressable):
         super().resizeEvent(event)
         self._picture.setFixedHeight(round(self.width() * 9 / 16))
         self._relayout(self.width())
+
+
+
+ROW_THUMB_W = 112
+
+
+class ExampleRow(PictureHover, Pressable):
+
+
+
+    def __init__(self, case, parent=None):
+        super().__init__(parent, radius=C.RADIUS_TILE)
+        self.case = case
+        self._title_text = str(case.title or "")
+        self.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Fixed)
+        self.setMouseTracking(True)
+        row = QHBoxLayout(self)
+        row.setContentsMargins(0, C.px(_ROW_PAD), C.px(C.SPACE_1), C.px(_ROW_PAD))
+        row.setSpacing(C.px(C.SPACE_2))
+        self._picture = tile_picture(case, self, self, C.px(10))
+        self._picture.setAccessibleName(str(case.outcome or ""))
+        self._picture.setFixedSize(C.px(ROW_THUMB_W), round(C.px(ROW_THUMB_W) * 9 / 16))
+        row.addWidget(self._picture, 0, Qt.AlignmentFlag.AlignVCenter)
+        self._title = QLabel(self)
+        self._title.setStyleSheet(C.text_qss(C.CAPTION_PX, C.T.text, C.MEDIUM))
+        self._title.setTextFormat(Qt.TextFormat.PlainText)
+        self._title.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Preferred)
+        row.addWidget(self._title, 1, Qt.AlignmentFlag.AlignVCenter)
+        labels_through(self)
+        self.setFixedHeight(self._picture.height() + 2 * C.px(_ROW_PAD))
+        self._laid_width = -1
+
+    def _state_changed(self) -> None:
+        self._hover_picture()
+        self.update()
+
+    def set_focused(self, focused: bool) -> None:
+        super().set_focused(focused)
+        self._picture.set_focused(focused)
+
+    def resizeEvent(self, event):  # noqa: N802
+        super().resizeEvent(event)
+        width = self.width()
+        if width == self._laid_width:
+            return
+        self._laid_width = width
+        room = max(1, width - C.px(ROW_THUMB_W) - C.px(C.SPACE_2) - C.px(C.SPACE_1))
+        self._title.ensurePolished()
+        first, second = elide_two_lines(self._title.fontMetrics(), self._title_text, room)
+        self._title.setText(first + ("\n" + second if second else ""))

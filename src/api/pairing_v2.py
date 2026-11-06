@@ -29,9 +29,11 @@ import time
 from typing import Any, Callable
 
 from qgis.core import QgsApplication, QgsTask
-from qgis.PyQt.QtCore import QCoreApplication, QObject, QTimer, pyqtSignal
+from qgis.PyQt.QtCore import QCoreApplication, QObject, pyqtSignal
 
 from ..core.logger import log, log_warning
+from ..core.numbers import as_float, as_int
+from ..core.qt_compat import one_shot
 from ..core.settings import KEY_RE
 from .terralab_client import PRODUCT_ID
 
@@ -68,10 +70,7 @@ def _pause(seconds: float, is_canceled: Callable[[], bool]) -> None:
 
 
 def _retry_after(answer: dict, default: float) -> float:
-    try:
-        return float(answer.get("retry_after"))
-    except (TypeError, ValueError):
-        return default
+    return as_float(answer.get("retry_after"), default)
 
 
 def request_start(client, secret_hash: str, port: int | None, is_canceled) -> dict:
@@ -86,10 +85,7 @@ def request_start(client, secret_hash: str, port: int | None, is_canceled) -> di
             url = str(answer.get("connect_url") or "")
             base = client.base_url.rstrip("/") + "/connect?"
             if 20 <= len(code) <= 64 and url.startswith(base):
-                try:
-                    expires = int(answer.get("expires_in") or TTL_S)
-                except (TypeError, ValueError):
-                    expires = TTL_S
+                expires = as_int(answer.get("expires_in") or TTL_S, TTL_S)
                 return {"code": code, "connect_url": url, "expires_in": max(60, min(expires, TTL_S))}
             failures += 1
         elif status == 400:
@@ -196,10 +192,7 @@ class PairingV2(QObject):
         self._waiting_sockets: list = []
         self._succeeded = False
         self._not_found_held = False
-        self._fallback_timer = QTimer(self)
-        self._fallback_timer.setSingleShot(True)
-        self._fallback_timer.setInterval(FALLBACK_AFTER_MS)
-        self._fallback_timer.timeout.connect(self._show_fallback)
+        self._fallback_timer = one_shot(self, self._show_fallback, FALLBACK_AFTER_MS)
 
     @property
     def code(self) -> str:

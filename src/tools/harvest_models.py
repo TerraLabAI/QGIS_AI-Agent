@@ -48,12 +48,21 @@ from qgis.PyQt.QtCore import QPointF, QSizeF
 from qgis.PyQt.QtGui import QColor
 
 from ..core import layer_order, limits
+from ..core.layer_release import PROCESSING_TASKS, sweep_consumed_tasks, sync_with_qgis
 from ..core.logger import log, log_warning
-from ..core.security import expand_path
+from ..core.output_paths import avoid_reserved_name, gpkg_table_target
+from ..core.security import expand_path, validate_path
 from ..core.tool_registry import Tool, ToolRegistry, coded_fact, tool_error
+from . import guards
 from ._compat import enum_value
-from .data_tools import _avoid_reserved_name
+from ._layers import resolve_layer
+from .core_tools import _runs_a_script
+from .processing_decisions import _threadable
+from .processing_destinations import _destination_names, _output_names
 from .processing_run import (
+    _POLL_INTERVAL_S,
+    _cancel_task,
+    _heavy_inputs,
     _process_outputs,
     _run_processing,
     offered_inputs,
@@ -108,6 +117,7 @@ def register_harvest_models_tools(registry: ToolRegistry):
 
     registry.register(Tool(
         name="execute_processing_batch",
+        derives_layers=True,
         danger="write",
         input_schema={
             "type": "object",
@@ -131,6 +141,7 @@ def register_harvest_models_tools(registry: ToolRegistry):
     registry.register(Tool(
         name="create_processing_model",
         danger="destructive",
+        writes_at=("path", "output_path", "model_path"),
         input_schema={
             "type": "object",
             "properties": {
@@ -158,6 +169,7 @@ def register_harvest_models_tools(registry: ToolRegistry):
 
     registry.register(Tool(
         name="run_model",
+        derives_layers=True,
         danger="write",
         card="model",
         input_schema={
@@ -414,7 +426,7 @@ def safe_model_filename(name: str) -> str:
     cleaned = _UNSAFE_IN_A_FILENAME.sub("_", str(name or "")).strip(" .")
     while ".." in cleaned:
         cleaned = cleaned.replace("..", ".")
-    return _avoid_reserved_name(cleaned.strip(" .") or "model")
+    return avoid_reserved_name(cleaned.strip(" .") or "model")
 
 
 _MAX_NAME_SUFFIX = 1000
@@ -844,16 +856,12 @@ def _execute_processing_batch(args: dict) -> dict:
 
 
 
-    from . import guards
-    from .core_tools import _runs_a_script
-
     if any(_runs_a_script({"algorithm_id": algorithm_id, "parameters": entry}) for entry in parameters_list):
         return tool_error(f"{algorithm_id} runs code the call does not show, so it goes through run_processing, "
                           "which asks the user first.", "PERMISSION_DENIED")
     paid = guards.paid_algorithm_refusal({"algorithm_id": algorithm_id})
     if paid:
         return paid
-    from .processing_decisions import _threadable
 
     alg = QgsApplication.processingRegistry().algorithmById(algorithm_id)
     names = _output_names_for(args.get("output_name"), algorithm_id, parameters_list)
@@ -901,10 +909,9 @@ def _input_name(parameters: dict) -> str:
         value = value.get("source")
     if not isinstance(value, str) or not value.strip():
         return "layer"
-    from .layer_lookup import _find_layer
 
     is_path = "/" in value or "\\" in value or "|" in value
-    layer = None if is_path else _find_layer(value)
+    layer = None if is_path else resolve_layer(value)
     if layer is not None:
         return layer.name()
     path = value.split("|", 1)[0]
@@ -987,7 +994,6 @@ class _BatchRun:
 
 
     def __init__(self, alg, algorithm_id: str, parameters_list: list, timeout=None, names=None, prepared=None):
-        from .processing_destinations import _destination_names
 
         self.alg = alg
 
@@ -1018,14 +1024,13 @@ class _BatchRun:
                       "started_at": time.strftime("%H:%M:%S"), "sequence": self}
 
     def start(self) -> dict:
-        from .processing_run import _POLL_INTERVAL_S, _PROCESSING_TASKS, _sweep_consumed_tasks
 
-        _sweep_consumed_tasks()
-        _PROCESSING_TASKS[self.task_id] = self.entry
+        sweep_consumed_tasks()
+        PROCESSING_TASKS[self.task_id] = self.entry
         self.advance()
         if self.entry["status"] != "running":
 
-            _PROCESSING_TASKS.pop(self.task_id, None)
+            PROCESSING_TASKS.pop(self.task_id, None)
             return self.report()
         return {**self.report(), "task_id": self.task_id, "status": "running",
                 **coded_fact(hint="batch_started", width=self.width, task_id=self.task_id),
@@ -1045,8 +1050,6 @@ class _BatchRun:
 
     def advance(self) -> None:
 
-        from .processing_run import _PROCESSING_TASKS
-
         if self._advancing:
 
 
@@ -1055,7 +1058,7 @@ class _BatchRun:
         self._advancing = True
         try:
 
-            while self.entry["status"] == "running" and _PROCESSING_TASKS.get(self.task_id) is self.entry:
+            while self.entry["status"] == "running" and PROCESSING_TASKS.get(self.task_id) is self.entry:
                 self._again = False
                 moved = self._settle() + self._fill()
                 if not self.pending and not self.running:
@@ -1064,7 +1067,7 @@ class _BatchRun:
                     return
                 if not moved and not self._again:
                     settled = len(self.results) + sum(
-                        (_PROCESSING_TASKS.get(tid) or {}).get("progress", 0) / 100 for tid in self.running)
+                        (PROCESSING_TASKS.get(tid) or {}).get("progress", 0) / 100 for tid in self.running)
                     self.entry["progress"] = int(100 * settled / self.count)
                     return
         finally:
@@ -1072,12 +1075,10 @@ class _BatchRun:
 
     def _settle(self) -> int:
 
-        from .processing_run import _PROCESSING_TASKS, _sync_with_qgis
-
         settled = 0
         for task_id in list(self.running):
-            _sync_with_qgis(task_id)
-            child = _PROCESSING_TASKS.get(task_id) or {}
+            sync_with_qgis(task_id)
+            child = PROCESSING_TASKS.get(task_id) or {}
             if child.get("status") == "running" or task_id not in self.running:
                 continue
             index, started, _writes, _reads = self.running.pop(task_id)
@@ -1114,8 +1115,6 @@ class _BatchRun:
 
     def _files(self, parameters) -> tuple[set, set]:
 
-        from .layer_lookup import _find_layer
-        from .processing_destinations import _gpkg_table_target, _output_names
 
         writes: set = set()
         reads: set = set()
@@ -1132,12 +1131,12 @@ class _BatchRun:
 
 
                     is_path = "/" in item or "\\" in item or "|" in item or item.startswith("~")
-                    layer = None if is_path else _find_layer(item)
+                    layer = None if is_path else resolve_layer(item)
                     if layer is not None:
                         target = layer.source() or ""
                     elif not is_path:
                         continue
-                table = _gpkg_table_target(target)
+                table = gpkg_table_target(target)
                 path = (table[0] if table else target.split("|", 1)[0]).strip()
                 if path:
                     (writes if key in self.outputs else reads).add(
@@ -1151,13 +1150,12 @@ class _BatchRun:
 
 
 
-        from .processing_run import _PROCESSING_TASKS, _cancel_task
 
         self.stopped = True
         running, self.running = self.running, {}
         for task_id, (index, started, writes, reads) in running.items():
             answer = _cancel_task({"task_id": task_id})
-            child = _PROCESSING_TASKS.get(task_id) or {}
+            child = PROCESSING_TASKS.get(task_id) or {}
             seconds = round(time.monotonic() - started, 2)
             if answer.get("status") == "canceled":
                 self.results.append({"index": index, "seconds": seconds, "status": "canceled",
@@ -1174,12 +1172,11 @@ class _BatchRun:
         pending, self.pending = self.pending, []
         self.results.extend({"index": index, "status": "skipped", "message": "Stopped before this run started."}
                             for index, _parameters in pending)
-        if self.running and _PROCESSING_TASKS.get(self.task_id) is self.entry:
+        if self.running and PROCESSING_TASKS.get(self.task_id) is self.entry:
             self.entry["status"] = "running"
 
     def _start(self, index: int, parameters, writes=frozenset(), reads=frozenset()) -> bool:
 
-        from .processing_run import _PROCESSING_TASKS, _cancel_task
 
         if not isinstance(parameters, dict):
             self.results.append({"index": index, "status": "error",
@@ -1200,7 +1197,7 @@ class _BatchRun:
             outcome = tool_error(f"{exc.__class__.__name__}: {exc}")
         if not isinstance(outcome, dict):
             outcome = tool_error("The run returned no result.")
-        child = _PROCESSING_TASKS.get(outcome.get("task_id") or "")
+        child = PROCESSING_TASKS.get(outcome.get("task_id") or "")
         if child is None:
             self.results.append(self._line(index, started, outcome))
             return False
@@ -1460,8 +1457,6 @@ def _run_model(args: dict) -> dict:
 
 
 
-    from .processing_destinations import _destination_names, _output_names
-
     parameters, renamed, misnamed = _output_names(alg, parameters, model)
     if misnamed:
         return misnamed
@@ -1487,8 +1482,6 @@ def _run_model(args: dict) -> dict:
 
 
 
-    from ..core.security import validate_path
-
     outputs = _destination_names(alg)
     for key, value in list(parameters.items()):
         if not isinstance(value, str) or value in ("TEMPORARY_OUTPUT", "memory:"):
@@ -1508,9 +1501,6 @@ def _run_model(args: dict) -> dict:
 
 
 
-
-    from .processing_decisions import _threadable
-    from .processing_run import _heavy_inputs
 
     if _threadable(file_alg):
         outcome = _named(_run_processing({"algorithm_id": model, "parameters": parameters}, algorithm=file_alg))

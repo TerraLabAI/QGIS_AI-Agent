@@ -9,6 +9,7 @@ import difflib
 import importlib
 import json
 import re
+import traceback
 
 import qgis
 from qgis.core import (
@@ -16,13 +17,24 @@ from qgis.core import (
 )
 from qgis.utils import iface
 
-from ..core import code_guard, code_namespace, code_owners, code_split, code_tripwire
 from ..core.background import on_main_thread, run_on_main_thread
 from ..core.logger import log_debug
 from ..core.security import safe_read_text, validate_path
 from ..core.serialization import carried_code, cut_string
 from ..core.tool_registry import coded_fact, tool_error
-from . import code_runtime, isolated_code
+from . import (
+    code_clock,
+    code_guard,
+    code_guard_io,
+    code_guard_runtime,
+    code_hints,
+    code_namespace,
+    code_owners,
+    code_runtime,
+    code_split,
+    code_tripwire,
+    isolated_code,
+)
 
 
 def _changed(before, project, edits) -> dict:
@@ -114,7 +126,7 @@ def _partial_state(out: dict, noted: object) -> None:
 
     if noted:
         out["changed"] = noted
-    files = code_guard.take_written()
+    files = code_guard_runtime.take_written()
     if files:
 
 
@@ -124,14 +136,30 @@ def _partial_state(out: dict, noted: object) -> None:
 
 def _run_code_in_qgis(args: dict) -> dict:
 
-    out = _run_in_qgis(args)
+
+
+
+
+
+
+
+
+
+    made: list = []
+    try:
+        out = _run_in_qgis(args, made)
+    finally:
+        chat = code_runtime.current().chat
+        for namespace in made:
+            if not code_runtime.runs_in(chat, namespace):
+                namespace.clear()
     created = code_tripwire.take_created()
     if created and isinstance(out, dict):
         out[code_tripwire.CREATED_KEY] = created
     return out
 
 
-def _run_in_qgis(args: dict) -> dict:
+def _run_in_qgis(args: dict, made: list) -> dict:
 
 
 
@@ -180,12 +208,13 @@ def _run_in_qgis(args: dict) -> dict:
 
 
     namespace = code_runtime.kept(context.chat)
-    namespace.update(code_namespace.console_names(code_guard.DENIED_NAMES))
-    _processing = code_guard.safe_processing_module()
+    made.append(namespace)
+    namespace.update(code_namespace.console_names(code_guard_runtime.DENIED_NAMES))
+    _processing = code_guard_runtime.safe_processing_module()
     if _processing is not None:
         namespace["processing"] = _processing
     namespace.update(code_runtime.bindings(iface, project))
-    safe_builtins = code_guard.build_safe_builtins()
+    safe_builtins = code_guard_runtime.build_safe_builtins()
     namespace.update({
         "__builtins__": safe_builtins,
         "qgis": qgis,
@@ -196,7 +225,7 @@ def _run_in_qgis(args: dict) -> dict:
     })
     for alias, module in code_namespace.prelude(code_split.names_mentioned(code), safe_builtins["__import__"]).items():
         namespace.setdefault(alias, module)
-    code_guard.bind_namespace_views(namespace)
+    code_guard_runtime.bind_namespace_views(namespace)
     bound = set(namespace) - set(code_runtime.kept(context.chat))
 
     if not _SIP_LAYER_CONTAINERS_WARM[0]:
@@ -207,32 +236,32 @@ def _run_in_qgis(args: dict) -> dict:
         project.mapLayersByName("")
 
     before = code_namespace.project_state(project)
-    code_guard.INVALID_GEOMETRY.clear()
+    code_guard_runtime.INVALID_GEOMETRY.clear()
 
 
 
-    code_guard.WRITTEN_FILES[:] = []
+    code_guard_io.WRITTEN_FILES[:] = []
     code_tripwire.CREATED[:] = []
 
 
 
-    code_guard.harden_gdal_config()
-    wire = code_tripwire.armed(context.granted, context.own_files) if code_tripwire.enabled() else None
+    code_guard_runtime.harden_gdal_config()
+    wire = code_tripwire.armed(context.granted, context.own_files)
     arm = None
     error = None
     edits = code_namespace.EditWatch(project)
     try:
 
-        with code_guard.workspace_cwd(), wire if wire is not None else contextlib.nullcontext() as arm:
-            code_guard.run_with_timeout(
+        with code_guard_runtime.workspace_cwd(), wire if wire is not None else contextlib.nullcontext() as arm:
+            code_clock.run_with_timeout(
                 lambda: exec(compiled, namespace),  # nosec B102
                 context.timeout_s,
             )
     except (code_tripwire.NeedsPermission, code_tripwire.Refused):
         pass
-    except code_guard.CodeTimeout as exc:
+    except code_clock.CodeTimeout as exc:
 
-        from ..core.code_processing import Stopped
+        from .code_processing import Stopped
 
         error = "stopped" if isinstance(exc, Stopped) else "timeout"
     except Exception as exc:  # noqa: BLE001
@@ -242,7 +271,7 @@ def _run_in_qgis(args: dict) -> dict:
         edits.close()
         code_runtime.keep(context.chat, namespace, bound)
 
-        code_guard.restore_gdal_config()
+        code_guard_runtime.restore_gdal_config()
     trip = getattr(arm, "trip", None)
     if isinstance(trip, code_tripwire.NeedsPermission):
         return tool_error(
@@ -285,8 +314,8 @@ def _run_in_qgis(args: dict) -> dict:
         }
 
 
-        if code_guard.INVALID_GEOMETRY:
-            out.update(code_guard.INVALID_GEOMETRY)
+        if code_guard_runtime.INVALID_GEOMETRY:
+            out.update(code_guard_runtime.INVALID_GEOMETRY)
 
 
         coded = carried_code(error)
@@ -297,6 +326,9 @@ def _run_in_qgis(args: dict) -> dict:
 
 
         frames = code_runtime.snippet_traceback(tb, code)
+
+
+        traceback.clear_frames(tb)
         if frames:
 
             out["traceback"] = "\n".join(frames)
@@ -333,7 +365,7 @@ def _run_in_qgis(args: dict) -> dict:
 
 
 
-    made = code_guard.take_written()
+    made = code_guard_runtime.take_written()
     if made:
         out["files_written"] = made
     shown = code_namespace.shown_files(namespace)
@@ -506,38 +538,6 @@ _API_MODULES = ("qgis.core", "qgis.gui", "qgis.PyQt.QtCore", "qgis.PyQt.QtGui", 
 _API_HELP_CHARS = 600
 
 
-
-
-_LIST_INDEX_HINT = coded_fact(hint="api_empty_indexed")
-_SIGNATURE_HINTS: tuple[tuple[str, dict], ...] = (
-    ("QgsSpatialIndex(): arguments did not match", _SPATIAL_INDEX_HINT),
-    ("object has no attribute 'isNullable'", coded_fact(hint="api_field_is_nullable")),
-    ("QgsVectorLayer(): arguments did not match", coded_fact(hint="api_vector_layer_ctor")),
-    ("QgsFeatureRequest(): arguments did not match", coded_fact(hint="api_feature_request_ctor")),
-)
-
-_TYPE_HINTS = {
-    "IndexError": _LIST_INDEX_HINT,
-    "KeyError": coded_fact(hint="api_key_missing"),
-    "StopIteration": coded_fact(hint="api_iterator_spent"),
-    "ZeroDivisionError": coded_fact(hint="api_zero_divisor"),
-}
-
-
-def code_help(exc_type: str, message: str) -> dict | str:
-
-
-
-
-
-    text = str(message or "")
-    for needle, suggestion in _SIGNATURE_HINTS:
-        if needle in text:
-            return dict(suggestion)
-    found = _TYPE_HINTS.get(str(exc_type or ""))
-    return dict(found) if found else ""
-
-
 def _scoped_enum(cls, wanted: str) -> str:
 
 
@@ -647,7 +647,7 @@ def _inside_a_word(wanted: str, name: str) -> bool:
 def _api_help(exc: Exception) -> dict | str:
 
     text = str(exc)
-    known = code_help(type(exc).__name__, text)
+    known = code_hints.code_help(type(exc).__name__, text)
     if known:
         return known
     try:

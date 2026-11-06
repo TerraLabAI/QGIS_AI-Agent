@@ -37,11 +37,14 @@ import json
 import os
 import re
 import tempfile
+import threading
 import time
 
 from . import freeze_stack
 from .host_platform import qgis_version, remove_quietly, retry_file_op
+from .log_scrub import strip_paths
 from .logger import log, log_warning
+from .numbers import as_int
 from .policy import AGENT_HOME, ensure_agent_directories
 
 RECORD_PREFIX = "process-"
@@ -60,11 +63,20 @@ STACK_PREFIX = "qgis-python-crash-info-"
 OWN_PREFIX = "python-crash-"
 OWN_SUFFIX = ".txt"
 STACK_LIMIT = 2000
+_MAIN_ROOM = 400
+_DUMP_START = re.compile(r"^(?:Fatal Python error|Windows fatal exception): ", re.MULTILINE)
 _STACK_READ_BYTES = 262_144
 
 _record: dict = {}
 _pending: dict = {}
 _quit_signal = None
+_session_end_signal = None
+_quitting = False
+
+
+def quitting() -> bool:
+
+    return _quitting
 
 
 def args_digest(args) -> str:
@@ -140,10 +152,22 @@ def start() -> None:
 
         app = QCoreApplication.instance()
         if app is not None and _quit_signal is None:
-            app.aboutToQuit.connect(mark_closed)
+            app.aboutToQuit.connect(_on_quit)
             _quit_signal = app.aboutToQuit
     except Exception as exc:  # noqa: BLE001
         log_warning(f"Crash record quit watch not set: {type(exc).__name__}: {exc}")
+    global _session_end_signal
+    try:
+        from qgis.PyQt.QtCore import QCoreApplication
+
+        app = QCoreApplication.instance()
+        if app is not None and _session_end_signal is None and hasattr(app, "commitDataRequest"):
+            app.commitDataRequest.connect(_on_session_end)
+            _session_end_signal = app.commitDataRequest
+    except Exception as exc:  # noqa: BLE001
+        log_warning(f"Crash record session watch not set: {type(exc).__name__}: {exc}")
+    if os.name == "nt":
+        threading.Thread(target=_note_windows_ends, name="terralab-crash-events", daemon=True).start()
 
 
 def stop() -> None:
@@ -151,11 +175,35 @@ def stop() -> None:
     global _quit_signal
     if _quit_signal is not None:
         try:
-            _quit_signal.disconnect(mark_closed)
+            _quit_signal.disconnect(_on_quit)
         except Exception:  # nosec B110
             pass
         _quit_signal = None
+    global _session_end_signal
+    if _session_end_signal is not None:
+        try:
+            _session_end_signal.disconnect(_on_session_end)
+        except Exception:  # nosec B110
+            pass
+        _session_end_signal = None
     mark_closed()
+
+
+def _on_quit() -> None:
+    global _quitting
+    _quitting = True
+    mark_closed()
+
+
+def _on_session_end(*_manager) -> None:
+
+
+
+
+
+
+    if _record:
+        _update(session_end_at=time.time())
 
 
 def mark_closed() -> None:
@@ -190,16 +238,19 @@ def record_session(session_id: str) -> None:
         _update(session_id=str(session_id))
 
 
-def record_run(run_id: str, session_id: str) -> None:
+def record_run(run_id: str, session_id: str, thread_id: str = "") -> None:
 
-    _update(run_id=str(run_id or ""), session_id=str(session_id or ""))
+
+    _update(run_id=str(run_id or ""), session_id=str(session_id or ""), thread_id=str(thread_id or ""),
+            session_end_at=None)
 
 
 def write(run_id: str, tool_call_id: str, session_id: str, tool: str, args) -> None:
 
     _update(run_id=str(run_id or ""), session_id=str(session_id or "") or _record.get("session_id", ""),
             call={"tool_call_id": str(tool_call_id or ""), "tool": str(tool or ""),
-                  "args_digest": args_digest(args), "started_at": time.time()})
+                  "args_digest": args_digest(args), "started_at": time.time()},
+            session_end_at=None)
 
 
 def clear() -> None:
@@ -262,10 +313,7 @@ def _temp_dir() -> str:
 def _pid_of(name: str, prefix: str, suffix: str) -> int:
     if not name.startswith(prefix) or not name.endswith(suffix):
         return 0
-    try:
-        return int(name[len(prefix):len(name) - len(suffix)])
-    except ValueError:
-        return 0
+    return as_int(name[len(prefix):len(name) - len(suffix)], 0)
 
 
 def _stack_paths(pid: int) -> list:
@@ -302,12 +350,13 @@ def take(plugin_version: str = "") -> dict | None:
                 drop.append(path)
                 continue
 
+
             if (not isinstance(record, dict) or record.get("closed") or now - mtime > MAX_AGE_S
-                    or not (record.get("run_id") or record.get("session_id"))):
+                    or not (record.get("run_id") or record.get("session_id"))
+                    or (record.get("session_end_at") and not _stack_of(pid)[0])):
                 drop.extend([path, *_stack_paths(pid)])
                 continue
             dead.append((mtime, pid, path, record))
-
         own = _pid_of(name, OWN_PREFIX, OWN_SUFFIX) or freeze_stack.pid_of(name)
         if own and not pid_alive(own) and f"{RECORD_PREFIX}{own}{RECORD_SUFFIX}" not in names:
             drop.append(os.path.join(AGENT_HOME, name))
@@ -320,6 +369,7 @@ def take(plugin_version: str = "") -> dict | None:
         return _legacy_note(names, plugin_version)
     mtime, pid, path, record = dead[0]
     _pending["drop"].extend([path, *_stack_paths(pid)])
+    _pending["chat"] = (str(record.get("thread_id") or ""), str(record.get("run_id") or ""))
     stack, stack_mtime = _stack_of(pid)
     call = record.get("call") if isinstance(record.get("call"), dict) else None
     note = {
@@ -348,9 +398,104 @@ def take(plugin_version: str = "") -> dict | None:
         log("QGIS had died after a call returned; reporting it")
         note.update({"tool_call_id": "", "tool": "", "args_digest": "", "after_call": True,
                      "started_at": float(stack_mtime or mtime)})
+    if not stack:
+
+
+        note.update({key: str(record[key])[:64] for key in _END_FIELDS if record.get(key)})
     if stack:
         note["python_stack"] = stack
+
+
+        note["idle_s"] = round(max(0.0, stack_mtime - mtime), 1)
     return note
+
+
+_END_FIELDS = ("end_kind", "end_code", "end_module")
+_EVENT_NS = "{http://schemas.microsoft.com/win/2004/08/events/event}"
+
+
+def _note_windows_ends() -> None:
+
+
+
+
+    try:
+        records: dict = {}
+        for name in os.listdir(AGENT_HOME):
+            pid = _pid_of(name, RECORD_PREFIX, RECORD_SUFFIX)
+            if not pid or pid == os.getpid() or pid_alive(pid):
+                continue
+            path = os.path.join(AGENT_HOME, name)
+            with open(path, encoding="utf-8") as handle:
+                record = json.loads(handle.read(8192))
+            if (isinstance(record, dict) and not record.get("closed") and not record.get("session_end_at")
+                    and not record.get("end_checked")):
+                records[pid] = (path, record)
+        if not records:
+            return
+        since = min(float(r.get("started_at") or 0) or time.time() for _p, r in records.values())
+        ends = windows_ends(set(records), since)
+        for pid, (path, record) in records.items():
+            record.update(ends.get(pid, {}), end_checked=True)
+            if os.path.exists(path):
+                mtime = os.path.getmtime(path)
+                fd, tmp = tempfile.mkstemp(prefix=".agent-", suffix=".tmp", dir=AGENT_HOME)
+                try:
+                    with os.fdopen(fd, "w", encoding="utf-8") as handle:
+                        handle.write(json.dumps(record, ensure_ascii=False))
+                    retry_file_op(os.replace, tmp, path)
+                    os.utime(path, (mtime, mtime))
+                finally:
+                    remove_quietly(tmp)
+    except Exception as exc:  # noqa: BLE001
+        log_warning(f"Windows end of a dead QGIS not read: {type(exc).__name__}: {exc}")
+
+
+def windows_ends(pids: set, since: float) -> dict:
+
+
+
+
+    import subprocess  # nosec B404
+    import xml.etree.ElementTree as ET  # nosec B405
+
+    window_ms = int(min(MAX_AGE_S, max(3600.0, time.time() - since + 3600.0)) * 1000)
+    query = f"*[System[(EventID=1000 or EventID=1002) and TimeCreated[timediff(@SystemTime) <= {window_ms}]]]"
+    exe = os.path.join(os.environ.get("SYSTEMROOT") or r"C:\Windows", "System32", "wevtutil.exe")
+    out = subprocess.run([exe, "qe", "Application", f"/q:{query}", "/f:xml", "/c:200", "/rd:true"],  # nosec B603
+                         capture_output=True, timeout=20, check=False,
+                         creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0)).stdout
+    found: dict = {}
+    for event in ET.fromstring(b"<events>" + out + b"</events>"):  # nosec B314
+        event_id = (event.findtext(f"{_EVENT_NS}System/{_EVENT_NS}EventID") or "").strip()
+        data = event.findall(f"{_EVENT_NS}EventData/{_EVENT_NS}Data")
+        named = {d.get("Name"): (d.text or "").strip() for d in data if d.get("Name")}
+        values = [(d.text or "").strip() for d in data]
+
+        def field(key: str, index: int, named: dict = named, values: list = values) -> str:
+
+            return named.get(key) or (values[index] if len(values) > index else "")
+
+        if event_id == "1000":
+            app, proc = field("AppName", 0), field("ProcessId", 8)
+        elif event_id == "1002":
+            app, proc = (values[0] if values else ""), (values[2] if len(values) > 2 else "")
+        else:
+            continue
+        try:
+            pid = int(proc, 16)
+        except ValueError:
+            continue
+        if pid not in pids or pid in found or "qgis" not in app.lower():
+            continue
+        if event_id == "1002":
+            found[pid] = {"end_kind": "app_hang"}
+            continue
+        code = field("ExceptionCode", 6).lower()
+        module = field("ModuleName", 3).replace("\\", "/")
+        found[pid] = {"end_kind": "app_error", "end_code": code if code.startswith("0x") else "0x" + code,
+                      "end_module": os.path.basename(module)[:64]}
+    return found
 
 
 def _legacy_note(names: list, plugin_version: str) -> dict | None:
@@ -380,6 +525,11 @@ def _legacy_note(names: list, plugin_version: str) -> dict | None:
     }
 
 
+def taken_chat() -> tuple:
+
+    return _pending.get("chat") or ("", "")
+
+
 def acknowledge() -> None:
 
 
@@ -394,7 +544,6 @@ def acknowledge() -> None:
 
 
 def _scrub(text: str) -> str:
-    from .log_scrub import strip_paths
 
     text = strip_paths(text)
     try:
@@ -437,6 +586,25 @@ def _stack_of(pid: int) -> tuple:
     return "", 0.0
 
 
+def _cut_block(block: str, room: int) -> str:
+
+    if len(block) <= room:
+        return block
+    lines = block.split("\n")
+    kept, used = [lines[0]], len(lines[0])
+    frames = lines[1:]
+    marker_room = 40
+    for line in frames:
+        if used + len(line) + 1 > room - marker_room:
+            break
+        kept.append(line)
+        used += len(line) + 1
+    left = len(frames) - (len(kept) - 1)
+    if left:
+        kept.append(f"  ... {left} older frames left out")
+    return "\n".join(kept)
+
+
 def shape_stack(text: str, limit: int = STACK_LIMIT) -> str:
 
 
@@ -445,33 +613,30 @@ def shape_stack(text: str, limit: int = STACK_LIMIT) -> str:
 
 
 
+
+
+
     text = text.split("\nExtension modules:", 1)[0].strip()
+    dumps = [found.start() for found in _DUMP_START.finditer(text)]
+    if dumps:
+        text = text[dumps[-1]:]
     if len(text) <= limit:
         return text
     blocks = [block.strip("\n") for block in re.split(r"\n\s*\n", text) if block.strip()]
     cause = [b for b in blocks if not b.lstrip().startswith(("Thread ", "Current thread "))]
-    threads = [b for b in blocks if b.lstrip().startswith("Thread ")]
-    current = [b for b in blocks if b.lstrip().startswith("Current thread ")]
+    threads = [b for b in blocks if b.lstrip().startswith(("Thread ", "Current thread "))]
     head = "\n".join(cause)[:300]
-    dying = current[-1] if current else (threads.pop() if threads else "")
+    last = threads.pop() if threads else ""
+    current = [b for b in threads if b.lstrip().startswith("Current thread ")]
 
-    budget = limit - len(head) - 40
-    lines = dying.split("\n")
-    if len(dying) > budget:
-        kept, used = [lines[0]], len(lines[0])
-        frames = lines[1:]
-        marker_room = 40
-        for line in frames:
-            if used + len(line) + 1 > budget - marker_room:
-                break
-            kept.append(line)
-            used += len(line) + 1
-        left = len(frames) - (len(kept) - 1)
-        if left:
-            kept.append(f"  ... {left} older frames left out")
-        dying = "\n".join(kept)
-    out = [head, dying] if head else [dying]
-    room = limit - sum(len(part) + 2 for part in out)
+    room = limit - len(head) - 40
+    if current:
+        threads.remove(current[-1])
+        main = _cut_block(last, _MAIN_ROOM)
+        ends = [_cut_block(current[-1], room - len(main)), main]
+    else:
+        ends = [_cut_block(last, room)]
+    room = limit - sum(len(part) + 2 for part in ([head] if head else []) + ends)
     shown = []
     for block in reversed(threads):
         if len(block) + 2 + 40 > room:
@@ -480,5 +645,4 @@ def shape_stack(text: str, limit: int = STACK_LIMIT) -> str:
         room -= len(block) + 2
     left = len(threads) - len(shown)
     middle = ([f"[{left} other threads left out]"] if left else []) + shown
-    parts = ([head] if head else []) + middle + [dying]
-    return "\n\n".join(parts)[:limit]
+    return "\n\n".join(([head] if head else []) + middle + ends)[:limit]

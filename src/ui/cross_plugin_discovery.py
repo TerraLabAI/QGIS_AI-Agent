@@ -13,104 +13,9 @@
 
 from __future__ import annotations
 
-from collections.abc import Mapping
-
-from ..core import catalog
+from ..core import siblings
+from ..core.siblings import sibling_info
 from .external_links import open_external_url
-from .shared import PRODUCT_ID, SITE_URL
-
-
-
-
-
-
-
-
-
-_SIBLINGS_LOCAL: dict[str, dict] = {
-    "ai-edit": {"keys": ("AI_Edit", "QGIS_AI-Edit"), "folder": "AI_Edit"},
-    "ai-segmentation": {"keys": ("AI_Segmentation", "QGIS_AI-Segmentation"), "folder": "AI_Segmentation"},
-}
-
-
-def _tagged(url: str, content: str) -> str:
-
-
-
-
-
-
-    if not url or not url.startswith(SITE_URL):
-        return url
-    sep = "&" if "?" in url else "?"
-    return f"{url}{sep}utm_source=qgis&utm_medium=plugin&utm_campaign={PRODUCT_ID}&utm_content={content}"
-
-
-def sibling_info(product_id: str) -> dict | None:
-
-
-
-
-
-    local = _SIBLINGS_LOCAL.get(product_id)
-    if local is None:
-        return None
-    served = catalog.plugin_roster().get(product_id) or {}
-    return {
-        **local,
-        "product_id": product_id,
-        "name": served.get("name") or "",
-        "label": served.get("label") or "",
-        "url": _tagged(served.get("url") or "", "cross_promo"),
-        "tutorial_url": _tagged(served.get("tutorial_url") or "", "cross_promo_guide"),
-        "thumbnail_url": served.get("thumbnail_url") or "",
-    }
-
-
-class _SiblingsView(Mapping):
-
-
-
-
-
-
-
-
-    def __getitem__(self, product_id):
-        info = sibling_info(product_id)
-        if info is None:
-            raise KeyError(product_id)
-        return info
-
-    def __iter__(self):
-        return iter(_SIBLINGS_LOCAL)
-
-    def __len__(self):
-        return len(_SIBLINGS_LOCAL)
-
-
-SIBLINGS = _SiblingsView()
-
-
-def _find_installed_plugin(keys: tuple[str, ...]):
-    try:
-        import qgis.utils
-        for key in keys:
-            plugin = qgis.utils.plugins.get(key)
-            if plugin is not None:
-                return plugin
-        for name, plugin in qgis.utils.plugins.items():
-            if plugin is not None and name.startswith(keys):
-                return plugin
-    except Exception:  # noqa: BLE001
-        pass  # nosec B110
-    return None
-
-
-def is_sibling_installed(product_id: str) -> bool:
-    local = _SIBLINGS_LOCAL.get(product_id)
-    return bool(local and _find_installed_plugin(local["keys"]) is not None)
-
 
 
 DOCK_MIN_HEIGHT = 420
@@ -140,7 +45,7 @@ def _give_room(dock) -> None:
         return
 
 
-def _activate_dock(plugin) -> bool:
+def activate_dock(plugin) -> bool:
 
 
 
@@ -175,26 +80,19 @@ def _activate_dock(plugin) -> bool:
     return False
 
 
-def open_sibling_tutorial(product_id: str) -> None:
-
-    sibling = SIBLINGS.get(product_id)
-    if sibling and sibling["tutorial_url"]:
-        open_external_url(sibling["tutorial_url"])
-
-
 def open_sibling(product_id: str) -> str:
 
 
 
 
 
-    sibling = SIBLINGS.get(product_id)
-    if not sibling:
+    info = sibling_info(product_id)
+    if not info:
         return ""
-    plugin = _find_installed_plugin(sibling["keys"])
-    if plugin is not None and _activate_dock(plugin):
+    _, plugin = siblings.find(siblings.by_product(product_id))
+    if plugin is not None and activate_dock(plugin):
         return "opened"
-    return open_plugin_manager(sibling["name"], sibling["url"])
+    return open_plugin_manager(info["name"], info["url"])
 
 
 def open_plugin_manager(plugin_name: str, fallback_url: str) -> str:

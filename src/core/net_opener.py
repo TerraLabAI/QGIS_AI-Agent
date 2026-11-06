@@ -16,6 +16,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 
+from . import link_vault
 from .logger import log_warning
 from .net_failure import LocalUrlRefused, _transient
 from .security_urls import _as_address, refused_addresses, validate_url, vetted_addresses
@@ -116,6 +117,8 @@ class _NoLocalRedirect(urllib.request.HTTPRedirectHandler):
 
     def redirect_request(self, req, fp, code, msg, headers, newurl):
         check_url(newurl)
+
+        link_vault.follow(req.full_url, newurl)
         identity = _identity_names(req)
         if identity and not _same_origin(req.full_url, newurl):
             if urllib.parse.urlsplit(newurl).scheme.lower() != "https" and \
@@ -689,22 +692,18 @@ def proxy_in_use() -> str | None:
 
 
 WITHDRAWN_HOSTS = {
-    "gisco-services.ec.europa.eu":
-        "Eurostat GISCO grants its boundary files on condition that the data is not used for "
-        "commercial purposes, so this product does not serve them.",
-    ".open-meteo.com":
-        "Open-Meteo's free tier is for non-commercial use only and commercial use needs a paid key.",
-    "basemaps.cartocdn.com": "CARTO has no keyless basemap left: the free tiles carry a watermark.",
-    ".basemaps.cartocdn.com": "CARTO has no keyless basemap left: the free tiles carry a watermark.",
-    "cartodb-basemaps-a.global.ssl.fastly.net": "CARTO has no keyless basemap left: the free tiles carry a watermark.",
-    "cartodb-basemaps-b.global.ssl.fastly.net": "CARTO has no keyless basemap left: the free tiles carry a watermark.",
-    "cartodb-basemaps-c.global.ssl.fastly.net": "CARTO has no keyless basemap left: the free tiles carry a watermark.",
-    "cartodb-basemaps-d.global.ssl.fastly.net": "CARTO has no keyless basemap left: the free tiles carry a watermark.",
-    "api.inaturalist.org": "iNaturalist observations are CC BY-NC per record.",
-    ".opensky-network.org": "OpenSky's terms are non-commercial.",
-    ".nrsc.gov.in": "Bhuvan is free to view and not to reuse.",
-    "cartoweb.wms.ngi.be":
-        "The Belgian NGI's CartoWeb is CC BY-NC and commercial use needs a paid subscription.",
+    "gisco-services.ec.europa.eu": "This host's terms do not allow commercial use.",
+    ".open-meteo.com": "This host's terms do not allow commercial use.",
+    "basemaps.cartocdn.com": "This host's terms do not allow commercial use.",
+    ".basemaps.cartocdn.com": "This host's terms do not allow commercial use.",
+    "cartodb-basemaps-a.global.ssl.fastly.net": "This host's terms do not allow commercial use.",
+    "cartodb-basemaps-b.global.ssl.fastly.net": "This host's terms do not allow commercial use.",
+    "cartodb-basemaps-c.global.ssl.fastly.net": "This host's terms do not allow commercial use.",
+    "cartodb-basemaps-d.global.ssl.fastly.net": "This host's terms do not allow commercial use.",
+    "api.inaturalist.org": "This host's terms do not allow commercial use.",
+    ".opensky-network.org": "This host's terms do not allow commercial use.",
+    ".nrsc.gov.in": "This host's terms do not allow commercial use.",
+    "cartoweb.wms.ngi.be": "This host's terms do not allow commercial use.",
 }
 
 

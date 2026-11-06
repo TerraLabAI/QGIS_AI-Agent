@@ -55,9 +55,14 @@ from qgis.PyQt.QtCore import QT_TRANSLATE_NOOP, QCoreApplication
 
 from ..core import background, limits, net, output_paths, security
 from ..core.background import run_on_main_thread
+from ..core.numbers import as_finite
 from ..core.qt_compat import enum_member
 from ..core.tool_registry import Tool, ToolRegistry, tool_error
-from .layer_lookup import _field_not_found_error, _find_layer, _is_qgis_null, _layer_not_found_error
+from ._layers import layer_not_found, resolve_layer
+from .layer_lookup import _field_not_found_error, _is_qgis_null
+from .persist_tools import _write_vector
+from .processing_run import _process_outputs
+from .symbology_tools import _set_layer_symbology
 
 SHAPES = ("straight", "curved", "geodesic")
 
@@ -88,6 +93,7 @@ def register_flow_tools(registry: ToolRegistry):
     registry.register(Tool(
         name="create_flow_lines",
         danger="write",
+        writes_at=("output_path",), file_extensions=(".gpkg",),
         label=QT_TRANSLATE_NOOP(
         "AIAgent", "Flow lines from {origin_field} to {destination_field} of {table_layer}"),
         input_schema={
@@ -136,9 +142,9 @@ def _stopped() -> dict:
 
 def _plan(args: dict) -> dict:
     ref = str(args.get("table_layer") or "").strip()
-    table = _find_layer(ref)
+    table = resolve_layer(ref)
     if table is None:
-        return _layer_not_found_error(ref)
+        return layer_not_found(ref)
     if not isinstance(table, QgsVectorLayer):
         return tool_error(f"{table.name()} is not a vector layer or table.", "INVALID_ARGS",
                           hint="flow_table_layer_kind")
@@ -176,9 +182,9 @@ def _plan(args: dict) -> dict:
             "destination_x_field, destination_y_field) were given.", "INVALID_ARGS",
             hint="flow_needs_places_or_coordinates")
     if places_name:
-        places = _find_layer(places_name)
+        places = resolve_layer(places_name)
         if places is None:
-            return _layer_not_found_error(places_name)
+            return layer_not_found(places_name)
         if not isinstance(places, QgsVectorLayer) or not places.isSpatial():
             return tool_error(f"{places.name()} has no geometry to draw a flow line to.", "INVALID_ARGS",
                               hint="flow_places_layer_kind")
@@ -437,16 +443,6 @@ def _fetch_table(source, request, state: dict, plan: dict, rows: list, halted) -
         features.close()
 
 
-def _num(value):
-    if value is None or _is_qgis_null(value):
-        return None
-    try:
-        number = float(value)
-    except (TypeError, ValueError):
-        return None
-    return number if math.isfinite(number) else None
-
-
 def _text(value) -> str:
     if value is None or _is_qgis_null(value):
         return ""
@@ -490,7 +486,7 @@ def _match_rows(rows: list, plan: dict, places_index: dict | None) -> tuple:
 
     for origin_raw, destination_raw, value_raw, coords, carried in rows:
         origin_text, destination_text = _text(origin_raw), _text(destination_raw)
-        value = _num(value_raw) if has_value else None
+        value = as_finite(value_raw) if has_value else None
         if has_value and value is None:
             null_values += 1
         if plan["mode"] == "places":
@@ -521,7 +517,7 @@ def _match_rows(rows: list, plan: dict, places_index: dict | None) -> tuple:
             same_place = (round(origin_point[0], 9), round(origin_point[1], 9)) == \
                          (round(destination_point[0], 9), round(destination_point[1], 9))
         else:
-            ox, oy, dx, dy = (_num(v) for v in coords)
+            ox, oy, dx, dy = (as_finite(v) for v in coords)
             if ox is None or oy is None:
                 unmatched[(origin_text or "(no coordinates)", "origin")] = \
                     unmatched.get((origin_text or "(no coordinates)", "origin"), 0) + 1
@@ -631,10 +627,6 @@ def _build_output(plan: dict, matched: list, shape: str) -> dict:
 
 
     from qgis.core import QgsFeature, QgsGeometry
-
-    from .persist_tools import _write_vector
-    from .processing_run import _process_outputs
-    from .symbology_tools import _set_layer_symbology
 
     cut = len(matched) > plan["max_lines"]
 

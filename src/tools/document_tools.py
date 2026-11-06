@@ -19,10 +19,13 @@ from io import BytesIO
 from qgis.PyQt.QtCore import QT_TRANSLATE_NOOP
 
 from ..core import output_paths, security
+from ..core.background import run_on_main_thread
 from ..core.feature_requests import feature_request
 from ..core.host_platform import retry_file_op
 from ..core.provider_uri import scrub_uri_secrets
 from ..core.tool_registry import Tool, ToolRegistry, tool_error
+from ._layers import layer_not_found, resolve_layer
+from .layer_lookup import _field_not_found_error
 
 MAX_ROWS = 1000
 MAX_FIELDS = 50
@@ -33,6 +36,7 @@ def register_document_tools(registry: ToolRegistry):
     registry.register(Tool(
         name="export_document_report",
         danger="destructive",
+        writes_at=("output_path",),
         label=QT_TRANSLATE_NOOP("AIAgent", "Export a document report"),
         input_schema={
             "type": "object",
@@ -89,12 +93,10 @@ def _clean(value) -> str:
 def _prepare(args: dict) -> dict:
     from qgis.core import QgsVectorLayer
 
-    from .layer_lookup import _field_not_found_error, _find_layer, _layer_not_found_error
-
     ref = str(args.get("layer") or "").strip()
-    layer = _find_layer(ref)
+    layer = resolve_layer(ref)
     if layer is None:
-        return _layer_not_found_error(ref)
+        return layer_not_found(ref)
     if not isinstance(layer, QgsVectorLayer):
         return tool_error(f"{layer.name()} is not a vector layer.", "INVALID_ARGS",
                           hint="document_layer_kind")
@@ -190,7 +192,6 @@ def _build_docx(*, title: str, summary: str, fields: list[str], rows: list[list[
 
 
 def _export_document_report(args: dict) -> dict:
-    from ..core.background import run_on_main_thread
 
     try:
         plan = run_on_main_thread(_prepare, args, timeout=60)

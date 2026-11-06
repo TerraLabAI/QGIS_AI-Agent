@@ -41,10 +41,13 @@ from ..core.background import run_on_main_thread
 from ..core.context_layers import crs_units
 from ..core.host_platform import remove_quietly, retry_file_op
 from ..core.logger import log_warning
+from ..core.numbers import as_finite, as_float
 from ..core.qt_compat import enum_member
 from ..core.serialization import CodedText
 from ..core.tool_registry import Tool, ToolRegistry, tool_error
-from .layer_lookup import _find_layer, _layer_not_found_error
+from ..core.vsi import thread_options
+from ..core.writeback import write_atomic
+from ._layers import layer_not_found, resolve_layer
 
 
 
@@ -90,6 +93,8 @@ def register_georeference_tools(registry: ToolRegistry):
     registry.register(Tool(
         name="georeference_raster",
         danger="write",
+        check_shape="arrives",
+        writes_at=("output_path",), file_extensions=(".tif", ".tiff"),
         label=QT_TRANSLATE_NOOP("AIAgent", "Georeference {raster}"),
         input_schema={
             "type": "object",
@@ -164,11 +169,11 @@ def _source_facts(raster, crs_text) -> dict:
             return tool_error(error, "PERMISSION_DENIED", hint=hint)
         name, source, path, layer_id = os.path.splitext(os.path.basename(expanded))[0], expanded, expanded, None
     else:
-        layer = _find_layer(ref)
+        layer = resolve_layer(ref)
         if layer is None:
             if "/" in ref or "\\" in ref or os.path.splitext(ref)[1]:
                 return tool_error(f"No file at {expanded}.", "INVALID_ARGS", hint="georef_no_such_file")
-            return _layer_not_found_error(ref)
+            return layer_not_found(ref)
         if not isinstance(layer, QgsRasterLayer):
             return tool_error(f"{layer.name()} is not a raster layer.", "INVALID_ARGS",
                               hint="georef_not_raster", layer=layer.name())
@@ -195,10 +200,11 @@ def _metres_per_unit(crs) -> float | None:
     if metres is None:
         metres = enum_member(QgsUnitTypes, "DistanceUnit", "DistanceMeters")
     try:
-        factor = float(QgsUnitTypes.fromUnitToUnitFactor(crs.mapUnits(), metres))
-    except (TypeError, ValueError):
+        factor = QgsUnitTypes.fromUnitToUnitFactor(crs.mapUnits(), metres)
+    except TypeError:
         return None
-    return factor if factor > 0 and math.isfinite(factor) else None
+    factor = as_finite(factor)
+    return factor if factor is not None and factor > 0 else None
 
 
 def _add_raster(path: str, name: str) -> dict:
@@ -562,7 +568,6 @@ def _points_text(facts: dict, points: list, errors: list, source_gt, pixel: floa
 def _write_points(facts: dict, target: str, text: str) -> tuple[str, str]:
 
 
-    from ..core.writeback import write_atomic
 
     candidates = []
     if facts["path"]:
@@ -653,12 +658,6 @@ def _overviews(gdal, path: str, method: str, progress) -> None:
 
     dataset = gdal.Open(path, gdal.GA_Update)
     failure = None
-
-    set_local = getattr(gdal, "SetThreadLocalConfigOption", None)
-    get_local = getattr(gdal, "GetThreadLocalConfigOption", lambda *_: None)
-    previous = get_local("GDAL_NUM_THREADS", None) if callable(set_local) else None
-    if callable(set_local):
-        set_local("GDAL_NUM_THREADS", "ALL_CPUS")
     try:
         size = max(dataset.RasterXSize, dataset.RasterYSize)
         levels, level = [], 2
@@ -666,12 +665,11 @@ def _overviews(gdal, path: str, method: str, progress) -> None:
             levels.append(level)
             level *= 2
         if levels:
-            _build_overviews(gdal, dataset, method, levels, progress)
+
+            with thread_options(gdal, GDAL_NUM_THREADS="ALL_CPUS"):
+                _build_overviews(gdal, dataset, method, levels, progress)
     except Exception as exc:  # noqa: BLE001
         failure = exc.with_traceback(None)
-    finally:
-        if callable(set_local):
-            set_local("GDAL_NUM_THREADS", previous)
     del dataset
     if failure is not None:
         raise failure
@@ -695,10 +693,7 @@ def _georeference_raster(args: dict) -> dict:
                           hint="georef_transform_unknown", transform=transform)
     scale = args.get("target_scale")
     if scale is not None:
-        try:
-            scale = float(scale)
-        except (TypeError, ValueError):
-            scale = 0.0
+        scale = as_float(scale, 0.0)
         if not math.isfinite(scale) or scale < 1:
             return tool_error("target_scale must be the scale's denominator, 1 or more.", "INVALID_ARGS",
                               hint="georef_target_scale_invalid")
@@ -723,10 +718,7 @@ def _georeference_raster(args: dict) -> dict:
             hint="georef_points_on_one_line", transform=transform)
     pixel_size = args.get("pixel_size")
     if pixel_size is not None:
-        try:
-            pixel_size = float(pixel_size)
-        except (TypeError, ValueError):
-            pixel_size = 0.0
+        pixel_size = as_float(pixel_size, 0.0)
         if not pixel_size > 0 or not math.isfinite(pixel_size):
             return tool_error("pixel_size must be a positive number.", "INVALID_ARGS",
                               hint="georef_pixel_size_invalid")

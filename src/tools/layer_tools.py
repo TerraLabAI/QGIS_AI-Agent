@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import math
+import os
 
 from qgis.core import (
     QgsCoordinateReferenceSystem,
@@ -20,17 +21,18 @@ from qgis.PyQt.QtCore import QT_TRANSLATE_NOOP
 from qgis.utils import iface
 
 from ..core import canvas_glide, ground, layer_order, output_paths
-from ..core.context import view_area_km2
+from ..core.context_layers import layer_kind, view_area_km2
 from ..core.follow import hold_view
 from ..core.host_platform import remove_quietly
-from ..core.logger import log_warning
+from ..core.layer_release import remove_layers
 from ..core.provider_uri import crs_problem  # noqa: E402
 from ..core.qt_compat import enum_member, field_type
 from ..core.security import validate_path
 from ..core.tool_registry import Tool, ToolRegistry, tool_error
 from . import guards
-from ._layers import closest_layers, closest_names, match_names, resolve_layer_note
-from .layer_lookup import _layer_not_found_error
+from ._layers import closest_layers, closest_names, layer_not_found, match_names, resolve_layer_note
+from .persist_tools import agent_layers_made_durable, default_gpkg_path, scratch_layers_summary
+from .save_guard import temp_folder_ready
 
 
 
@@ -50,6 +52,7 @@ def _saved_layer_table(args: dict, path: str) -> str:
 def register_layer_tools(registry: ToolRegistry):
     registry.register(Tool(
         name="set_layers_visibility",
+        layer_use="visibility",
         danger="write",
         input_schema={
             "type": "object",
@@ -64,9 +67,9 @@ def register_layer_tools(registry: ToolRegistry):
         handler=_set_layers_visibility,
     ))
 
-
     registry.register(Tool(
         name="set_layer_visibility",
+        layer_use="visibility",
         danger="write",
         label=QT_TRANSLATE_NOOP("AIAgent", "Show or hide {layer_name}"),
         input_schema={
@@ -83,6 +86,8 @@ def register_layer_tools(registry: ToolRegistry):
     registry.register(Tool(
         name="create_memory_layer",
         danger="write",
+        check_shape="arrives",
+        writes_at=("gpkg_path",),
         label=QT_TRANSLATE_NOOP("AIAgent", "Create the layer {name}"),
         input_schema={
             "type": "object",
@@ -121,7 +126,10 @@ def register_layer_tools(registry: ToolRegistry):
 
     registry.register(Tool(
         name="save_layer_to_gpkg",
+        layer_use="keep",
         danger="destructive",
+        check_shape="arrives",
+        writes_at=("gpkg_path",),
         card="gpkg",
         label=QT_TRANSLATE_NOOP("AIAgent", "Save {layer} to {gpkg_path}"),
         input_schema={
@@ -251,6 +259,7 @@ def register_layer_tools(registry: ToolRegistry):
 
 
         danger="write",
+        writes_at=("path",),
         visible=10,
         label=QT_TRANSLATE_NOOP("AIAgent", "Save the project[ to {path}]"),
         input_schema={
@@ -265,10 +274,12 @@ def register_layer_tools(registry: ToolRegistry):
         },
         handler=_save_project,
         saves_open_project=True,
+        always_confirm=_saves_over_user_file,
     ))
 
     registry.register(Tool(
         name="load_project",
+        long_main=True,
         danger="destructive",
         label=QT_TRANSLATE_NOOP("AIAgent", "Open the project {path}"),
         input_schema={
@@ -284,6 +295,7 @@ def register_layer_tools(registry: ToolRegistry):
     registry.register(Tool(
         name="create_new_project",
         danger="destructive",
+        writes_at=("path",),
         label=QT_TRANSLATE_NOOP("AIAgent", "Start a new project"),
         input_schema={
             "type": "object",
@@ -349,7 +361,7 @@ def _set_layers_visibility(args: dict) -> dict:
                 targets[node.layer().id()] = node.layer()
     if not targets:
         if len(missing) == 1:
-            return _layer_not_found_error(missing[0])
+            return layer_not_found(missing[0])
         listed = ", ".join(repr(name) for name in missing)
         close = _visibility_candidates(missing) if missing else []
         if close:
@@ -403,7 +415,7 @@ def _set_layers_visibility(args: dict) -> dict:
 def _set_layer_visibility(args: dict) -> dict:
     layer, note = resolve_layer_note(args["layer_name"])
     if not layer:
-        return _layer_not_found_error(args["layer_name"])
+        return layer_not_found(args["layer_name"])
 
     root = QgsProject.instance().layerTreeRoot()
     node = root.findLayer(layer.id())
@@ -427,28 +439,6 @@ def _set_layer_visibility(args: dict) -> dict:
     if note:
         out["note"] = note
     return out
-
-
-def _default_gpkg_path(layer_name: str = "") -> str | None:
-
-
-
-
-
-
-    import os
-    fname = QgsProject.instance().fileName()
-    if not fname:
-        folder = output_paths.exports_folder()
-        stem = output_paths.safe_file_name(layer_name, "layers")
-        path, number = os.path.join(folder, f"{stem}.gpkg"), 2
-        while os.path.exists(path):
-            path, number = os.path.join(folder, f"{stem}_{number}.gpkg"), number + 1
-        os.makedirs(folder, exist_ok=True)
-        return path
-    directory = os.path.dirname(fname)
-    stem = os.path.splitext(os.path.basename(fname))[0]
-    return os.path.join(directory, f"{stem}_data.gpkg")
 
 
 def _same_gpkg_table(layer, gpkg_path: str, table: str) -> bool:
@@ -549,7 +539,7 @@ def _create_memory_layer(args: dict) -> dict:
             "geometry_type": geom_type, "storage": "memory",
         }
 
-    gpkg_path = args.get("gpkg_path") or _default_gpkg_path(name)
+    gpkg_path = args.get("gpkg_path") or default_gpkg_path(name)
     if not gpkg_path:
         return tool_error("The project is unsaved, so there is no default GeoPackage path.", "INVALID_ARGS",
                           hint="project_unsaved_gpkg")
@@ -573,7 +563,7 @@ def _create_memory_layer(args: dict) -> dict:
 def _save_layer_to_gpkg(args: dict) -> dict:
     layer, note = resolve_layer_note(args["layer"])
     if not layer:
-        return _layer_not_found_error(args["layer"])
+        return layer_not_found(args["layer"])
     if not isinstance(layer, QgsVectorLayer):
         return tool_error(f"Layer '{args['layer']}' is not a vector layer", "INVALID_ARGS")
 
@@ -588,7 +578,7 @@ def _save_layer_to_gpkg(args: dict) -> dict:
             f"'{name}' streams a remote file in place; saving it copies the whole tile, not the area on the map, "
             "and holds QGIS for minutes.",
             "INVALID_ARGS", hint="gpkg_streamed_remote_file")
-    gpkg_path = args.get("gpkg_path") or _default_gpkg_path(name)
+    gpkg_path = args.get("gpkg_path") or default_gpkg_path(name)
     if not gpkg_path:
         return tool_error("The project is unsaved, so there is no default GeoPackage path.", "INVALID_ARGS",
                           hint="project_unsaved_gpkg")
@@ -627,8 +617,6 @@ def _save_layer_to_gpkg(args: dict) -> dict:
         except Exception as exc:  # noqa: BLE001
             style_error = str(exc)
 
-
-
     project = QgsProject.instance()
     root = project.layerTreeRoot()
     old_node = root.findLayer(layer.id())
@@ -653,8 +641,6 @@ def _save_layer_to_gpkg(args: dict) -> dict:
     new_node = root.findLayer(new_layer.id())
     if new_node is not None:
         new_node.setItemVisibilityChecked(was_checked)
-
-    from .processing_run import remove_layers
 
     old_id = layer.id()
     remove_layers([old_id])
@@ -682,7 +668,6 @@ def _save_layer_to_gpkg(args: dict) -> dict:
 
 
 def _get_layer_tree(args: dict) -> dict:
-    from ..core.context import layer_kind
 
     root = QgsProject.instance().layerTreeRoot()
 
@@ -715,7 +700,6 @@ def _create_layer_group(args: dict) -> dict:
             return _group_not_found(root, parent_name)
     else:
         container = root
-
 
     group = next((child for child in container.children()
                   if isinstance(child, QgsLayerTreeGroup) and child.name() == name), None)
@@ -798,7 +782,7 @@ def _visible_above(root, layer) -> dict:
 def _move_layer_to_group(args: dict) -> dict:
     layer, note = resolve_layer_note(args["layer_name"])
     if not layer:
-        return _layer_not_found_error(args["layer_name"])
+        return layer_not_found(args["layer_name"])
 
     root = QgsProject.instance().layerTreeRoot()
     wanted = str(args.get("group_name") or "").strip()
@@ -1177,58 +1161,6 @@ def _write_failure(project, path: str) -> str:
     return f"Failed to save project to {path}" + (f": {reason}" if reason else "")
 
 
-def _scratch_layers_summary(project: QgsProject) -> tuple[list[dict], list[dict]]:
-
-
-
-
-
-
-
-
-
-
-    from qgis.core import QgsRasterLayer
-
-    def entry(layer) -> dict:
-        if not isinstance(layer, QgsVectorLayer):
-            if isinstance(layer, QgsRasterLayer):
-                return {"name": layer.name(), "layer_type": "raster"}
-            return {"name": layer.name()}
-        try:
-            count = layer.featureCount()
-        except Exception:  # noqa: BLE001
-            count = None
-        return {"name": layer.name(), "feature_count": count}
-
-    memory_layers, temporary_layers = scratch_layers(project)
-    return [entry(layer) for layer in memory_layers], [entry(layer) for layer in temporary_layers]
-
-
-def scratch_layers(project: QgsProject) -> tuple[list, list]:
-
-
-
-
-    from ..core import policy
-    from ._layers import _source_key
-    from .persist_tools import writing
-
-
-    scratch_prefix = _source_key(policy.AGENT_TMP_DIR).rstrip("/") + "/"
-    being_written = writing()
-    memory_layers: list = []
-    temporary_layers: list = []
-    for layer in project.mapLayers().values():
-        if layer.id() in being_written:
-            continue
-        if isinstance(layer, QgsVectorLayer) and layer.providerType() == "memory":
-            memory_layers.append(layer)
-        elif _source_key(str(layer.source() or "")).startswith(scratch_prefix):
-            temporary_layers.append(layer)
-    return memory_layers, temporary_layers
-
-
 def _new_project_path() -> str:
 
 
@@ -1251,46 +1183,22 @@ def _new_project_path() -> str:
     return path
 
 
-def _agent_layers_made_durable(project, save: bool = True, busy=None) -> dict:
+def _saves_over_user_file(args: dict) -> bool:
 
 
 
 
 
-
-
-
-
-
-    from ..core.context import THREAD_PROPERTY
-    from .persist_tools import _make_layers_permanent, store_in_background
-
-    if not project.fileName():
-        return {}
-    memory, temporary = scratch_layers(project)
-    ours = [layer for layer in memory + temporary if layer.customProperty(THREAD_PROPERTY, "")]
-    if not ours:
-        return {}
-    out: dict = {}
-    rasters = [layer.id() for layer in ours if not isinstance(layer, QgsVectorLayer)]
-    try:
-        moved = _make_layers_permanent({"layers": rasters, "save": save}) if rasters else {}
-        if isinstance(moved, dict) and moved.get("made_permanent"):
-            out = {"gpkg_path": moved.get("gpkg_path", ""),
-                   "layers": [entry.get("name") for entry in moved["made_permanent"]]}
-        sent = store_in_background([layer for layer in ours if isinstance(layer, QgsVectorLayer)], busy, save)
-    except Exception as exc:  # noqa: BLE001
-        log_warning(f"Agent layers not stored beside the project: {exc}")
-        return out
-    if sent:
-        out["gpkg_path"] = sent["gpkg_path"]
-        out["layers"] = out.get("layers", []) + sent["layers"]
-        out["writing"] = sent["layers"]
-    return out
+    current = QgsProject.instance().fileName()
+    if not current or not os.path.isfile(current):
+        return False
+    path = str(args.get("path") or "").strip()
+    if not path:
+        return True
+    return os.path.normcase(os.path.realpath(path)) == os.path.normcase(os.path.realpath(current))
 
 
 def _save_project(args: dict) -> dict:
-    from ..core.save_guard import temp_folder_ready
     from ..core.security import validate_path
     project = QgsProject.instance()
     path = args.get("path")
@@ -1324,10 +1232,10 @@ def _save_project(args: dict) -> dict:
 
 
 
-    durable = _agent_layers_made_durable(project)
+    durable = agent_layers_made_durable(project)
     if durable:
         result["layers_stored"] = durable
-    memory_layers, temporary_layers = _scratch_layers_summary(project)
+    memory_layers, temporary_layers = scratch_layers_summary(project)
     if memory_layers:
         result["memory_layers"] = memory_layers
     if temporary_layers:

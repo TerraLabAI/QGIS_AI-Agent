@@ -37,8 +37,10 @@ from qgis.PyQt.QtCore import QLocale, QVariant
 
 from ..core import background, net
 from ..core.geometry_budget import VertexBudget
+from ..core.numbers import as_float
 from ..core.qt_compat import enum_member
 from ..core.tool_registry import tool_error
+from .harvest_remote import _arcgis_describe
 
 
 _STOP_POLL_S = 0.05
@@ -161,7 +163,38 @@ class Read:
         if hasattr(request, "setFeedback"):
             request.setFeedback(feedback)
         return {"source": QgsVectorLayerFeatureSource(self._layer), "request": request, "feedback": feedback,
-                "jobs": self.jobs, "context": self.context, "expressions": self._expressions}
+                "jobs": self.jobs, "context": self.context, "expressions": self._expressions,
+                "service": self._service()}
+
+    def _service(self) -> dict | None:
+
+
+
+
+
+
+        from qgis.core import QgsDataSourceUri
+
+        layer = self._layer
+        if layer.providerType() != "arcgisfeatureserver" or layer.subsetString():
+            return None
+        keys = {job.key for job in self.jobs.values()}
+        if len(keys) != 1 or not all(isinstance(job, (Distinct, Frequencies, Nulls)) and not getattr(job, "test", False)
+                                     for job in self.jobs.values()):
+            return None
+        key = next(iter(keys))
+        if key[0] != "f":
+            return None
+        uri = QgsDataSourceUri(layer.source())
+        url = str(uri.param("url") or "")
+        if not url.startswith(("http://", "https://")) or uri.authConfigId() or uri.hasParam("referer") \
+                or "http-header:" in layer.source():
+            return None
+        field = self.fields.at(key[1])
+        kind = type_code(field.type())
+        if kind not in _COUNTABLE_TYPES:
+            return None
+        return {"url": url.rstrip("/"), "field": field.name(), "type": kind}
 
 
 class _Row:
@@ -199,6 +232,15 @@ def read(spec: dict) -> dict:
 
 
     source, request, feedback = spec.pop("source"), spec.pop("request"), spec.pop("feedback")
+    service = spec.pop("service", None)
+    if service and not background.on_main_thread():
+        counts = _service_counts(service)
+
+
+        caps = [job.counted if isinstance(job, Distinct) else job.rows
+                for job in spec["jobs"].values() if isinstance(job, (Distinct, Frequencies))]
+        if counts is not None and sum(counts.values()) <= min(caps, default=float("inf")):
+            return {name: job.from_counts(counts) for name, job in spec["jobs"].items()}
     if background.on_main_thread():
         return _fetch(spec, source, request, threading.Event())
     cancelled = net.current_cancel_check()
@@ -264,8 +306,71 @@ def _fetch(spec: dict, source, request, halted) -> dict:
                 features.close()
 
 
+
+
+_COUNTABLE_TYPES = frozenset({10, 2, 4, 6})
+_SERVICE_TIMEOUT_S = 30
+_SERVICE_MAX_BYTES = 16 * 1024 * 1024
+
+
+def _service_counts(service: dict) -> dict | None:
+
+
+
+    import json
+    import urllib.error
+    import urllib.parse
+    import urllib.request
+
+    try:
+        described = _arcgis_describe(service["url"], None)
+    except net.FetchCancelled:
+        raise
+    if not isinstance(described, dict) or "error" in described:
+        return None
+    oid = described.get("objectIdField") or next(
+        (f.get("name") for f in described.get("fields") or [] if f.get("type") == "esriFieldTypeOID"), None)
+    if not oid or not ((described.get("advancedQueryCapabilities") or {}).get("supportsStatistics")
+                       or described.get("supportsStatistics")):
+        return None
+    field = service["field"]
+    query = {"where": "1=1", "groupByFieldsForStatistics": field, "returnGeometry": "false", "f": "json",
+             "outStatistics": json.dumps([{"statisticType": "count", "onStatisticField": oid,
+                                           "outStatisticFieldName": "terralab_n"}])}
+    request = urllib.request.Request(f"{service['url']}/query?{urllib.parse.urlencode(query)}",
+                                     headers={"Accept": "application/json"})
+    try:
+        payload = json.loads(net.fetch(request, timeout=_SERVICE_TIMEOUT_S, max_bytes=_SERVICE_MAX_BYTES,
+                                       total_timeout=_SERVICE_TIMEOUT_S * 2).body)
+    except net.FetchCancelled:
+        raise
+    except (urllib.error.URLError, OSError, ValueError):
+        return None
+    if not isinstance(payload, dict) or "error" in payload or payload.get("exceededTransferLimit"):
+        return None
+    counts: dict = {}
+    for feature in payload.get("features") or []:
+        attributes = feature.get("attributes") or {}
+        lowered = {str(name).lower(): value for name, value in attributes.items()}
+        value, rows = lowered.get(field.lower(), _NULL), lowered.get("terralab_n")
+        if value is _NULL or not isinstance(rows, int):
+            return None
+        if value is not None:
+            kind = service["type"]
+            try:
+                value = str(value) if kind == 10 else int(value) if kind in (2, 4) else float(value)
+            except (TypeError, ValueError):
+                return None
+        counts[value] = counts.get(value, 0) + rows
+    return counts
+
+
 class _Job:
     rows: int | None = None
+
+    def from_counts(self, counts: dict):
+
+        raise NotImplementedError
 
     def start(self) -> None:
         pass
@@ -302,6 +407,9 @@ class Distinct(_Job):
     def result(self):
         return list(self.seen.values())
 
+    def from_counts(self, counts):
+        return list(counts)
+
 
 class Frequencies(_Job):
 
@@ -321,6 +429,10 @@ class Frequencies(_Job):
 
     def result(self):
         return {"counts": self.counts, "scanned": self.scanned}
+
+    def from_counts(self, counts):
+        return {"counts": {("NULL" if value is None else str(value)): rows for value, rows in counts.items()},
+                "scanned": sum(counts.values())}
 
 
 class Values(_Job):
@@ -416,6 +528,9 @@ class Nulls(_Job):
 
     def result(self):
         return self.count
+
+    def from_counts(self, counts):
+        return counts.get(None, 0)
 
 
 class LabelVotes(_Job):
@@ -526,9 +641,8 @@ class Largest(_Job):
     def take(self, index, row):
         if index >= self.rows:
             return False
-        try:
-            value = float(row.value(self.key))
-        except (TypeError, ValueError):
+        value = as_float(row.value(self.key))
+        if value is None:
             return True
         if value > self.largest:
             self.largest = value

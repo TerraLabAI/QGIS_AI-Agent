@@ -58,6 +58,7 @@ from ..core.background import run_on_main_thread
 from ..core.host_platform import IS_WINDOWS, remove_quietly, retry_file_op
 from ..core.serialization import CodedText
 from ..core.tool_registry import Tool, ToolRegistry, tool_error
+from .temporal_time import _canvas_and_controller, _navigation_mode
 
 TOOL = "make_animation"
 
@@ -85,6 +86,7 @@ def register_animation_tools(registry: ToolRegistry):
     registry.register(Tool(
         name="make_animation",
         danger="read",
+        writes_at=("output_path",), file_extensions=(".gif",),
         label=QT_TRANSLATE_NOOP("AIAgent", "Turn {frames_folder} into a GIF"),
         input_schema={
             "type": "object",
@@ -117,7 +119,6 @@ def _default_fps() -> float | None:
 
 
 
-    from .temporal_tools import _canvas_and_controller, _navigation_mode
 
     canvas, controller = _canvas_and_controller()
     if canvas is None or controller is None or controller.navigationMode() != _navigation_mode("Animated"):

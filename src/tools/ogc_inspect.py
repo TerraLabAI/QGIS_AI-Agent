@@ -16,6 +16,8 @@ import html
 import re
 import urllib.parse
 
+from ..core import source_rules
+from ..core.numbers import as_finite
 from ..core.tool_registry import coded_fact
 
 
@@ -169,7 +171,7 @@ def epsg_of(supported_crs: str) -> str:
 
 def _pick_crs(crs_list: list) -> str:
 
-    for wanted in ("EPSG:3857", "EPSG:4326"):
+    for wanted in source_rules.table("ogc", "crs_preference", []):
         if wanted in crs_list:
             return wanted
     return next((crs for crs in crs_list if crs.startswith("EPSG:")), "")
@@ -488,11 +490,8 @@ _SCALEHINT_TO_DENOMINATOR = 1.0 / (2 ** 0.5) / 0.00028
 
 
 def _float(text) -> float | None:
-    try:
-        value = float(str(text).strip())
-    except (TypeError, ValueError):
-        return None
-    return value if value > 0 and value == value and value != float("inf") else None
+    value = as_finite(text)
+    return value if value is not None and value > 0 else None
 
 
 def wms_scale_range(body: bytes, names: list[str]) -> dict | None:
@@ -949,6 +948,7 @@ def xml_capabilities(final_url: str, root, text: str) -> dict | None:
 
 _XML_ENCODING_RE = re.compile(rb"""^\s*<\?xml[^>]*encoding=["']([A-Za-z0-9_.-]+)["']""")
 _DOCTYPE_RE = re.compile(r"<!DOCTYPE[^\[>]*(\[.*?\])?\s*>", re.DOTALL | re.IGNORECASE)
+_DOCTYPE_START_RE = re.compile(r"<!DOCTYPE", re.IGNORECASE)
 
 
 def decode_xml(body: bytes) -> str:
@@ -970,7 +970,10 @@ def strip_doctype(text: str) -> str:
 
 
 
-    return _DOCTYPE_RE.sub("", text, count=1)
+
+    start = _DOCTYPE_START_RE.search(text)
+    found = _DOCTYPE_RE.match(text, start.start()) if start else None
+    return text[:found.start()] + text[found.end():] if found else text
 
 
 _ARCGIS_SERVICE_RE = re.compile(r"^(?P<url>.*?/(?P<type>MapServer|FeatureServer|ImageServer))(?:/(?P<layer>\d+))?/?$",

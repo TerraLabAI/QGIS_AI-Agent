@@ -6,30 +6,17 @@ from qgis.PyQt.QtCore import QT_TRANSLATE_NOOP
 
 from ..core import code_effects
 from ..core.tool_registry import Tool, ToolRegistry
-from . import isolated_code, layout_ready, raster_overviews
-from .advanced_code import (  # noqa: F401
-    _api_help,
+from . import isolated_code, layout_child, raster_overviews
+from .advanced_code import (
     _execute_code,
 )
-from .advanced_debug import (  # noqa: F401
+from .advanced_debug import (
     _connect_message_log,
     _get_debug_info,
     _get_message_log,
 )
-from .advanced_layouts import (  # noqa: F401
-    _IMAGE_FORMATS,
-    _apply_scale,
-    _dpi_for_ground,
-    _export_layout,
-    _ground_per_pixel,
-    _list_layouts,
-)
-from .advanced_render import (  # noqa: F401
-    _apply_quality_flags,
-    _prepare_frame_folder,
-    _render_map,
-    _safe_frame_prefix,
-)
+from .advanced_layouts import _export_layout, _list_layouts, prepare_export
+from .advanced_render import _render_map
 
 
 def _code_only_reads(args: dict) -> bool:
@@ -67,7 +54,9 @@ def _render_label(args: dict) -> str:
 def register_advanced_tools(registry: ToolRegistry):
     registry.register(Tool(
         name="execute_code",
+        long_main=True,
         danger="destructive",
+        always_confirm=True,
         visible=7,
         label=QT_TRANSLATE_NOOP("AIAgent", "Run Python code[: {description}]"),
         input_schema={
@@ -118,7 +107,10 @@ def register_advanced_tools(registry: ToolRegistry):
 
     registry.register(Tool(
         name="render_map",
+        layer_use="render",
         danger="read",
+        render_size="clamped",
+        writes_at=("save_path", "output_path"),
         visible=8,
         label=QT_TRANSLATE_NOOP("AIAgent", "Look at the map as you see it"),
         label_for=_render_label,
@@ -208,10 +200,14 @@ def register_advanced_tools(registry: ToolRegistry):
 
     registry.register(Tool(
         name="export_layout",
+        long_main=True,
+        layer_use="keep",
 
 
 
         danger="write",
+        render_size="held",
+        writes_at=("output_path",),
         label_for=_export_layout_label,
         builds_layout_at="layout_name",
         label=QT_TRANSLATE_NOOP("AIAgent", "Export the layout"),
@@ -252,10 +248,14 @@ def register_advanced_tools(registry: ToolRegistry):
             "x-builds-overviews": True,
         },
         handler=_export_layout,
+
+
+        background=layout_child.separate,
         replaces_file_at="output_path",
+        replaces_on_main=True,
 
 
-        prepare=layout_ready.prepare_export,
+        prepare=prepare_export,
     ))
 
     registry.register(Tool(
@@ -293,17 +293,3 @@ def register_advanced_tools(registry: ToolRegistry):
 
     _connect_message_log()
 
-
-
-
-__all__ = [
-    "register_advanced_tools",
-    "_IMAGE_FORMATS",
-    "_api_help",
-    "_apply_quality_flags",
-    "_apply_scale",
-    "_dpi_for_ground",
-    "_ground_per_pixel",
-    "_prepare_frame_folder",
-    "_safe_frame_prefix",
-]

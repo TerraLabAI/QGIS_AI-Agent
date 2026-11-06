@@ -38,19 +38,25 @@ from qgis.core import (
     QgsWkbTypes,
 )
 
-from ..core import layer_order, limits, net, tuning
+from ..core import geodata_rules, layer_order, limits, net, tuning
 from ..core.background import heartbeat, run_on_main_thread
-from ..core.context import source_kind
+from ..core.context_layers import source_kind
 from ..core.feature_requests import feature_request, first_feature
 from ..core.geometry_budget import VertexBudget
 from ..core.host_platform import retry_file_op
+from ..core.numbers import as_float
 from ..core.policy import create_managed_temp_dir
 from ..core.qt_compat import enum_member, field_type
 from ..core.security import fits_path, validate_path
 from ..core.text_encoding import ansi_encoding
 from ..core.tool_registry import Tool, ToolRegistry, coded_fact, tool_error
-from .layer_lookup import _find_layer, _layer_not_found_error
+from . import facade
+from ._layers import layer_not_found, resolve_layer
+from .data_geocoding import _BACKEND_GEOCODE_BATCH_MAX, _geocode_one_address
+from .layer_io_tools import _add_raster_layer
 from .processing_crs_checks import _utm_authid
+from .project_gpkg import _source_path, package
+from .query_tools import _invalid_reasons
 
 
 
@@ -73,11 +79,7 @@ MAX_TOPOLOGY_FEATURES = 20_000
 
 
 TOPOLOGY_CHECKS = ("overlaps", "gaps", "dangles", "duplicates", "multipart", "validity")
-_TOPOLOGY_DEFAULTS = {
-    "polygon": ("overlaps", "gaps", "duplicates", "multipart", "validity"),
-    "line": ("dangles", "duplicates", "multipart", "validity"),
-    "point": ("duplicates", "multipart", "validity"),
-}
+
 
 _REPAIR_MAX_FOLDERS = 20_000
 _REPAIR_MAX_DEPTH = 12
@@ -95,6 +97,7 @@ def register_gis_case_tools(registry: ToolRegistry):
         Tool(
             name="repair_layer_paths",
             danger="write",
+            check_shape="layer",
             input_schema={
                 "type": "object",
                 "properties": {
@@ -110,6 +113,7 @@ def register_gis_case_tools(registry: ToolRegistry):
         Tool(
             name="package_project",
             danger="destructive",
+            writes_at=("output_path",),
             input_schema={
                 "type": "object",
                 "properties": {
@@ -130,7 +134,9 @@ def register_gis_case_tools(registry: ToolRegistry):
     registry.register(
         Tool(
             name="get_isochrone",
+            long_main=True,
             danger="write",
+            check_shape="arrives",
             input_schema={
                 "type": "object",
                 "properties": {
@@ -186,6 +192,7 @@ def register_gis_case_tools(registry: ToolRegistry):
         Tool(
             name="check_topology",
             danger="read",
+            reads_whole_layer=True,
             input_schema={
                 "type": "object",
                 "properties": {
@@ -202,7 +209,10 @@ def register_gis_case_tools(registry: ToolRegistry):
     registry.register(
         Tool(
             name="geocode_layer",
+            derives_layers=True,
             danger="write",
+            reads_whole_layer=True,
+            writes_at=("output_path",),
             input_schema={
                 "type": "object",
                 "properties": {
@@ -239,8 +249,6 @@ def register_gis_case_tools(registry: ToolRegistry):
 
 def _enable_add_data_subdatasets() -> None:
 
-    from . import facade
-    from .layer_io_tools import _add_raster_layer
 
     original = facade._dispatch_add
     if getattr(original, "_gis_case_subdataset_support", False):
@@ -258,28 +266,10 @@ def _enable_add_data_subdatasets() -> None:
     facade._dispatch_add = dispatch
 
 
-def _source_path(layer) -> str:
-
-
-
-
-
-
-    source = layer.source() or ""
-    try:
-        from qgis.core import QgsProviderRegistry
-
-        decoded = QgsProviderRegistry.instance().decodeUri(layer.providerType(), source)
-        path = decoded.get("path") if isinstance(decoded, dict) else ""
-    except Exception:  # noqa: BLE001
-        path = ""
-    return path or source.split("|", 1)[0]
-
-
 def _repair_layer_paths(args: dict) -> dict:
-    layer = _find_layer(args["layer_name"])
+    layer = resolve_layer(args["layer_name"])
     if layer is None:
-        return _layer_not_found_error(args["layer_name"])
+        return layer_not_found(args["layer_name"])
     if layer.isValid():
         return {"layer": layer.name(), "repaired": False, "note": "The layer loads fine; nothing to repair."}
     source = layer.source() or ""
@@ -366,15 +356,14 @@ def _path_key(path: str) -> str:
 
 
 
-_STEM_SIDECARS = (".dbf", ".shx", ".prj", ".cpg", ".qix", ".sbn", ".sbx", ".csvt", ".tfw", ".tifw", ".tiffw",
-                  ".wld", ".jgw", ".pgw", ".j2w", ".hdr", ".rrd", ".aux", ".qml", ".qmd")
-_NAME_SIDECARS = (".aux.xml", ".ovr", ".msk", ".xml")
+
 
 
 def _sidecars(path: str) -> list:
     stem = os.path.splitext(path)[0]
     found = []
-    for candidate in [stem + suffix for suffix in _STEM_SIDECARS] + [path + suffix for suffix in _NAME_SIDECARS]:
+    for candidate in [stem + suffix for suffix in geodata_rules.rule("cases", "stem_sidecars")] + [
+            path + suffix for suffix in geodata_rules.rule("cases", "name_sidecars")]:
         if _path_key(candidate) != _path_key(path) and os.path.isfile(candidate) and candidate not in found:
             found.append(candidate)
     return found
@@ -614,8 +603,6 @@ def _package_project(args: dict) -> dict:
 
     wanted = str(args.get("format") or "").lower()
     if wanted == "gpkg" or (not wanted and str(args.get("output_path") or "").lower().endswith(".gpkg")):
-        from .project_gpkg import package
-
         return package(args)
     try:
         snapshot = run_on_main_thread(_package_project_snapshot, args, timeout=20)
@@ -711,13 +698,10 @@ def _package_project(args: dict) -> dict:
 
 
 
-_ROAD_NAME_HINTS = ("road", "highway", "street", "route", "voirie", "rue", "walk", "network", "réseau")
+def _iso(key: str):
+    return geodata_rules.rule("cases", "isochrone", key)
 
 
-
-_ISOCHRONE_FRINGE_M = 60.0
-_ISOCHRONE_MAX_STARTS = 25
-_ISOCHRONE_SNAP_M = 500.0
 
 
 
@@ -750,16 +734,10 @@ def _guess_road_layer():
             continue
         name = layer.name().lower()
         fields = {field.name().lower() for field in layer.fields()}
-        if any(hint in name for hint in _ROAD_NAME_HINTS) or "highway" in fields or {"class", "subtype"} <= fields:
+        hints = geodata_rules.rule("cases", "road_name_hints")
+        if any(hint in name for hint in hints) or "highway" in fields or {"class", "subtype"} <= fields:
             return layer
     return None
-
-
-
-
-
-
-_ISOCHRONE_COVER = 0.9
 
 
 def _covers(extent, window) -> bool:
@@ -768,7 +746,7 @@ def _covers(extent, window) -> bool:
         if window.isEmpty():
             return True
         inside = extent.intersect(window)
-        return (inside.width() * inside.height()) >= _ISOCHRONE_COVER * (window.width() * window.height())
+        return (inside.width() * inside.height()) >= _iso("cover") * (window.width() * window.height())
     except Exception:  # nosec B110
         return True
 
@@ -806,13 +784,6 @@ def _travel_filter(layer, mode: str) -> tuple:
     return expression, field, tuple(values)
 
 
-
-
-
-
-_ISOCHRONE_ISLAND_SHARE = 0.05
-
-
 def _pieces(graph) -> list:
 
     parent = list(range(graph.vertexCount()))
@@ -843,10 +814,10 @@ def _get_isochrone(args: dict) -> dict:
     import processing
 
     road_layer_name = args.get("road_layer")
-    roads = _find_layer(road_layer_name) if road_layer_name else _guess_road_layer()
+    roads = resolve_layer(road_layer_name) if road_layer_name else _guess_road_layer()
     if roads is None:
         if road_layer_name:
-            return _layer_not_found_error(road_layer_name)
+            return layer_not_found(road_layer_name)
         return tool_error(
             "No road line layer is loaded for a service area.", "EXECUTION_FAILED",
             hint="isochrone_no_roads")
@@ -875,10 +846,11 @@ def _get_isochrone(args: dict) -> dict:
                           hint="isochrone_no_speed", mode=mode)
     reach_m = speed * 1000.0 * minutes / 60.0
     points = list(args["points"])
-    if len(points) > _ISOCHRONE_MAX_STARTS:
+    max_starts = _iso("max_starts")
+    if len(points) > max_starts:
         return tool_error(
-            f"{len(points)} start points; get_isochrone takes {_ISOCHRONE_MAX_STARTS} per call.", "INVALID_ARGS",
-            hint="isochrone_too_many_starts", points=len(points), max_starts=_ISOCHRONE_MAX_STARTS)
+            f"{len(points)} start points; get_isochrone takes {max_starts} per call.", "INVALID_ARGS",
+            hint="isochrone_too_many_starts", points=len(points), max_starts=max_starts)
     starts = QgsVectorLayer("Point?crs=EPSG:4326&field=start:integer", "isochrone_starts", "memory")
     features = []
     for index, point in enumerate(points):
@@ -893,7 +865,7 @@ def _get_isochrone(args: dict) -> dict:
 
 
 
-    margin_deg = (reach_m + _ISOCHRONE_FRINGE_M) / 111_320.0 * 1.2
+    margin_deg = (reach_m + _iso("fringe_m")) / 111_320.0 * 1.2
     lons = [float(p["lon"]) for p in points]
     lats = [float(p["lat"]) for p in points]
     needed = QgsRectangle(min(lons) - margin_deg, min(lats) - margin_deg,
@@ -983,12 +955,12 @@ def _get_isochrone(args: dict) -> dict:
     largest = max(sizes, key=sizes.get)
     for index, origin in enumerate(origins):
         start_vertex = graph.findVertex(tied[index])
-        if start_vertex < 0 or origin.distance(tied[index]) > _ISOCHRONE_SNAP_M:
+        if start_vertex < 0 or origin.distance(tied[index]) > _iso("snap_m"):
             continue
-        if sizes[labels[start_vertex]] < _ISOCHRONE_ISLAND_SHARE * sizes[largest]:
+        if sizes[labels[start_vertex]] < _iso("island_share") * sizes[largest]:
             near = [(origin.distance(graph.vertex(v).point()), v) for v in range(len(labels)) if labels[v] == largest]
             gap, vertex = min(near)
-            if gap <= _ISOCHRONE_SNAP_M:
+            if gap <= _iso("snap_m"):
                 start_vertex = vertex
                 starts_moved.append({"start": index + 1, "to_m": round(gap)})
         _tree, cost = QgsGraphAnalyzer.dijkstra(graph, start_vertex, 0)
@@ -999,7 +971,7 @@ def _get_isochrone(args: dict) -> dict:
             reached = [graph.vertex(i).point() for i, c in enumerate(cost) if 0 <= c <= ring_m]
             if len(reached) < 3:
                 continue
-            hull = _reach_hull(QgsGeometry.fromMultiPointXY(reached)).buffer(_ISOCHRONE_FRINGE_M, 5)
+            hull = _reach_hull(QgsGeometry.fromMultiPointXY(reached)).buffer(_iso("fringe_m"), 5)
             if hull.isNull() or hull.isEmpty():
                 continue
             polygon = QgsFeature(areas.fields())
@@ -1036,9 +1008,8 @@ def _get_isochrone(args: dict) -> dict:
                          f"near the starts left out" if travel
                          else "every line: the layer has no class or highway field"),
         "reached_vertices": vertices_total,
-        "method": (f"roads reachable within {', '.join(f'{r:g}' for r in rings)} min at {speed:g} km/h along "
-                   f"{roads.name()}; the reached vertices hulled (concave) and buffered {_ISOCHRONE_FRINGE_M:g} m; "
-                   "one polygon per start point and per travel time (field minutes), overlapping where they meet"),
+        "method": geodata_rules.fill(_iso("method"), rings=", ".join(f"{r:g}" for r in rings), speed=f"{speed:g}",
+                                     roads=roads.name(), fringe=f"{_iso('fringe_m'):g}"),
     }
 
 
@@ -1069,9 +1040,9 @@ def _profile_geometry(args: dict, dem):
             geometry.transform(QgsCoordinateTransform(source, dem.crs(), QgsProject.instance()))
         return geometry, None
     if args.get("line_layer"):
-        layer = _find_layer(args["line_layer"])
+        layer = resolve_layer(args["line_layer"])
         if layer is None:
-            return None, _layer_not_found_error(args["line_layer"])
+            return None, layer_not_found(args["line_layer"])
         feature = first_feature(layer, feature_request(attributes=[], limit=1))
         geometry = feature.geometry() if feature is not None else None
         if geometry is not None and layer.crs() != dem.crs():
@@ -1109,9 +1080,9 @@ def _metric_sampling_crs(geometry, dem_crs):
 
 
 def _elevation_profile(args: dict) -> dict:
-    dem = _find_layer(args["dem"])
+    dem = resolve_layer(args["dem"])
     if dem is None:
-        return _layer_not_found_error(args["dem"])
+        return layer_not_found(args["dem"])
     geometry, error = _profile_geometry(args, dem)
     if error:
         return error
@@ -1203,7 +1174,7 @@ def _topology_kind(layer) -> str | None:
 
 def _topology_checks(requested, kind: str, name: str):
 
-    applies = _TOPOLOGY_DEFAULTS[kind]
+    applies = geodata_rules.rule("cases", "topology_defaults", kind)
     if requested in (None, "", []):
 
         return list(applies), None
@@ -1227,9 +1198,9 @@ def _topology_checks(requested, kind: str, name: str):
 
 
 def _check_topology(args: dict) -> dict:
-    layer = _find_layer(args["layer"])
+    layer = resolve_layer(args["layer"])
     if layer is None:
-        return _layer_not_found_error(args["layer"])
+        return layer_not_found(args["layer"])
     kind = _topology_kind(layer) if isinstance(layer, QgsVectorLayer) else None
     if kind is None:
         return tool_error(f"{layer.name()!r} has no point, line or polygon geometry, so there is no topology "
@@ -1237,10 +1208,7 @@ def _check_topology(args: dict) -> dict:
     checks, error = _topology_checks(args.get("checks"), kind, layer.name())
     if error:
         return error
-    try:
-        tolerance = float(args.get("tolerance") or 0)
-    except (TypeError, ValueError):
-        tolerance = -1.0
+    tolerance = as_float(args.get("tolerance") or 0, -1.0)
     if not math.isfinite(tolerance) or tolerance < 0:
         return tool_error(f"tolerance {args.get('tolerance')!r} is not a distance. Nothing was checked.",
                           "INVALID_ARGS", hint="topology_tolerance_distance")
@@ -1483,7 +1451,6 @@ def _topology_validity(features, limit: int, budget) -> dict:
 
 
 
-    from .query_tools import _invalid_reasons
 
     invalid = []
     count = 0
@@ -1677,24 +1644,23 @@ def _relaxed_queries(address: str) -> list[str]:
 
 
 
-
-
-
+    ladder = geodata_rules.rule("cases", "relaxed_queries")
     parts = [part.strip() for part in address.split(",") if part.strip()]
-    if len(parts) < 5:
+    if len(parts) < ladder["min_parts"]:
         return []
-    head, tail = parts[:-3], parts[-3:]
+    keep = ladder["keep_tail"]
+    head, tail = parts[:-keep], parts[-keep:]
     forms = []
     plain = [part for part in head if not any(ch.isdigit() for ch in part)]
     if plain != head:
         forms.append(plain + tail)
-    forms += [parts[drop:] for drop in (1, 2) if len(parts) - drop >= 4]
+    forms += [parts[drop:] for drop in ladder["drop_leading"] if len(parts) - drop >= ladder["min_left"]]
     out: list[str] = []
     for form in forms:
         text = ", ".join(form)
         if text != address and text not in out:
             out.append(text)
-    return out[:3]
+    return out[:ladder["max_forms"]]
 
 
 class _GeocodeLayerTask(QgsTask):
@@ -1719,8 +1685,6 @@ class _GeocodeLayerTask(QgsTask):
 
 
 
-
-        from .data_tools import _BACKEND_GEOCODE_BATCH_MAX, _geocode_one_address
 
         own_host, through_backend = True, 0
 
@@ -1876,9 +1840,9 @@ class _GeocodeLayerTask(QgsTask):
 
 
 def _geocode_layer(args: dict) -> dict:
-    layer = _find_layer(args["layer"])
+    layer = resolve_layer(args["layer"])
     if layer is None:
-        return _layer_not_found_error(args["layer"])
+        return layer_not_found(args["layer"])
     field = args["address_field"]
     index = layer.fields().indexOf(field)
     if index < 0:

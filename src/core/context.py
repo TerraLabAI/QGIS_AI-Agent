@@ -15,7 +15,6 @@ import os
 
 import qgis.utils
 from qgis.core import (
-    QgsApplication,
     QgsProject,
     QgsRasterLayer,
     QgsRectangle,
@@ -24,7 +23,7 @@ from qgis.core import (
 )
 from qgis.PyQt.QtCore import QCoreApplication
 
-from . import ground, tuning
+from . import ground, siblings, tuning
 
 
 
@@ -33,25 +32,21 @@ from .context_layers import (
     MAX_CARD_FIELDS,
     _cap,
     crs_units,
-    degree_values,  # noqa: F401
     duplicate_names,
-    extent_size,  # noqa: F401
-    feature_count,  # noqa: F401
     geometry_name,
     layer_extent_rect,
     layer_filter,
-    layer_kind,  # noqa: F401
     layer_record,
     project_measure,
     rich_card,
     selected_count,
-    source_kind,  # noqa: F401
     view_area_km2,
     view_bbox_4326,
 )
 from .layer_order import positions as tree_positions
 from .layer_rank import FLOOR_ORDER, fields_named_in, named_in, offset_from_view, rank_layers, view_of
 from .layer_rank import detailed_ids as choose_detailed
+from .project_identity import project_key
 from .qt_compat import qgis_iface
 
 
@@ -75,35 +70,11 @@ MAX_MORE_LAYER_NAMES = 15
 
 
 CHIP_KINDS = ("layer", "selection", "extent", "field", "layout", "file", "source", "plugin")
-AI_EDIT_FOLDERS = ("QGIS_AI-Edit-Team", "QGIS_AI-Edit", "ai_edit", "AI_Edit")
-AI_SEGMENTATION_FOLDERS = ("QGIS_AI-Segmentation-Team", "QGIS_AI-Segmentation",
-                           "QGIS_AI_Segmentation_Team", "AI_Segmentation", "ai_segmentation")
 QMS_FOLDERS = ("quick_map_services",)
 
 
 def tr(text: str) -> str:
     return QCoreApplication.translate("AIAgentContext", text)
-
-
-def _plugin_dirs() -> list[str]:
-    dirs = []
-    try:
-        dirs.append(os.path.join(QgsApplication.qgisSettingsDirPath(), "python", "plugins"))
-    except Exception:  # nosec B110
-        pass
-    dirs.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-    return dirs
-
-
-def _plugin_present(folders: tuple) -> bool:
-    loaded = set(getattr(qgis.utils, "plugins", {}).keys()) | set(getattr(qgis.utils, "active_plugins", []))
-    if any(name in loaded for name in folders):
-        return True
-    for base in _plugin_dirs():
-        for name in folders:
-            if os.path.isdir(os.path.join(base, name)):
-                return True
-    return False
 
 
 def quickmapservices_started() -> bool:
@@ -118,8 +89,8 @@ def quickmapservices_started() -> bool:
 def plugins_present() -> dict:
 
 
-    return {"ai_edit": _plugin_present(AI_EDIT_FOLDERS),
-            "ai_segmentation": _plugin_present(AI_SEGMENTATION_FOLDERS),
+    return {"ai_edit": siblings.installed(siblings.AI_EDIT),
+            "ai_segmentation": siblings.installed(siblings.AI_SEGMENTATION),
             "quickmapservices": quickmapservices_started()}
 
 
@@ -132,8 +103,7 @@ def ai_segmentation_panel() -> dict | None:
 
 
 
-    plugins = getattr(qgis.utils, "plugins", {}) or {}
-    plugin = next((plugins[name] for name in AI_SEGMENTATION_FOLDERS if name in plugins), None)
+    _, plugin = siblings.find(siblings.AI_SEGMENTATION)
     reader = getattr(getattr(plugin, "mcp_api", None), "get_interactive_state", None)
     if not callable(reader):
         return None
@@ -214,6 +184,25 @@ def _home_relative_dir(text: str) -> str:
     if here.startswith(root + "/"):
         return "~" + text[len(home):]
     return text
+
+
+
+
+MAX_SUBFOLDERS = 20
+
+
+def _project_subfolders(project_dir: str) -> list[str]:
+
+    if not project_dir:
+        return []
+    try:
+        with os.scandir(project_dir) as entries:
+            names = sorted((entry.name for entry in entries
+                            if not entry.name.startswith(".") and entry.is_dir(follow_symlinks=False)),
+                           key=str.casefold)
+    except OSError:
+        return []
+    return names[:MAX_SUBFOLDERS]
 
 
 def _layout_names(project) -> list[str] | None:
@@ -569,6 +558,7 @@ def build_context(chips: list | None = None, text: str = "", thread_id: str = ""
 
 
     project_scale = canvas_scale if canvas_crs is not None and canvas_crs == project_crs else None
+    key = project_key()
     context = {
         "project_crs": project_crs.authid() or "",
         "project_crs_units": crs_units(project_crs),
@@ -579,6 +569,9 @@ def build_context(chips: list | None = None, text: str = "", thread_id: str = ""
 
         "project_file": os.path.basename(project_path) if project_path else "",
         "project_folder": _home_relative_dir(os.path.dirname(project_path)) if project_path else "",
+        "project_subfolders": _project_subfolders(os.path.dirname(project_path)) if project_path else [],
+
+        **({"project_key": key} if key else {}),
         "canvas": canvas_block,
         "layers": layers_out,
         "active_layer": active_name,

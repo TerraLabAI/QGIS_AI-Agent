@@ -13,7 +13,7 @@ about=
 
     • 89 open data connectors: OpenStreetMap, Copernicus, NASA, USGS, IGN, Overture, Planetary Computer and 82 more
 
-    • A catalog of 2,830 ready datasets, from national sources in 183 countries and from EU-wide and global ones, each with its licence
+    • A catalog of 2,838 ready datasets, from national sources in 183 countries and from EU-wide and global ones, each with its licence
 
     • You stay in control: you see every step before it runs, changes wait for your approval, and one click undoes anything it changed
 
@@ -35,7 +35,7 @@ about=
 
     By TerraLab, terra-lab.ai
 
-version=1.9.3
+version=1.9.4
 author=TerraLab
 email=lilien.auger@terra-lab.ai
 homepage=https://terra-lab.ai/ai-agent?utm_source=plugins.qgis.org&utm_medium=referral
@@ -43,6 +43,12 @@ repository=https://github.com/TerraLabAI/QGIS_AI-Agent
 tracker=https://github.com/TerraLabAI/QGIS_AI-Agent/issues
 license=GPL-2.0-or-later
 changelog=
+    1.9.4
+    - Click a thumb again to take it back; a thumbs down asks what went wrong, with quick choices
+    - Each kind of step has its own colour, and no hover boxes pop up over the chat any more
+    - "Use in chat" on a data source puts only its mention in the message box, ready for your task
+    - Memory per project; pasted private links stay on your PC; after a crash the chat reopens
+
     1.9.3
     - Rate any answer with a thumb, or send feedback from the panel, Settings or an error card
     - The map glides to where the AI agent works; a slow load hands back after 60 s and names its host
@@ -66,10 +72,6 @@ changelog=
     - Examples and Data sources open in their own windows, with search, countries and dataset lists
     - Undo keeps your project and hand edits safe, and the history says what each request changed
     - No freeze on the first Send in a large project or a network share; more data loads on Windows
-
-    1.8.1
-    - Passes the plugin store's Qt6 check for QGIS 4
-    - A Pro card shows in the panel once your plan turns Pro; free accounts land on a level they can run
 
 
 tags=ai,ai agent,artificial intelligence,agent,assistant,ai assistant,chatgpt,copilot,chat,llm,large language model,automation,natural language,geoai,ai gis,gis ai,ai for gis,agentic ai,geospatial,gis,spatial analysis,geoprocessing,processing,data loading,open data,styling,symbology,labeling,layout,print layout,map making,feature editing,attribute,vector,raster,basemap,openstreetmap,productivity,pyqgis,terralab,terra lab,ai edit,ai segmentation

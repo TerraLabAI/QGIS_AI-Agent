@@ -34,15 +34,23 @@ from qgis.core import (
 from qgis.PyQt import sip
 from qgis.PyQt.QtCore import QT_TRANSLATE_NOOP
 
+from ..core import output_paths
 from ..core.context_layers import crs_units
 from ..core.host_platform import remove_quietly
+from ..core.numbers import as_int
+from ..core.output_paths import file_stem
+from ..core.postcondition import _band_range
 from ..core.tool_registry import Tool, ToolRegistry, coded_fact, tool_error
 from ._compat import is_raster
-from .data_tools import _avoid_reserved_name
+from ._layers import take_layer_name
+from .data_common import worker_options
 from .harvest_analysis import _expand, _field_error
 from .layer_lookup import require_raster, require_vector
 from .postconditions import compute_checks
-from .processing_guards import _nodata_sentinel, fitting_pixel_size
+from .processing_decisions import calculator_inputs_on_grid, nodata_sentinel
+from .processing_guards import fitting_pixel_size
+from .processing_run import _ASYNC_PIXELS, _heavy_inputs, _start_async_processing, raster_file_problem
+from .project_tools import is_remote_raster
 
 ZONAL_STATS = {
     0: "count", 1: "sum", 2: "mean", 3: "median", 4: "stdev", 5: "min",
@@ -67,6 +75,7 @@ def register_harvest_processing_tools(registry: ToolRegistry):
     registry.register(Tool(
         name="zonal_statistics",
         danger="write",
+        writes_at=("output_path",),
         label=QT_TRANSLATE_NOOP("AIAgent", "Zonal statistics of {raster_layer} in {polygon_layer}"),
         input_schema={
             "type": "object",
@@ -97,6 +106,7 @@ def register_harvest_processing_tools(registry: ToolRegistry):
     registry.register(Tool(
         name="spatial_join",
         danger="write",
+        writes_at=("output_path",),
         label=QT_TRANSLATE_NOOP("AIAgent", "Join {join_layer} onto {target_layer}"),
         input_schema={
             "type": "object",
@@ -131,7 +141,10 @@ def register_harvest_processing_tools(registry: ToolRegistry):
 
     registry.register(Tool(
         name="raster_calculator",
+        derives_layers=True,
         danger="write",
+        takes_temporary_output=True, own_area_rule=True,
+        writes_at=("output_path", "output"),
         label=QT_TRANSLATE_NOOP("AIAgent", "Raster calculation[ as {name}]"),
         input_schema={
             "type": "object",
@@ -213,7 +226,6 @@ def _run_or_defer(alg_id: str, params: dict, output_name: str):
 
 
 
-    from .processing_run import _heavy_inputs, _start_async_processing
 
     if _heavy_inputs(params):
         alg = QgsApplication.processingRegistry().algorithmById(alg_id)
@@ -246,7 +258,6 @@ def _register_output(out, name: str) -> dict:
             layer = QgsRasterLayer(out, name)
     if layer is None or not layer.isValid():
         return {"output": out if isinstance(out, str) else str(out), "added_to_project": False}
-    from ._layers import take_layer_name
 
     final_name, renamed = take_layer_name(name, keep_id=layer.id())
     layer.setName(final_name)
@@ -278,7 +289,6 @@ def _output_target(output_path: str | None, memory_name: str, inputs=()) -> str:
     text = str(output_path or "").strip()
     if not text or text.lower() in _TEMPORARY_SPELLINGS or text.lower().startswith("memory:"):
         return f"memory:{memory_name}"
-    from ..core import output_paths
 
     path = _expand(output_paths.resolve(text)[0])
     directory = os.path.dirname(path)
@@ -290,11 +300,11 @@ def _output_target(output_path: str | None, memory_name: str, inputs=()) -> str:
 
 
 
-        from .layer_io_tools import _release_layers_at_path, _same_file
+        from .layer_files import release_layers_at_path, same_file
 
         sources = [(layer.source() or "").split("|", 1)[0] for layer in inputs if layer is not None]
-        if not any(source and _same_file(source, path) for source in sources):
-            _release_layers_at_path(path, skip_ids={layer.id() for layer in inputs if layer is not None},
+        if not any(source and same_file(source, path) for source in sources):
+            release_layers_at_path(path, skip_ids={layer.id() for layer in inputs if layer is not None},
                                     delete_existing=True)
     return path
 
@@ -334,7 +344,7 @@ def _zonal_statistics(args: dict) -> dict:
         values_raster = rast.clone()
         values_raster.dataProvider().setUserNoDataValue(band, [QgsRasterRange(nodata, nodata)])
     elif not declared:
-        sentinel = _nodata_sentinel(rast, band)
+        sentinel = nodata_sentinel(rast, band)
         if sentinel is not None:
             return tool_error(
                 f"{rast.name()!r} band {band} declares no NoData, and its minimum is {sentinel:g}, the usual "
@@ -406,10 +416,7 @@ def _spatial_join(args: dict) -> dict:
 
 
 
-    try:
-        method = int(names.get(raw_method, raw_method))
-    except (TypeError, ValueError):
-        method = None
+    method = as_int(names.get(raw_method, raw_method) if isinstance(raw_method, (str, int, float)) else None)
     if method not in JOIN_METHODS:
         return tool_error(
             f"method {raw_method!r} is not one of {sorted(names)} or {sorted(JOIN_METHODS)}.",
@@ -664,8 +671,6 @@ class _RasterGridCalculator(QgsProcessingAlgorithm):
     def processAlgorithm(self, parameters, context, feedback):
         from qgis.analysis import QgsRasterCalculator, QgsRasterCalculatorEntry
 
-        from .data_common import worker_options
-
         calc = None
         entries = []
         layers = []
@@ -718,9 +723,7 @@ def _raster_calculator(args: dict) -> dict:
         import tempfile
 
 
-
-        stem = re.sub(r"[^A-Za-z0-9_-]+", "_", str(args.get("name") or "calc")).strip("_") or "calc"
-        stem = _avoid_reserved_name(stem)
+        stem = file_stem(args.get("name"), "calc")
         wanted_path = os.path.join(tempfile.mkdtemp(prefix="calc-"), f"{stem}.tif")
     output_path = _expand(wanted_path)
     project = QgsProject.instance()
@@ -771,8 +774,6 @@ def _raster_calculator(args: dict) -> dict:
 
 
 
-    from .processing_decisions import calculator_inputs_on_grid
-
     warped = calculator_inputs_on_grid([refs[r] for r in dict.fromkeys(referenced)], ref_layer)
 
 
@@ -811,8 +812,6 @@ def _raster_calculator(args: dict) -> dict:
         extent, cols, rows = window
 
 
-    from .processing_run import _ASYNC_PIXELS, _start_async_processing
-
     pixels = cols * rows
 
 
@@ -821,11 +820,9 @@ def _raster_calculator(args: dict) -> dict:
 
 
 
-    from .query_tools import _remote_raster
-
 
     read = list({refs[r].id(): refs[r] for r in referenced}.values()) or [ref_layer]
-    streamed = sorted({layer.name() for layer in read if _remote_raster(layer)})
+    streamed = sorted({layer.name() for layer in read if is_remote_raster(layer)})
     if pixels > _ASYNC_PIXELS or streamed:
         blocked = _remote_input_too_large(referenced, refs, pixels, ref_layer, extent if windowed else None)
         if blocked:
@@ -881,16 +878,16 @@ def _raster_calculator(args: dict) -> dict:
 
 
 
-        from .layer_io_tools import _release_layers_at_path, _same_file
+        from .layer_files import release_layers_at_path, same_file
 
         inputs = [refs[r] for r in dict.fromkeys(referenced)] + [ref_layer]
-        if not any(_same_file((layer.source() or "").split("|", 1)[0], output_path) for layer in inputs):
+        if not any(same_file((layer.source() or "").split("|", 1)[0], output_path) for layer in inputs):
 
 
             leaving = {layer.id() for layer in rasters
-                       if _same_file((layer.source() or "").split("|", 1)[0], output_path)}
+                       if same_file((layer.source() or "").split("|", 1)[0], output_path)}
             entries = [entry for entry in entries if entry.raster.id() not in leaving]
-            replaced = _release_layers_at_path(output_path, delete_existing=True)
+            replaced = release_layers_at_path(output_path, delete_existing=True)
 
 
 
@@ -953,8 +950,6 @@ def _raster_calculator(args: dict) -> dict:
 
 
 
-    from .processing_run import raster_file_problem
-
     problem = raster_file_problem(output_path)
     if problem:
         free = ""
@@ -999,20 +994,11 @@ def _raster_calculator(args: dict) -> dict:
         out["replaced_layers"] = replaced
 
 
-    from ..core.postcondition import _band_range
-
     out.update(_band_range(layer))
     return out
 
 
 _algorithm_catalog_cache: dict = {"catalog": None}
-
-
-_STOPWORDS = frozenset([
-    "a", "all", "an", "and", "by", "create", "data", "each", "file", "for", "from", "in", "layer",
-    "layers", "make", "map", "my", "new", "of", "on", "or", "that", "the", "this", "to", "using",
-    "with",
-])
 
 def _algorithm_texts(alg) -> tuple[str, list[str], str]:
 
@@ -1123,34 +1109,48 @@ def _query_tokens(query: str) -> list[str]:
 
 
 
+    rules = _search_rules()
+    stop, shortest = set(rules.get("stopwords") or ()), rules.get("min_word_len", 1)
     latin = re.findall(r"[a-z]+", (query or "").lower())
-    words = [word for word in latin if len(word) > 2 and word not in _STOPWORDS]
+    words = [word for word in latin if len(word) >= shortest and word not in stop]
     ordered: dict = dict.fromkeys(words)
     ordered.update(dict.fromkeys(_unspaced_tokens(query)))
     return list(ordered)
 
 
-def _title_weight(token: str, title: str, title_words: set) -> float:
+def _search_rules() -> dict:
+
+
+    from ..core import tool_rules
+    from ..core.tool_registry import ServedValueMissing
+
+    rules = tool_rules.section("algorithm_search")
+    if not rules.get("weights"):
+        raise ServedValueMissing("services.tool_rules.algorithm_search")
+    return rules
+
+
+def _title_weight(token: str, title: str, title_words: set, weights: dict) -> float:
 
     if token in title_words:
-        return 3.0
+        return weights.get("title_word", 0.0)
     if any(token in word for word in title_words):
-        return 1.5
+        return weights.get("title_part", 0.0)
 
 
-    return 2.0 if token in title else 0.0
+    return weights.get("title_text", 0.0) if token in title else 0.0
 
 
-def _text_score(tokens: list[str], name: str, tags: list[str], description: str) -> float:
+def _text_score(tokens: list[str], name: str, tags: list[str], description: str, weights: dict) -> float:
 
     title = name.lower()
     title_words = set(re.findall(r"[a-z]+", title))
     about = description.lower()
     total = 0.0
     for token in tokens:
-        total += _title_weight(token, title, title_words)
-        total += 2.0 if any(token in tag for tag in tags) else 0.0
-        total += 0.5 if about and token in about else 0.0
+        total += _title_weight(token, title, title_words, weights)
+        total += weights.get("tag", 0.0) if any(token in tag for tag in tags) else 0.0
+        total += weights.get("description", 0.0) if about and token in about else 0.0
     return total
 
 
@@ -1162,14 +1162,15 @@ def _score_algorithm(tokens: list[str], entry: dict) -> float:
 
 
 
+    weights = _search_rules()["weights"]
     texts = [(entry["name"], entry["tags"], entry["description"])]
     if entry.get("source"):
         texts.append(entry["source"])
-    best = max(_text_score(tokens, *text) for text in texts)
+    best = max(_text_score(tokens, *text, weights) for text in texts)
     alg_id = entry["id"].lower()
-    best += 1.5 * len([token for token in tokens if token in alg_id])
+    best += weights.get("id_token", 0.0) * len([token for token in tokens if token in alg_id])
     if best > 0 and entry["provider"] == "native":
-        best += 0.5
+        best += weights.get("native", 0.0)
     return best
 
 

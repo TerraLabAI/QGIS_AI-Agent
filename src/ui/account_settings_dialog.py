@@ -12,6 +12,8 @@ from typing import NamedTuple
 
 from qgis.PyQt.QtCore import QLocale
 
+from ..core.numbers import as_int
+
 _ACCOUNT_OFFLINE_CODES = frozenset({
     "NO_INTERNET", "DNS_ERROR", "CONNECTION_REFUSED", "PROXY_ERROR",
     "TIMEOUT", "SSL_ERROR",
@@ -31,15 +33,6 @@ class PlanRuns(NamedTuple):
     trial_interval: str | None = None
 
 
-def _as_int(value) -> int | None:
-    if value is None or isinstance(value, bool):
-        return None
-    try:
-        return int(value)
-    except (TypeError, ValueError):
-        return None
-
-
 def resolve_plan_runs(usage: dict, sub: dict) -> PlanRuns:
 
     usage = usage if isinstance(usage, dict) else {}
@@ -50,12 +43,12 @@ def resolve_plan_runs(usage: dict, sub: dict) -> PlanRuns:
         is_subscriber = not bool(usage["is_free_tier"])
     else:
         is_subscriber = str(sub.get("plan", "")).lower() == "pro"
-    used = _as_int(usage.get("runs_used"))
+    used = as_int(usage.get("runs_used"))
     if used is None:
-        used = _as_int(sub.get("usage_this_month"))
-    limit = _as_int(usage.get("runs_limit"))
+        used = as_int(sub.get("usage_this_month"))
+    limit = as_int(usage.get("runs_limit"))
     if limit is None:
-        limit = _as_int(sub.get("quota_limit"))
+        limit = as_int(sub.get("quota_limit"))
     reset = (usage.get("period_end") or usage.get("reset_date")
              or sub.get("current_period_end"))
     trial_end = usage.get("plan_trial_ends_on")

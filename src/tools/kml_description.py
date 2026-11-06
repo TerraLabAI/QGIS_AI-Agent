@@ -71,7 +71,6 @@ def _pairs_of(rows: list) -> tuple[list[tuple[str, str]], bool]:
     cells = [row for row in rows if row]
     if (len(cells) == 2 and len(cells[0]) == len(cells[1]) >= 2
             and all(kind == "th" for kind, _ in cells[0]) and not all(kind == "th" for kind, _ in cells[1])):
-
         return [(name, value) for (_k, name), (_v, value) in zip(cells[0], cells[1]) if name], False
     pairs, other = [], False
     for row in cells:

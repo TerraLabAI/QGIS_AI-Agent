@@ -23,11 +23,15 @@ from qgis.core import QgsApplication, QgsTask
 from qgis.PyQt.QtCore import Qt
 from qgis.PyQt.QtWidgets import QDialog, QHBoxLayout, QLabel, QPlainTextEdit, QPushButton, QVBoxLayout
 
-from ..core.host_platform import os_info, os_label
+from ..api.terralab_client import TerraLabClient
+from ..core.host_platform import os_info, os_label, plugin_version
 from ..core.log_scrub import scrub_secrets, scrub_user_paths
 from ..core.logger import log_warning, recent_logs
+from ..core.served_state import SUPPORT_EMAIL, _served_text
 from .font_scale import scale_px_length, scale_qss_font_px
-from .shared import exec_dialog, get_support_email, plugin_version, tr
+from .session_export import render_markdown
+from .settings_pages import TEXTAREA_QSS
+from .shared import exec_dialog, tr
 from .style import (
     _BTN_GHOST,
     _BTN_PRIMARY,
@@ -40,6 +44,15 @@ from .style import (
     RED,
     with_platform_font,
 )
+from .transcript import redact_signed_urls
+
+
+def _report_email() -> str:
+
+
+
+    return _served_text("support_email", SUPPORT_EMAIL)
+
 
 
 
@@ -122,7 +135,7 @@ def feedback_payload(message: str, conversation: str, run_id: str, entry: str, r
     }
     body = {
         "product_id": "ai-agent", "kind": "feedback",
-        "message": (message or "").strip()[:1500],
+        "message": redact_signed_urls((message or "").strip())[:1500],
         "conversation": conversation,
         "context": {key: value for key, value in context.items() if value},
         "log_lines": lines, "line_count": len(lines), "truncated": False,
@@ -147,7 +160,6 @@ class _SendTask(QgsTask):
         self.answer: dict = {}
 
     def run(self) -> bool:
-        from ..api.terralab_client import TerraLabClient
 
         try:
             self.answer = TerraLabClient().send_feedback(self._report, self._auth) or {}
@@ -193,7 +205,6 @@ class FeedbackDialog(QDialog):
         subtitle.setStyleSheet(scale_qss_font_px(f"color: {MUTED}; font-size: {FONT_BODY}px;"))
         layout.addWidget(subtitle)
         layout.addSpacing(8)
-        from .settings_pages import TEXTAREA_QSS
 
         self._text = QPlainTextEdit(self)
         self._text.setPlaceholderText(tr("Example: the buffer came out in degrees instead of metres."))
@@ -243,7 +254,7 @@ class FeedbackDialog(QDialog):
     def _note_text(self) -> str:
         if not self._auth():
             return tr("Sign in to send feedback from here, or write to us at {email}.").format(
-                email=get_support_email())
+                email=_report_email())
         return tr("This report includes your description and the current conversation. "
                   "We use it to fix issues and improve AI Agent.")
 
@@ -266,7 +277,6 @@ class FeedbackDialog(QDialog):
         export = self.report()
         if export is None:
             return diagnostic_text(self._error, self._run_id)
-        from ..core.session_export import render_markdown
 
         return _clean(render_markdown(export))[-_CONVERSATION_CHARS_MAX:]
 
@@ -301,7 +311,7 @@ class FeedbackDialog(QDialog):
             self._failure.setText(tr("You sent several reports in a short time. Try again in a few minutes."))
         else:
             self._failure.setText(tr("Could not send. Check your connection and try again, or write to us at {email}.")
-                                  .format(email=get_support_email()))
+                                  .format(email=_report_email()))
         self._failure.show()
         self._sync_send()
 
@@ -373,7 +383,7 @@ def send_answer_words(widget, run_id: str, rating: str, text: str, done) -> bool
     provider = _near(widget, "diagnostics_provider")
     if provider is not None:
         try:
-            from ..core.session_export import render_markdown
+            from .session_export import render_markdown
 
             conversation = _clean(render_markdown(provider(run_id, "")))[-_CONVERSATION_CHARS_MAX:]
         except Exception as exc:  # noqa: BLE001

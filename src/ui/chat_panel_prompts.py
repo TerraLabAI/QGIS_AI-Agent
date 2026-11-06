@@ -17,22 +17,30 @@ from qgis.PyQt.QtWidgets import QHBoxLayout, QLabel, QPushButton, QVBoxLayout, Q
 
 from ..core import first_run_funnel
 from ..core.protocol import StopCode
+from . import style as S
+from .account_card import AccountCard
 from .cards import (
     ErrorCard,
     PermissionCard,
     QuestionCard,
     QuotaPauseCard,
 )
+from .cards_proposal import DiffTableCard, RecommendationCard
 from .cards_run import _NEW_CHAT, _NO_RETRY, InstallWaitCard, run_ending
-from .confirm_dialog import ConfirmDialog
+from .confirm_dialog import BADGE_PX, ROW_SPACING, SIDE_PAD, ConfirmDialog
+from .font_scale import scale_px_length, scale_qss_font_px
+from .icons import pixmap_for
 from .loader import ElapsedClock, ShimmerLabel, user_waiting
-from .widgets import Spinner
+from .plugin_self_update import one_click_result_tracker, start_plugin_self_update
+from .shared import PLUGIN_DIR
+from .terralab_menu import open_plugin_manager_updates
+from .widgets import ElidedLabel, Spinner
 
 
 class _ChatPanelPrompts:
 
     def ask_permission(self, tool_call_id: str, run_id: str, sentence: str, args, addresses=None,
-                       grant: str = "", group: str = "") -> None:
+                       grant: str = "", group: str = "", preview=None) -> None:
         run = self._live_run(run_id)
         if run is None:
 
@@ -70,7 +78,7 @@ class _ChatPanelPrompts:
             QTimer.singleShot(0, self._show_pending_card)
             return
         card = PermissionCard(tool_call_id, sentence, dict(args or {}), name=name, addresses=addresses,
-                              grant=grant, group=group)
+                              grant=grant, group=group, preview=preview)
 
         card.quiet = tool is not None
         card.decided.connect(self.permission_decided.emit)
@@ -191,11 +199,14 @@ class _ChatPanelPrompts:
 
 
         run = self._live_run(run_id)
-        if run is None:
+        task = run is None and self.tasks_panel.is_live(run_id)
+        if run is None and not task:
 
             self.question_answered.emit(tool_call_id, "")
             return
-        open_card = next((c for c in reversed(run.permissions)
+
+        cards = self._task_cards.setdefault(run_id, []) if task else run.permissions
+        open_card = next((c for c in reversed(cards)
                           if isinstance(c, QuestionCard) and c.is_open()), None)
         if open_card is not None:
             open_card.add_page(tool_call_id, question, list(options or []), allow_free_text,
@@ -207,10 +218,11 @@ class _ChatPanelPrompts:
                             recommended=recommended, why=why,
                             multiple=multiple, details=details, header=header)
         card.answered.connect(self.question_answered.emit)
-        self._wait_on_user(run_id, self.tr("Waiting for your answer"))
+        if not task:
+            self._wait_on_user(run_id, self.tr("Waiting for your answer"))
         self.composer.set_reply_placeholder(self.tr("Reply to the question..."))
         self.message_list.register_permission_card(tool_call_id, card)
-        run.permissions.append(card)
+        cards.append(card)
         self._add(card)
         if not self._composer_is_being_typed_in():
             card.focus()
@@ -229,13 +241,26 @@ class _ChatPanelPrompts:
         run.permissions.append(card)
         self._add(card)
 
+    def ask_account(self, tool_call_id: str, run_id: str, need) -> None:
+
+
+        run = self._live_run(run_id)
+        if run is None:
+            self.question_answered.emit(tool_call_id, "")
+            return
+        card = AccountCard(tool_call_id, dict(need or {}))
+        card.answered.connect(self.question_answered.emit)
+        self._wait_on_user(run_id, self.tr("Waiting for your answer"))
+        self.message_list.register_permission_card(tool_call_id, card)
+        run.permissions.append(card)
+        self._add(card)
+
     def ask_recommendation(self, tool_call_id: str, run_id: str, title: str, proposal: str,
                            entity: str = "", value: str = "", confidence: str = "high",
                            alternatives=None) -> None:
 
 
 
-        from .cards_proposal import RecommendationCard
 
         run = self._live_run(run_id)
         if run is None:
@@ -270,7 +295,6 @@ class _ChatPanelPrompts:
 
 
 
-        from .cards_proposal import DiffTableCard
 
         card = DiffTableCard(run_id, title, list(columns or []), list(rows or []))
         card.applied.connect(self.diff_applied.emit)
@@ -541,15 +565,18 @@ class _ChatPanelPrompts:
             self.update_banner.offer(version, note)
         self._show_thread_surface()
 
+    def show_update_download(self, version: str) -> None:
+
+        self.update_gate.hide()
+        self.update_banner.offer_download(version)
+        self._show_thread_surface()
+
     def _update_now(self, version: str) -> None:
 
 
 
 
 
-        from .plugin_self_update import one_click_result_tracker, start_plugin_self_update
-        from .shared import PLUGIN_DIR
-        from .terralab_menu import open_plugin_manager_updates
 
         self.update_clicked.emit(version)
         self.update_banner.set_busy(True)
@@ -603,9 +630,6 @@ class _LayerList(QWidget):
 
     def __init__(self, items: list, parent=None):
         super().__init__(parent)
-        from . import style as S
-        from .confirm_dialog import BADGE_PX, ROW_SPACING, SIDE_PAD
-        from .font_scale import scale_px_length, scale_qss_font_px
 
         self._qss_label = scale_qss_font_px(
             f"font-size: 11px; color: {S.INK_3}; background: transparent;")
@@ -656,9 +680,6 @@ class _LayerList(QWidget):
 
     def _row(self, name: str) -> QWidget:
         from qgis.PyQt.QtGui import QColor
-
-        from .icons import pixmap_for
-        from .widgets import ElidedLabel
 
         row = QWidget(self)
         line = QHBoxLayout(row)

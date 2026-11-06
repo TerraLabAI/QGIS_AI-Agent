@@ -22,29 +22,46 @@ from qgis.core import (
     QgsProcessingFeedback,
     QgsProcessingUtils,
     QgsProject,
-    QgsProperty,
     QgsRasterLayer,
-    QgsTask,
     QgsVectorLayer,
     QgsVectorLayerFeatureSource,
     QgsWkbTypes,
 )
-from qgis.PyQt import sip
 from qgis.PyQt.QtCore import QFileInfo
 
 from ..core import background, ground, invalid_geometry, layer_order
+from ..core import provenance as origin
 from ..core.context_layers import count_is_cheap
 from ..core.crs_ref import crs_ref
-from ..core.host_platform import remove_quietly, remove_tree
+from ..core.host_platform import remove_tree
+from ..core.layer_release import (
+    CANCELED_AT_UNLOAD,
+    PROCESSING_TASKS,
+    cleanup_canceled_destination,
+    let_go,
+    on_proc_progress,
+    on_proc_terminated,
+    release_held,
+    remove_layers,
+    sweep_consumed_tasks,
+    sync_with_qgis,
+    unwatch_if_idle,
+    watch_removals,
+)
 from ..core.logger import log_warning
-from ..core.policy import AGENT_TMP_DIR, create_managed_temp_dir
-from ..core.qt_compat import enum_member
+from ..core.output_paths import gpkg_sink_uri, gpkg_table_target
+from ..core.policy import create_managed_temp_dir
+from ..core.postcondition import read_ahead
+from ..core.provenance import existing_files
 from ..core.security import validate_path
 from ..core.serialization import cut_string
 from ..core.tool_registry import coded_fact, tool_error
+from ..core.vsi import STREAMED_PREFIXES
 from . import processing_child
-from .layer_io_tools import _release_layers_at_path, _same_file
-from .layer_lookup import _find_layer
+from ._layers import resolve_layer
+from .crs_at_load import normalise_crs
+from .data_common import built_here, worker_options
+from .layer_files import release_layers_at_path, same_file
 from .postconditions import joined_input_fields, read_ahead_memory, report_checks
 from .postconditions import read_ahead as read_checks_ahead
 from .processing_crs_checks import (
@@ -56,7 +73,6 @@ from .processing_crs_checks import (
 )
 from .processing_decisions import (
     _FIELD_EXISTS_RE,
-    _goes_to_task,
     _processing_error,
     _threadable,
     _unsafe_processing_algorithm,
@@ -67,8 +83,6 @@ from .processing_decisions import (
 from .processing_destinations import (
     _destination_names,
     _ensure_proj_env,
-    _gpkg_sink_uri,
-    _gpkg_table_target,
     _input_file_paths,
     _inputs_as_layers,
     _missing_destinations,
@@ -90,6 +104,7 @@ from .processing_guards import (
     _parameter_sanity,
     _raster_size_sanity,
     _resolve_layer_inputs,
+    _takes_rasters,
     _undeclared_nodata_check,
     _unresolved_input_check,
     _window_sanity,
@@ -97,15 +112,12 @@ from .processing_guards import (
     localise_streamed_rasters,
     selected_sources,
     source_definition,
+    streamable_path,
     streamed_raster_addresses,
 )
 from .processing_paths import alias_fragile_paths, safe_output_name
 from .processing_stamp import _stamp_provenance
-from .stac_tools import normalise_crs
 
-_PROCESSING_TASKS: dict[str, dict] = {}
-
-_CANCELED_AT_UNLOAD: dict[str, dict] = {}
 
 class _CapturingFeedback(QgsProcessingFeedback):
 
@@ -203,19 +215,29 @@ def _vector_destination(definition) -> bool:
 _URI_SCHEME = re.compile(r"^[A-Za-z][A-Za-z0-9+.-]+:")
 
 
+
+
+_OGR_DRIVERS = {"gpkg": "GPKG", "shp": "ESRI Shapefile", "geojson": "GeoJSON", "json": "GeoJSON", "csv": "CSV",
+                "kml": "LIBKML", "gml": "GML", "fgb": "FlatGeobuf", "dxf": "DXF", "sqlite": "SQLite"}
+
+
 def _ogr_driver_for(path: str) -> str:
 
     if _URI_SCHEME.match(path):
         return "uri"
-    ext = os.path.splitext(path)[1].lstrip(".")
+    ext = os.path.splitext(path)[1].lstrip(".").lower()
     if not ext:
         return ""
+    if ext in _OGR_DRIVERS:
+        return _OGR_DRIVERS[ext]
     try:
         from qgis.core import QgsVectorFileWriter
 
-        return str(QgsVectorFileWriter.driverForExtension(ext) or "")
+        driver = str(QgsVectorFileWriter.driverForExtension(ext) or "")
     except Exception:  # noqa: BLE001
         return "unknown"
+    _OGR_DRIVERS[ext] = driver
+    return driver
 
 
 def _record_history(alg, parameters: dict, context) -> dict:
@@ -225,8 +247,6 @@ def _record_history(alg, parameters: dict, context) -> dict:
 
 
 
-
-    from ..core import provenance as origin
 
     provenance = {"algorithm": alg.id(), "command": ""}
     try:
@@ -265,8 +285,6 @@ _PREPARED_AT_ONCE = 4
 
 def _remote_raster_strings(alg, parameters: dict) -> list:
 
-    from ..core.vsi import STREAMED_PREFIXES
-    from .processing_guards import _takes_rasters
 
     found = []
     for definition in alg.parameterDefinitions():
@@ -309,7 +327,6 @@ def prepare_remote_rasters(alg, parameter_sets: list):
 
     if alg is None:
         return None
-    from .processing_guards import streamable_path
 
     remote = []
     for parameters in parameter_sets:
@@ -319,7 +336,6 @@ def prepare_remote_rasters(alg, parameter_sets: list):
         return None
 
     def work():
-        from .data_common import built_here, worker_options
 
         built = {}
 
@@ -535,7 +551,7 @@ def _run_processing(args: dict, algorithm=None) -> dict:
 
 
                 is_path = any(mark in item for mark in ("|", "/", "\\"))
-                found = QgsProject.instance().mapLayer(item) if is_path else _find_layer(item)
+                found = QgsProject.instance().mapLayer(item) if is_path else resolve_layer(item)
                 if found is not None:
                     input_ids.add(found.id())
 
@@ -543,7 +559,7 @@ def _run_processing(args: dict, algorithm=None) -> dict:
     input_paths = _input_file_paths(parameters, destination_names)
 
     def _protects_input(path: str) -> bool:
-        return any(_same_file(path, other) for other in input_paths)
+        return any(same_file(path, other) for other in input_paths)
 
 
 
@@ -567,7 +583,7 @@ def _run_processing(args: dict, algorithm=None) -> dict:
                 continue
 
             if isinstance(current_value, str) and current_value != "memory:":
-                table_target = _gpkg_table_target(current_value)
+                table_target = gpkg_table_target(current_value)
                 if table_target is not None:
                     gpkg_path, table_name = table_target
                     if not os.path.exists(gpkg_path):
@@ -576,7 +592,7 @@ def _run_processing(args: dict, algorithm=None) -> dict:
                     path_error = validate_path(gpkg_path, write=True)
                     if path_error:
                         return tool_error(path_error, "INVALID_ARGS")
-                    sink_uri = _gpkg_sink_uri(gpkg_path, table_name)
+                    sink_uri = gpkg_sink_uri(gpkg_path, table_name)
                     if sink_uri is None:
                         return tool_error(
                             f"{name}: a GeoPackage path cannot contain a single quote and a table name "
@@ -623,7 +639,7 @@ def _run_processing(args: dict, algorithm=None) -> dict:
                 continue
             layer = QgsProject.instance().mapLayer(item)
             source = layer.source() if layer is not None else item
-            table = _gpkg_table_target(source)
+            table = gpkg_table_target(source)
             if table is not None:
                 input_tables.add((os.path.normcase(os.path.abspath(table[0])), table[1].casefold()))
             if layer is not None:
@@ -634,7 +650,7 @@ def _run_processing(args: dict, algorithm=None) -> dict:
                     input_sources.append(path)
     for kind, name, payload in plans:
         overwritten = ""
-        if kind == "file" and (_protects_input(payload) or any(_same_file(payload, other) for other in input_sources)):
+        if kind == "file" and (_protects_input(payload) or any(same_file(payload, other) for other in input_sources)):
             overwritten = payload
         elif kind == "table" and (os.path.normcase(os.path.abspath(payload[0])), payload[1].casefold()) in input_tables:
             overwritten = f"{payload[0]}|layername={payload[1]}"
@@ -787,7 +803,7 @@ def _run_processing(args: dict, algorithm=None) -> dict:
                 if parent and not os.path.isdir(parent):
                     os.makedirs(parent, exist_ok=True)
                 if not _protects_input(payload):
-                    released.extend(_release_layers_at_path(payload, skip_ids=input_ids, delete_existing=not appends))
+                    released.extend(release_layers_at_path(payload, skip_ids=input_ids, delete_existing=not appends))
     except Exception as e:
         return tool_error(f"Failed to prepare processing outputs: {e}")
 
@@ -803,8 +819,6 @@ def _run_processing(args: dict, algorithm=None) -> dict:
 
 
 
-    from ..core.provenance import existing_files
-
     try:
         existed = existing_files(sanitized_parameters)
     except Exception as exc:  # noqa: BLE001
@@ -812,9 +826,9 @@ def _run_processing(args: dict, algorithm=None) -> dict:
         existed = None
 
 
-    child_job = None if _goes_to_task(alg, args, parameters) else processing_child.plan(
-        alg, algorithm_id, run_parameters, context)
-    if child_job is not None or _goes_to_task(alg, args, parameters):
+    threaded = _threadable(alg)
+    child_job = None if threaded else processing_child.plan(alg, algorithm_id, run_parameters, context)
+    if child_job is not None or threaded:
         started = _start_async_processing(
             alg,
             algorithm_id,
@@ -833,7 +847,7 @@ def _run_processing(args: dict, algorithm=None) -> dict:
             repairs += dropped
 
 
-        entry = _PROCESSING_TASKS.get(started.get("task_id"))
+        entry = PROCESSING_TASKS.get(started.get("task_id"))
         for key, value in (("repairs", repairs), ("selection", selection), ("defaults", defaults),
                            ("measurement", measurement.get("measurement")), ("warning", warning),
                            ("unfilled_dem", unfilled_dem)):
@@ -887,7 +901,7 @@ def _run_processing(args: dict, algorithm=None) -> dict:
                     for item in (value if isinstance(value, (list, tuple)) else [value]):
                         if not isinstance(item, str) or not os.path.isfile(item) or _protects_input(item):
                             continue
-                        released.extend(_release_layers_at_path(item, skip_ids=input_ids,
+                        released.extend(release_layers_at_path(item, skip_ids=input_ids,
                                                                 delete_existing=not appends))
                 try:
                     result = processing.run(target, run_parameters, feedback=feedback, context=context)
@@ -1106,10 +1120,14 @@ def _process_outputs(result_map: dict, context=None, output_name=None, provenanc
 
 
 
-        table_target = _gpkg_table_target(declared) if isinstance(declared, str) else None
+        table_target = gpkg_table_target(declared) if isinstance(declared, str) else None
         if table_target:
             value = f"{table_target[0]}|layername={table_target[1]}"
-        if isinstance(value, QgsMapLayer):
+        if _output_kind(algorithm_id, key, algorithm) == "outputString":
+
+
+            output[key] = _plain_output(value)
+        elif isinstance(value, QgsMapLayer):
             if not value.isValid():
                 output[key] = {"layer_name": value.name(), "readable": False,
                                "warning": "the algorithm returned an invalid QGIS layer"}
@@ -1239,7 +1257,7 @@ def _style_input_layer(destination_parameters):
     if isinstance(value, QgsRasterLayer):
         return value
     if isinstance(value, str) and value.strip():
-        layer = QgsProject.instance().mapLayer(value) or _find_layer(value)
+        layer = QgsProject.instance().mapLayer(value) or resolve_layer(value)
         return layer if isinstance(layer, QgsRasterLayer) else None
     return None
 
@@ -1271,7 +1289,7 @@ def _field_rebuild_input_layer(destination_parameters):
     if isinstance(value, QgsVectorLayer):
         return value
     if isinstance(value, str) and value.strip():
-        layer = QgsProject.instance().mapLayer(value) or _find_layer(value)
+        layer = QgsProject.instance().mapLayer(value) or resolve_layer(value)
         return layer if isinstance(layer, QgsVectorLayer) else None
     return None
 
@@ -1307,16 +1325,20 @@ def _carried_field_setup(source_layer, target_layer) -> list:
     return carried
 
 
-def _output_hint(algorithm_id, key, algorithm=None) -> str:
+def _output_kind(algorithm_id, key, algorithm=None) -> str:
 
 
     try:
         algorithm = algorithm or QgsApplication.processingRegistry().algorithmById(str(algorithm_id or ""))
         definition = algorithm.outputDefinition(key) if algorithm is not None else None
-        kind = definition.type() if definition is not None else ""
+        return definition.type() if definition is not None else ""
     except Exception:  # noqa: BLE001
         return ""
-    return {"outputRaster": "Raster", "outputVector": "Vector"}.get(kind, "")
+
+
+def _output_hint(algorithm_id, key, algorithm=None) -> str:
+
+    return {"outputRaster": "Raster", "outputVector": "Vector"}.get(_output_kind(algorithm_id, key, algorithm), "")
 
 
 def _layer_from_string(value: str, lookup, hint: str = "", load: bool = True):
@@ -1444,19 +1466,6 @@ def _plain_output(value):
     return value
 
 
-def _sweep_consumed_tasks():
-
-
-
-    now = time.time()
-    stale = [
-        tid for tid, e in _PROCESSING_TASKS.items()
-        if e.get("_consumed") and (now - e.get("_consumed_at", now)) > 600 and not e.get("held_layers")
-    ]
-    for tid in stale:
-        _PROCESSING_TASKS.pop(tid, None)
-
-
 
 
 
@@ -1537,7 +1546,7 @@ def _heavy_inputs(parameters: dict) -> bool:
     for value in (parameters or {}).values():
         for item in (value if isinstance(value, (list, tuple)) else [value]):
             layer = item if hasattr(item, "featureCount") or hasattr(item, "width") else (
-                _find_layer(item) if isinstance(item, str) else None)
+                resolve_layer(item) if isinstance(item, str) else None)
             if layer is None:
                 if isinstance(item, str) and _file_is_big(item):
                     return True
@@ -1564,7 +1573,7 @@ def _start_async_processing(
     existed=None,
     child_job=None,
 ) -> dict:
-    _sweep_consumed_tasks()
+    sweep_consumed_tasks()
     task_id = "proc-" + uuid.uuid4().hex[:12]
     context = QgsProcessingContext()
 
@@ -1598,7 +1607,7 @@ def _start_async_processing(
     else:
         task = QgsProcessingAlgRunnerTask(alg, run_parameters if run_parameters is not None else parameters,
                                           context, feedback)
-    _PROCESSING_TASKS[task_id] = {
+    PROCESSING_TASKS[task_id] = {
         "status": "running",
         "progress": 0,
         "algorithm": algorithm_id,
@@ -1619,10 +1628,10 @@ def _start_async_processing(
     }
     if path_aliases is not None:
         path_aliases.owner = task_id
-        _PROCESSING_TASKS[task_id]["path_aliases"] = path_aliases
+        PROCESSING_TASKS[task_id]["path_aliases"] = path_aliases
     if child_job is not None:
-        _PROCESSING_TASKS[task_id]["separate_qgis"] = True
-    task.progressChanged.connect(lambda p, tid=task_id: _on_proc_progress(tid, p))
+        PROCESSING_TASKS[task_id]["separate_qgis"] = True
+    task.progressChanged.connect(lambda p, tid=task_id: on_proc_progress(tid, p))
     watch_removals()
 
 
@@ -1639,7 +1648,7 @@ def _start_async_processing(
 
 
 
-    task.taskTerminated.connect(lambda tid=task_id: _on_proc_terminated(tid))
+    task.taskTerminated.connect(lambda tid=task_id: on_proc_terminated(tid))
     QgsApplication.taskManager().addTask(task)
     return {
         "task_id": task_id,
@@ -1672,7 +1681,7 @@ def _on_child_done(task_id: str, ok: bool, report: dict, context, feedback) -> N
         feedback.pushWarning(str(line))
     for line in report.get("console") or []:
         feedback.pushConsoleInfo(str(line))
-    entry = _PROCESSING_TASKS.get(task_id)
+    entry = PROCESSING_TASKS.get(task_id)
     if entry is not None:
 
         entry["separate_qgis"] = {key: report[key] for key in ("init_s", "run_s", "wall_s") if key in report}
@@ -1694,119 +1703,6 @@ def _on_child_done(task_id: str, ok: bool, report: dict, context, feedback) -> N
     _on_proc_done(task_id, ok, results, context)
     if report.get("work_dir"):
         remove_tree(report["work_dir"])
-
-
-def register_task(task, label: str, connect=None) -> tuple:
-
-
-
-
-
-
-
-
-
-
-
-
-    _sweep_consumed_tasks()
-    task_id = "task-" + uuid.uuid4().hex[:12]
-    entry = {
-        "status": "running",
-        "progress": 0,
-        "algorithm": label,
-        "started_at": time.strftime("%H:%M:%S"),
-        "task": task,
-    }
-    _PROCESSING_TASKS[task_id] = entry
-    try:
-        task.progressChanged.connect(lambda value, tid=task_id: _on_proc_progress(tid, value))
-    except (AttributeError, TypeError):
-        pass
-    try:
-        task.taskTerminated.connect(lambda tid=task_id: _on_proc_terminated(tid))
-    except (AttributeError, TypeError):
-        pass
-    if connect is not None:
-        connect(task_id, entry)
-    QgsApplication.taskManager().addTask(task)
-    return task_id, entry
-
-
-def adopt_running_call(task, label: str) -> tuple:
-
-
-
-
-    _sweep_consumed_tasks()
-    task_id = "task-" + uuid.uuid4().hex[:12]
-    entry = {"status": "running", "progress": 0, "algorithm": label,
-             "started_at": time.strftime("%H:%M:%S"), "task": task}
-    _PROCESSING_TASKS[task_id] = entry
-    return task_id, entry
-
-
-def note_adopted_bytes(task_id: str, done, total) -> None:
-
-    entry = _PROCESSING_TASKS.get(task_id)
-    if entry is not None and entry.get("status") == "running":
-        entry["received_bytes"] = int(done or 0)
-        if total:
-            entry["total_bytes"] = int(total)
-
-
-def settle_adopted(task_id: str, result, error_text: str) -> None:
-
-    entry = _PROCESSING_TASKS.get(task_id)
-    if entry is None or entry.get("status") == "canceled":
-        return
-    entry["task"] = None
-    if error_text or not isinstance(result, dict):
-        entry.update(status="error", error=(error_text or "No result").split("\n", 1)[0])
-    elif result.get("_error"):
-        entry.update(status="error", error=result.get("_error"), code=result.get("_code") or result.get("code"),
-                     hint=result.get("hint"))
-    else:
-        entry.update(status="complete", progress=100, outputs=result)
-
-
-def _cleanup_canceled_destination(entry: dict) -> None:
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    for path in entry.get("destination_paths") or ():
-
-
-        stem, extension = os.path.splitext(path)
-        sidecars = [path + suffix for suffix in ("-wal", "-shm", "-journal")]
-        if extension.lower() == ".shp":
-            sidecars += [stem + suffix for suffix in (".shx", ".dbf", ".prj", ".cpg", ".qix")]
-        for candidate in [path] + sidecars:
-            if os.path.isfile(candidate) and not remove_quietly(candidate):
-                log_warning(f"Partial output {candidate} not removed after cancel: another program holds it.")
-    folder = entry.get("temporary_dir")
-    if not isinstance(folder, str) or not folder:
-        return
-    try:
-        real = os.path.realpath(folder)
-
-        if (os.path.dirname(real) == os.path.realpath(AGENT_TMP_DIR)
-                and os.path.basename(real).startswith("processing-") and os.path.isdir(real)):
-            if remove_tree(real):
-                log_warning(f"Partial temporary output {folder} not fully removed after cancel.")
-    except OSError as exc:
-        log_warning(f"Partial temporary output {folder} not removed after cancel: {exc}")
 
 
 def _carry_advice(entry: dict, explained: dict) -> None:
@@ -1832,78 +1728,15 @@ def _forget_canceled_destinations(paths) -> None:
         return
     if not wanted:
         return
-    for entry in list(_PROCESSING_TASKS.values()) + list(_CANCELED_AT_UNLOAD.values()):
+    for entry in list(PROCESSING_TASKS.values()) + list(CANCELED_AT_UNLOAD.values()):
         if entry.get("status") != "canceled" or not entry.get("destination_paths"):
             continue
         entry["destination_paths"] = [p for p in entry["destination_paths"] if key(p) not in wanted]
 
 
-def canceled_output(path: str) -> bool:
-
-
-
-
-
-    def key(value: str) -> str:
-        return os.path.normcase(os.path.realpath(value))
-
-    try:
-        wanted = key(path)
-        for entry in list(_PROCESSING_TASKS.values()):
-            if entry.get("status") != "canceled":
-                continue
-            if any(key(other) == wanted for other in entry.get("destination_paths") or ()):
-                return True
-            folder = entry.get("temporary_dir")
-            if isinstance(folder, str) and folder and wanted.startswith(key(folder) + os.sep):
-                return True
-    except (OSError, TypeError, ValueError) as exc:
-        log_warning(f"Cancelled output check failed for {path}: {exc}")
-    return False
-
-
-def _on_proc_terminated(task_id: str):
-
-
-
-
-
-
-    entry = _PROCESSING_TASKS.get(task_id) or _CANCELED_AT_UNLOAD.pop(task_id, None)
-    if entry is None:
-        return
-    if entry.get("path_aliases") is not None:
-        entry.pop("path_aliases").remove()
-    if entry.get("status") == "canceled":
-
-
-
-
-        _cleanup_canceled_destination(entry)
-        _let_go(entry)
-        return
-    if entry.get("status") != "running":
-        return
-    feedback = entry.get("feedback")
-    captured = "; ".join(getattr(feedback, "errors", [])[-5:]) if feedback else ""
-    entry["status"] = "error"
-    if captured:
-        entry["error"] = f"The algorithm stopped before it produced anything: {captured}"
-    else:
-        entry["error"] = "The algorithm stopped before it produced anything."
-        entry["hint"] = "async_run_stopped_silently"
-    _let_go(entry)
-
-
-def _on_proc_progress(task_id: str, progress: float):
-    entry = _PROCESSING_TASKS.get(task_id)
-    if entry is not None and entry.get("status") == "running":
-        entry["progress"] = int(progress)
-
-
 def _on_proc_done(task_id: str, ok: bool, results, context):
 
-    entry = _PROCESSING_TASKS.get(task_id) or _CANCELED_AT_UNLOAD.pop(task_id, None)
+    entry = PROCESSING_TASKS.get(task_id) or CANCELED_AT_UNLOAD.pop(task_id, None)
     if entry is None:
         return
     path_aliases = entry.pop("path_aliases", None)
@@ -1912,7 +1745,7 @@ def _on_proc_done(task_id: str, ok: bool, results, context):
         results = path_aliases.restore(results)
         path_aliases.remove()
     if entry.get("status") == "canceled":
-        _cleanup_canceled_destination(entry)
+        cleanup_canceled_destination(entry)
     elif ok and entry.get("alg") is not None and _missing_destinations(entry["alg"], entry.get("parameters") or {}):
 
 
@@ -1954,161 +1787,7 @@ def _on_proc_done(task_id: str, ok: bool, results, context):
             entry["error"] = "Algorithm reported failure and no log was captured."
             entry["hint"] = "async_run_failed_no_log"
         entry.update(invalid_geometry.facts(entry.get("parameters"), context))
-    _let_go(entry)
-
-
-def _let_go(entry: dict) -> None:
-
-
-    for heavy in ("task", "context", "feedback", "alg", "parameters"):
-        entry.pop(heavy, None)
-    _release_held(entry)
-    unwatch_if_idle()
-
-
-def remove_layers(layers) -> list:
-
-
-
-
-
-
-
-
-
-
-
-    project = QgsProject.instance()
-    gone = []
-    taken = False
-    for item in layers or ():
-        try:
-            layer = project.mapLayer(item if isinstance(item, str) else item.id())
-            if layer is None:
-                continue
-            name = layer.name()
-            readers = _readers_of(layer)
-            if not readers:
-                project.removeMapLayer(layer.id())
-            else:
-                held = project.takeMapLayer(layer)
-                if held is None:
-                    continue
-                taken = True
-                for entry in readers:
-                    if not any(other is held for other in entry.get("held_layers") or ()):
-                        entry.setdefault("held_layers", []).append(held)
-        except Exception as exc:  # noqa: BLE001
-            log_warning(f"A layer was not removed from the project: {exc}")
-            continue
-        gone.append(name)
-    if taken:
-        _canvas_follows_tree()
-    return gone
-
-
-def hold_on_removal(removed) -> None:
-
-
-
-
-
-
-    project = QgsProject.instance()
-    for item in removed or ():
-        try:
-            layer = project.mapLayer(item) if isinstance(item, str) else item
-            if layer is None or sip.isdeleted(layer):
-                continue
-            readers = _readers_of(layer)
-            if not readers:
-                continue
-            layer.setParent(None)
-            for entry in readers:
-                if not any(held is layer for held in entry.get("held_layers") or ()):
-                    entry.setdefault("held_layers", []).append(layer)
-        except Exception as exc:  # noqa: BLE001
-            log_warning(f"A removed layer was not kept for its task: {exc}")
-
-
-_WATCHING = False
-
-
-def watch_removals() -> None:
-
-    global _WATCHING
-    if _WATCHING:
-        return
-    QgsProject.instance().layersWillBeRemoved.connect(hold_on_removal)
-    _WATCHING = True
-
-
-def unwatch_if_idle() -> None:
-
-    global _WATCHING
-    if not _WATCHING or any(entry.get("task") is not None for entry in _PROCESSING_TASKS.values()):
-        return
-    try:
-        QgsProject.instance().layersWillBeRemoved.disconnect(hold_on_removal)
-    except (TypeError, RuntimeError):
-        pass
-    _WATCHING = False
-
-
-def _canvas_follows_tree() -> None:
-
-
-
-
-    try:
-        from qgis.utils import iface
-
-        bridge = iface.layerTreeCanvasBridge() if iface is not None else None
-        if bridge is not None:
-            bridge.setCanvasLayers()
-    except Exception as exc:  # noqa: BLE001
-        log_warning(f"The map canvas was not updated after a layer left the project: {exc}")
-
-
-def _readers_of(layer) -> list:
-
-
-
-
-    runs = [entry for entry in _PROCESSING_TASKS.values()
-            if entry.get("task") is not None and entry.get("parameters") and not entry.get("separate_qgis")]
-    if not runs:
-        return []
-    names = {layer.id(), layer.name()}
-    source = QgsProcessingUtils.normalizeLayerSource(layer.source())
-
-    def names_it(value) -> bool:
-        if isinstance(value, QgsMapLayer):
-            return value is layer
-        definition = getattr(value, "source", None)
-        if isinstance(definition, QgsProperty):
-            value = definition.staticValue()
-        return isinstance(value, str) and bool(value) and (
-            value in names or QgsProcessingUtils.normalizeLayerSource(value) == source)
-
-    return [entry for entry in runs
-            if any(names_it(item) for value in entry["parameters"].values()
-                   for item in (value if isinstance(value, (list, tuple)) else [value]))]
-
-
-def _release_held(entry: dict) -> None:
-
-
-
-    for layer in entry.pop("held_layers", None) or ():
-        holders = list(_PROCESSING_TASKS.values()) + list(_CANCELED_AT_UNLOAD.values())
-        if any(other is layer for holder in holders for other in holder.get("held_layers") or ()):
-            continue
-        try:
-            if not sip.isdeleted(layer) and QgsProject.instance().mapLayer(layer.id()) is not layer:
-                background.delete_here(layer)
-        except Exception as exc:  # noqa: BLE001
-            log_warning(f"A removed layer was not deleted after its task: {exc}")
+    let_go(entry)
 
 
 def _finish_outputs(entry: dict, results, context, built=None) -> None:
@@ -2207,7 +1886,7 @@ def _output_builds(result_map: dict, context, destination_parameters: dict, algo
     builds = {}
     for key, value in (result_map or {}).items():
         declared = destination_parameters.get(key)
-        table_target = _gpkg_table_target(declared) if isinstance(declared, str) else None
+        table_target = gpkg_table_target(declared) if isinstance(declared, str) else None
         if table_target:
             value = f"{table_target[0]}|layername={table_target[1]}"
         if not isinstance(value, str):
@@ -2267,8 +1946,6 @@ def _build_outputs(builds: dict, transform_context, entry: dict, reads: dict | N
 
 
 
-    from ..core.postcondition import read_ahead
-    from .data_common import built_here
 
     built = {}
     for value, hint in builds.items():
@@ -2316,85 +1993,32 @@ def _build_outputs(builds: dict, transform_context, entry: dict, reads: dict | N
 def _outputs_built(task_id: str, results, context, built, error: str) -> None:
 
 
-    entry = _PROCESSING_TASKS.get(task_id) or _CANCELED_AT_UNLOAD.pop(task_id, None)
+    entry = PROCESSING_TASKS.get(task_id) or CANCELED_AT_UNLOAD.pop(task_id, None)
 
     layers = ({value: (background.take(handle), problem) for value, (handle, problem) in built.items()}
               if isinstance(built, dict) else {})
     if entry is None or entry.get("status") != "running":
         layers.clear()
         if entry is not None and entry.get("status") == "canceled":
-            _cleanup_canceled_destination(entry)
-            _let_go(entry)
+            cleanup_canceled_destination(entry)
+            let_go(entry)
         return
     if error:
         log_warning(f"Outputs of {entry.get('algorithm')} not built off the main thread: {error[:300]}")
     _finish_outputs(entry, results, context, built=layers)
     layers.clear()
-    _let_go(entry)
+    let_go(entry)
 
 
-    for other in list(_PROCESSING_TASKS.values()):
+    for other in list(PROCESSING_TASKS.values()):
         if other.get("sequence") is not None and other.get("status") == "running":
             other["sequence"].advance()
 
 
-def _sync_with_qgis(task_id: str) -> None:
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    entry = _PROCESSING_TASKS.get(task_id)
-    if entry is None or entry.get("status") != "running":
-        return
-    if entry.get("sequence") is not None:
-
-
-        entry["sequence"].advance()
-        return
-    task = entry.get("task")
-    if task is None:
-        return
-    terminated = enum_member(QgsTask, "TaskStatus", "Terminated", None)
-    try:
-        over = task.status() == terminated and not task.isActive()
-    except (AttributeError, RuntimeError):
-        over = True
-    if over:
-        _on_proc_terminated(task_id)
-
-
-def task_state(task_id: str):
-
-
-
-
-    if task_id not in _PROCESSING_TASKS:
-        return None
-    _sync_with_qgis(task_id)
-    entry = _PROCESSING_TASKS.get(task_id)
-    if entry is None:
-        return None
-    try:
-        percent = int(round(float(entry.get("progress") or 0)))
-    except (TypeError, ValueError):
-        percent = None
-    return str(entry.get("status") or ""), percent
-
-
 def _get_task_status(args: dict) -> dict:
     task_id = args.get("task_id")
-    _sync_with_qgis(task_id)
-    entry = _PROCESSING_TASKS.get(task_id)
+    sync_with_qgis(task_id)
+    entry = PROCESSING_TASKS.get(task_id)
     if entry is None:
         return tool_error(f"Unknown task_id: {task_id}", "INVALID_ARGS", hint="unknown_task_id", task_id=task_id)
     out = {
@@ -2479,9 +2103,9 @@ def _get_task_status(args: dict) -> dict:
 
 def _list_tasks(args: dict) -> dict:
     tasks = []
-    for tid in list(_PROCESSING_TASKS):
-        _sync_with_qgis(tid)
-    for tid, entry in _PROCESSING_TASKS.items():
+    for tid in list(PROCESSING_TASKS):
+        sync_with_qgis(tid)
+    for tid, entry in PROCESSING_TASKS.items():
         item = {
             "task_id": tid,
             "algorithm": entry.get("algorithm"),
@@ -2499,7 +2123,7 @@ def _list_tasks(args: dict) -> dict:
 
 def _cancel_task(args: dict) -> dict:
     task_id = args.get("task_id")
-    entry = _PROCESSING_TASKS.get(task_id)
+    entry = PROCESSING_TASKS.get(task_id)
     if entry is None:
         return tool_error(f"Unknown task_id: {task_id}", "INVALID_ARGS", hint="unknown_task_id", task_id=task_id)
     if entry.get("sequence") is not None and entry.get("status") == "running":
@@ -2538,7 +2162,7 @@ def shutdown() -> int:
 
 
     asked = 0
-    for entry in list(_PROCESSING_TASKS.values()):
+    for entry in list(PROCESSING_TASKS.values()):
         if entry.get("sequence") is not None and entry.get("status") == "running":
 
             entry["status"] = "canceled"
@@ -2558,15 +2182,15 @@ def shutdown() -> int:
         except Exception:  # nosec B110
             pass
 
-    for task_id, entry in _PROCESSING_TASKS.items():
+    for task_id, entry in PROCESSING_TASKS.items():
         if entry.get("status") == "canceled" and entry.get("sequence") is None and "task" in entry:
 
 
-            _CANCELED_AT_UNLOAD[task_id] = {"status": "canceled", "temporary_dir": entry.get("temporary_dir"),
+            CANCELED_AT_UNLOAD[task_id] = {"status": "canceled", "temporary_dir": entry.get("temporary_dir"),
                                             "destination_paths": list(entry.get("destination_paths") or []),
                                             "held_layers": entry.pop("held_layers", None) or []}
-    for entry in _PROCESSING_TASKS.values():
-        _release_held(entry)
-    _PROCESSING_TASKS.clear()
+    for entry in PROCESSING_TASKS.values():
+        release_held(entry)
+    PROCESSING_TASKS.clear()
     unwatch_if_idle()
     return asked

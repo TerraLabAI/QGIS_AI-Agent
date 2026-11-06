@@ -29,11 +29,21 @@ from __future__ import annotations
 import re
 import urllib.parse
 
-from ..core import tuning
+from ..core import layer_order, tuning
+from ..core.qt_compat import enum_member
 from ..core.tool_registry import tool_error
+from ._compat import (
+    CONTRAST_STRETCH_MINMAX,
+    SHADER_CLASS_CONTINUOUS,
+    SHADER_CLASS_EQUAL_INTERVAL,
+    SHADER_DISCRETE,
+    SHADER_INTERPOLATED,
+    composition_mode,
+)
+from .band_reads import read_ahead
 
 _SAMPLE_PIXELS = 512
-_LOWEST_M, _HIGHEST_M = -450.0, 8900.0
+
 
 
 _WORDS: list = [None, None]
@@ -83,8 +93,9 @@ def elevation_stretch(source: str, name: str | None) -> dict | None:
 
     if not names_elevation(name, source):
         return None
-    cut = sample_stretch(source)
-    if cut is None or not (_LOWEST_M <= cut["min"] < cut["max"] <= _HIGHEST_M):
+    span = _elevation().get("range_m")
+    cut = sample_stretch(source) if span else None
+    if cut is None or not (span[0] <= cut["min"] < cut["max"] <= span[1]):
         return None
     return cut
 
@@ -134,9 +145,6 @@ def apply_elevation_style(layer, stretch: dict | None) -> str:
         from qgis.core import QgsColorRampShader, QgsRasterShader, QgsSingleBandPseudoColorRenderer
         from qgis.PyQt.QtGui import QColor
 
-        from ._compat import SHADER_CLASS_CONTINUOUS, SHADER_INTERPOLATED
-        from .style_defaults import min_max_origin
-
         if layer.bandCount() != 1:
             return ""
         current = layer.renderer()
@@ -172,9 +180,6 @@ def apply_gray_stretch(layer, stretch: dict | None) -> str:
     try:
         from qgis.core import QgsContrastEnhancement
 
-        from ._compat import CONTRAST_STRETCH_MINMAX
-        from .style_defaults import min_max_origin
-
         current = layer.renderer()
         if layer.bandCount() != 1 or current is None or current.type() != "singlebandgray":
             return ""
@@ -196,11 +201,29 @@ def min_max_stats():
 
     from qgis.core import QgsRasterBandStats
 
-    from ..core.qt_compat import enum_member
-
 
 
     return enum_member(QgsRasterBandStats, "Stats", "Min") | enum_member(QgsRasterBandStats, "Stats", "Max")
+
+
+def min_max_origin(limits: str, cut: tuple | None = None):
+
+
+
+
+
+
+
+    from qgis.core import QgsRasterMinMaxOrigin
+
+    origin = QgsRasterMinMaxOrigin()
+    origin.setLimits(QgsRasterMinMaxOrigin.limitsFromString(limits))
+    origin.setExtent(QgsRasterMinMaxOrigin.extentFromString("WholeRaster"))
+    origin.setStatAccuracy(QgsRasterMinMaxOrigin.statAccuracyFromString("Estimated"))
+    if cut is not None:
+        origin.setCumulativeCutLower(float(cut[0]) / 100.0)
+        origin.setCumulativeCutUpper(float(cut[1]) / 100.0)
+    return origin
 
 
 def band_range(layer, band: int = 1) -> tuple | None:
@@ -210,8 +233,6 @@ def band_range(layer, band: int = 1) -> tuple | None:
 
 
     try:
-        from .raster_overviews import read_ahead
-
         def measure() -> tuple:
             stats = layer.dataProvider().bandStatistics(int(band), min_max_stats(), layer.extent(), 250000)
             return stats.minimumValue, stats.maximumValue
@@ -282,8 +303,6 @@ def apply_ramp_style(layer, band: int = 1, ramp_name: str = "", classes: int = 0
 
     from qgis.core import QgsColorRampShader, QgsRasterShader, QgsSingleBandPseudoColorRenderer
 
-    from ._compat import SHADER_CLASS_EQUAL_INTERVAL, SHADER_DISCRETE, SHADER_INTERPOLATED
-
     band = max(1, int(band or 1))
     if band > layer.bandCount():
         return tool_error(f"Band {band} does not exist: {layer.name()!r} has {layer.bandCount()}.",
@@ -336,8 +355,9 @@ def looks_like_elevation(layer, band: int = 1) -> bool:
 
     if not names_elevation(layer.name(), layer.source()):
         return False
-    found = band_range(layer, band)
-    return found is not None and _LOWEST_M <= found[0] < found[1] <= _HIGHEST_M
+    span = _elevation().get("range_m")
+    found = band_range(layer, band) if span else None
+    return found is not None and span[0] <= found[0] < found[1] <= span[1]
 
 
 def elevation_ramp():
@@ -355,12 +375,10 @@ def elevation_ramp():
 
 
 
-_RAMP_ALIASES = frozenset({"terrain", "elevation", "hypsometric", "altitude"})
-
 
 def is_elevation_alias(ramp_name: str | None) -> bool:
 
-    return str(ramp_name or "").strip().lower() in _RAMP_ALIASES
+    return str(ramp_name or "").strip().lower() in (_elevation().get("ramp_aliases") or ())
 
 
 RELIEF_PROPERTY = "ai_agent/relief_of"
@@ -375,8 +393,6 @@ def _early_bilinear(layer) -> None:
 
 
     from qgis.core import Qgis, QgsRasterDataProvider
-
-    from ..core.qt_compat import enum_member
 
     provider = layer.dataProvider()
     try:
@@ -423,8 +439,6 @@ def add_relief_overlay(layer, band: int = 1) -> dict:
 
     from qgis.core import QgsBilinearRasterResampler, QgsHillshadeRenderer, QgsProject, QgsRasterLayer
 
-    from ..core import layer_order
-    from .symbology_tools import _composition_mode
 
     project = QgsProject.instance()
     for other in project.mapLayers().values():
@@ -445,7 +459,7 @@ def add_relief_overlay(layer, band: int = 1) -> dict:
         pipe.setZoomedInResampler(QgsBilinearRasterResampler())
         pipe.setZoomedOutResampler(QgsBilinearRasterResampler())
     _early_bilinear(copy)
-    mode = _composition_mode("multiply")
+    mode = composition_mode("multiply")
     if mode is not None:
         copy.setBlendMode(mode)
     copy.setCustomProperty(RELIEF_PROPERTY, layer.id())

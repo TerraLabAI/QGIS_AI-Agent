@@ -24,36 +24,14 @@ import sqlite3
 import time
 from urllib.parse import unquote
 
-from ..core import limits, security, tuning
+from ..core import limits, links, security, security_urls, tuning, vsi
+from ..core.code_effects import remote_literals
+from ..core.numbers import as_float
 from ..core.serialization import CodedText
+from ..core.served_state import get_connectors
 from ..core.tool_registry import spec
-from .danger import _DRIVE_RE, _OGR_DBNAME_RE, _processing_output_params, looks_like_disk_path, paid_algorithms
+from .danger import _DRIVE_RE, _OGR_DBNAME_RE, looks_like_disk_path, paid_algorithms, processing_output_params
 
-
-WRITE_PATH_ARGS: dict[str, tuple[str, ...]] = {
-    "export_layer": ("path",),
-    "export_3d_model": ("path",),
-    "save_layer_to_gpkg": ("gpkg_path",),
-    "create_memory_layer": ("gpkg_path",),
-    "save_project": ("path",),
-    "create_new_project": ("path",),
-    "package_project": ("output_path",),
-    "export_layout": ("output_path",),
-    "write_html_report": ("path",),
-    "export_atlas": ("output_path",),
-    "save_style_qml": ("path", "output_path", "qml_path"),
-    "create_processing_model": ("path", "output_path", "model_path"),
-    "take_qgis_window_screenshot": ("save_path",),
-    "render_map": ("save_path", "output_path"),
-    "get_3d_screenshot": ("save_path",),
-    "create_hillshade": ("output_path",),
-    "georeference_raster": ("output_path",),
-    "create_chart": ("output_path",),
-    "zonal_statistics": ("output_path",),
-    "spatial_join": ("output_path",),
-    "raster_calculator": ("output_path", "output"),
-    "geocode_layer": ("output_path",),
-}
 OVERWRITE_KEYS = ("overwrite", "OVERWRITE", "allow_overwrite", "replace_existing")
 _OVERWRITE_KEYS = OVERWRITE_KEYS
 _LIMIT_KEYS = ("limit", "max_features", "max_results", "sample_size", "max_rows", "max_items", "page_size")
@@ -75,17 +53,6 @@ _FREE_TEXT_KEYS = ("code", "query", "sql", "expression", "filter", "text", "ques
                    "quote", "place")
 
 
-
-
-
-_ALWAYS_CONFIRM_UNTIL_SPEC = frozenset({"execute_code"})
-
-DATA_MUTATORS = frozenset({
-    "update_features", "add_features", "field_calculator", "execute_sql", "qgis_edit_commit", "rename_field",
-    "add_field", "update_feature_geometry", "set_layer_crs", "add_table_join", "qgis_merge_features",
-})
-
-
 def always_confirm(name: str, args: dict | None = None) -> bool:
 
 
@@ -95,7 +62,7 @@ def always_confirm(name: str, args: dict | None = None) -> bool:
 
 
     declared = spec(name)
-    rule = (declared.always_confirm if declared is not None else False) or name in _ALWAYS_CONFIRM_UNTIL_SPEC
+    rule = declared.always_confirm if declared is not None else False
     if not rule:
         return False
     if not isinstance(args, dict):
@@ -235,10 +202,10 @@ def _check_extent_order(args: dict) -> dict | None:
     elif isinstance(bbox, (list, tuple)) and len(bbox) == 4:
         candidates.append(("bbox", dict(zip(("xmin", "ymin", "xmax", "ymax"), bbox))))
     for label, value in candidates:
-        xmin = _number(value.get("xmin", value.get("west")))
-        ymin = _number(value.get("ymin", value.get("south")))
-        xmax = _number(value.get("xmax", value.get("east")))
-        ymax = _number(value.get("ymax", value.get("north")))
+        xmin = as_float(value.get("xmin", value.get("west")))
+        ymin = as_float(value.get("ymin", value.get("south")))
+        xmax = as_float(value.get("xmax", value.get("east")))
+        ymax = as_float(value.get("ymax", value.get("north")))
         if None in (xmin, ymin, xmax, ymax):
             continue
 
@@ -320,7 +287,7 @@ def _scheme_of(text: str) -> str:
     for i, ch in enumerate(head):
         if ch == ":":
             if head[i:i + 3] == "://":
-                return head[:i]
+                return head[:i] if i > 1 else ""
             return head[:i] if _BARE_SCHEME_RE.match(text[:64].lower()) else ""
         if not (ch.isalnum() or ch in "+.-"):
             return ""
@@ -333,6 +300,7 @@ def _scheme_of(text: str) -> str:
 _VSI_CLOUD = ("/vsis3", "/vsigs", "/vsiaz", "/vsiadls", "/vsioss", "/vsiswift", "/vsihdfs", "/vsiwebhdfs")
 
 _DRIVER_PREFIX_RE = _re.compile(r'^[A-Za-z][A-Za-z0-9_]{1,15}:(?=["\']|/(?!/)|https?://|ftp://)', _re.IGNORECASE)
+_SUBDATASET_RE = _re.compile(r"""^[A-Za-z][A-Za-z0-9_]{1,15}:"?(.+?)"?:[^:/\\"]+$""")
 _EMBEDDED_URL_RE = _re.compile(r"[a-z][a-z0-9+.-]{1,15}://[^\s\"'<>|\\]+", _re.IGNORECASE)
 
 _SCHEME_START_RE = _re.compile(r"(?<![a-z0-9+.-])[a-z][a-z0-9+.-]{1,15}://", _re.IGNORECASE)
@@ -380,7 +348,7 @@ def _check_one_address(text: str) -> dict | None:
 
     refusal, url = _read_address(text)
     if refusal is None and url:
-        error = security.validate_url(url)
+        error = security_urls.validate_url(url)
         if error:
             return _refusal(error, "")
     return refusal
@@ -406,8 +374,14 @@ def _addresses(args: dict):
 
 
 
+
+
 _EXPRESSION_DENIED_RE = _re.compile(
-    r"(?i)(?<![\w.])(env|eval|eval_template|sqlite_fetch_and_increment)\s*\(")
+    r"(?is)(?<![\w.])(env|eval|eval_template|sqlite_fetch_and_increment|load_layer)(?:\s|/\*(?:[^*]|\*(?!/)){0,2000}\*/|--[^\n]{0,2000}\n)*\(")
+
+
+
+_EXPRESSION_FILE_RE = _re.compile(r"(?is)(?<![\w.])(?:exif|exif_geotag)\s*\(\s*'([^']+)'")
 
 
 def _check_expression_functions(name: str, args: dict) -> dict | None:
@@ -422,9 +396,13 @@ def _check_expression_functions(name: str, args: dict) -> dict | None:
         if match:
             function = match.group(1).lower()
             return _coded_refusal(f"The expression function {function}() is not available to the AI agent: it "
-                                  "reads environment variables, writes a database or runs an expression held "
-                                  "in a value.", "expression_function_refused", "PERMISSION_DENIED",
+                                  "reads environment variables, opens a file, writes a database or runs an "
+                                  "expression held in a value.", "expression_function_refused", "PERMISSION_DENIED",
                                   function=function)
+        for path in _EXPRESSION_FILE_RE.findall(text):
+            error = security.validate_read(path)
+            if error:
+                return _refusal(error, "", "PERMISSION_DENIED")
     return None
 
 
@@ -446,7 +424,7 @@ def url_hosts(args: dict) -> list[str]:
         refusal, url = _read_address(text)
         if refusal is not None:
             break
-        host = security.name_to_resolve(url) if url else ""
+        host = security_urls.name_to_resolve(url) if url else ""
         if host and host not in hosts:
             hosts.append(host)
     return hosts
@@ -471,11 +449,10 @@ def _catalog_hosts() -> set[str]:
         urls += [str(u) for u in catalog.overpass_mirrors()]
     except Exception:  # noqa: BLE001
         urls = []
-    from ..ui.shared import get_connectors
 
     urls += [str(row.get("url") or "") for row in get_connectors()]
     for url in urls:
-        host = security.normal_host(url)
+        host = security_urls.normal_host(url)
         if host:
             hosts.add(host)
     return hosts
@@ -484,8 +461,13 @@ def _catalog_hosts() -> set[str]:
 def _host_vouched(host: str, url: str, catalog_hosts: set[str]) -> bool:
     from ..core import tuning
 
-    if (security.host_is_vouched(host) or host in catalog_hosts or security.is_paired_backend_url(url)
-            or security.public_sector_host(host)):
+    if (security_urls.host_is_vouched(host) or host in catalog_hosts or security_urls.is_paired_backend_url(url)
+            or security_urls.public_sector_host(host)):
+        return True
+    from ..core import accounts_drive
+    if accounts_drive.provider_of(url):
+
+
         return True
     try:
         return tuning.host_policy(host) is not None
@@ -536,7 +518,7 @@ def unvouched_urls(name: str, args, listed=()) -> list[str]:
         for url in candidates:
             if _scheme_of(url) not in ("http", "https"):
                 continue
-            host = security.normal_host(url)
+            host = security_urls.normal_host(url)
             if not host:
                 continue
             if catalog_hosts is None:
@@ -562,7 +544,6 @@ def unvouched_code_urls(code) -> list[str]:
 
 
 
-    from ..core.code_effects import remote_literals
 
     found: list[str] = []
     catalog_hosts: set[str] | None = None
@@ -571,7 +552,7 @@ def unvouched_code_urls(code) -> list[str]:
         opaque = bool(_CLOUD_VSI_RE.search(text))
         for url in _embedded_urls(unquote(text)):
             scheme = _scheme_of(url)
-            host = security.normal_host(url) if scheme in ("http", "https") else ""
+            host = security_urls.normal_host(url) if scheme in ("http", "https") else ""
             if not host:
                 opaque = opaque or scheme in ("http", "https", "ftp", "ftps")
                 continue
@@ -595,11 +576,10 @@ def _carried_target(url: str, decoded: str) -> str:
 
 
 
-    from ..core import links
 
     target = links.resolve(url).url
-    host = security.normal_host(target)
-    if not host or host == security.normal_host(url) or host not in decoded.lower():
+    host = security_urls.normal_host(target)
+    if not host or host == security_urls.normal_host(url) or host not in decoded.lower():
         return ""
     return target
 
@@ -618,44 +598,38 @@ def _current_project_file() -> str:
 
 
 
-
-_APPENDED_EXTENSION: dict[str, tuple[tuple[str, ...], str]] = {
-    "create_hillshade": ((".tif", ".tiff"), ".tif"),
-}
-
-
-def _with_expected_extension(name: str, path: str) -> str:
-    accepted, added = _APPENDED_EXTENSION.get(name, ((), ""))
-    if accepted and not path.lower().endswith(accepted):
-        return path + added
-    return path
-
-
-
-
-
-
-
-_TEMPORARY_OUTPUT_TOOLS = frozenset({"raster_calculator"})
 _TEMPORARY_SPELLINGS = frozenset({"temporary_output", "temp", "memory"})
+
+
+def mutates_data(name: str) -> bool:
+
+    declared = spec(name)
+    return declared is not None and declared.mutates_data
+
+
+def writes_at(name: str) -> tuple[str, ...]:
+
+    declared = spec(name)
+    return declared.writes_at if declared is not None else ()
 
 
 def _names_a_temporary(name: str, value: str) -> bool:
     text = value.strip()
-    return name in _TEMPORARY_OUTPUT_TOOLS and (
+    declared = spec(name)
+    return declared is not None and declared.takes_temporary_output and (
         text.lower() in _TEMPORARY_SPELLINGS or text.startswith("memory:"))
 
 
-def _write_targets(name: str, args: dict) -> list[str]:
+def write_targets(name: str, args: dict) -> list[str]:
 
-    targets = [_with_expected_extension(name, args[k])
-               for k in WRITE_PATH_ARGS.get(name, ())
+    declared = spec(name)
+    targets = [declared.written_name(args[k])
+               for k in (declared.writes_at if declared is not None else ())
                if isinstance(args.get(k), str) and args[k].strip()
                and not _names_a_temporary(name, args[k])]
-    declared = spec(name)
     if declared is not None and declared.processing is not None:
         algorithm = str(args.get("algorithm_id") or args.get("algorithm") or args.get("model") or "")
-        outputs = _processing_output_params(algorithm)
+        outputs = processing_output_params(algorithm)
         for params in declared.processing(args)[1]:
             if not isinstance(params, dict):
                 continue
@@ -664,11 +638,11 @@ def _write_targets(name: str, args: dict) -> list[str]:
                 is_output = key in outputs if outputs is not None else ("OUTPUT" in upper or "DEST" in upper)
                 candidate = value.get("path") if isinstance(value, dict) else value
                 if is_output and looks_like_disk_path(candidate):
-                    targets.append(_file_part(str(candidate)))
+                    targets.append(file_part(str(candidate)))
     return targets
 
 
-def _file_part(value: str) -> str:
+def file_part(value: str) -> str:
 
 
 
@@ -712,14 +686,14 @@ def layer_table_name(reference, strip: bool) -> str:
         return reference.strip()
 
 
-def _gpkg_table_target(name: str, args: dict) -> str:
+def gpkg_table_target(name: str, args: dict) -> str:
 
     declared = spec(name)
     table = declared.gpkg_table(args, "") if declared is not None and declared.gpkg_table is not None else None
     return table or ""
 
 
-def _gpkg_has_table(path: str, table: str) -> bool | None:
+def gpkg_has_table(path: str, table: str) -> bool | None:
 
     if not table or not os.path.isfile(path):
         return False
@@ -751,7 +725,7 @@ def _check_paths(name: str, args: dict, own_files: frozenset = frozenset()) -> d
 
 
 
-    writes = _write_targets(name, args)
+    writes = write_targets(name, args)
     declared = spec(name)
     project_file = _current_project_file()
     overwrites: list[str] = []
@@ -770,7 +744,7 @@ def _check_paths(name: str, args: dict, own_files: frozenset = frozenset()) -> d
             table = (declared.gpkg_table(args, expanded)
                      if declared is not None and declared.gpkg_table is not None else None)
             if table is not None:
-                table_exists = _gpkg_has_table(expanded, table)
+                table_exists = gpkg_has_table(expanded, table)
                 if table_exists is None:
                     return _coded_refusal(
                         f"The existing GeoPackage cannot be inspected safely: {expanded}",
@@ -799,13 +773,15 @@ def _check_paths(name: str, args: dict, own_files: frozenset = frozenset()) -> d
 
 
 
-    skip = {key.lower() for key in tuple(WRITE_PATH_ARGS.get(name, ())) + _FREE_TEXT_KEYS}
+    skip = {key.lower() for key in writes_at(name) + _FREE_TEXT_KEYS}
 
     written = {os.path.normcase(security.expand_path(target)) for target in writes}
     inside = _source_on_disk(args)
     remote = _source_is_remote(args)
     for value in _leaves_outside(args, skip):
-        if not (looks_like_disk_path(value) or value.startswith("~") or os.path.isabs(value)):
+        value = _subdataset_file(value)
+        if not (looks_like_disk_path(value) or value.startswith("~") or os.path.isabs(value)
+                or _names_disk_entry(value, args)):
             continue
 
 
@@ -814,8 +790,10 @@ def _check_paths(name: str, args: dict, own_files: frozenset = frozenset()) -> d
 
 
 
+
         if _is_project_layer(value) and not (
-                os.path.isabs(value) or value.startswith("~") or _DRIVE_RE.match(value)):
+                os.path.isabs(value) or value.startswith("~") or _DRIVE_RE.match(value)
+                or _opens_a_file(value)):
             continue
 
 
@@ -823,7 +801,7 @@ def _check_paths(name: str, args: dict, own_files: frozenset = frozenset()) -> d
         if value.startswith(("http://", "https://")) or (scheme and scheme != "file"):
             continue
 
-        part = security.local_part(value.split("?", 1)[0]) if scheme == "file" else _file_part(value)
+        part = security.local_part(value.split("?", 1)[0]) if scheme == "file" else file_part(value)
         if not part:
             continue
         if inside and value == args.get("layer") and not (
@@ -840,7 +818,41 @@ def _check_paths(name: str, args: dict, own_files: frozenset = frozenset()) -> d
         error = security.validate_read(part)
         if error:
             return _refusal(error, "", "PERMISSION_DENIED")
+
+        for source in vsi.local_dataset_sources(security.expand_path(part)):
+            error = security.validate_read(source)
+            if error:
+                return _refusal(error, "", "PERMISSION_DENIED")
     return {"overwrites": overwrites, "destructive": bool(overwrites), "creates": creates}
+
+
+def _subdataset_file(value: str) -> str:
+
+
+    found = _SUBDATASET_RE.match(value)
+    if found and _opens_a_file(found.group(1)):
+        return found.group(1)
+    return value
+
+
+def _opens_a_file(value: str) -> bool:
+
+
+
+    if security.refused_share(value):
+        return True
+    expanded = security.expand_path(value)
+    return security.refused_share(expanded) or os.path.exists(expanded)
+
+
+def _names_disk_entry(value: str, args: dict) -> bool:
+
+
+
+    if not value or "://" in value:
+        return False
+    spelled = value.startswith(("$", "%")) or value == ".." or "/" in value or "\\" in value
+    return (spelled or value == args.get("source")) and _opens_a_file(value)
 
 
 def _source_is_remote(args: dict) -> bool:
@@ -865,7 +877,7 @@ def _source_on_disk(args: dict) -> str:
         return ""
     if source.startswith(("http://", "https://")) or (_scheme_of(source) and _scheme_of(source) != "file"):
         return ""
-    part = security.local_part(source.split("?", 1)[0]) if _scheme_of(source) == "file" else _file_part(source)
+    part = security.local_part(source.split("?", 1)[0]) if _scheme_of(source) == "file" else file_part(source)
 
     if not part or security.refused_share(part):
         return ""
@@ -881,7 +893,6 @@ def _clamp_limits(args: dict) -> None:
         ceiling = limits.current("MAX_FEATURES_PER_CALL")
         if value > ceiling:
             args[key] = ceiling
-
 
 
 
@@ -950,10 +961,6 @@ _CREATE_COUNT_KEYS = ("count", "num_features", "number_of_points", "point_count"
 
 
 
-_OWN_AREA_CHECK = frozenset({"fetch_osm_data", "fetch_building_footprints", "fetch_overture",
-                             "create_grid_layer", "add_data", "map_drainage",
-                             "add_cog_layer", "add_stac_layer", "raster_calculator",
-                             "add_arcgis_rest_layer", "add_vector_from_url"})
 
 
 
@@ -961,18 +968,11 @@ _OWN_AREA_CHECK = frozenset({"fetch_osm_data", "fetch_building_footprints", "fet
 
 
 
-_MATERIALISING_TOOLS = frozenset({"check_topology", "geocode_layer",
-                                  "field_calculator", "select_by_geometry",
-                                  "update_feature_geometry", "get_field_statistics", "duplicate_layer"})
+
 
 
 _MATERIALISED_LAYER_KEYS = ("layer", "layer_name", "input", "INPUT", "reference_layer")
 
-
-_RENDER_TOOLS = frozenset({
-    "render_map", "take_qgis_window_screenshot", "get_3d_screenshot",
-    "export_layout", "export_atlas", "export_layout_image",
-})
 
 
 _RENDER_SIZE_KEYS = (("width", "MAX_RENDER_WIDTH_PX"), ("height", "MAX_RENDER_HEIGHT_PX"),
@@ -986,23 +986,12 @@ _RENDER_SIZE_KEYS = (("width", "MAX_RENDER_WIDTH_PX"), ("height", "MAX_RENDER_HE
 
 
 
-_RENDER_CLAMPING_TOOLS = frozenset({"render_map"})
-
-
-def _number(value):
-
-    if isinstance(value, bool) or not isinstance(value, (int, float, str)):
-        return None
-    try:
-        return float(value)
-    except (TypeError, ValueError):
-        return None
 
 
 def _check_created_features(args: dict) -> dict | None:
     ceiling = limits.current("MAX_FEATURES_CREATED")
     for key in _CREATE_COUNT_KEYS:
-        wanted = _number(args.get(key))
+        wanted = as_float(args.get(key))
         if wanted is not None and wanted > ceiling:
 
 
@@ -1022,9 +1011,9 @@ def _lonlat_box(value) -> tuple[float, float, float, float] | None:
 
     if isinstance(value, dict):
         keys = ("ymin", "xmin", "ymax", "xmax") if "xmin" in value else ("south", "west", "north", "east")
-        parts = [_number(value.get(k)) for k in keys]
+        parts = [as_float(value.get(k)) for k in keys]
     elif isinstance(value, (list, tuple)) and len(value) == 4:
-        west, south, east, north = (_number(v) for v in value)
+        west, south, east, north = (as_float(v) for v in value)
         parts = [south, west, north, east]
     else:
         return None
@@ -1038,15 +1027,9 @@ def _lonlat_box(value) -> tuple[float, float, float, float] | None:
     return south, west, north, east
 
 
-
-
-
-
-_SERVER_SIDE_RASTER = frozenset({"add_gee_dataset"})
-
-
 def _check_bbox_area(name: str, args: dict) -> dict | None:
-    if name in _OWN_AREA_CHECK or name in _SERVER_SIDE_RASTER:
+    declared = spec(name)
+    if declared is not None and declared.own_area_rule:
         return None
     box = _lonlat_box(args.get("bbox"))
     if box is None:
@@ -1080,14 +1063,15 @@ def _check_bbox_area(name: str, args: dict) -> dict | None:
 
 
 def _check_render_size(name: str, args: dict) -> dict | None:
-    if name not in _RENDER_TOOLS:
+    declared = spec(name)
+    if declared is None or not declared.render_size:
         return None
     max_w, max_h = limits.current("MAX_RENDER_WIDTH_PX"), limits.current("MAX_RENDER_HEIGHT_PX")
-    clamps = name in _RENDER_CLAMPING_TOOLS
+    clamps = declared.render_size == "clamped"
     for key, side in _RENDER_SIZE_KEYS:
         if clamps and key in ("width", "height"):
             continue
-        wanted = _number(args.get(key))
+        wanted = as_float(args.get(key))
         ceiling = limits.current(side)
         if wanted is not None and wanted > ceiling:
 
@@ -1095,7 +1079,7 @@ def _check_render_size(name: str, args: dict) -> dict | None:
             return _coded_ceiling(
                 f"'{key}'", f"{wanted:,.0f} pixels", f"{ceiling:,} pixels",
                 "render_side_ceiling", key=key, ceiling=int(ceiling))
-    width, height = _number(args.get("width")), _number(args.get("height"))
+    width, height = as_float(args.get("width")), as_float(args.get("height"))
     if clamps and width and height:
 
 
@@ -1143,7 +1127,8 @@ def _feature_count(reference) -> int | None:
 
 
 def _check_materialised_features(name: str, args: dict) -> dict | None:
-    if name not in _MATERIALISING_TOOLS:
+    declared = spec(name)
+    if declared is None or not declared.reads_whole_layer:
         return None
     ceiling = limits.current("MAX_FEATURES_MATERIALISED")
     for key in _MATERIALISED_LAYER_KEYS:

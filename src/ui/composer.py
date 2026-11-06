@@ -28,6 +28,7 @@ from __future__ import annotations
 import html
 import os
 import sys
+import time
 
 from qgis.PyQt.QtCore import QEvent, QSize, Qt, QTimer, pyqtSignal
 from qgis.PyQt.QtGui import QColor, QImage
@@ -44,6 +45,7 @@ from qgis.PyQt.QtWidgets import (
 from ..core import drafts, first_run_funnel, limits
 from ..core.layer_mime import ChipRow, layer_chip, layer_ids_from_mime, live_layer_chips, mime_has_layers
 from ..core.prompt_quality import NOT_A_TASK, TOO_SHORT, check_prompt
+from ..core.qt_compat import one_shot
 from ..core.settings import account_tag
 from .attach_menu import AttachPopover
 from .attachments import (
@@ -56,13 +58,13 @@ from .attachments import (
     image_attachment,
     wire_shape,
 )
-from .composer_input import ComposerInput
+from .composer_input import EMPTY_CHAT_LINES, MIN_LINES, ComposerInput
 from .effort_chip import EffortChip, effort_texts
 from .font_scale import scale_qss_font_px
 from .icons import icon_for, paper_of
 from .layer_card import LayerCard
 from .layer_icons import layer_name, resolve_layer
-from .library import ExamplesDialog
+from .library.dialog import HOME_KEY, SOURCES_KEY, ExamplesDialog
 from .permission_chip import PermissionChip
 from .shared import exec_dialog
 from .style import (
@@ -90,6 +92,7 @@ from .widgets import FlowLayout, IconButton
 _SEND_SIZE = BTN_PX
 _DISC_GLYPH = 16
 _HINT_MS = 2500
+STOP_AFTER_SEND_S = 0.6
 _OFFLINE_GRACE_MS = 15000
 _HINT_QSS = scale_qss_font_px(f"font-size: {FONT_HINT}px; color: {INK_2}; background: transparent; border: none;")
 
@@ -197,6 +200,7 @@ class Composer(QFrame):
         self.setAcceptDrops(False)
         self.setProperty("focused", False)
         self._running = False
+        self._sent_at = 0.0
 
         self._queue_full = False
         self._queued = 0
@@ -239,10 +243,7 @@ class Composer(QFrame):
 
 
 
-        self._offline_grace = QTimer(self)
-        self._offline_grace.setSingleShot(True)
-        self._offline_grace.setInterval(_OFFLINE_GRACE_MS)
-        self._offline_grace.timeout.connect(self._on_offline_grace_over)
+        self._offline_grace = one_shot(self, self._on_offline_grace_over, _OFFLINE_GRACE_MS)
 
 
 
@@ -259,10 +260,7 @@ class Composer(QFrame):
         self._draft_tag = account_tag()
         self._draft_between = False
         self._draft_busy = False
-        self._draft_timer = QTimer(self)
-        self._draft_timer.setSingleShot(True)
-        self._draft_timer.setInterval(_DRAFT_SAVE_MS)
-        self._draft_timer.timeout.connect(self._save_draft)
+        self._draft_timer = one_shot(self, self._save_draft, _DRAFT_SAVE_MS)
         self.destroyed.connect(lambda *_: drafts.flush())
         QTimer.singleShot(0, self._restore_first_draft)
 
@@ -347,9 +345,7 @@ class Composer(QFrame):
         self._hint.hide()
         col.addWidget(self._hint)
         col.addLayout(row)
-        self._hint_timer = QTimer(self)
-        self._hint_timer.setSingleShot(True)
-        self._hint_timer.timeout.connect(self._passing_line_over)
+        self._hint_timer = one_shot(self, self._passing_line_over)
 
         self._paint_send()
         self._sync_send_enabled()
@@ -527,7 +523,6 @@ class Composer(QFrame):
 
 
 
-        from .composer_input import EMPTY_CHAT_LINES, MIN_LINES
 
         self._empty_chat = bool(empty)
         self._input.set_min_lines(EMPTY_CHAT_LINES if empty else MIN_LINES)
@@ -719,7 +714,6 @@ class Composer(QFrame):
 
 
 
-        from .library.dialog import HOME_KEY
 
         dialog = ExamplesDialog(self.window() or self, opened_from=opened_from,
                                 place=place or HOME_KEY)
@@ -755,7 +749,6 @@ class Composer(QFrame):
 
         if self._blocked:
             return
-        from .library.dialog import SOURCES_KEY
 
         dialog = self.examples_dialog(SOURCES_KEY, opened_from)
         try:
@@ -1340,6 +1333,7 @@ class Composer(QFrame):
                 return
         self._last_sent = self.text()
         self._last_sent_items = [dict(item) for item in self._items]
+        self._sent_at = time.monotonic()
         self.send_clicked.emit()
 
     def _recall_last(self) -> None:
@@ -1407,7 +1401,10 @@ class Composer(QFrame):
 
     def _on_send_or_stop(self) -> None:
         if self._running and not self.queues():
-            self.stop_clicked.emit()
+
+
+            if time.monotonic() - self._sent_at >= STOP_AFTER_SEND_S:
+                self.stop_clicked.emit()
         else:
             self._on_submit()
 

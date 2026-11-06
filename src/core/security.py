@@ -42,30 +42,8 @@ import unicodedata
 import urllib.parse
 
 from .host_platform import IS_WINDOWS, resolved
-from .net_proxy import apply_qgis_proxy  # noqa: F401
 from .policy import AGENT_CACHE_DIR, AGENT_EXPORT_DIR, AGENT_HOME, AGENT_ROOT, AGENT_TMP_DIR
-from .security_urls import (  # noqa: F401
-    PUBLIC_SECTOR_LABELS,
-    PUBLIC_SECTOR_SUFFIXES,
-    forget_resolved_hosts,
-    host_is_vouched,
-    is_local_url,
-    is_paired_backend_url,
-    is_private_url,
-    local_url_refusal,
-    look_up_ahead,
-    name_to_resolve,
-    normal_host,
-    public_sector_host,
-    refused_addresses,
-    remember_user_hosts,
-    resolve_host,
-    start_lookup,
-    validate_url,
-    vetted_addresses,
-    vouch_for_urls,
-    vouched_hosts_for,
-)
+from .security_urls import remember_user_hosts, vouched_hosts_for
 from .serialization import CodedText
 
 
@@ -75,7 +53,7 @@ STRICT_WRITE_ROOTS = False
 
 _HOME = os.path.normpath(os.path.expanduser("~"))
 _PLUGIN_DIR = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."))
-_PLUGIN_RESOURCES = os.path.join(_PLUGIN_DIR, "resources")
+PLUGIN_RESOURCES = os.path.join(_PLUGIN_DIR, "resources")
 
 
 _DENY_READ_DIRS = [
@@ -219,7 +197,7 @@ def _in_agent_spelling(path: str) -> str:
 
     root = os.path.normpath(AGENT_ROOT)
     parent, real_name = os.path.dirname(root), os.path.basename(root)
-    if not _under(path, parent) or _norm(path) == _norm(parent):
+    if not path_is_under(path, parent) or _norm(path) == _norm(parent):
         return ""
     first, _, rest = path[len(parent.rstrip(os.sep)) + 1:].partition(os.sep)
     if first == real_name or not _is_agent_dir_name(first):
@@ -266,14 +244,14 @@ def _norm(path: str) -> str:
     return text.lower() if _FOLD_CASE else text
 
 
-def _under(path: str, root: str) -> bool:
+def path_is_under(path: str, root: str) -> bool:
     if not root:
         return False
     p, r = _norm(path), _norm(root)
     return p == r or p.startswith(r.rstrip(os.sep) + os.sep)
 
 
-def _qgis_profile_dir() -> str:
+def qgis_profile_dir() -> str:
 
 
     if "qgis.core" not in sys.modules:
@@ -298,8 +276,8 @@ def _svg_folders() -> list[str]:
         folders = [os.path.normpath(p) for p in QgsApplication.svgPaths() if p]
     except Exception:
         return []
-    profile = _qgis_profile_dir()
-    return [f for f in folders if not _too_wide(f) and not (profile and _under(profile, f))]
+    profile = qgis_profile_dir()
+    return [f for f in folders if not too_wide(f) and not (profile and path_is_under(profile, f))]
 
 
 def _state_dirs() -> list[str]:
@@ -479,9 +457,7 @@ _own_paths: set[str] = set()
 _OWN_PATHS_MAX = 4096
 
 
-
 _roots_override: list = [None]
-_scope_off_override = [False]
 _LAYER_ROOTS: dict = {"key": None, "at": 0.0, "roots": []}
 _LAYER_ROOTS_TTL_S = 5.0
 _FOLDERS: dict[str, bool] = {}
@@ -505,26 +481,9 @@ _THREAD_ROOTS_MAX = 512
 _thread_roots_keep: list = [None]
 
 
-def read_scope_enabled() -> bool:
-
-    if _scope_off_override[0]:
-        return False
-    try:
-        from . import tuning
-
-        return tuning.flag("files", "read_scope_enabled", True)
-    except Exception:  # noqa: BLE001
-        return True
-
-
 def set_read_roots(roots) -> None:
 
-    if roots is None:
-        _scope_off_override[0] = True
-        _roots_override[0] = None
-        return
-    _scope_off_override[0] = False
-    _roots_override[0] = [str(r) for r in roots if r]
+    _roots_override[0] = [str(r) for r in roots or () if r]
 
 
 def write_roots() -> dict:
@@ -566,6 +525,11 @@ def note_own_paths(paths) -> None:
             _own_paths.clear()
         full = expand_path(text.split("|", 1)[0])
         _own_paths.update({_norm(full), _norm(os.path.realpath(full))})
+
+
+def written_by_agent(path: str) -> bool:
+
+    return _norm(path) in _own_paths
 
 
 def _layer_folders() -> list[str]:
@@ -858,21 +822,21 @@ def read_roots() -> list[str]:
         return list(_roots_override[0])
 
     roots = list(temp_roots()) + [project_dir(), tempfile.gettempdir(), _output_root]
-    roots += _layer_folders() + [_PLUGIN_RESOURCES] + list(_attached_files)
+    roots += _layer_folders() + [PLUGIN_RESOURCES] + list(_attached_files)
     try:
         from .output_paths import exports_folder
 
         roots.append(exports_folder(make=False))
     except Exception:  # nosec B110
         pass
-    profile = _qgis_profile_dir()
+    profile = qgis_profile_dir()
     if profile:
         roots.append(os.path.join(profile, "python", "plugins"))
     roots += _svg_folders()
 
 
 
-    roots = [root for root in roots if root and not _too_wide(root)] + list(_user_paths)
+    roots = [root for root in roots if root and not too_wide(root)] + list(_user_paths)
 
 
 
@@ -894,7 +858,7 @@ def read_roots() -> list[str]:
     return list(dict.fromkeys(out))
 
 
-def _too_wide(root: str) -> bool:
+def too_wide(root: str) -> bool:
 
     try:
         full = os.path.normpath(os.path.abspath(root))
@@ -902,7 +866,7 @@ def _too_wide(root: str) -> bool:
         return True
     if os.path.dirname(full) == full or refused_share(full):
         return True
-    return any(_under(home, full) for home in dict.fromkeys((_HOME, _resolved_root(_HOME) or _HOME)))
+    return any(path_is_under(home, full) for home in dict.fromkeys((_HOME, _resolved_root(_HOME) or _HOME)))
 
 
 def _sidecar_of_attached(path: str) -> bool:
@@ -917,18 +881,16 @@ def _sidecar_of_attached(path: str) -> bool:
 
 def _scope_problem(expanded: str, real: str) -> str | None:
 
-    if not read_scope_enabled():
-        return None
     candidates = list(dict.fromkeys((expanded, real)))
     if any(_norm(c) in _own_paths for c in candidates) or any(_sidecar_of_attached(c) for c in candidates):
         return None
     roots = read_roots()
 
 
-    if any(_under(real, root) for root in roots):
+    if any(path_is_under(real, root) for root in roots):
         return None
     if os.path.lexists(expanded) and any(
-            _under(_in_agent_spelling(c), work) for c in candidates for work in _AGENT_WORK_DIRS):
+            path_is_under(_in_agent_spelling(c), work) for c in candidates for work in _AGENT_WORK_DIRS):
 
 
         return None
@@ -954,7 +916,7 @@ def _hidden_component(path: str, roots: list[str]) -> str | None:
 
 
 
-    if any(_under(path, root) for root in roots if root and not _too_wide(root)):
+    if any(path_is_under(path, root) for root in roots if root and not too_wide(root)):
         return None
     drive, rest = os.path.splitdrive(path)
     for part in rest.replace("\\", "/").split("/"):
@@ -1007,38 +969,38 @@ def _ascii_grid(path: str) -> bool:
 
 def _read_denied(path: str, roots: list[str]) -> str | None:
 
-    if _under(path, _PLUGIN_RESOURCES):
+    if path_is_under(path, PLUGIN_RESOURCES):
         return None
     name = os.path.basename(path)
     if _SECRET_NAME_RE.match(name) and not _ascii_grid(path):
         return f"'{name}' looks like a credential file; the agent never reads it."
     for root in _DENY_READ_DIRS + _WINDOWS_CREDENTIAL_DIRS:
-        if _under(path, root):
+        if path_is_under(path, root):
             return f"{root} holds credentials or system state; the agent never reads it."
-    profile = _qgis_profile_dir()
+    profile = qgis_profile_dir()
 
 
 
 
 
 
-    in_plugins = (bool(profile) and _under(path, os.path.join(profile, "python", "plugins"))
-                  or any(_under(path, folder) for folder in _svg_folders()))
-    if (_under(path, _LIBRARY) and not in_plugins
-            and not any(_under(path, ok) for ok in _LIBRARY_ALLOWED)):
+    in_plugins = (bool(profile) and path_is_under(path, os.path.join(profile, "python", "plugins"))
+                  or any(path_is_under(path, folder) for folder in _svg_folders()))
+    if (path_is_under(path, _LIBRARY) and not in_plugins
+            and not any(path_is_under(path, ok) for ok in _LIBRARY_ALLOWED)):
         return "~/Library holds keychains and app state; the agent never reads it."
-    if (profile and _under(path, profile) and not in_plugins
-            and not any(_under(path, root) for root in roots)):
+    if (profile and path_is_under(path, profile) and not in_plugins
+            and not any(path_is_under(path, root) for root in roots if root and not too_wide(root))):
         return "The QGIS profile folder holds the auth database and settings; the agent never touches it."
     for state in _state_dirs():
-        if _under(path, state):
+        if path_is_under(path, state):
             return "The agent's own state folder is off limits to tools."
 
 
 
 
-    if (any(_under(path, root) for root in (AGENT_HOME, AGENT_ROOT))
-            and not any(_under(path, d) for d in _AGENT_WORK_DIRS)):
+    if (any(path_is_under(path, root) for root in (AGENT_HOME, AGENT_ROOT))
+            and not any(path_is_under(path, d) for d in _AGENT_WORK_DIRS)):
         return "The agent's own state folder is off limits to tools."
     hidden = _hidden_component(path, roots)
     if hidden:
@@ -1047,15 +1009,15 @@ def _read_denied(path: str, roots: list[str]) -> str | None:
 
 
 def _write_root_ok(path: str, roots: list[str]) -> bool:
-    if any(_under(path, root) for root in roots):
+    if any(path_is_under(path, root) for root in roots):
         return True
     if STRICT_WRITE_ROOTS:
         return False
-    if _under(path, _HOME):
+    if path_is_under(path, _HOME):
         return True
     if IS_WINDOWS:
-        return not any(_under(path, d) for d in _WINDOWS_SYSTEM if d)
-    return any(_under(path, root) for root in _MOUNT_ROOTS)
+        return not any(path_is_under(path, d) for d in _WINDOWS_SYSTEM if d)
+    return any(path_is_under(path, root) for root in _MOUNT_ROOTS)
 
 
 
@@ -1138,7 +1100,7 @@ def _in_own_share_folder(path: str) -> bool:
 
     for kind in output_paths._QT_LOCATION:
         folder = output_paths.standard_folder(kind)
-        if _is_remote_share(folder) and _under(path, folder):
+        if _is_remote_share(folder) and path_is_under(path, folder):
             return True
     return False
 
@@ -1180,15 +1142,15 @@ def _in_used_share(path: str) -> bool:
 
 
 
-    return any(_under(path, root) for root in _shares_in_use())
+    return any(path_is_under(path, root) for root in _shares_in_use())
 
 
 
-_MAX_PATH = 260
+MAX_PATH = 260
 _long_paths_state: bool | None = None
 
 
-def _long_paths_ok() -> bool:
+def long_paths_ok() -> bool:
 
 
 
@@ -1218,10 +1180,10 @@ def fits_path(path: str, margin: int = 0) -> bool:
 
 
 
-    return len(path) + margin < _MAX_PATH or _long_paths_ok()
+    return len(path) + margin < MAX_PATH or long_paths_ok()
 
 
-def _windows_path_problem(path: str) -> str | None:
+def windows_path_problem(path: str) -> str | None:
 
 
 
@@ -1299,7 +1261,7 @@ def validate_path(path: str, write: bool = False, overwrite: bool | None = None,
     if refused_share(expanded):
         return CodedText("The expanded path is a network share.", "network_share_refused")
     if IS_WINDOWS:
-        reason = _windows_path_problem(path) or _windows_path_problem(expanded)
+        reason = windows_path_problem(path) or windows_path_problem(expanded)
         if reason:
             return reason
         if write:
@@ -1311,9 +1273,9 @@ def validate_path(path: str, write: bool = False, overwrite: bool | None = None,
 
 
 
-        if write and len(expanded) >= _MAX_PATH and not _long_paths_ok():
+        if write and len(expanded) >= MAX_PATH and not long_paths_ok():
             return CodedText(f"The path is {len(expanded)} characters and Windows stops this process at "
-                             f"{_MAX_PATH}.", "windows_path_too_long", length=len(expanded), limit=_MAX_PATH)
+                             f"{MAX_PATH}.", "windows_path_too_long", length=len(expanded), limit=MAX_PATH)
     try:
         real = os.path.realpath(expanded)
     except Exception:
@@ -1330,7 +1292,7 @@ def validate_path(path: str, write: bool = False, overwrite: bool | None = None,
 
 
 
-    profile = _qgis_profile_dir()
+    profile = qgis_profile_dir()
     plugins = [os.path.join(profile, "python", "plugins")] if profile else []
     for candidate in dict.fromkeys((expanded, real)):
         if not _INSTALL_DIRS:
@@ -1343,8 +1305,8 @@ def validate_path(path: str, write: bool = False, overwrite: bool | None = None,
 
 
             allowed = [] if root == _PLUGIN_DIR or root in plugins else _WRITE_ALLOWED_UNDER_DENIED + [
-                r for r in roots if r and not _too_wide(r)]
-            if _under(candidate, root) and not any(_under(candidate, ok) for ok in allowed):
+                r for r in roots if r and not too_wide(r)]
+            if path_is_under(candidate, root) and not any(path_is_under(candidate, ok) for ok in allowed):
 
 
 

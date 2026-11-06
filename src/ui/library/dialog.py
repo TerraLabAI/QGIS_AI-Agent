@@ -56,10 +56,19 @@ from qgis.PyQt.QtCore import QEvent, Qt, QTimer, pyqtSignal
 from qgis.PyQt.QtGui import QKeySequence
 from qgis.PyQt.QtWidgets import QDialog, QHBoxLayout, QStackedWidget, QVBoxLayout, QWidget
 
+from ...core import source_rows
+from ...core.served_state import watch_connectors
 from ..connector_page import ConnectorPage
-from ..connectors_page import POPULAR_KEY, ConnectorsPage, accent_of, cases_of, shelves, sources_by_id
+from ..connectors_page import (
+    POPULAR_KEY,
+    ConnectorsPage,
+    cases_of,
+    section_rows,
+    shelves,
+    sources_by_id,
+)
 from ..font_scale import apply_font_scale_to_tree
-from ..shared import size_within_screen, tr, watch_connectors
+from ..shared import QShortcut, size_within_screen, tr
 from ..style import with_platform_font
 from ..use_cases import use_case_group_looks, use_case_groups, use_cases
 from . import common as C
@@ -150,6 +159,8 @@ class ExamplesDialog(QDialog):
         self._source.crumb_requested.connect(self._on_crumb)
         self._source.prompt_chosen.connect(self._on_source_prompt)
         self._source.example_opened.connect(self.open_case)
+        self._source.connector_opened.connect(self.open_connector)
+        self._source.section_opened.connect(self._open_section)
         self._pages.addWidget(QWidget(right))
         self._pages.addWidget(self._source)
         self._pages.addWidget(QWidget(right))
@@ -164,7 +175,6 @@ class ExamplesDialog(QDialog):
             self.open_sources()
         else:
             self._home.search_field().setFocus()
-        from ..shared import QShortcut
 
         find = QShortcut(QKeySequence(QKeySequence.StandardKey.Find), self)
         find.activated.connect(self._focus_search)
@@ -435,8 +445,8 @@ class ExamplesDialog(QDialog):
         for key, text in shelves(rows):
             rail_key = _SHELF_PREFIX + key
             groups.append((rail_key, text))
-            glyph = "sparkles" if key == POPULAR_KEY else C.category_glyph(key)
-            looks[rail_key] = (glyph, accent_of(key))
+            glyph = "trending" if key == POPULAR_KEY else C.category_glyph(key)
+            looks[rail_key] = (glyph, C.accent_of(key))
         self._rail.set_groups(SOURCES_KEY, groups, looks)
 
     def _on_rail(self, key: str) -> None:
@@ -510,7 +520,6 @@ class ExamplesDialog(QDialog):
     @staticmethod
     def _is_other(key: str) -> bool:
 
-        from ...core import source_rows
 
         return key == source_rows.OTHER and source_rows.available()
 
@@ -521,7 +530,16 @@ class ExamplesDialog(QDialog):
 
             row = other_row()
         if row is not None:
-            self._source.set_connector(row, cases_of(key, self._cases))
+            self._source.set_connector(row, cases_of(key, self._cases), self._shelf_of(row))
+
+    def _shelf_of(self, row: dict) -> tuple | None:
+
+        shelf = str(row.get("category") or "")
+        sources = list(self._connectors.values())
+        name = next((text for key, text in shelves(sources) if key == shelf), "")
+        if not shelf or not name:
+            return None
+        return shelf, name, section_rows(sources, shelf)
 
     def _build_sources_page(self, slot: int) -> ConnectorsPage:
         page = ConnectorsPage(self._right)

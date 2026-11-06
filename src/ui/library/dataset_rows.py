@@ -15,6 +15,7 @@ from qgis.PyQt.QtWidgets import QHBoxLayout, QLabel, QSizePolicy, QVBoxLayout
 
 from . import common as C
 from .parts import label
+from .pictures import wear_square_mark
 from .pressable import Pressable, labels_through
 
 _HIT_MARK_PX = 36
@@ -36,7 +37,6 @@ class DatasetHit(Pressable):
         line.setContentsMargins(C.px(C.EDGE), 0, C.px(C.EDGE), 0)
         line.setSpacing(C.px(12))
         mark = QLabel(self)
-        from .pictures import wear_square_mark
 
         look = dict(family)
         if row.get("logo_url"):

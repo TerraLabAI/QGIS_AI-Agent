@@ -25,7 +25,7 @@ from qgis.PyQt.QtCore import QT_TRANSLATE_NOOP
 
 from ..core.tool_registry import Tool, ToolRegistry, tool_error
 from ._compat import SHADER_CLASS_CONTINUOUS, SHADER_INTERPOLATED
-from .layer_lookup import _find_layer
+from ._layers import resolve_layer
 
 TOOL = "configure_pointcloud_style"
 _MODES = ("rgb", "classification", "elevation_ramp")
@@ -99,7 +99,7 @@ def _ramp(name: str):
 
 def _configure_pointcloud_style(args: dict) -> dict:
 
-    layer = _find_layer(str(args.get("layer_name") or ""))
+    layer = resolve_layer(str(args.get("layer_name") or ""))
     if layer is None:
         return tool_error(f"Layer {args.get('layer_name')!r} was not found.", "LAYER_NOT_FOUND")
     if not isinstance(layer, QgsPointCloudLayer):

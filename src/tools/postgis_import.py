@@ -37,6 +37,7 @@ from qgis.PyQt.QtCore import QT_TRANSLATE_NOOP
 
 from ..core import limits
 from ..core.feature_requests import feature_request
+from ..core.layer_release import register_task
 from ..core.quiet_credentials import no_login_prompt
 from ..core.tool_registry import Tool, ToolRegistry, tool_error
 from ._layers import layer_not_found, resolve_layer
@@ -186,9 +187,6 @@ def _suspect_text(layer) -> dict:
                    if any(w in str(f.typeName() or "").lower() for w in ("string", "text", "char"))]
     if not text_fields:
         return {}
-
-
-
     request = feature_request(attributes=text_fields, fields=layer.fields(), geometry=False,
                               limit=_TEXT_SAMPLE_FEATURES)
     utf8_as_latin, latin_as_utf8 = [], []
@@ -340,8 +338,6 @@ def _import_to_postgis(args: dict) -> dict:
         index = {"uri": connection.uri(), "schema": schema, "table": table, "column": geometry_column}
     feature_count = copy.featureCount()
     task = _PostgisImportTask(copy, uri.uri(False), crs, options, index)
-
-    from .processing_run import register_task
 
     done = {
         "schema": schema, "table": table, "connection": connection_name,

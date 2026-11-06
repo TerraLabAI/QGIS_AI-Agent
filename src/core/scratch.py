@@ -52,23 +52,12 @@ from __future__ import annotations
 
 from qgis.core import QgsLayerTree, QgsProject
 
+from . import tool_registry
 from .layer_order import is_backdrop, reading_back
+from .layer_release import remove_layers
 from .logger import log_warning
+from .qt_compat import disconnect_quietly
 
-
-KEEP_TOOLS = frozenset({
-    "set_layer_style", "set_layer_symbology", "set_layer_labels", "zoom_to_layer", "export_layer",
-    "export_3d_model",
-    "save_layer_to_gpkg", "add_layout_map", "add_layout_legend", "export_layout",
-    "create_print_layout", "set_layer_labels_advanced",
-
-
-    "set_raster_style", "set_raster_class_style", "apply_style_qml",
-})
-
-VISIBILITY_TOOLS = frozenset({"set_layer_visibility", "set_layers_visibility"})
-
-RENDER_TOOLS = frozenset({"render_map"})
 
 
 
@@ -77,18 +66,13 @@ MIN_TO_OFFER = 1
 
 MAX_REPORTED = 60
 
-
-
-DERIVING_TOOLS = frozenset({
-    "run_processing", "execute_processing_batch", "run_model", "duplicate_layer",
-    "raster_calculator", "create_hillshade",
-    "geocode_layer",
-})
-
 _TASK_DONE = frozenset({"complete", "completed", "done", "finished", "success"})
 _TASK_OVER = frozenset({"error", "failed", "canceled", "cancelled"})
 
-TASK_READS = frozenset({"get_task_status", "list_tasks", "cancel_task"})
+
+def _spec_field(name: str, field: str, default):
+    tool = tool_registry.spec(name)
+    return getattr(tool, field) if tool is not None else default
 
 
 def _strings(value, out: list) -> None:
@@ -183,10 +167,7 @@ class ScratchLedger:
 
 
         if self._project is not None:
-            try:
-                self._project.layersAdded.disconnect(self._on_layers_added)
-            except (TypeError, RuntimeError):
-                pass
+            disconnect_quietly(self._project, "layersAdded", self._on_layers_added)
             self._project = None
         self.last_report = self.report()
         return self.last_report
@@ -250,7 +231,8 @@ class ScratchLedger:
 
 
 
-        if name in RENDER_TOOLS:
+        use = _spec_field(name, "layer_use", "")
+        if use == "render":
 
 
 
@@ -260,13 +242,13 @@ class ScratchLedger:
                 drawn = self._referenced({"layers_rendered": result["layers_rendered"]}, list(self._order))
             self._last_render = drawn or self._last_render
             return
-        if name in VISIBILITY_TOOLS:
+        if use == "visibility":
 
             visible = args.get("visible") if isinstance(args, dict) else None
             if visible is not False:
                 self._kept.update(self._referenced(args, list(self._order)))
             return
-        if name in KEEP_TOOLS:
+        if use == "keep":
             self._kept.update(self._referenced(args, list(self._order)))
             return
 
@@ -280,7 +262,7 @@ class ScratchLedger:
         referenced = self._referenced(args, pool)
         if made and referenced:
             self._consume(referenced, made)
-        elif _started_task(result) and name not in TASK_READS:
+        elif _started_task(result) and not _spec_field(name, "reads_task", False):
 
 
 
@@ -460,7 +442,7 @@ class ScratchLedger:
         present = [layer_id for layer_id in self._order if layer_id in live]
         out = []
         for layer_id in present[:-1]:
-            if self._made_by.get(layer_id) not in DERIVING_TOOLS:
+            if not _spec_field(self._made_by.get(layer_id) or "", "derives_layers", False):
                 continue
             if layer_id in self._kept or layer_id in self._last_render:
                 continue
@@ -492,8 +474,6 @@ def remove(layer_ids) -> list:
 
 
 
-
-    from ..tools.processing_run import remove_layers
 
     return remove_layers([str(layer_id) for layer_id in layer_ids or ()])
 

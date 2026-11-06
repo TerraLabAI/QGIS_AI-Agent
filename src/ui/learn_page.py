@@ -21,18 +21,11 @@
 
 
 
-
-
-
 from __future__ import annotations
-
-import hashlib
-import os
-import tempfile
 
 from qgis.PyQt.QtCore import QCoreApplication, QObject, QRectF, QSize, Qt, QUrl, pyqtSignal
 from qgis.PyQt.QtGui import QColor, QImage, QPainter, QPainterPath, QPixmap
-from qgis.PyQt.QtNetwork import QNetworkReply, QNetworkRequest
+from qgis.PyQt.QtNetwork import QNetworkRequest
 from qgis.PyQt.QtWidgets import (
     QFrame,
     QHBoxLayout,
@@ -42,25 +35,23 @@ from qgis.PyQt.QtWidgets import (
     QWidget,
 )
 
-from ..core.host_platform import retry_file_op
 from .font_scale import scale_px_length, scale_qss_font_px
 from .icons import pixmap_for
 from .image_guard import read_bounded_image
-from .settings_pages import HAIRLINE, MUTED, ROW_NOTE_QSS, Page
-from .shared import PLUGIN_CACHE_DIR, event_pos, get_learn_items, resolve_qt_enum
-from .style import ACCENT_BORDER, ACCENT_TINT, FONT_BASE, FONT_HINT, RADIUS_CARD
-
-
-
-
-MAX_THUMBNAIL_BYTES = 900 * 1024
-
-THUMBNAIL_CACHE_DIR = os.path.join(PLUGIN_CACHE_DIR, "thumbnails")
-
-_NETWORK_NO_ERROR = resolve_qt_enum(QNetworkReply, "NetworkError", "NoError")
-_HTTP_STATUS = resolve_qt_enum(QNetworkRequest, "Attribute", "HttpStatusCodeAttribute")
-_REDIRECT_POLICY = resolve_qt_enum(QNetworkRequest, "Attribute", "RedirectPolicyAttribute")
-_NO_LESS_SAFE = resolve_qt_enum(QNetworkRequest, "RedirectPolicy", "NoLessSafeRedirectPolicy")
+from .settings_pages import MUTED, ROW_NOTE_QSS, TINT_HOVER, Page
+from .shared import event_pos, get_learn_items
+from .siblings_page import SiblingsSection
+from .style import FONT_BASE, FONT_HINT, RADIUS_CARD
+from .thumbnail_cache import (
+    HTTP_STATUS,
+    MAX_THUMBNAIL_BYTES,
+    NETWORK_NO_ERROR,
+    NO_LESS_SAFE,
+    REDIRECT_POLICY,
+    cached_thumbnail,
+    is_thumbnail_url_usable,
+    store_thumbnail,
+)
 
 
 
@@ -75,66 +66,16 @@ _DEFAULT_ACCENT = "#3E86D6"
 _KIND_GLYPHS = {"video": "play", "article": "book"}
 
 _CARD_QSS = (
-    scale_qss_font_px(f"QFrame#learnCard {{ background: transparent; border: 1px solid {HAIRLINE};"
+
+    scale_qss_font_px(f"QFrame#learnCard {{ background: transparent; border: none;"
     f" border-radius: {RADIUS_CARD}px; }}"
-    f"QFrame#learnCard:hover {{ background: {ACCENT_TINT}; border-color: {ACCENT_BORDER}; }}"
+    f"QFrame#learnCard:hover {{ background: {TINT_HOVER}; }}"
     f"QLabel#learnTitle {{ font-size: {FONT_BASE}px; font-weight: 600; color: palette(text);"
     " background: transparent; }"
-    f"QLabel#learnNote {{ font-size: {FONT_HINT}px; color: {MUTED}; background: transparent; }}"
-    f"QLabel#learnKind {{ font-size: {FONT_HINT}px; font-weight: 600; color: {MUTED};"
-    " background: transparent; }")
+    f"QLabel#learnNote {{ font-size: {FONT_HINT}px; color: {MUTED}; background: transparent; }}")
 )
 
 
-def thumbnail_cache_path(url: str) -> str:
-
-    digest = hashlib.sha256(url.encode("utf-8")).hexdigest()[:32]
-    return os.path.join(THUMBNAIL_CACHE_DIR, f"{digest}.img")
-
-
-def is_thumbnail_url_usable(url: object) -> bool:
-
-    if not isinstance(url, str) or not url.lower().startswith("https://"):
-        return False
-    try:
-        from urllib.parse import urlsplit
-        parsed = urlsplit(url)
-        return bool(parsed.hostname) and not parsed.username and not parsed.password
-    except ValueError:
-        return False
-
-
-def cached_thumbnail(url: str) -> QImage | None:
-    try:
-        if os.path.getsize(thumbnail_cache_path(url)) > MAX_THUMBNAIL_BYTES:
-            return None
-        with open(thumbnail_cache_path(url), "rb") as handle:
-            data = handle.read(MAX_THUMBNAIL_BYTES)
-    except OSError:
-        return None
-    return read_bounded_image(data, 16 * 1024 * 1024)
-
-
-def store_thumbnail(url: str, data: bytes) -> None:
-    path = thumbnail_cache_path(url)
-    try:
-        os.makedirs(THUMBNAIL_CACHE_DIR, exist_ok=True)
-
-
-
-
-        handle_fd, part = tempfile.mkstemp(prefix=".thumb-", dir=THUMBNAIL_CACHE_DIR)
-        with os.fdopen(handle_fd, "wb") as handle:
-            handle.write(data)
-
-
-
-        retry_file_op(os.replace, part, path)
-    except OSError:
-        try:
-            os.remove(part)
-        except OSError:
-            pass
 
 
 class ThumbnailLoader(QObject):
@@ -158,7 +99,7 @@ class ThumbnailLoader(QObject):
             return
         self._url = url
         request = QNetworkRequest(QUrl(url))
-        request.setAttribute(_REDIRECT_POLICY, _NO_LESS_SAFE)
+        request.setAttribute(REDIRECT_POLICY, NO_LESS_SAFE)
         try:
             reply = QgsNetworkAccessManager.instance().get(request)
         except Exception:  # noqa: BLE001
@@ -200,9 +141,9 @@ class ThumbnailLoader(QObject):
             return
         data = b""
         try:
-            status = reply.attribute(_HTTP_STATUS)
+            status = reply.attribute(HTTP_STATUS)
             served = int(status) if status is not None else 200
-            if reply.error() == _NETWORK_NO_ERROR and served == 200:
+            if reply.error() == NETWORK_NO_ERROR and served == 200:
                 data = bytes(reply.readAll())
         except (RuntimeError, TypeError, ValueError):
             data = b""
@@ -227,16 +168,14 @@ class Thumbnail(QLabel):
 
 
 
-
-
-
-
     def __init__(self, glyph: str, accent: str, parent=None):
         super().__init__(parent)
         self._glyph = glyph
         self._accent = QColor(accent)
         self._image: QImage | None = None
         self._placeholder: QPixmap | None = None
+
+        self.play_mark = False
         self.setMinimumHeight(scale_px_length(_CARD_H))
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         self.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -244,6 +183,22 @@ class Thumbnail(QLabel):
     def set_image(self, image: QImage) -> None:
         self._image = image if image is not None and not image.isNull() else None
         self.update()
+
+    def _paint_play(self, painter: QPainter, rect) -> None:
+        side = float(scale_px_length(52))
+        disc = QRectF(rect.center().x() - side / 2, rect.center().y() - side / 2, side, side)
+        painter.setClipping(False)
+        painter.setPen(Qt.PenStyle.NoPen)
+        painter.setBrush(QColor(255, 255, 255, 235))
+        painter.drawEllipse(disc)
+        tri = QPainterPath()
+        cx, cy, half = disc.center().x() + side * 0.05, disc.center().y(), side * 0.2
+        tri.moveTo(cx - half * 0.8, cy - half)
+        tri.lineTo(cx + half, cy)
+        tri.lineTo(cx - half * 0.8, cy + half)
+        tri.closeSubpath()
+        painter.setBrush(QColor(20, 20, 20))
+        painter.drawPath(tri)
 
     def set_placeholder(self, pixmap: QPixmap) -> None:
 
@@ -263,7 +218,7 @@ class Thumbnail(QLabel):
         rect = self.rect()
         path_rect = rect.adjusted(0, 0, -1, -1)
         if self._image is not None:
-            ratio = float(self.devicePixelRatioF()) if hasattr(self, "devicePixelRatioF") else 1.0
+            ratio = float(self.devicePixelRatioF())
             target = QSize(max(1, int(rect.width() * ratio)), max(1, int(rect.height() * ratio)))
             scaled = self._image.scaled(target, Qt.AspectRatioMode.KeepAspectRatioByExpanding,
                                         Qt.TransformationMode.SmoothTransformation)
@@ -278,6 +233,8 @@ class Thumbnail(QLabel):
                 rect.x() - max(0, (int(scaled.width() / ratio) - rect.width())) // 2,
                 rect.y() - max(0, (int(scaled.height() / ratio) - rect.height())) // 2,
                 pixmap)
+            if self.play_mark:
+                self._paint_play(painter, rect)
             painter.end()
             return
         tint = QColor(self._accent)
@@ -311,21 +268,26 @@ class LearnCard(QFrame):
 
         col = QVBoxLayout(self)
         col.setContentsMargins(10, 10, 10, 12)
-        col.setSpacing(8)
+        col.setSpacing(0)
         self._thumb = Thumbnail(_KIND_GLYPHS.get(kind, "book"), accent, self)
+        self._thumb.play_mark = kind == "video"
         col.addWidget(self._thumb)
+        col.addSpacing(10)
 
-        label = QLabel(self.tr("Video") if kind == "video" else self.tr("Guide"), self)
-        label.setObjectName("learnKind")
-        col.addWidget(label)
         title = QLabel(str(item.get("title") or ""), self)
         title.setObjectName("learnTitle")
         title.setWordWrap(True)
         col.addWidget(title)
-        note = QLabel(str(item.get("note") or ""), self)
+        col.addSpacing(4)
+        kind_word = self.tr("Video") if kind == "video" else self.tr("Guide")
+        line = str(item.get("note") or "")
+        note = QLabel(f"{kind_word} · {line}" if line else kind_word, self)
         note.setObjectName("learnNote")
         note.setWordWrap(True)
         col.addWidget(note)
+
+
+        col.addStretch(1)
 
         self._loader: ThumbnailLoader | None = None
         thumbnail_url = str(item.get("thumbnail_url") or "")
@@ -354,27 +316,33 @@ class LearnPage(Page):
 
     def __init__(self, parent=None):
         super().__init__(
-            QCoreApplication.translate("LearnPage", "Tutorials"),
-            QCoreApplication.translate("LearnPage", "Videos and guides to get started. They open in your browser."),
+            QCoreApplication.translate("LearnPage", "Learn"),
+            QCoreApplication.translate(
+                "LearnPage", "Videos, guides and the other TerraLab plugins. Links open in your browser."),
             parent)
+
+        self.siblings = SiblingsSection(self)
         items = [i for i in get_learn_items() if str(i.get("url") or "").startswith("https://")]
         if not items:
             empty = QLabel(self.tr("The tutorials arrive when the panel connects."), self)
             empty.setStyleSheet(ROW_NOTE_QSS)
             empty.setWordWrap(True)
-            empty.setContentsMargins(4, 8, 4, 4)
+            empty.setContentsMargins(14, 8, 14, 4)
             self.add(empty)
+            self.add(self.siblings)
             return
         row_host = QWidget(self)
         row = QHBoxLayout(row_host)
-        row.setContentsMargins(0, 0, 0, 0)
+
+        row.setContentsMargins(4, 0, 4, 0)
         row.setSpacing(12)
-        for item in items[:2]:
+        for index, item in enumerate(items[:2]):
             card = LearnCard(item, row_host)
             kind, url = card.kind, card.url()
             card.clicked.connect(lambda k=kind, u=url: self.opened.emit(k, u))
             card.setMinimumWidth(scale_px_length(_CARD_W // 2))
-            row.addWidget(card, 1)
+
+            row.addWidget(card, 3 if index == 0 else 2)
         self.add(row_host)
 
 
@@ -384,5 +352,6 @@ class LearnPage(Page):
                 f'{item.get("title")}</a>', self)
             more.setOpenExternalLinks(True)
             more.setStyleSheet(scale_qss_font_px(f"font-size: {FONT_BASE}px; background: transparent;"))
-            more.setContentsMargins(4, 2, 4, 0)
+            more.setContentsMargins(14, 2, 14, 0)
             self.add(more)
+        self.add(self.siblings)

@@ -10,22 +10,20 @@ from __future__ import annotations
 from qgis.PyQt.QtCore import QT_TRANSLATE_NOOP
 from qgis.utils import active_plugins
 
+from ...core import limits
+from ...core.qt_compat import one_shot
 from ...core.tool_registry import Tool, ToolRegistry, tool_error
+from .._widgets import find_plugin as _find_plugin
+from .._widgets import plugin_widgets as _plugin_widgets
+from .._widgets import process_events as _process_events
+from .._widgets import widget_ident as _widget_ident
+from ..adapters import get_adapter
+from ..harvest_layout import _CAPTURE_PAGE_MM, _export_failed, _render_3d_page
+from ..layout_elevation import snapshot_3d_view
+from ..map_3d import open_3d_views
 from .snapshot import _accessibility_snapshot
 from .widgets import (
-    find_plugin as _find_plugin,
-)
-from .widgets import (
     grab_widget as _grab_widget,
-)
-from .widgets import (
-    plugin_widgets as _plugin_widgets,
-)
-from .widgets import (
-    process_events as _process_events,
-)
-from .widgets import (
-    widget_ident as _widget_ident,
 )
 
 
@@ -33,6 +31,8 @@ def register_ui_tools(registry: ToolRegistry):
     registry.register(Tool(
         name="take_qgis_window_screenshot",
         danger="read",
+        render_size="held",
+        writes_at=("save_path",),
         label=QT_TRANSLATE_NOOP("AIAgent", "Look at the QGIS window"),
         input_schema={
             "type": "object",
@@ -55,7 +55,6 @@ def register_ui_tools(registry: ToolRegistry):
         handler=_take_qgis_window_screenshot,
     ))
 
-
     registry.register(Tool(
         name="open_plugin_panel",
         danger="write",
@@ -69,6 +68,8 @@ def register_ui_tools(registry: ToolRegistry):
             "required": ["plugin_name"],
         },
         handler=_open_plugin_panel,
+
+        always_confirm=lambda args: args.get("mode") == "launch",
     ))
 
 
@@ -78,8 +79,6 @@ def _capture_format(args: dict) -> tuple[str, int]:
 
 def _take_qgis_window_screenshot(args: dict) -> dict:
     from qgis.utils import iface
-
-    from ...core import limits
 
 
 
@@ -128,12 +127,10 @@ def _wait_for_canvas(canvas) -> bool:
 
     if not canvas.isDrawing():
         return False
-    from qgis.PyQt.QtCore import QEventLoop, QTimer
+    from qgis.PyQt.QtCore import QEventLoop
 
     loop = QEventLoop()
-    timer = QTimer()
-    timer.setSingleShot(True)
-    timer.timeout.connect(loop.quit)
+    timer = one_shot(None, loop.quit)
     canvas.mapCanvasRefreshed.connect(loop.quit)
     timer.start(_CANVAS_WAIT_MS)
     try:
@@ -197,7 +194,6 @@ def _window_picture(main_window, views_3d=None):
 
 def _exposed_3d_views() -> list:
 
-    from ..map_3d import open_3d_views
 
     return [(index, canvas) for index, canvas in enumerate(open_3d_views() or []) if canvas.isExposed()]
 
@@ -213,10 +209,6 @@ def _paint_3d_views(painter, host, origin, views, views_3d) -> None:
     from qgis.PyQt.QtCore import QPoint, QRect
     from qgis.PyQt.QtGui import QImage
     from qgis.utils import iface
-
-    from ...core import limits
-    from ..harvest_layout import _CAPTURE_PAGE_MM, _export_failed, _render_3d_page
-    from ..layout_elevation import snapshot_3d_view
 
     holder = host.windowHandle()
     for index, canvas in views:
@@ -271,7 +263,6 @@ def _open_plugin_panel(args: dict) -> dict:
 
     _process_events()
     out = {"plugin": key, "mode": mode, "opened_widgets": opened}
-    from ..adapters import get_adapter
 
     if not opened and not get_adapter(key).snapshot_roots():
 

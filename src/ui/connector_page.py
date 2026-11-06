@@ -33,6 +33,11 @@
 
 
 
+
+
+
+
+
 from __future__ import annotations
 
 from qgis.PyQt.QtCore import QEvent, Qt, pyqtSignal
@@ -49,12 +54,15 @@ from qgis.PyQt.QtWidgets import (
     QWidget,
 )
 
-from .connectors_page import mark_box
+from ..core import source_rows
+from ..core.served_state import served_label_map
+from .connectors_page import SourceCard, mark_box, short_licence
 from .external_links import open_external_url
 from .icons import pixmap_for
 from .library import common as C
+from .library.cards import ExampleTile
 from .library.common import link_html
-from .library.parts import Breadcrumb, edge, label, paragraph, primary_button
+from .library.parts import Breadcrumb, SectionHead, edge, label, paragraph, primary_button, section_title
 from .library.pictures import watch_scroll
 from .library.pressable import Pressable, labels_through
 from .widgets import ElidedLabel
@@ -66,8 +74,9 @@ _FACT_W = 140
 
 _NARROW_W = 460
 
-
 _EXAMPLES = 3
+
+_MORE_SOURCES = 2
 
 
 class ConnectorPage(QWidget):
@@ -76,6 +85,8 @@ class ConnectorPage(QWidget):
     crumb_requested = pyqtSignal(int)
     prompt_chosen = pyqtSignal(str, object)
     example_opened = pyqtSignal(object)
+    connector_opened = pyqtSignal(str)
+    section_opened = pyqtSignal(str)
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -93,6 +104,7 @@ class ConnectorPage(QWidget):
         self._datasets_host: QWidget | None = None
         self._datasets: list = []
         self._prompt_rows: list = []
+        self._more_cards: list = []
         self._reply = None
 
         outer = QVBoxLayout(self)
@@ -149,6 +161,11 @@ class ConnectorPage(QWidget):
             tile_w = max(1, (width - (_EXAMPLES - 1) * gap) // _EXAMPLES)
             for tile in self._tiles:
                 tile.set_tile_width(tile_w)
+        if self._more_cards:
+            gap = C.px(C.TILE_GAP)
+            card_w = max(1, (width - (_MORE_SOURCES - 1) * gap) // _MORE_SOURCES)
+            for card in self._more_cards:
+                card.set_card_width(card_w)
         self._place_button(width < C.px(_NARROW_W))
 
     def _place_button(self, narrow: bool) -> None:
@@ -173,12 +190,12 @@ class ConnectorPage(QWidget):
     def _clear(self) -> None:
         self._tiles = []
         self._prompt_rows = []
+        self._more_cards = []
         self._cases = []
         self._examples_host = None
         self._datasets_host = None
         self._datasets = []
         self._datasets_state = ""
-        from ..core import source_rows
 
         source_rows.abort(self._reply)
         self._reply = None
@@ -242,10 +259,10 @@ class ConnectorPage(QWidget):
 
         if not self._chip:
             return None
-        button = primary_button(self._column, self.tr("Try in chat"))
-        button.setToolTip(first or self.tr("Puts @{name} in the chat box, for a question of your own.")
+        button = primary_button(self._column, self.tr("Use in chat"))
+        button.setToolTip(self.tr("Puts @{name} in the chat box, for a question of your own.")
                           .format(name=self._name))
-        button.clicked.connect(lambda _c=False, t=first: self.prompt_chosen.emit(t, dict(self._chip)))
+        button.clicked.connect(lambda _c=False: self.prompt_chosen.emit("", dict(self._chip)))
         return button
 
     def _prompts_panel(self, prompts: list) -> QFrame:
@@ -270,9 +287,42 @@ class ConnectorPage(QWidget):
 
     def _about(self, summary: str) -> QWidget:
 
-        return edge(paragraph(self._column, summary))
+        first, rest = _first_sentence(summary)
+        text = paragraph(self._column, C.escape(first), rich=True)
+        if rest:
+            more = (f' <a href="more:" style="color: {C.T.text_2}; text-decoration: none;">'
+                    f'{C.escape(self.tr("More"))}</a>')
+            text.setText(text.text().replace("</div>", more + "</div>"))
+            text.setTextInteractionFlags(Qt.TextInteractionFlag.TextBrowserInteraction)
+            text.setOpenExternalLinks(False)
 
-    def set_connector(self, detail: dict, cases: list | None = None) -> None:
+            def unfold(_href: str) -> None:
+                text.setText(f'<div style="line-height: {C.LINE_HEIGHT}%;">'
+                             f'{C.escape(summary).replace(chr(10), "<br>")}</div>')
+                text.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+                self._fit()
+
+            text.linkActivated.connect(unfold)
+        return edge(text)
+
+    def _tagline(self, detail: dict) -> str:
+
+        tagline = str(detail.get("tagline") or "").strip()
+        coverage = str(detail.get("coverage") or "").strip()
+        licences = [p.strip() for p in str(detail.get("licence") or "").split(",") if p.strip()]
+        first = short_licence(licences[0]) if licences else ""
+        licence = (self.tr("{first} and %n more licences", "", len(licences) - 1).format(first=first)
+                   if first and len(licences) > 1 else first)
+        if not tagline:
+            return coverage or _host(self._site(detail))
+        if coverage and len(coverage) > _COVERAGE_MAX:
+            coverage = ""
+        return " · ".join(p for p in (tagline, coverage, licence) if p)
+
+    def set_connector(self, detail: dict, cases: list | None = None, more: tuple | None = None) -> None:
+
+
+
 
         self._clear()
         detail = dict(detail or {})
@@ -294,37 +344,60 @@ class ConnectorPage(QWidget):
         prompts = [] if cases else [
             str(p).strip() for p in (detail.get("prompts") or []) if str(p).strip()][:_PROMPTS]
         first = str(getattr(cases[0], "prompt", "") or "") if cases else (prompts[0] if prompts else "")
-        tagline = str(detail.get("tagline") or "").strip()
-        subtitle = tagline or str(detail.get("coverage") or "").strip() or _host(self._site(detail))
+        subtitle = self._tagline(detail)
         self._head(detail, subtitle, self._try_button(first))
+        summary = str(detail.get("summary") or "").strip()
+        if summary and summary != str(detail.get("tagline") or "").strip():
+            self._gap(C.SPACE_3)
+            self._col.addWidget(self._about(summary))
         if cases:
             self._gap(C.SPACE_5)
             self._col.addWidget(self._examples(cases))
         elif prompts and self._chip:
             self._gap(C.SPACE_5)
             self._col.addWidget(self._prompts_panel(prompts))
-        summary = str(detail.get("summary") or "").strip()
-        if summary and summary != subtitle:
-            self._gap(C.SPACE_5)
-            self._col.addWidget(self._about(summary))
         facts = self._facts(detail)
         if facts is not None:
             self._gap(C.SPACE_5)
             self._col.addWidget(facts)
-        self._datasets_section(int(detail.get("datasets") or 0))
+        self._datasets_section(int(detail.get("datasets") or 0), C.SPACE_2 if facts is not None else C.SPACE_5)
+        if more:
+            self._more_section(*more)
         self._fit()
 
-    def _datasets_section(self, count: int) -> None:
+    def _more_section(self, key: str, name: str, rows: list) -> None:
+
+        rows = [r for r in rows if str(r.get("id") or "") != self._id][:_MORE_SOURCES]
+        if not rows:
+            return
+        self._gap(C.SPACE_5)
+        head = SectionHead(self.tr("More in {shelf}").format(shelf=name), self._column)
+        head.setObjectName("connectorMoreIn")
+        head.clicked.connect(lambda k=key: self.section_opened.emit(k))
+        self._col.addWidget(head)
+        self._gap(C.SPACE_1)
+        host = QWidget(self._column)
+        grid = QGridLayout(host)
+        grid.setContentsMargins(0, 0, 0, 0)
+        grid.setHorizontalSpacing(C.px(C.TILE_GAP))
+        grid.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
+        for index, row in enumerate(rows):
+            card = SourceCard(row, host)
+            card.clicked.connect(lambda k=card.key: self.connector_opened.emit(k))
+            grid.addWidget(card, 0, index)
+            self._more_cards.append(card)
+        self._col.addWidget(host)
+
+    def _datasets_section(self, count: int, gap: int = C.SPACE_5) -> None:
 
 
 
 
 
-        from ..core import source_rows
 
         if not self._id or not source_rows.available():
             return
-        self._gap(C.SPACE_5)
+        self._gap(gap)
         toggle = _Disclosure(self.tr("Datasets ({n})").format(n=count) if count
                              else self.tr("Datasets"), self._column)
         toggle.setObjectName("connectorDatasets")
@@ -347,7 +420,6 @@ class ConnectorPage(QWidget):
         toggle.clicked.connect(flip)
 
     def _fetch_datasets(self) -> None:
-        from ..core import source_rows
 
         self._datasets_state = "loading"
         self._fill_datasets()
@@ -400,7 +472,6 @@ class ConnectorPage(QWidget):
         if family != self._id or self._datasets_host is None:
             return
         self._reply = None
-        from ..core import source_rows
 
         country, _language = source_rows.user_place()
         self._datasets = sorted(rows or [], key=lambda r: source_rows.relevance(r, country)[:2])
@@ -410,12 +481,17 @@ class ConnectorPage(QWidget):
     def _examples(self, cases: list) -> QWidget:
 
 
-        from .library.cards import ExampleTile
+
 
         host = QWidget(self._column)
         col = QVBoxLayout(host)
         col.setContentsMargins(0, 0, 0, 0)
         col.setSpacing(C.px(C.SPACE_2))
+        title = self.tr("Examples with this source")
+        all_text = self.tr("All %n", "", len(cases))
+        head = SectionHead(title, host, all_text) if len(cases) > _EXAMPLES else section_title(host, title)
+        head.setObjectName("connectorExamplesHead")
+        col.addWidget(head)
         grid_host = edge(QWidget(host))
         grid = QGridLayout(grid_host)
         grid.setContentsMargins(0, 0, 0, 0)
@@ -434,18 +510,14 @@ class ConnectorPage(QWidget):
                 extra.append(tile)
         col.addWidget(grid_host)
         if extra:
-            toggle = _Disclosure(self.tr("See all %n examples", "", len(cases)), host)
-            toggle.setObjectName("connectorExamplesAll")
-
             def flip() -> None:
                 showing = not extra[0].isVisible()
                 for tile in extra:
                     tile.setVisible(showing)
-                toggle.set_open(showing)
+                head.set_open(showing, self.tr("Fewer") if showing else all_text)
                 self._fit()
 
-            toggle.clicked.connect(flip)
-            col.addWidget(toggle, 0, Qt.AlignmentFlag.AlignLeft)
+            head.clicked.connect(flip)
         return host
 
     def _facts(self, detail: dict) -> QWidget | None:
@@ -453,11 +525,12 @@ class ConnectorPage(QWidget):
 
         site = self._site(detail)
         first = [
-            (self.tr("Coverage"), str(detail.get("coverage") or ""), False),
-            (self.tr("Licence"), str(detail.get("licence") or ""), False),
             (self.tr("Website"), link_html(site, _bare_host(site)) if site else "", True),
         ]
         more = [
+            (self.tr("Coverage"), str(detail.get("coverage") or "")
+             if len(str(detail.get("coverage") or "")) > _COVERAGE_MAX else "", False),
+            (self.tr("Licence"), str(detail.get("licence") or ""), False),
             (self.tr("Attribution"), str(detail.get("attribution") or ""), False),
             (self.tr("What it needs"), self._status_line(detail), False),
             (self.tr("Key"), self.tr("Held by TerraLab's server, you need none")
@@ -544,7 +617,6 @@ class ConnectorPage(QWidget):
         served = str(detail.get("status_label") or "").strip()
         if served:
             return served[:200]
-        from .shared import served_label_map
 
         served_map = served_label_map("status_labels")
         if status in served_map:
@@ -562,6 +634,21 @@ class ConnectorPage(QWidget):
 
     def connector_id(self) -> str:
         return self._id
+
+
+
+_COVERAGE_MAX = 40
+
+
+def _first_sentence(text: str) -> tuple:
+
+    import re
+
+    text = str(text or "").strip()
+    match = re.search(r"[.!?](\s+)(?=[A-Z0-9\u00C0-\u024F])", text)
+    if not match or match.end() >= len(text):
+        return text, ""
+    return text[:match.start() + 1], text[match.end():]
 
 
 def _host(url: str) -> str:
@@ -591,7 +678,7 @@ class _PromptRow(Pressable):
         words = label(self, text, C.BODY_PX, C.T.text, wrap=True)
         row.addWidget(words, 1)
         arrow = QLabel(self)
-        arrow.setPixmap(pixmap_for(arrow, "chevron_right", 16, QColor(C.T.text_2)))
+        arrow.setPixmap(pixmap_for(arrow, C.line_glyph("chevron_right"), 16, QColor(C.T.text_2)))
         arrow.setStyleSheet("background: transparent;")
         row.addWidget(arrow, 0, Qt.AlignmentFlag.AlignVCenter)
         labels_through(self)
@@ -616,7 +703,7 @@ class _Disclosure(Pressable):
         self.set_open(False)
 
     def set_open(self, open_: bool) -> None:
-        self._chevron.setPixmap(pixmap_for(self._chevron, "chevron_down" if open_ else "chevron_right",
+        self._chevron.setPixmap(pixmap_for(self._chevron, C.line_glyph("chevron_down" if open_ else "chevron_right"),
                                            16, QColor(C.T.text_2)))
 
 

@@ -29,7 +29,6 @@ import urllib.error
 import urllib.parse
 import urllib.request
 import zlib
-from collections import OrderedDict
 
 from . import data_access, limits, read_clock, tuning
 from .host_platform import retry_file_op
@@ -53,7 +52,6 @@ from .net_failure import (
     _is_drop,
     _name_host,
     _transient,
-    _warn_if_on_main_thread,
     describe_failure,
 )
 from .net_hosts import (
@@ -111,6 +109,9 @@ from .net_opener import (
     withdrawn_reason,
 )
 from .net_state import (
+    _CACHE,
+    _CACHE_LOCK,
+    clear_cache,
     current_cancel_check,
     current_progress_sink,
     current_timing_sink,
@@ -125,6 +126,7 @@ from .net_stream import (
     _StreamInflater,
     free_disk_bytes,
 )
+from .numbers import as_int
 
 
 
@@ -132,7 +134,6 @@ __all__ = [
     "CACHE_MAX_BYTES",
     "CACHE_MAX_ENTRIES",
     "CACHE_MAX_TOTAL_BYTES",
-    "cache_stats",
     "check_url",
     "CHUNK",
     "clear_cache",
@@ -354,9 +355,8 @@ def _declared_length(headers) -> int | None:
         raw = headers.get("Content-Length") or headers.get("content-length")
     except Exception:  # noqa: BLE001
         return None
-    try:
-        value = int(str(raw).strip())
-    except (TypeError, ValueError):
+    value = as_int(str(raw).strip())
+    if value is None:
         return None
     return value if value >= 0 else None
 
@@ -391,8 +391,6 @@ def _pace_refusal(done: int, promised: int | None, spent: float, deadline: float
         "seconds this call has.")
 
 
-_CACHE: OrderedDict[str, tuple[float, Response]] = OrderedDict()
-_CACHE_LOCK = threading.Lock()
 _INFLIGHT: dict[str, threading.Event] = {}
 
 
@@ -424,16 +422,6 @@ def _cache_put(key: str, response: Response, ttl: float) -> None:
         while _CACHE and (len(_CACHE) > CACHE_MAX_ENTRIES or total > CACHE_MAX_TOTAL_BYTES):
             _, (_, dropped) = _CACHE.popitem(last=False)
             total -= len(dropped.body)
-
-
-def clear_cache() -> None:
-    with _CACHE_LOCK:
-        _CACHE.clear()
-
-
-def cache_stats() -> dict:
-    with _CACHE_LOCK:
-        return {"entries": len(_CACHE), "bytes": sum(len(r.body) for _, r in _CACHE.values())}
 
 
 
@@ -1204,3 +1192,28 @@ def race(attempts, *, workers: int | None = None, stagger: float | None = None):
 
         pool.shutdown(wait=False)
     return winner_label, winner, errors
+
+
+def _warn_if_on_main_thread() -> None:
+
+
+
+
+
+
+
+
+
+    try:
+        from .background import on_main_thread
+
+        if not on_main_thread():
+            return
+        from qgis.core import QgsApplication
+
+        if QgsApplication.instance() is None:
+            return
+    except Exception:  # noqa: BLE001
+        return
+    log_warning("net.fetch called on the Qt main thread: QGIS is blocked for the "
+                "length of this request. The tool should declare background=True.")

@@ -20,6 +20,7 @@ from .host_platform import qgis_version
 from .versions import read_version
 
 RELEASES_URL = "https://plugins.qgis.org/plugins/AI_Agent/json"
+PLUGIN_PAGE_URL = "https://plugins.qgis.org/plugins/AI_Agent/"
 
 
 _PUT_OFF_PROPERTY = "terralabAiAgentUpdateLater"

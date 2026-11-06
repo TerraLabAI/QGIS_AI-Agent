@@ -33,6 +33,9 @@ from ..core.layer_mime import card_kind_line, cheap_feature_count
 from .attach_card import TILE_GLYPH, AttachCard
 from .font_scale import widget_pixel_ratio
 from .layer_icons import follows_layers, layer_icon, layer_name, resolve_layer
+from .library.common import accent_of
+from .library.pictures import _MarkWatcher, cached_on_disk, source_pixmap, usable
+from .source_marks import connector_row
 
 _KIND_GLYPHS = {
     "layer": "layers",
@@ -111,9 +114,6 @@ class LayerCard(AttachCard):
     def _set_source_mark(self, connector_id: str) -> None:
 
 
-        from .connectors_page import accent_of
-        from .library.pictures import _MarkWatcher, cached_on_disk, source_pixmap, usable
-        from .source_marks import connector_row
 
         row = connector_row(connector_id)
         if not row:

@@ -61,7 +61,11 @@ _SCHEME = re.compile(r"^[A-Za-z][A-Za-z0-9+.\-]+:")
 _DRIVE = re.compile(r"^[A-Za-z]:[\\/]")
 _USER_SUFFIX = re.compile(r"\s+-\s+[^\\/]+$")
 
-_RESERVED = re.compile(r"^(con|prn|aux|nul|com[0-9]|lpt[0-9])(?=\.|$)", re.IGNORECASE)
+RESERVED_NAMES = frozenset({"con", "prn", "aux", "nul"} | {f"com{i}" for i in range(1, 10)}
+                           | {f"lpt{i}" for i in range(1, 10)})
+FORBIDDEN_CHARS = '\\/:*?"<>|'
+_MAX_STEM_CHARS = 100
+_MAX_EXT_CHARS = 16
 
 
 def fold(name: str) -> str:
@@ -71,15 +75,45 @@ def fold(name: str) -> str:
     return re.sub(r"[\s_\-.]+", " ", text).strip()
 
 
+def avoid_reserved_name(stem: str) -> str:
+
+
+
+
+
+    first = stem.split(".", 1)[0].strip(" ").lower()
+    return f"_{stem}" if first in RESERVED_NAMES else stem
+
+
 def safe_file_name(name: str, fallback: str = "export") -> str:
 
 
 
 
 
-    cleaned = re.sub(r'[<>:"/\\|?*\x00-\x1f]+', "_", str(name or "")).strip(" .")
-    cleaned = _RESERVED.sub(r"\1_", cleaned)
-    return cleaned or fallback
+
+
+
+
+    cleaned = "".join("_" if (c in FORBIDDEN_CHARS or ord(c) < 32) else c for c in str(name or "")).strip(" .")
+    if not cleaned:
+        return fallback
+    stem, ext = os.path.splitext(cleaned)
+    if len(ext) > _MAX_EXT_CHARS:
+        stem, ext = cleaned, ""
+    stem = avoid_reserved_name(stem[:_MAX_STEM_CHARS].strip(" .")) or fallback
+    return stem + ext
+
+
+def file_stem(text: str, fallback: str, cap: int = 60) -> str:
+
+
+
+
+
+
+    stem = re.sub(r"[^\w-]+", "_", str(text or "")).strip("_")[:cap].strip("_")
+    return avoid_reserved_name(stem or fallback)
 
 
 def standard_folder(kind: str) -> str:
@@ -286,12 +320,12 @@ def _default_name(name: str, args: dict) -> str:
     return safe_file_name(str(args.get(source) or "")) + ext
 
 
-def resolve_write_paths(name: str, args: dict, write_path_args: dict) -> list[dict]:
+def resolve_write_paths(name: str, args: dict, keys: tuple[str, ...]) -> list[dict]:
 
     changes: list[dict] = []
     if not isinstance(args, dict):
         return changes
-    for key in write_path_args.get(name, ()):
+    for key in keys:
         before = args.get(key)
         if not isinstance(before, str) or not before.strip():
             if name in _FILLED_WHEN_ABSENT and _default_name(name, args):
@@ -341,13 +375,41 @@ def resolve_processing_outputs(params: dict, output_keys) -> list[dict]:
     return changes
 
 
+
+
+OGR_DBNAME_PATTERN = r"^ogr:dbname='(?P<path>[^']+)'"
+_GPKG_TABLE_RE = re.compile(r"^(?P<path>.+\.gpkg)\|layername=(?P<table>[^|]+)$", re.IGNORECASE)
+_OGR_DBNAME_TABLE_RE = re.compile(OGR_DBNAME_PATTERN + r"\s+table=\"(?P<table>[^\"]+)\"", re.IGNORECASE)
+
+
+def gpkg_sink_uri(path: str, table: str) -> str | None:
+
+
+
+
+
+
+
+
+
+
+    if "'" in (path or "") or '"' in (table or ""):
+        return None
+    return f"ogr:dbname='{path}' table=\"{table}\" (geom)"
+
+
+def gpkg_table_target(value: str):
+
+    text = (value or "").strip()
+    match = _GPKG_TABLE_RE.match(text) or _OGR_DBNAME_TABLE_RE.match(text)
+    if not match:
+        return None
+    return match.group("path"), match.group("table").strip()
+
+
 def _gpkg_table(value: str) -> str:
 
-    try:
-        from ..tools.processing_destinations import _gpkg_table_target
-    except Exception:  # noqa: BLE001
-        return ""
-    target = _gpkg_table_target(value)
+    target = gpkg_table_target(value)
     return str(target[0]) if target else ""
 
 

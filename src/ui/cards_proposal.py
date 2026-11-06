@@ -31,6 +31,7 @@ from qgis.PyQt.QtWidgets import (
     QWidget,
 )
 
+from ..core.numbers import as_int
 from .card_base import _Card
 from .card_controls import (
     _ASK_CARD_QSS,
@@ -390,8 +391,6 @@ class RecommendationCard(_Card, FoldMixin):
         return f"- **{self.tr('Proposal')}:** {self.title} ({decision})"
 
 
-
-
 _DIFF_HEAD_QSS = (
     "QWidget#{name} { background: transparent; border: none;"
     " border-bottom: 1px solid " + LINE + "; }"
@@ -480,10 +479,7 @@ class _DiffRow:
         cells = row.get("cells")
         cells = list(cells) if isinstance(cells, (list, tuple)) else []
         cells = (cells + [""] * ncols)[:ncols]
-        try:
-            struck_at = int(row.get("changed", ncols - 1))
-        except (TypeError, ValueError):
-            struck_at = ncols - 1
+        struck_at = as_int(row.get("changed", ncols - 1), ncols - 1)
 
         self.back = QWidget(table)
         self.back.setObjectName(f"diffRow{_DiffRow._serial}")

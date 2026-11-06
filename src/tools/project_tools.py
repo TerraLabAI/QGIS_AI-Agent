@@ -10,28 +10,40 @@ import os
 from qgis.core import QgsCoordinateTransform, QgsCsException, QgsFeatureRequest, QgsProject, QgsVectorLayer, QgsWkbTypes
 from qgis.utils import iface
 
-from ..core import canvas_glide, ground, tuning
+from ..core import canvas_glide, ground, siblings, tuning
+from ..core.context_layers import crs_units, layer_filter, layer_kind
 from ..core.crs_ref import crs_ref
 from ..core.feature_requests import feature_request
 from ..core.follow import hold_view
 from ..core.layer_order import is_remote_vector as _is_remote_vector
 from ..core.layer_order import is_web_service
+from ..core.layer_release import remove_layers
 from ..core.policy import get_security_context
 from ..core.serialization import dump_json, size_budget
 from ..core.snapshot import layer_file_path
 from ..core.tool_registry import coded_fact, tool_error
 from ..core.vsi import streamed_in_place
-from ._widgets import AI_EDIT_KEYS, sibling_plugin
+from ._layers import layer_not_found, resolve_layer
 from .layer_lookup import (
     _duplicate_layer_names,
-    _find_layer,
     _geometry_type_name,
-    _layer_not_found_error,
     extent_block,
 )
 
 
 
+
+
+def is_remote_raster(layer) -> bool:
+
+    if streamed_in_place(layer):
+        return True
+    try:
+        source = str(layer.source() or "")
+        provider = str(layer.providerType() or "").lower()
+    except Exception:  # noqa: BLE001
+        return False
+    return source.startswith(("http://", "https://")) or provider in ("wms", "wcs", "arcgismapserver")
 
 
 def _safe_feature_count(layer):
@@ -62,7 +74,6 @@ def _layer_kind(layer) -> str:
 
 
 
-    from ..core.context import layer_kind
 
     return layer_kind(layer)
 
@@ -86,7 +97,6 @@ def _get_project_context(args: dict) -> dict:
     canvas = iface.mapCanvas()
     project_crs = project.crs()
     canvas_crs = canvas.mapSettings().destinationCrs()
-    from ..core.context import crs_units
 
     context = {
         "project": {
@@ -169,7 +179,7 @@ def _project_integrations() -> dict:
 
             integrations["ai_segmentation"] = {"installed": True, "ready": False, "state": presence["state"]}
 
-        _, plugin = sibling_plugin(AI_EDIT_KEYS)
+        _, plugin = siblings.find(siblings.AI_EDIT)
         if plugin:
             integrations["ai_edit"] = {"installed": True, "initialized": hasattr(plugin, "_auth_manager")}
         else:
@@ -464,7 +474,6 @@ def filter_facts(layer) -> dict:
 
 
 
-    from ..core.context import layer_filter
 
     subset = layer_filter(layer)
     if not subset:
@@ -528,9 +537,9 @@ def _sampled_vertices(layer) -> dict | None:
 
 
 def _get_layer_info(args: dict) -> dict:
-    layer = _find_layer(args["layer_name"])
+    layer = resolve_layer(args["layer_name"])
     if not layer:
-        return _layer_not_found_error(args["layer_name"])
+        return layer_not_found(args["layer_name"])
 
 
 
@@ -563,7 +572,7 @@ def _get_layer_info(args: dict) -> dict:
 
             from .crs_landing import layer_check
             info.update(layer_check(layer))
-            from ..core.context import degree_values
+            from ..core.context_layers import degree_values
             degrees = degree_values(layer.crs(), layer.extent())
             if degrees:
                 info["degree_values"] = degrees
@@ -585,7 +594,7 @@ def _get_layer_info(args: dict) -> dict:
         encoding = layer.dataProvider().encoding() if layer.providerType() == "ogr" else ""
         if encoding and encoding != "System":
             info["encoding"] = encoding
-    if isinstance(layer, QgsVectorLayer) and not remote:
+    if isinstance(layer, QgsVectorLayer) and samples:
         vertices = _sampled_vertices(layer)
         if vertices is not None:
             info["vertices_per_feature_sampled"] = vertices
@@ -625,7 +634,7 @@ def _get_layer_info(args: dict) -> dict:
 
             info["fields"] = [{"name": field.name(), "type": field.typeName()}
                                for field in layer.fields()]
-            skipped = ["field_values", "sample_features", "area_measurement"]
+            skipped = ["field_values", "sample_features", "vertices_per_feature_sampled", "area_measurement"]
             if fc is None:
                 skipped.append("feature_count")
             if skip_remote_extent:
@@ -662,9 +671,8 @@ def _get_layer_info(args: dict) -> dict:
         except Exception:  # noqa: BLE001  # nosec B110
             pass
         info.update(ground.pixel_facts(layer))
-        from .query_tools import _remote_raster
 
-        if _remote_raster(layer):
+        if is_remote_raster(layer):
 
             info["provider"] = layer.providerType()
             info["remote"] = coded_fact(hint="raster_remote_reads")
@@ -673,15 +681,13 @@ def _get_layer_info(args: dict) -> dict:
 
 
 def _remove_layer(args: dict) -> dict:
-    layer = _find_layer(args["layer_name"])
+    layer = resolve_layer(args["layer_name"])
     if not layer:
-        return _layer_not_found_error(args["layer_name"])
+        return layer_not_found(args["layer_name"])
 
 
 
 
-
-    from .processing_run import remove_layers
 
     name, layer_id = layer.name(), layer.id()
     remove_layers([layer])
@@ -689,9 +695,9 @@ def _remove_layer(args: dict) -> dict:
 
 
 def _zoom_to_layer(args: dict) -> dict:
-    layer = _find_layer(args["layer_name"])
+    layer = resolve_layer(args["layer_name"])
     if not layer:
-        return _layer_not_found_error(args["layer_name"])
+        return layer_not_found(args["layer_name"])
 
     import math
 

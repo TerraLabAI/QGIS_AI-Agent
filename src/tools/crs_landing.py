@@ -22,6 +22,7 @@ import math
 import os
 import pathlib
 import sqlite3
+import time
 
 from qgis.core import QgsCoordinateReferenceSystem, QgsPointXY, QgsProject, QgsRectangle
 
@@ -38,6 +39,8 @@ _MARGIN_SHARE = 0.25
 _MARGIN_MIN_DEGREES = 0.02
 
 _MAX_ANCHORS = 8
+
+_ANCHORS_BUDGET_S = 0.5
 _MAX_CANDIDATES = 400
 _SHOWN = 3
 
@@ -85,7 +88,10 @@ def anchors(exclude_ids: tuple = ()) -> list:
 
 
     found = []
+    deadline = time.monotonic() + _ANCHORS_BUDGET_S
     for layer in QgsProject.instance().mapLayers().values():
+        if time.monotonic() > deadline:
+            break
         if layer.id() in exclude_ids or not extent_is_cheap(layer):
             continue
         try:

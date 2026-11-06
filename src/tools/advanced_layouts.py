@@ -9,15 +9,32 @@ from __future__ import annotations
 import math
 import os
 import sys
+import time
 
 from qgis.core import QgsLayoutExporter, QgsLayoutItemMap, QgsProject, QgsRectangle
 
-from ..core import licence, limits, output_paths
+from ..core import limits, net
+from ..core.background import on_main_thread, run_on_main_thread
 from ..core.host_platform import retry_file_op
 from ..core.qt_compat import enum_member
 from ..core.security import validate_path
 from ..core.tool_registry import tool_error
+from . import layout_child, layout_ready
+from .export_rules import (
+    _IMAGE_FORMATS,
+    _dpi_for_ground,
+    _export_failure,
+    _fit_dpi,
+    _ground_per_pixel,
+    _heavy_layers,
+    _output_folder,
+    export_flags,
+)
+from .layout_facts import _apply_scale, _layout_credits, _page_text
 from .layout_pixel_units import PixelSizeHold
+from .layout_tools import furniture_check
+from .report_read import _parts
+from .report_tools import export_report
 
 
 def _list_layouts(args: dict) -> dict:
@@ -41,7 +58,6 @@ def _list_layouts(args: dict) -> dict:
 
 _EXPORT_EXTS = {".pdf": "pdf", ".png": "png", ".jpg": "jpg", ".jpeg": "jpg", ".svg": "svg",
                 ".tif": "tif", ".tiff": "tif", ".qpt": "qpt"}
-_IMAGE_FORMATS = frozenset({"png", "jpg", "tif"})
 
 
 def _export_format(args: dict, output_path: str) -> tuple[str, str]:
@@ -64,67 +80,6 @@ def _export_format(args: dict, output_path: str) -> tuple[str, str]:
         return "", (f"format is {asked} but {os.path.basename(str(output_path))} names a "
                     f"{from_name} file, so the file would not hold what its name promises.")
     return asked, ""
-
-
-def _metres_per_map_unit(crs) -> float | None:
-
-    try:
-        from qgis.core import Qgis, QgsUnitTypes
-
-        metres = enum_member(Qgis, "DistanceUnit", "Meters", None)
-        degrees = enum_member(Qgis, "DistanceUnit", "Degrees", None)
-        if metres is None:
-            metres = enum_member(QgsUnitTypes, "DistanceUnit", "DistanceMeters")
-            degrees = enum_member(QgsUnitTypes, "DistanceUnit", "DistanceDegrees")
-        units = crs.mapUnits()
-        if units == degrees:
-            return None
-        factor = float(QgsUnitTypes.fromUnitToUnitFactor(units, metres))
-    except Exception:  # noqa: BLE001
-        return None
-    return factor if factor > 0 else None
-
-
-def _ground_per_pixel(exporter, reference, dpi: float) -> tuple[float, str]:
-
-    a, _b, _c, d, _e, _f = exporter.computeWorldFileParameters(float(dpi))
-    size = math.hypot(a, d)
-    per_unit = _metres_per_map_unit(reference.crs())
-    return (size * per_unit, "m") if per_unit else (size, "degrees")
-
-
-def _dpi_for_ground(exporter, reference, metres, max_dpi: int, measure=None):
-
-
-
-
-
-    try:
-        metres = float(metres)
-    except (TypeError, ValueError):
-        metres = 0.0
-    if not metres > 0 or not math.isfinite(metres):
-        return tool_error("meters_per_pixel must be a positive number.", "INVALID_ARGS",
-                          hint="layout_ground_size_invalid")
-    if _metres_per_map_unit(reference.crs()) is None:
-        return tool_error("The layout's map is in degrees, so a pixel size in metres has no single dpi.",
-                          "INVALID_ARGS", hint="layout_pixel_size_geographic")
-    at_100 = measure() if measure is not None else _ground_per_pixel(exporter, reference, 100)[0]
-    if not at_100 > 0:
-        return tool_error("The layout's map has no extent to measure a pixel size from.",
-                          "EXECUTION_FAILED", hint="layout_map_extent_empty")
-    dpi = 100.0 * at_100 / metres
-    if dpi > max_dpi:
-        finest = at_100 * 100.0 / max_dpi
-        refused = limits.refusal(
-            f"meters_per_pixel {metres:g}", f"{dpi:,.0f} dpi on this layout", f"{max_dpi} dpi", "")
-        refused.update(hint="layout_pixel_size_too_fine", finest=math.ceil(finest * 100) / 100, metres=metres)
-        return refused
-    if dpi < 10:
-        coarsest = at_100 * 10.0
-        return tool_error(f"meters_per_pixel {metres:g} is coarser than 10 dpi on this layout.",
-                          "INVALID_ARGS", hint="layout_pixel_size_coarse", coarsest=coarsest)
-    return round(dpi, 4)
 
 
 def _world_file_path(image_path: str) -> str:
@@ -206,219 +161,6 @@ def _image_size(path: str) -> dict:
     return {}
 
 
-def _map_layers(item) -> list:
-
-    from qgis.core import QgsProject
-
-    try:
-        return list(item.layersToRender())
-    except (RuntimeError, AttributeError, TypeError):
-        pass
-    project = QgsProject.instance()
-    try:
-        if item.followVisibilityPreset():
-            name = item.followVisibilityPresetName()
-            themes = project.mapThemeCollection()
-            if themes.hasMapTheme(name):
-                return list(themes.mapThemeVisibleLayers(name))
-        if item.keepLayerSet():
-            return list(item.layers())
-    except (RuntimeError, AttributeError):
-        pass
-    return list(project.layerTreeRoot().checkedLayers())
-
-
-def _credit_layers(layout) -> list:
-
-    from qgis.core import QgsLayoutItemMap
-
-    layers = []
-    seen = set()
-    for item in layout.items():
-        if not isinstance(item, QgsLayoutItemMap):
-            continue
-        for layer in _map_layers(item):
-            try:
-                layer_id = layer.id()
-            except (RuntimeError, AttributeError):
-                continue
-            if layer_id not in seen:
-                seen.add(layer_id)
-                layers.append(layer)
-    return layers
-
-
-def _credit_lines(layout) -> list:
-
-    credits = []
-    for layer in _credit_layers(layout):
-        try:
-            text = licence.credit_line(layer)
-        except (RuntimeError, AttributeError):
-            continue
-        if text and text not in credits:
-            credits.append(text)
-    return credits
-
-
-def _layout_credits(layout) -> list:
-
-
-
-
-
-
-    from qgis.core import QgsLayoutItemLabel
-
-    shown = [str(item.text() or "") for item in layout.items() if isinstance(item, QgsLayoutItemLabel)]
-    return [credit for credit in _credit_lines(layout) if not any(credit in label for label in shown)]
-
-
-
-
-
-
-_HEAVY_PROVIDERS = frozenset({"wms", "wmts", "xyz", "wfs", "arcgismapserver",
-                              "arcgisfeatureserver", "afs", "ams", "vectortile", "oapif"})
-
-
-def _heavy_layers(layout) -> list:
-
-    from qgis.core import QgsLayoutItemMap, QgsRasterLayer
-
-    names: list = []
-    for item in layout.items():
-        if not isinstance(item, QgsLayoutItemMap):
-            continue
-        for layer in _map_layers(item):
-            try:
-                provider = str(getattr(layer, "providerType", lambda: "")() or "").lower()
-                if (provider in _HEAVY_PROVIDERS or isinstance(layer, QgsRasterLayer)) \
-                        and layer.name() not in names:
-                    names.append(layer.name())
-            except (AttributeError, RuntimeError):
-                continue
-    return names
-
-
-
-
-_REMOTE_SOURCES = ("/vsicurl", "/vsis3", "/vsigs", "/vsiaz", "/vsiadls", "/vsioss", "/vsiswift",
-                   "http://", "https://")
-
-
-def _remote_layers(layout) -> list:
-
-
-
-
-
-    from qgis.core import QgsLayoutItemMap, QgsRasterLayer
-
-    names: list = []
-    for item in layout.items():
-        if not isinstance(item, QgsLayoutItemMap):
-            continue
-        for layer in _map_layers(item):
-            try:
-                provider = str(getattr(layer, "providerType", lambda: "")() or "").lower()
-                source = str(layer.source() or "").lower() if isinstance(layer, QgsRasterLayer) else ""
-                remote = provider in _HEAVY_PROVIDERS or any(mark in source for mark in _REMOTE_SOURCES)
-                if remote and layer.name() not in names:
-                    names.append(layer.name())
-            except (AttributeError, RuntimeError):
-                continue
-    return names
-
-
-def _page_pixels(layout, dpi: float) -> float:
-
-    try:
-        from .layout_tools import _page_summary
-
-        page = _page_summary(layout)
-        width, height = float(page["width_mm"] or 0), float(page["height_mm"] or 0)
-        if width <= 0 or height <= 0:
-            return 0.0
-        return (width / 25.4 * dpi) * (height / 25.4 * dpi)
-    except Exception:  # noqa: BLE001
-        return 0.0
-
-
-
-
-_MIN_LOWERED_DPI = 96
-
-
-
-
-
-_A4_MM2 = 210.0 * 297.0
-_PRINT_DPI = 300
-
-
-def _print_ceiling() -> float:
-
-
-    dpi = min(_PRINT_DPI, float(limits.current("MAX_RENDER_DPI")))
-    return _A4_MM2 / (25.4 * 25.4) * dpi * dpi * 1.01
-
-
-def _fit_dpi(layout, dpi: int, fmt: str) -> tuple:
-
-
-
-
-
-
-
-
-
-    remote = _remote_layers(layout)
-    if not remote:
-        return dpi, ""
-    pixels = _page_pixels(layout, dpi)
-    ceiling = _print_ceiling()
-    if not pixels > ceiling:
-        return dpi, ""
-    fitted = int(max(_MIN_LOWERED_DPI, dpi * math.sqrt(ceiling / pixels)))
-    if fitted >= dpi:
-        return dpi, ""
-    return fitted, (f"Exported at {fitted} dpi rather than {dpi}, by this tool's own rule, before drawing: "
-                    f"nothing timed out. At {dpi} dpi this page is {pixels / 1e6:,.0f} megapixels of {fmt}, "
-                    f"each fetched over the network from {', '.join(remote[:4])}, which is more than an A4 "
-                    f"sheet at {_PRINT_DPI} dpi and can run longer than a call may. Hide those layers, or use "
-                    "a smaller page, to print at the dpi asked for.")
-
-
-_EXPORT_RESULT_WORDS = {
-    "Canceled": "the export was cancelled",
-    "MemoryError": "QGIS ran out of memory for an image this size",
-    "FileError": "the file could not be written",
-    "PrintError": "the printer device refused the page",
-    "SvgLayerError": "the SVG layers could not be written",
-    "IteratorError": "the atlas iterator failed",
-}
-
-
-def _export_failure(result) -> dict:
-
-    name = ""
-    for member, sentence in _EXPORT_RESULT_WORDS.items():
-        if result == enum_member(QgsLayoutExporter, "ExportResult", member, None):
-            name = sentence
-            break
-    if not name:
-        name = f"the exporter answered {result}"
-    if result == enum_member(QgsLayoutExporter, "ExportResult", "FileError", None):
-
-
-        hint = "layout_export_file_refused"
-    else:
-        hint = "layout_export_heavy"
-    return tool_error(f"The layout was not exported: {name}.", "EXECUTION_FAILED", hint=hint)
-
-
 def _open_to_append(path: str) -> None:
     with open(path, "ab"):
         pass
@@ -445,56 +187,6 @@ def _unwritable_target(output_path: str) -> dict | None:
             why, hint = "is open in another program", "layout_export_target_open"
     return tool_error(f"{output_path} {why}, so the layout cannot be exported over it.", "EXECUTION_FAILED",
                       hint=hint, alternative=f"{stem}_2{extension}")
-
-
-def _page_text(layout) -> str:
-
-    try:
-        from .layout_tools import _page_summary
-
-        page = _page_summary(layout)
-        name = page["page_size"] or "custom"
-        return f"{name} {page['orientation']}, {page['width_mm']:g} x {page['height_mm']:g} mm"
-    except Exception:  # noqa: BLE001
-        return ""
-
-
-def _ground_text(reference_map, rect) -> str:
-
-    factor = _metres_per_map_unit(reference_map.crs())
-    if factor is not None:
-        return f"{rect.width() * factor / 1000:.1f} x {rect.height() * factor / 1000:.1f} km"
-    return f"{rect.width():.4f} x {rect.height():.4f} degrees"
-
-
-def _apply_scale(reference_map, wanted, layout_name: str):
-
-
-
-
-    try:
-        wanted = float(wanted)
-    except (TypeError, ValueError):
-        wanted = 0.0
-    if not math.isfinite(wanted) or wanted < 1:
-        return tool_error("scale must be a number of 1 or more, the denominator of 1:scale.",
-                          "INVALID_ARGS", hint="layout_scale_invalid")
-    if reference_map is None:
-        return tool_error(f"Layout '{layout_name}' has no map item, so it has no scale to set.",
-                          "INVALID_ARGS", hint="layout_no_map")
-    before = QgsRectangle(reference_map.extent())
-    reference_map.setScale(wanted)
-    got = reference_map.scale()
-    if not got > 0 or abs(got - wanted) > wanted * 0.001:
-        reference_map.zoomToExtent(before)
-        return tool_error(f"The map could not be set to 1:{wanted:,.0f}; it reads 1:{got:,.0f}.",
-                          "EXECUTION_FAILED", hint="layout_scale_not_applied")
-    after = reference_map.extent()
-    if after.width() < before.width() * 0.999 or after.height() < before.height() * 0.999:
-        return (f"At 1:{wanted:,.0f} the map frame shows {_ground_text(reference_map, after)} around "
-                f"the same centre, less than the {_ground_text(reference_map, before)} it showed; a "
-                "larger page or map frame, or a larger scale number, shows more.")
-    return ""
 
 
 def _restore_scale_on_refusal(reference_map, pre_scale_extent) -> None:
@@ -524,26 +216,6 @@ def _save_template(layout, output_path: str, created_folder: str, scale_note: st
     if created_folder:
         out["created_folder"] = created_folder
     return out
-
-
-def _output_folder(output_path: str, args: dict) -> tuple:
-
-
-
-
-
-
-
-
-    folder = os.path.dirname(output_path) or "."
-    if os.path.isdir(folder):
-        return "", None
-    meant = "" if args.get("create_folder") else output_paths.near_existing_folder(folder)
-    if meant:
-        return "", tool_error(f"The folder {folder} does not exist, and {meant} does.", "INVALID_ARGS",
-                              hint="layout_export_folder_misspelt")
-    os.makedirs(folder, exist_ok=True)
-    return folder, None
 
 
 def _asked_dpi(args: dict) -> tuple:
@@ -583,15 +255,6 @@ def _scaled_extent(reference, wanted):
     return extent
 
 
-def export_flags(fmt: str):
-
-    if fmt == "pdf":
-        return QgsLayoutExporter.PdfExportSettings().flags
-    if fmt == "svg":
-        return QgsLayoutExporter.SvgExportSettings().flags
-    return QgsLayoutExporter.ImageExportSettings().flags
-
-
 def export_view(args: dict):
 
 
@@ -602,8 +265,6 @@ def export_view(args: dict):
 
 
 
-    from . import layout_ready
-
     layout = QgsProject.instance().layoutManager().layoutByName(str(args.get("layout_name") or ""))
     if layout is None:
         return None
@@ -612,8 +273,6 @@ def export_view(args: dict):
         return None
     dpi, _requested, _note, max_dpi = _asked_dpi(args)
     if getattr(layout, "pageCollection", None) is None:
-        from .report_tools import _parts
-
         if (fmt != "pdf" and fmt not in _IMAGE_FORMATS) or any(
                 args.get(key) not in (None, False) for key in ("scale", "meters_per_pixel", "georeference")):
             return None
@@ -643,6 +302,14 @@ def export_view(args: dict):
             dpi if fmt in _IMAGE_FORMATS else None)
 
 
+def prepare_export(args: dict):
+
+
+
+
+    return layout_ready.prepare_export(args, None if layout_child.separate(args) else export_view(args))
+
+
 def _not_drawn(ready: dict, layout_name: str) -> dict:
 
 
@@ -656,20 +323,60 @@ def _not_drawn(ready: dict, layout_name: str) -> dict:
 
 
 def _export_layout(args: dict) -> dict:
-    from . import layout_ready
+
+    if not on_main_thread():
+        return _export_in_separate_qgis(args)
+    return _drive(_export_layout_steps(args, separate=False))
+
+
+def _export_in_separate_qgis(args: dict) -> dict:
+
+
+
+    steps = _export_layout_steps(args, separate=True)
+
+    step = run_on_main_thread(_step, steps, None, timeout=120)
+    if step[0] == "done":
+        return step[1]
+    budget = float(limits.current("CALL_MAX_SECONDS_BACKGROUND")) * 0.8
+    report = layout_child.run(step[1], net.current_cancel_check(), budget)
+    staged = step[1]["output_path"]
+    if report.get("ok") and step[1]["format"] == "pdf" and os.path.exists(staged):
+        from .pdf_facts import pdf_facts
+
+        report["pdf"] = pdf_facts(staged)
+    return run_on_main_thread(_step, steps, report, timeout=120)[1]
+
+
+def _step(steps, sent):
+
+    try:
+        return "child", steps.send(sent)
+    except StopIteration as stop:
+        return "done", stop.value
+
+
+def _drive(steps) -> dict:
+    try:
+        steps.send(None)
+    except StopIteration as stop:
+        return stop.value
+    raise RuntimeError("a main-thread export asked for a separate QGIS")
+
+
+def _export_layout_steps(args: dict, separate: bool):
+
 
 
 
     ready = layout_ready.take(str(args.get("layout_name") or ""))
     try:
-        return _export_layout_with(args, ready)
+        return (yield from _export_layout_with(args, ready, separate))
     finally:
         layout_ready.discard(ready)
 
 
-def _export_layout_with(args: dict, ready) -> dict:
-    from . import layout_ready
-
+def _export_layout_with(args: dict, ready, separate: bool = False):
     layout_name = args["layout_name"]
     output_path = args["output_path"]
     fmt, fmt_error = _export_format(args, output_path)
@@ -701,8 +408,6 @@ def _export_layout_with(args: dict, ready) -> dict:
         return tool_error(f"Layout not found: {layout_name}", "INVALID_ARGS")
     if getattr(layout, "pageCollection", None) is None:
 
-
-        from .report_tools import _parts, export_report
 
         if ready is not None and (ready["stopped"] or ready["unfinished"]):
             return _not_drawn(ready, layout_name)
@@ -812,11 +517,19 @@ def _export_layout_with(args: dict, ready) -> dict:
         return exporter.exportToSvg(output_path, settings)
 
     exported = False
+    separate_qgis = None
     try:
         if fmt not in _IMAGE_FORMATS and fmt not in ("pdf", "svg"):
             return tool_error(f"Unsupported format: {fmt}", "INVALID_ARGS")
+        result = None
+        if separate:
+            separate_qgis, result = yield from _drawn_in_separate_qgis(
+                layout_name, fmt, output_path, dpi, args, held)
+            if result is None:
+                held = PixelSizeHold(layout, dpi)
+        if result is None:
 
-        result = layout_ready.drawn(layout, ready, export, paint_dpi)
+            result = layout_ready.drawn(layout, ready, export, paint_dpi)
         exported = True
     finally:
         held.restore()
@@ -877,7 +590,7 @@ def _export_layout_with(args: dict, ready) -> dict:
 
         from .pdf_facts import pdf_facts
 
-        out["pdf"] = pdf_facts(actual_path)
+        out["pdf"] = (separate_qgis or {}).pop("pdf", None) or pdf_facts(actual_path)
     if fmt in _IMAGE_FORMATS:
         out.update(_image_size(actual_path))
         if georeference:
@@ -887,12 +600,77 @@ def _export_layout_with(args: dict, ready) -> dict:
             out.update(geo)
 
 
-    from ..core.layout_quality import assess_layout
+    from .layout_quality import assess_layout
     out["layout_checks"] = assess_layout(layout)
-    from .layout_tools import furniture_check
     furniture = furniture_check(layout)
     if furniture is not None:
         out["furniture_check"] = furniture
     if created_folder:
         out["created_folder"] = created_folder
+    if separate_qgis:
+        out["separate_qgis"] = separate_qgis
     return out
+
+
+def _put_in_place(staged: str, output_path: str) -> None:
+
+
+    import shutil
+
+    try:
+        retry_file_op(os.replace, staged, output_path)
+        return
+    except OSError as exc:
+        if not os.path.exists(staged) or os.path.dirname(os.path.abspath(staged)) == os.path.dirname(
+                os.path.abspath(output_path)):
+            raise
+        near = output_path + ".part"
+        try:
+            shutil.copyfile(staged, near)
+            retry_file_op(os.replace, near, output_path)
+        except OSError:
+            if os.path.exists(near):
+                os.remove(near)
+            raise exc from None
+    os.remove(staged)
+
+
+def _drawn_in_separate_qgis(layout_name, fmt, output_path, dpi, args, held):
+
+
+
+
+
+
+
+    started = time.monotonic()
+    try:
+        copy = layout_child.write_copy()
+    except Exception as exc:  # noqa: BLE001
+        held.restore()
+        return {"drawn": False, "reason": f"project copy not written: {exc}"}, None
+    held.restore()
+
+
+    staged = os.path.join(os.path.dirname(copy), "page." + fmt)
+    job = {"project_path": copy, "layout_name": layout_name, "format": fmt, "output_path": staged,
+           "dpi": dpi, "appendGeoreference": bool(args.get("georeference")),
+           "forceVectorOutput": bool(args.get("force_vector")), "settings": layout_child.settings()}
+    copy_s = round(time.monotonic() - started, 2)
+    report = yield job
+    report = report if isinstance(report, dict) else {}
+    facts = {"copy_s": copy_s, **{key: report[key] for key in ("init_s", "read_s", "simplify_s", "export_s",
+                                                                 "wall_s", "simplified", "pdf") if report.get(key)}}
+    if report.get("stopped"):
+        return facts, enum_member(QgsLayoutExporter, "ExportResult", "Canceled")
+    success = enum_member(QgsLayoutExporter, "ExportResult", "Success")
+    success = int(getattr(success, "value", success))
+    if report.get("ok") and report.get("result") == success and os.path.exists(staged):
+        try:
+            _put_in_place(staged, output_path)
+        except OSError as exc:
+            return {"drawn": False, "reason": f"the page could not take the place of {output_path}: {exc}",
+                    **facts}, None
+        return {"drawn": True, **facts}, enum_member(QgsLayoutExporter, "ExportResult", "Success")
+    reason = str(report.get("error") or report.get("error_text") or f"export result {report.get('result')}")
+    return {"drawn": False, "reason": reason[:300], **facts}, None

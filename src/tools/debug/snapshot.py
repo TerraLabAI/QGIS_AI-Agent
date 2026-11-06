@@ -6,15 +6,10 @@ from __future__ import annotations
 from qgis.PyQt.QtWidgets import QWidget
 
 from ...core.serialization import dump_json
+from .._widgets import descendants, process_events, top_level_roots
 from ..adapters import get_adapter
 from .refs import get_ref_store
-from .widgets import (
-    descendants,
-    interactive_kind,
-    process_events,
-    top_level_roots,
-    widget_node,
-)
+from .widgets import interactive_kind, widget_node
 
 
 def _scope_roots(plugin_name: str):

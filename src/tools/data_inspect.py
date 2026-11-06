@@ -19,13 +19,26 @@ import zlib
 
 from qgis.core import QgsCoordinateReferenceSystem, QgsProject, QgsVectorLayer, QgsWkbTypes
 
-from ..core import http_headers, limits, links, net, read_clock, security, tuning, vsi
+from ..core import (
+    accounts,
+    http_headers,
+    limits,
+    link_vault,
+    links,
+    net,
+    read_clock,
+    security,
+    source_rules,
+    tuning,
+    vsi,
+)
 from ..core.background import delete_here, run_on_main_thread, take
 from ..core.crs_ref import crs_ref
 from ..core.host_platform import IS_WINDOWS, remove_tree
+from ..core.output_paths import file_stem, safe_file_name
 from ..core.policy import create_managed_temp_dir
 from ..core.tool_registry import coded_fact, tool_error
-from . import ogc_inspect, volume_guard
+from . import crs_landing, ogc_inspect, volume_guard
 from .csv_loader import CSV_EXTENSIONS
 from .data_common import (
     _CACHE_CATALOG_S,
@@ -34,15 +47,15 @@ from .data_common import (
     _MAX_ARCHIVE_ENTRIES,
     _MAX_EXTRACTED_SIZE,
     _PORTAL_TIMEOUT,
-    _USER_AGENT,
-    _avoid_reserved_name,
+    _SINGLE_LAYER_EXTENSIONS,
     _bbox_km2,
     _download_timeout,
     _http_fetch,
     _layer_from_geojson_str,
-    _safe_filename,
     _vector_uri_for,
     built_here,
+    close_dataset,
+    members_matching,
     ogr_opens,
     query_sublayers,
     worker_options,
@@ -85,7 +98,7 @@ def _remote_size(url: str) -> int:
 
 
     try:
-        request = urllib.request.Request(url, headers={"User-Agent": _USER_AGENT, "Range": "bytes=0-0"})
+        request = urllib.request.Request(url, headers={"Range": "bytes=0-0"})
 
 
 
@@ -259,7 +272,6 @@ def _copy_box(layer, layer_srs, path: str, clock, count: int | None) -> dict:
 
     from osgeo import gdal, ogr, osr
 
-    from .data_overture_extract import _close_dataset
 
     copied = 0
     target = out = None
@@ -321,7 +333,7 @@ def _copy_box(layer, layer_srs, path: str, clock, count: int | None) -> dict:
     finally:
         out = None
         if target is not None:
-            _close_dataset(target)
+            close_dataset(target)
 
 
 def _whole_file_to_disk(url: str, file_name: str, clock) -> dict:
@@ -330,10 +342,12 @@ def _whole_file_to_disk(url: str, file_name: str, clock) -> dict:
 
 
     folder = create_managed_temp_dir("download")
-    path = os.path.join(folder, _safe_filename(file_name) or "download.parquet")
+    path = os.path.join(folder, safe_file_name(file_name, "download") or "download.parquet")
     streamed = _stream_to_disk(url, path, max(10.0, clock.left()))
     if isinstance(streamed, dict):
         remove_tree(folder)
+        if accounts.MARK in streamed:
+            return streamed
         streamed["_error"] = (f"{file_name} cannot be read in part: any box of it reads the whole file "
                               f"(one row group, or no bbox covering), so it is downloaded whole. "
                               f"{streamed['_error']}")
@@ -440,7 +454,7 @@ def _cut_box(layer, declared, layer_srs, url: str, file_name: str, name: str, bb
                                                              f"about {fits:,}")
     known = count if count and count > 0 else None
     directory = create_managed_temp_dir("extract")
-    path = os.path.join(directory, f"{_safe_extract_stem(name)}.gpkg")
+    path = os.path.join(directory, f"{file_stem(name, 'extract')}.gpkg")
     copied = _copy_box(layer, layer_srs, path, clock, known)
     done = copied.get("copied", 0)
     if not any(key in copied for key in ("late", "cancelled", "failed")) and done:
@@ -504,15 +518,6 @@ def _extract_crs_note(declared, file_name: str, given_crs) -> str:
     declared_name = (f"{declared.GetAuthorityName(None)}:{code}" if code else (declared.GetName() or "its own CRS"))
     return f"{file_name} declares {declared_name}, which was kept; the crs of this call, {given_crs}, was not applied."
 
-
-def _safe_extract_stem(text: str) -> str:
-
-
-
-
-
-    stem = "".join(c if (c.isalnum() or c in "-_") else "_" for c in str(text or "extract"))
-    return _avoid_reserved_name(stem.strip("_")[:60] or "extract")
 
 
 def _add_vector_over_range_requests(url: str, layer_name: str | None, sublayer: str | None = None,
@@ -653,14 +658,6 @@ def _add_vector_over_range_requests(url: str, layer_name: str | None, sublayer: 
     return run_on_main_thread(_create, timeout=_VSICURL_TIMEOUT_S)
 
 
-
-
-
-
-
-_SINGLE_LAYER_EXTENSIONS = (".fgb", ".geojson", ".json", ".parquet", ".pmtiles", ".shp", ".csv", ".kml")
-
-
 def _sublayers_of(layer) -> list:
 
     try:
@@ -688,7 +685,7 @@ def _sublayers_of(layer) -> list:
 
 
 
-_ARCHIVE_RASTER_EXTENSIONS = (".tif", ".tiff", ".img", ".jp2", ".asc", ".nc")
+_ARCHIVE_RASTER_EXTENSIONS = (".tif", ".tiff", ".img", ".jp2", ".asc", ".nc", ".bil", ".flt", ".hgt")
 
 
 def _archive_entries(root: str) -> list:
@@ -732,8 +729,8 @@ def _extract_member(zf, member, tmp_dir: str) -> None:
              if part not in ("", ".", "..")]
     if not parts:
         return
-    target = os.path.join(tmp_dir, *[_safe_filename(part, "entry") for part in parts])
-    if len(target) >= security._MAX_PATH and not security._long_paths_ok():
+    target = os.path.join(tmp_dir, *[safe_file_name(part, "entry") for part in parts])
+    if len(target) >= security.MAX_PATH and not security.long_paths_ok():
 
 
 
@@ -741,7 +738,7 @@ def _extract_member(zf, member, tmp_dir: str) -> None:
         if member.is_dir():
             return
         folder = hashlib.sha1("/".join(parts[:-1]).encode("utf-8"), usedforsecurity=False).hexdigest()[:8]
-        target = os.path.join(tmp_dir, folder, _safe_filename(parts[-1], "entry"))
+        target = os.path.join(tmp_dir, folder, safe_file_name(parts[-1], "entry"))
     if member.is_dir():
         os.makedirs(target, exist_ok=True)
         return
@@ -750,35 +747,18 @@ def _extract_member(zf, member, tmp_dir: str) -> None:
         shutil.copyfileobj(source, sink)
 
 
-
-
-
-
-
-
-_CONTENT_TYPE_EXTS = {"application/zip": ".zip", "application/x-zip-compressed": ".zip",
-                      "application/geopackage+sqlite3": ".gpkg", "application/geo+json": ".geojson",
-                      "application/json": ".geojson", "application/vnd.google-earth.kml+xml": ".kml",
-                      "text/csv": ".csv"}
-
-
-
-
-
-_ENDPOINT_EXTENSIONS = frozenset({".ashx", ".aspx", ".asp", ".php", ".jsp", ".cgi", ".do", ".action", ".pl"})
-
-
 def _extension_of_download(path_name: str, headers, body: bytes) -> str:
 
     ext = os.path.splitext(path_name)[1].lower()
-    if ext and ext not in _ENDPOINT_EXTENSIONS:
+    if ext and ext not in source_rules.table("files", "endpoint_exts", []):
         return ext
     ext = os.path.splitext(_disposition_filename(headers.get("content-disposition") or ""))[1].lower()
     if ext:
         return ext
     content_type = (headers.get("content-type") or "").split(";", 1)[0].strip().lower()
-    if content_type in _CONTENT_TYPE_EXTS:
-        return _CONTENT_TYPE_EXTS[content_type]
+    typed = source_rules.table("files", "content_type_exts", {}).get(content_type)
+    if typed:
+        return typed
     if body[:4] == b"PK\x03\x04":
         return ".zip"
     if body[:15] == b"SQLite format 3":
@@ -813,6 +793,21 @@ def _add_vector_from_url(args: dict) -> dict:
     if link.get("resolved_from") and isinstance(out, dict):
         out["resolved_from"] = link["resolved_from"]
     return out
+
+
+_REMOTE_VECTOR_PREFIXES = ("http://", "https://", "/vsicurl/")
+
+
+def _add_vector_source(args: dict) -> dict:
+
+    path = args["path"]
+    if path.startswith(_REMOTE_VECTOR_PREFIXES):
+        name = args.get("name") or os.path.splitext(os.path.basename(path))[0]
+        url = path.replace("/vsicurl/", "") if path.startswith("/vsicurl/") else path
+        return _add_vector_from_url({"url": url, "layer_name": name, "crs": args.get("crs")})
+    from .layer_io_tools import _add_vector_layer
+
+    return _add_vector_layer(args)
 
 
 def _add_inline_geojson(link: dict, layer_name) -> dict:
@@ -874,7 +869,9 @@ def _gunzip_download(filepath: str, cap: int = _MAX_EXTRACTED_SIZE):
 
 
 def _download_vector_from_url(args: dict, url: str, layer_name, shared: bool = False) -> dict:
-    if _range_readable(url):
+
+
+    if _range_readable(url) and (args.get("bbox") or not link_vault.from_user_link(url)):
         ranged = _add_vector_over_range_requests(url, layer_name, args.get("layer"), args.get("bbox"), args=args)
         if not ranged.get("_error"):
             return ranged
@@ -914,8 +911,12 @@ def _share_page(shared: bool, head: bytes) -> dict | None:
 def _stream_to_disk(url: str, path: str, total_timeout: float):
 
 
+
+    asked = accounts.check(url, "Download this file")
+    if asked:
+        return asked
     try:
-        req = urllib.request.Request(url, headers={"User-Agent": _USER_AGENT})
+        req, _signed = accounts.signed(url)
         return net.fetch_to_file(req, path, timeout=_download_timeout(),
                                  max_bytes=limits.current("MAX_STREAM_BYTES"), total_timeout=total_timeout)
     except net.FetchTooLarge as e:
@@ -927,6 +928,9 @@ def _stream_to_disk(url: str, path: str, total_timeout: float):
         return tool_error(f"The download would not finish in time: {e}", hint="download_late")
     except net.FetchCancelled:
         return tool_error("The run was stopped.", "CANCELLED")
+    except urllib.error.HTTPError as e:
+        failure = _http_refusal(url, e) or tool_error(f"Failed to download: {e}")
+        return accounts.refused(url, e.code, failure, "file") if accounts.is_refusal(e.code, url) else failure
     except (urllib.error.URLError, OSError) as e:
         return _http_refusal(url, e) or tool_error(f"Failed to download: {e}")
 
@@ -963,13 +967,13 @@ def _download_name(url: str, headers, head: bytes) -> tuple[str, str]:
 
 
 
-    filename = _safe_filename(urllib.parse.unquote(posixpath.basename(parsed.path)).replace("%", "_"))
+    filename = safe_file_name(urllib.parse.unquote(posixpath.basename(parsed.path)).replace("%", "_"), "download")
 
 
     named = _disposition_filename(headers.get("content-disposition") or "")
     if named and (not os.path.splitext(filename)[1]
-                  or os.path.splitext(filename)[1].lower() in _ENDPOINT_EXTENSIONS):
-        filename = _safe_filename(named.replace("%", "_"))
+                  or os.path.splitext(filename)[1].lower() in source_rules.table("files", "endpoint_exts", [])):
+        filename = safe_file_name(named.replace("%", "_"), "download")
     ext = _extension_of_download(filename, headers, head)
     if ext and not filename.lower().endswith(ext):
         filename += ext
@@ -1072,7 +1076,6 @@ def _load_download(args: dict, url: str, layer_name, tmp_dir: str, filepath: str
                 archive_datasets,
                 container_layers,
                 gdb_folders,
-                members_matching,
             )
 
 
@@ -1354,8 +1357,6 @@ def _csv_crs_candidates(box) -> dict:
     if not box:
         return {}
     from qgis.core import QgsRectangle
-
-    from . import crs_landing
 
     extent = QgsRectangle(*box)
     out = {"coordinate_range": {"x": [box[0], box[2]], "y": [box[1], box[3]]}}
@@ -1817,38 +1818,31 @@ def _inspect_local_folder(folder: str) -> dict:
     return out
 
 
-_DIRECT_IMPORT_EXTS = frozenset({".geojson", ".json", ".gpkg", ".kml", ".csv", ".zip", ".shp"})
-
-
-
-
-
-
-
-
-_HOSTED_DEPARTMENT_PATHS = (
-    (re.compile(r"(/ign/rgealti/5m/rgealti-5m-D)(\d{1,2}|2[ab])(\.tif)$", re.IGNORECASE), 3),
-    (re.compile(r"(/reference/ign/lidarhd-mnt1m/)(\d)(\.tif)$", re.IGNORECASE), 2),
-)
+def _direct_import_exts() -> list:
+    return source_rules.table("files", "direct_import_exts", [])
 
 
 def hosted_department_url(url: str) -> str:
 
+
+
     if not links.open_data_label(url or ""):
         return url
     parts = urllib.parse.urlsplit(url)
-    for pattern, width in _HOSTED_DEPARTMENT_PATHS:
-        match = pattern.search(parts.path)
-        if match:
-            head, code, tail = match.groups()
-            code = code.upper().zfill(width)
-            path = parts.path[:match.start()] + head + code + tail
-            return urllib.parse.urlunsplit(parts._replace(path=path))
+    low = parts.path.lower()
+    for row in source_rules.departments():
+        head, tail = row["head"].lower(), row["tail"].lower()
+        if not low.endswith(tail):
+            continue
+        stem = low[:-len(tail)]
+        for size in range(1, row["short_digits"] + 1):
+            code = stem[-size:]
+            corsican = row["corsica"] and size == 2 and code in ("2a", "2b")
+            if stem[:-size].endswith(head) and (code.isdigit() or corsican):
+                start = len(stem) - size
+                path = parts.path[:start] + code.upper().zfill(row["width"]) + parts.path[len(stem):]
+                return urllib.parse.urlunsplit(parts._replace(path=path))
     return url
-
-
-_FORMAT_SEGMENTS = {"geojson": ".geojson", "gpkg": ".gpkg", "kml": ".kml",
-                    "csv": ".csv", "shp": ".shp", "shapefile": ".zip", "zip": ".zip"}
 
 
 def _format_named_by_url(url: str) -> str | None:
@@ -1858,13 +1852,14 @@ def _format_named_by_url(url: str) -> str | None:
 
 
 
+    segments = source_rules.table("files", "format_segments", {})
     parts = urllib.parse.urlparse(url)
     last = parts.path.rstrip("/").rsplit("/", 1)[-1].lower()
-    if last in _FORMAT_SEGMENTS:
-        return _FORMAT_SEGMENTS[last]
+    if last in segments:
+        return segments[last]
     for value in urllib.parse.parse_qs(parts.query).get("format", []):
-        if value.lower() in _FORMAT_SEGMENTS:
-            return _FORMAT_SEGMENTS[value.lower()]
+        if value.lower() in segments:
+            return segments[value.lower()]
     return None
 
 
@@ -1874,7 +1869,7 @@ def _inspect_by_head(url: str, ext: str) -> dict | None:
 
 
 
-    req = urllib.request.Request(url, method="HEAD", headers={"User-Agent": _USER_AGENT})
+    req = urllib.request.Request(url, method="HEAD")
     try:
 
 
@@ -1885,7 +1880,7 @@ def _inspect_by_head(url: str, ext: str) -> dict | None:
     final_url = answer.url or url
     path = urllib.parse.urlparse(final_url).path.lower()
     final_ext = os.path.splitext(path)[1] or ext
-    if final_ext not in _DIRECT_IMPORT_EXTS:
+    if final_ext not in _direct_import_exts():
         return None
     result = _build_direct_import_result(
         final_url, os.path.basename(path) or "dataset", "vector_file", final_ext.lstrip("."))
@@ -1900,7 +1895,7 @@ def _reach(url: str) -> dict:
 
 
 
-    req = urllib.request.Request(url, headers={"User-Agent": _USER_AGENT, "Range": "bytes=0-3"})
+    req = urllib.request.Request(url, headers={"Range": "bytes=0-3"})
     try:
         answer = net.fetch(req, timeout=_PORTAL_TIMEOUT, max_bytes=64, total_timeout=_PORTAL_TIMEOUT)
     except net.FetchCancelled:
@@ -1926,7 +1921,7 @@ def _landing(url: str) -> tuple[str, dict]:
 
 
 
-    req = urllib.request.Request(url, method="HEAD", headers={"User-Agent": _USER_AGENT})
+    req = urllib.request.Request(url, method="HEAD")
     try:
         answer = net.fetch(req, timeout=_PORTAL_TIMEOUT, max_bytes=1024, total_timeout=_PORTAL_TIMEOUT)
     except (urllib.error.URLError, OSError):
@@ -1952,7 +1947,7 @@ def _too_large_to_read(url: str, headers: dict) -> dict | None:
         return None
     path = urllib.parse.urlparse(url).path
     ext = _extension_of_download(path.lower(), headers, b"")
-    if ext in _DIRECT_IMPORT_EXTS:
+    if ext in _direct_import_exts():
         result = _build_direct_import_result(url, os.path.basename(path) or "dataset", "vector_file", ext.lstrip("."))
     else:
         result = {"source_family": "unknown", "final_url": url, "content_type": content_type or "unknown",
@@ -1966,10 +1961,7 @@ def _too_large_to_read(url: str, headers: dict) -> dict | None:
 
 
 
-_HTTP_WRONG_REQUEST = frozenset({400, 404, 405, 409, 410})
 
-
-_HTTP_ADVISED = frozenset({400, 401, 403, 404, 405, 409, 410, 429})
 
 
 
@@ -2028,6 +2020,12 @@ def _service_reason(exc: Exception) -> str:
     return " ".join(text.split())[:_REASON_CHARS]
 
 
+_HTTP_WRONG_REQUEST = frozenset({400, 404, 405, 409, 410})
+
+
+_HTTP_ADVISED = frozenset({400, 401, 403, 404, 405, 409, 410, 429})
+
+
 def _http_refusal(url: str, exc: Exception) -> dict | None:
 
 
@@ -2035,7 +2033,8 @@ def _http_refusal(url: str, exc: Exception) -> dict | None:
     if not isinstance(status, int):
         return None
     code = "INVALID_ARGS" if status in _HTTP_WRONG_REQUEST else "EXECUTION_FAILED"
-    hint = ("inspect_http_5xx" if status >= 500 else f"inspect_http_{status}" if status in _HTTP_ADVISED
+    hint = ("inspect_http_5xx" if status >= 500
+            else f"inspect_http_{status}" if status in _HTTP_ADVISED
             else "inspect_http_other")
     message = f"HTTP {status} from {url}."
     reason = _service_reason(exc)
@@ -2118,7 +2117,12 @@ def _inspect_data_source(args: dict) -> dict:
     answer = _link_inspect_answer(link)
     if answer is not None:
         return answer
+    asked = accounts.check(link["url"], "Read what this source serves")
+    if asked:
+        return asked
     result = _inspect_remote_url(link["url"])
+    if isinstance(result, dict) and result.get("_error") and accounts.is_refusal(result.get("status")):
+        return accounts.refused(link["url"], result["status"], result, "service")
     if link.get("resolved_from") and isinstance(result, dict):
         result["resolved_from"] = link["resolved_from"]
         result.setdefault("resolved_note", link["note"])
@@ -2128,14 +2132,6 @@ def _inspect_data_source(args: dict) -> dict:
         if isinstance(arguments, dict) and arguments.get("url") and arguments["url"] != link["url"]:
             arguments["url"] = link["url"]
     return result
-
-
-
-
-_STREAMED_EXTS = {".pmtiles": "pmtiles", ".tif": "cog", ".tiff": "cog", ".fgb": "vector", ".parquet": "vector",
-                  ".geoparquet": "vector", ".laz": "pointcloud", ".copc": "pointcloud", ".nc": "raster"}
-
-_DOWNLOAD_EXTS = (".kmz", ".gpx", ".xlsx", ".ods", ".gml", ".json.gz", ".geojson.gz", ".csv.gz", ".gpkg.gz")
 
 
 
@@ -2160,8 +2156,7 @@ def expand_link(url: str) -> dict:
         out["inline"] = resolved.inline
     if resolved.kind != "listing":
         return out
-    request = urllib.request.Request(resolved.url, headers={"User-Agent": _USER_AGENT,
-                                                            "Accept": "application/json"})
+    request = urllib.request.Request(resolved.url, headers={"Accept": "application/json"})
     try:
         answer = net.fetch(request, timeout=_PORTAL_TIMEOUT, max_bytes=_LINK_LISTING_BYTES,
                            total_timeout=_PORTAL_TIMEOUT * 2, cache_ttl=_LINK_LISTING_TTL)
@@ -2183,8 +2178,9 @@ def expand_link(url: str) -> dict:
 
 
 def _link_data_files(link: dict) -> list:
+    data = links.data_extensions()
     return [f for f in link.get("files") or [] if not f.get("folder") and (
-        f.get("service") or (links.extension(f.get("name", "")) or links.extension(f["url"])) in links.DATA_EXTENSIONS)]
+        f.get("service") or (links.extension(f.get("name", "")) or links.extension(f["url"])) in data)]
 
 
 def _link_inspect_answer(link: dict) -> dict | None:
@@ -2235,8 +2231,8 @@ def _inspect_remote_url(url: str, landed: bool = False) -> dict:
                                                                   else "xyz"},
                 "message": "A tile URL template.",
                 "load_note": coded_fact(hint="tile_template_load", tile_kind="vector tile" if vector else "tile")}
-    if streamed in _STREAMED_EXTS:
-        kind = _STREAMED_EXTS[streamed]
+    kind = source_rules.table("files", "streamed_exts", {}).get(streamed)
+    if kind:
 
 
 
@@ -2267,7 +2263,7 @@ def _inspect_remote_url(url: str, landed: bool = False) -> dict:
         elif reach.get("ranges") is False:
             result["load_note"] = coded_fact(hint="remote_file_whole_body")
         return result
-    if lowered.split("?", 1)[0].endswith(_DOWNLOAD_EXTS):
+    if lowered.split("?", 1)[0].endswith(tuple(source_rules.table("files", "download_exts", []))):
         result = _build_direct_import_result(url, os.path.basename(path) or "dataset", "vector_file",
                                              os.path.basename(path).split(".", 1)[-1])
         result["message"] = "A downloadable file."
@@ -2279,7 +2275,7 @@ def _inspect_remote_url(url: str, landed: bool = False) -> dict:
 
 
     head_ext = os.path.splitext(urllib.parse.urlparse(url).path.lower())[1]
-    if head_ext in _DIRECT_IMPORT_EXTS and head_ext != ".json":
+    if head_ext in _direct_import_exts() and head_ext != ".json":
         probed = _inspect_by_head(url, head_ext)
         if probed is not None:
             return probed
@@ -2405,7 +2401,7 @@ def _inspect_fetched(url: str, timeout: int) -> tuple[dict, bool]:
         ext = ""
     text = body.decode(_response_charset(raw_content_type), "replace")
 
-    if ext in _DIRECT_IMPORT_EXTS:
+    if ext in _direct_import_exts():
         return _build_direct_import_result(
             final_url,
             os.path.basename(path) or "dataset",

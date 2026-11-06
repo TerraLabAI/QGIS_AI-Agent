@@ -20,24 +20,27 @@ from urllib.parse import urlsplit
 
 from qgis.PyQt.QtCore import QCoreApplication
 
-from . import browser_connections, catalog, data_date
+from . import browser_connections, catalog, data_date, link_vault
+from .i18n import day_pattern
 from .logger import log_warning
-from .provenance import plain_source
+from .source_text import plain_source
+from .tool_registry import LAYER_LIST_KEYS, PINNED_LAYER_KEYS, spec
 
 UNKNOWN = "unknown"
 _ABSTRACT_MARK = "Licence:"
 _SEP = " \u00b7 "
 
 
-LOADER_TOOLS = frozenset({
-    "add_data", "add_vector_layer", "add_raster_layer", "add_vector_from_url", "add_cog_layer",
-    "add_wfs_layer", "add_wms_layer", "add_xyz_layer", "add_pmtiles_layer", "add_arcgis_rest_layer",
-    "add_layer_from_connection",
-})
-
-
 _TOOLTIP_READS_METADATA = 34000
 _CREDIT_PREFIX = re.compile(r"^\s*(?:\u00a9|\(c\)|copyright|source\s*:|data\s*:)\s*", re.IGNORECASE)
+
+
+
+def _loads_source(tool) -> bool:
+
+
+    declared = spec(str(tool or ""))
+    return declared is not None and declared.loads_source
 
 
 def tr(text: str) -> str:
@@ -149,7 +152,6 @@ def _locale_date(first, pattern: str) -> str:
 
 def date_text(value) -> str:
 
-    from .i18n import day_pattern
 
     parsed = data_date.parse(value)
     if parsed is None:
@@ -983,7 +985,7 @@ def _sheet_and_name(layer, name: str, row, holders: list, credit: dict, tool: st
                             holder[key] = renamed
             if holders:
                 holders[0].setdefault("data_date", facts["data_date"] or UNKNOWN)
-        elif not known and not row and not derived and (address or tool in LOADER_TOOLS):
+        elif not known and not row and not derived and (address or _loads_source(tool)):
             write_unverified(layer, address)
             if holders:
                 holders[0]["source_verified"] = False
@@ -1021,10 +1023,9 @@ def _layer_parameter(key: str, tool: str) -> bool:
 
 
 
-    from ..tools._layers import LAYER_LIST_KEYS, OUTPUT_LAYER_KEYS, PINNED_LAYER_KEYS
-
     key = str(key)
-    if key in OUTPUT_LAYER_KEYS.get(tool, ()):
+    declared = spec(tool)
+    if declared and key in declared.creates_layer_at:
         return False
     return (key in PINNED_LAYER_KEYS or key in LAYER_LIST_KEYS
             or key.endswith(("_layer", "_layers")))
@@ -1069,7 +1070,8 @@ def write_origin(layer, tool: str = "", args=None) -> None:
         metadata = layer.metadata()
         own_id = layer.id()
         names = {lid: str(other.name()) for lid, other in QgsProject.instance().mapLayers().items() if lid != own_id}
-        clean = _origin_value(dict(args or {}), names)
+
+        clean = _origin_value(link_vault.hide(dict(args or {})), names)
         parts = [tr("{day} UTC, added by AI Agent by TerraLab").format(
             day=datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M"))]
         if tool:

@@ -67,6 +67,7 @@ def register_hydrology_tools(registry: ToolRegistry):
     registry.register(Tool(
         name="delineate_watershed",
         danger="write",
+        check_shape="arrives",
         input_schema={
             "type": "object",
             "properties": {
@@ -96,6 +97,7 @@ def register_hydrology_tools(registry: ToolRegistry):
     registry.register(Tool(
         name="extract_stream_network",
         danger="write",
+        check_shape="arrives",
         input_schema={
             "type": "object",
             "properties": {
@@ -130,6 +132,7 @@ def register_hydrology_tools(registry: ToolRegistry):
     registry.register(Tool(
         name="map_drainage",
         danger="write",
+        own_area_rule=True, check_shape="arrives",
         label=QT_TRANSLATE_NOOP("AIAgent", "Map the watershed and streams[ of {area}]"),
         label_for=_drainage_label,
         input_schema={

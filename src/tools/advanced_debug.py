@@ -8,7 +8,8 @@ import os
 
 from qgis.core import QgsApplication
 
-from ..core.host_platform import IS_WINDOWS
+from ..core.host_platform import IS_WINDOWS, os_info, os_label, peak_memory_mb
+from ..core.numbers import as_int
 from ..core.serialization import size_budget
 
 _LOG_BUFFER_SIZE = 5000
@@ -98,10 +99,7 @@ def _on_message_received(message, tag, level):
 
 
 
-    try:
-        ordinal = int(level)
-    except (TypeError, ValueError):
-        ordinal = level
+    ordinal = as_int(level, level)
     _message_buffer().append({
         "tag": tag,
         "message": message,
@@ -127,10 +125,7 @@ def _get_message_log(args: dict) -> dict:
     tag = args.get("tag")
     min_level = args.get("level")
     search = (args.get("search") or "").lower()
-    try:
-        max_message_chars = int(args.get("max_message_chars", 500))
-    except (TypeError, ValueError):
-        max_message_chars = 500
+    max_message_chars = as_int(args.get("max_message_chars", 500), 500)
 
     _LEVEL_SEVERITY = {"info": 0, "success": 0, "warning": 1, "critical": 2}
 
@@ -207,8 +202,6 @@ def _get_debug_info(args: dict) -> dict:
 
     from qgis.core import Qgis, QgsProviderRegistry
 
-    from ..core.host_platform import os_info, os_label
-
     result = {
         "qgis_version": Qgis.version(),
         "python_version": platform.python_version(),
@@ -276,8 +269,6 @@ def _get_debug_info(args: dict) -> dict:
         result["environment_highlights"] = {k: env[k] for k in _ENV_HIGHLIGHTS if k in env}
     except Exception as err:
         result["environment_error"] = f"{err.__class__.__name__}: {err}"
-
-    from ..core.host_platform import peak_memory_mb
 
     peak = peak_memory_mb()
     if peak is None:

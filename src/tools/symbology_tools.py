@@ -50,11 +50,12 @@ from qgis.core import QgsApplication, QgsRasterLayer, QgsVectorLayer
 from qgis.PyQt.QtCore import QT_TRANSLATE_NOOP
 
 from ..core.logger import log_warning
+from ..core.numbers import as_float
 from ..core.qt_compat import enum_member
 from ..core.tool_registry import Tool, ToolRegistry, tool_error
-from ._compat import CONTRAST_NONE, CONTRAST_STRETCH_MINMAX
+from ._compat import CONTRAST_NONE, CONTRAST_STRETCH_MINMAX, composition_mode
+from ._layers import layer_not_found, resolve_layer
 from .colour_text import qcolor_from_text
-from .layer_lookup import _find_layer, _layer_not_found_error
 from .style_tools import _expression_error, _previous_style_keys, _style_to_put_back, _wider_than_the_selection
 
 BLEND_MODES = ("normal", "multiply", "screen", "overlay", "darken", "lighten", "dodge", "burn",
@@ -155,7 +156,9 @@ def register_symbology_tools(registry: ToolRegistry):
     }
     registry.register(Tool(
         name="set_layer_symbology",
+        layer_use="keep",
         danger="write",
+        check_shape="layer",
         label=QT_TRANSLATE_NOOP("AIAgent", "Style {layer_name}"),
         input_schema={
             "type": "object",
@@ -1068,19 +1071,6 @@ def _geometry_word(symbol_type) -> str:
     return {0: "point", 1: "line", 2: "polygon"}.get(int(getattr(symbol_type, "value", symbol_type)), "vector")
 
 
-def _composition_mode(name: str):
-
-    from qgis.core import Qgis, QgsPainting
-
-    member = "".join(part.capitalize() for part in name.split("_"))
-    mode = enum_member(Qgis, "BlendMode", member, None)
-    if mode is None:
-        mode = enum_member(QgsPainting, "BlendMode", "Blend" + member, None)
-    if mode is None:
-        return None
-    return QgsPainting.getCompositionMode(mode)
-
-
 def _resampler(name: str):
     from qgis.core import QgsBilinearRasterResampler, QgsCubicRasterResampler
 
@@ -1096,9 +1086,9 @@ def _set_layer_symbology(args: dict) -> dict:
     target = args.get("layer_name")
     if not target:
         return tool_error("layer_name is required.", "INVALID_ARGS", hint="style_layer_name_missing")
-    layer = _find_layer(target)
+    layer = resolve_layer(target)
     if not layer:
-        return _layer_not_found_error(target)
+        return layer_not_found(target)
     is_vector = isinstance(layer, QgsVectorLayer)
     is_raster = isinstance(layer, QgsRasterLayer)
     if not (is_vector or is_raster):
@@ -1137,7 +1127,7 @@ def _set_layer_symbology(args: dict) -> dict:
     modes = {}
     for key in ("blend_mode", "feature_blend_mode"):
         if args.get(key):
-            mode = _composition_mode(str(args[key]))
+            mode = composition_mode(str(args[key]))
             if mode is None:
                 return tool_error(f"{key} {args[key]!r} is not available on this QGIS.", "INVALID_ARGS",
                                   f"Blend modes: {', '.join(BLEND_MODES)}.")
@@ -1262,10 +1252,7 @@ def _range_plan(layer, args: dict) -> tuple:
                                     "upper <= 100.", "INVALID_ARGS", hint="symbology_cut_default")
         plan["cut"] = (low, high)
     if limits == "std_dev":
-        try:
-            factor = float(args.get("std_dev_factor") or QgsRasterMinMaxOrigin.DEFAULT_STDDEV_FACTOR)
-        except (TypeError, ValueError):
-            factor = 0.0
+        factor = as_float(args.get("std_dev_factor") or QgsRasterMinMaxOrigin.DEFAULT_STDDEV_FACTOR, 0.0)
         if not 0 < factor <= 10:
             return None, tool_error("std_dev_factor is a number of standard deviations above 0 (2 by default).",
                                     "INVALID_ARGS")

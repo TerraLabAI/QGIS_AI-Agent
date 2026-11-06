@@ -26,17 +26,15 @@
 
 from __future__ import annotations
 
+import sys as _sys
 from dataclasses import dataclass
 
+from qgis.PyQt.QtCore import QT_VERSION_STR as _QT_VERSION
+
 from ...core.host_platform import IS_WINDOWS
+from ...core.served_state import get_connectors
 from ..font_scale import scale_px_length, scale_qss_font_px
 from ..style import DARK
-
-try:
-    from qgis.PyQt.QtCore import QT_VERSION_STR as _QT_VERSION
-except ImportError:  # pragma: no cover
-    _QT_VERSION = "5"
-import sys as _sys
 
 _QT5 = str(_QT_VERSION).startswith("5.")
 _MAC = _sys.platform == "darwin"
@@ -97,6 +95,26 @@ def category_glyph(category: str) -> str:
     return CATEGORY_GLYPHS.get(str(category or ""), "layers")
 
 
+
+
+
+
+LINE_GLYPHS = {
+    "home": "lu.house", "image": "lu.image", "globe": "lu.globe", "search": "lu.search",
+    "trending": "lu.trending-up", "sparkles": "lu.trending-up", "layers": "lu.layers",
+    "chart": "lu.chart-column", "satellite": "lu.satellite", "terrain": "lu.mountain",
+    "measure": "lu.ruler", "layout": "lu.printer", "points": "lu.leaf", "person": "lu.user",
+    "pin": "lu.map-pin", "book": "lu.book-open", "external": "lu.external-link",
+    "chevron_right": "lu.chevron-right", "chevron_down": "lu.chevron-down",
+    "copy": "lu.copy", "check": "lu.check", "expand": "lu.maximize-2", "close": "lu.x",
+}
+
+
+def line_glyph(name: str) -> str:
+
+    return LINE_GLYPHS.get(str(name or ""), str(name or ""))
+
+
 def palette(dark: bool | None = None) -> Palette:
     return DARK_PALETTE if (DARK if dark is None else dark) else LIGHT
 
@@ -112,12 +130,11 @@ EDGE = 8
 
 
 TITLE_PX, SECTION_PX, NAME_PX, BODY_PX, SMALL_PX = 24, 18, 16, 14, 13
-HERO_PX = 32
+HERO_PX = 30
 
 READ_PX, CAPTION_PX, LINE_HEIGHT, MEASURE_W = 16, 15, 155, 680
 TOP_BAR_H = 48
 LEAD_PX = NAME_PX
-FIGURE_PX = 22
 
 
 MEDIUM = 600 if IS_WINDOWS else 500
@@ -207,17 +224,18 @@ def ui_locale():
     return QLocale(name or "en")
 
 
-def search_qss(name: str, height: int = 36) -> str:
+def search_qss(name: str, height: int = 36, filled: bool = False) -> str:
 
 
 
     inner = height - 2
+    ground, edge = (T.bubble, "transparent") if filled else (T.bg, T.border)
     return qss(
-        f"QLineEdit#{name} {{ background: {T.bg}; border: 1px solid {T.border};"
+        f"QLineEdit#{name} {{ background: {ground}; border: 1px solid {edge};"
         f" border-radius: {height // 2}px; padding: 0 14px 0 40px; font-size: {BODY_PX}px;"
         f" color: {T.text}; selection-background-color: {T.selected};"
         f" selection-color: {T.text}; min-height: {inner}px; max-height: {inner}px; }}"
-        f"QLineEdit#{name}:focus {{ border-color: {T.text_2}; }}"
+        f"QLineEdit#{name}:focus {{ border-color: {T.border if filled else T.text_2}; }}"
     )
 
 
@@ -269,6 +287,24 @@ def escape(text: str) -> str:
             .replace(">", "&gt;").replace('"', "&quot;"))
 
 
+
+
+CATEGORY_ACCENTS = {
+    "worldwide": "#3E86D6",
+    "national": "#7C6CD0",
+    "imagery": "#2F8FB5",
+    "terrain": "#8D6E63",
+    "nature": "#B5654A",
+    "people": "#C96A8C",
+    "catalogs": "#C98A2E",
+}
+_DEFAULT_ACCENT = "#3E86D6"
+
+
+def accent_of(category: str) -> str:
+    return CATEGORY_ACCENTS.get(str(category or ""), _DEFAULT_ACCENT)
+
+
 def source_rows(case) -> list:
 
 
@@ -280,13 +316,10 @@ def source_rows(case) -> list:
     wanted = [str(i) for i in getattr(case, "connectors", ()) or [] if str(i)]
     if not wanted:
         return []
-    from ..connectors_page import accent_of as category_accent
-    from ..shared import get_connectors
-
     known = {str(row.get("id")): row for row in (get_connectors() or []) if isinstance(row, dict)}
     rows = []
     for key in wanted:
         row = known.get(key)
         if row is not None:
-            rows.append({**row, "_accent": category_accent(row.get("category"))})
+            rows.append({**row, "_accent": accent_of(row.get("category"))})
     return rows

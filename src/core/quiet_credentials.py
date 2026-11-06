@@ -27,6 +27,8 @@ from contextlib import contextmanager
 from qgis.core import QgsCredentials
 from qgis.PyQt import sip
 
+from .background import main_thread_invoker, run_on_main_thread, still_awaited
+
 
 _HOLD_TIMEOUT_S = 10
 
@@ -91,7 +93,6 @@ def _release() -> None:
 
 def _hold_if_awaited() -> bool:
 
-    from .background import still_awaited
 
     if not still_awaited():
         return False
@@ -105,14 +106,12 @@ def hold_from_worker() -> bool:
 
 
 
-    from .background import run_on_main_thread
 
     return bool(run_on_main_thread(_hold_if_awaited, timeout=_HOLD_TIMEOUT_S))
 
 
 def release_from_worker() -> None:
 
-    from .background import main_thread_invoker
 
     main_thread_invoker().invoke(_release)
 
@@ -125,3 +124,14 @@ def no_login_prompt():
         yield
     finally:
         _release()
+
+
+def hold() -> None:
+
+
+    _hold()
+
+
+def release() -> None:
+
+    _release()

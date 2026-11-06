@@ -40,13 +40,14 @@ from .attach_card import (
     AttachCard,
     HoverReveal,
 )
+from .file_kinds import FILE_TYPES, IMAGE_EXTS
+from .file_preview import can_open, open_file_preview, tile_art
 from .font_scale import widget_pixel_ratio
 from .icons import ink_of, paper_of, theme_pixmap
 from .image_preview import ClickableThumb, open_image_preview
 from .style import _BTN_THUMB_CLOSE
 from .widgets import IconButton
 
-IMAGE_EXTS = (".png", ".jpg", ".jpeg", ".webp", ".bmp", ".gif")
 DATA_EXTS = (".gpkg", ".geojson", ".json", ".shp", ".csv", ".tif", ".tiff",
              ".kml", ".kmz", ".zip", ".gml", ".fgb", ".parquet")
 
@@ -121,15 +122,6 @@ TILE_HEIGHT = CARD_HEIGHT
 
 TILE_MAX_ASPECT = 2.0
 TILE_RADIUS = CARD_RADIUS
-
-FILE_TYPES = {
-    ".gpkg": "GeoPackage", ".geojson": "GeoJSON", ".json": "JSON",
-    ".shp": "Shapefile", ".csv": "CSV", ".tif": "GeoTIFF", ".tiff": "GeoTIFF",
-    ".kml": "KML", ".kmz": "KMZ", ".zip": "ZIP", ".gml": "GML",
-    ".fgb": "FlatGeobuf", ".parquet": "Parquet",
-    ".pdf": "PDF", ".docx": "Word", ".pptx": "PowerPoint", ".xlsx": "Excel",
-    ".txt": "Text", ".md": "Markdown", ".html": "HTML", ".htm": "HTML", ".xml": "XML",
-}
 
 
 
@@ -283,11 +275,6 @@ def wire_shape(item: dict) -> dict:
 
     keys = ("kind", "name", "mime", "data_base64", "path", "size")
     return {k: item[k] for k in keys if k in item and item[k] not in (None, "")}
-
-
-def file_type(item: dict) -> str:
-    ext = os.path.splitext(str(item.get("name") or item.get("path") or ""))[1].lower()
-    return FILE_TYPES.get(ext, ext.lstrip(".").upper() or "File")
 
 
 def attachment_kind(item: dict) -> str:
@@ -477,8 +464,6 @@ def card_art(widget, item: dict):
     if ext in DATA_EXTS:
         art, glyph = file_art(widget, item)
         return art, glyph, ""
-    from .file_preview import tile_art
-
     art, color = tile_art(widget, str(item.get("name") or item.get("path") or ""), TILE_GLYPH)
     return art, "file", color
 
@@ -544,8 +529,6 @@ class AttachmentTag(QFrame):
         col = QVBoxLayout(self)
         col.setContentsMargins(0, 0, 0, 0)
         col.setSpacing(0)
-        from .file_preview import can_open, open_file_preview
-
         art, glyph, color = card_art(self, self.item)
         clickable = can_open(self.item)
         card = AttachCard(str(self.item.get("name") or ""), attachment_kind(self.item), art, self,

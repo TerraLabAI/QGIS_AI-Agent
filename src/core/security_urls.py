@@ -47,8 +47,9 @@ _user_text_seen = True
 
 _LOCAL_HOSTS = ("localhost", "localhost.localdomain", "ip6-localhost")
 _ALLOWED_SCHEMES = ("http", "https")
+
 _HOST_RE = re.compile(
-    r"(?i)(?:[a-z][a-z0-9+.-]*://)?((?:\d{1,3}\.){3}\d{1,3}|\[[0-9a-f:]+\]|[a-z0-9][a-z0-9.-]*\.[a-z]{2,})"
+    r"(?i)(?:[a-z][a-z0-9+.-]{0,31}://)?((?:\d{1,3}\.){3}\d{1,3}|\[[0-9a-f:]+\]|[a-z0-9][a-z0-9.-]{0,252}\.[a-z]{2,})"
     r"|(?<=://)([a-z0-9][a-z0-9-]*)"
 )
 

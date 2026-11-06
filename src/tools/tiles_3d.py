@@ -13,7 +13,7 @@ try:
 except ImportError:  # pragma: no cover
     QgsTiledSceneLayer = None
 
-from ..core import security
+from ..core import security_urls
 from ..core.tool_registry import Tool, ToolRegistry, tool_error
 
 
@@ -71,7 +71,7 @@ def _configure_3d_tiles(args: dict) -> dict:
     url = str(args.get("url") or "").strip()
     if not url or urlsplit(url).scheme not in {"http", "https"}:
         return tool_error("url must be an explicit http(s) 3D Tiles or Cesium Ion tileset URL.", "INVALID_ARGS")
-    url_error = security.validate_url(url)
+    url_error = security_urls.validate_url(url)
     if url_error:
         return tool_error(url_error, "PERMISSION_DENIED")
     if str(args.get("action") or "load") == "measure":

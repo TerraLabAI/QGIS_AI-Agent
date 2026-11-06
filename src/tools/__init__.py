@@ -18,6 +18,8 @@
 
 
 
+
+
 from __future__ import annotations
 
 import importlib
@@ -29,7 +31,8 @@ from types import ModuleType
 from ..core.logger import log, log_warning
 from ..core.tool_registry import ToolRegistry
 
-_ENTRY_POINT = re.compile(r"register_\w+_tools")
+_REGISTER = re.compile(r"register_\w+_tools")
+_COMPLETE = re.compile(r"complete_\w+_tools")
 
 
 def _tool_modules(include_debug: bool) -> list[ModuleType]:
@@ -46,22 +49,17 @@ def _tool_modules(include_debug: bool) -> list[ModuleType]:
     return modules
 
 
-def _entry_points(module: ModuleType) -> list:
+def _entry_points(module: ModuleType, pattern: re.Pattern) -> list:
     return [fn for name, fn in sorted(vars(module).items())
-            if _ENTRY_POINT.fullmatch(name) and inspect.isfunction(fn) and fn.__module__ == module.__name__]
+            if pattern.fullmatch(name) and inspect.isfunction(fn) and fn.__module__ == module.__name__]
 
 
 def build_registry(include_debug: bool = True) -> ToolRegistry:
-    from .facade import wrap_run_processing
-    from .native_processing_tools import add_native_processing_tools
-
     registry = ToolRegistry()
-    for module in _tool_modules(include_debug):
-        for register in _entry_points(module):
-            register(registry)
-
-
-    add_native_processing_tools(registry)
-    wrap_run_processing(registry)
+    modules = _tool_modules(include_debug)
+    for pattern in (_REGISTER, _COMPLETE):
+        for module in modules:
+            for step in _entry_points(module, pattern):
+                step(registry)
     log(f"Tool catalog ready: {registry.tool_count} tools, {len(registry.visible_names())} visible")
     return registry

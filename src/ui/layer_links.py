@@ -51,6 +51,7 @@ from qgis.PyQt.QtWidgets import QMenu, QSizePolicy, QWidget
 
 from ..core.host_platform import resolved
 from ..core.licence import source_details, source_line
+from ..core.numbers import as_int
 from ..core.qt_compat import enum_member
 from .card_base import mono_font
 from .external_links import open_external_url
@@ -59,7 +60,6 @@ from .font_scale import scale_point_size, scale_px_length
 from .icons import icon_for, pixmap_for
 from .layer_icons import follows_layers, layer_name, resolve_layer
 from .markdown_view import GONE_SCHEME
-from .run_bar import ACTION_SHOW, ACTION_ZOOM
 from .shared import event_pos, exec_menu, tr
 from .style import (
     CHIP_PX,
@@ -76,6 +76,9 @@ from .style import (
     SPACE_TIGHT,
     qcolor,
 )
+
+ACTION_SHOW = "show"
+ACTION_ZOOM = "zoom"
 
 _CHIP_PX = scale_px_length(CHIP_PX)
 _CHIP_PAD_PX = 6
@@ -98,10 +101,7 @@ def _counts(item: dict) -> tuple[int, int, int]:
 
 
     def whole(value) -> int:
-        try:
-            return int(value or 0)
-        except (TypeError, ValueError):
-            return 0
+        return as_int(value or 0, 0)
 
     added, removed, changed = whole(item.get("added")), whole(item.get("removed")), whole(item.get("changed"))
     if not added and not removed and "delta" in item:
@@ -363,7 +363,7 @@ class _LayerChip(_Chip):
             self.layer_name = name
         self.setEnabled(self.in_project and self.what != "removed")
         self._refresh_cursor()
-        self.setToolTip(self._tooltip_with_name())
+        self._tooltip_with_name()
         self.set_parts(self._build_parts())
 
     def _build_parts(self) -> list:
@@ -599,11 +599,6 @@ class RunChangesRow(QWidget):
 
     def chips(self) -> list:
         return list(self._chips)
-
-    def show_all(self) -> None:
-
-        self._all = True
-        self._relayout()
 
     def _toggle(self) -> None:
 

@@ -50,7 +50,6 @@
 from __future__ import annotations
 
 from qgis.PyQt.QtCore import QCoreApplication, QEvent, Qt, QTimer, pyqtSignal
-from qgis.PyQt.QtGui import QFont
 from qgis.PyQt.QtWidgets import (
     QFrame,
     QGridLayout,
@@ -63,28 +62,19 @@ from qgis.PyQt.QtWidgets import (
 )
 
 from ..core import catalog, source_rows
+from ..core.numbers import as_int
+from ..core.served_state import get_connectors
 from .library import common as C
 from .library.cards import has_picture
 from .library.common import escape
+from .library.dataset_rows import DatasetHit
 from .library.parts import Breadcrumb, EmptyState, PageHeader, SectionHead, label, search_pill, section_title
-from .library.pictures import watch_scroll
+from .library.pictures import watch_scroll, wear_square_mark
 from .library.pressable import Pressable, labels_through, mouse_through
 
 POPULAR_KEY = "__popular__"
 NATIONAL_KEY = "national"
 
-
-
-CATEGORY_ACCENTS = {
-    "worldwide": "#3E86D6",
-    "national": "#7C6CD0",
-    "imagery": "#2F8FB5",
-    "terrain": "#8D6E63",
-    "nature": "#B5654A",
-    "people": "#C96A8C",
-    "catalogs": "#C98A2E",
-}
-_DEFAULT_ACCENT = "#3E86D6"
 
 _CATEGORY_ORDER = ("worldwide", "national", "imagery", "terrain", "nature", "people", "catalogs")
 
@@ -140,14 +130,9 @@ def other_row() -> dict:
             "datasets": count, "countries": ["global"]}
 
 
-def accent_of(category: str) -> str:
-    return CATEGORY_ACCENTS.get(str(category or ""), _DEFAULT_ACCENT)
-
-
 def sources_by_id() -> dict:
 
 
-    from .shared import get_connectors
 
     return {str(r.get("id")): r for r in get_connectors() if r.get("id")}
 
@@ -188,10 +173,7 @@ def shelves(sources) -> list:
 
 
 def _popular(row: dict) -> int:
-    try:
-        return int(row.get("popular") or 0)
-    except (TypeError, ValueError):
-        return 0
+    return as_int(row.get("popular") or 0, 0)
 
 
 def _by_relevance(rows: list) -> list:
@@ -284,10 +266,9 @@ def mark_box(parent: QWidget, row: dict, box: int = _BOX_PX, radius: int = 8) ->
 
 
 
-    from .library.pictures import wear_square_mark
 
     mark = QLabel(parent)
-    wear_square_mark(mark, row, accent_of(row.get("category")), C.px(box), C.px(radius))
+    wear_square_mark(mark, row, C.accent_of(row.get("category")), C.px(box), C.px(radius))
     mouse_through(mark)
     return mark
 
@@ -405,15 +386,9 @@ class ConnectorsPage(QWidget):
         self._crumbs.crumb.connect(self.crumb_requested.emit)
         self._crumbs.hide()
         self._page.addWidget(self._crumbs)
-        self._search = search_pill(body, "connectorSearch", self.tr("Search data sources"))
+        self._search = search_pill(body, "connectorSearch", self.tr("Search sources, datasets or a country"))
         self._search.textChanged.connect(self._on_search)
         self._header = PageHeader(body, self.tr("Data sources"), "", self._search)
-        self._stats = QWidget(body)
-        self._stats_row = QHBoxLayout(self._stats)
-        self._stats_row.setContentsMargins(0, 0, 0, 0)
-        self._stats_row.setSpacing(C.px(C.SPACE_5) // 2)
-        self._stats.hide()
-        self._header.add_line(self._stats)
         self._page.addWidget(self._header)
         self._page.addSpacing(C.px(C.SPACE_5))
 
@@ -453,51 +428,23 @@ class ConnectorsPage(QWidget):
 
     def _subtitle(self) -> str:
         if not self._section:
-            return self.tr("The library of data the AI agent can use. It finds and loads "
-                           "what it needs by itself.")
+            return self._figures_line()
         count = len(section_rows(self._sources, self._section))
         return self.tr("%n sources", "", count)
 
-    def _paint_figures(self) -> None:
+    def _figures_line(self) -> str:
 
 
 
-        while self._stats_row.count():
-            widget = self._stats_row.takeAt(0).widget()
-            if widget is not None:
-                widget.hide()
-                widget.setParent(None)
-                widget.deleteLater()
         rows = self._sources
         datasets = sum(int(r.get("datasets") or 0) for r in rows)
         countries = {str(c).upper() for r in rows for c in (r.get("countries") or [])
                      if str(c) and str(c).lower() != "global"}
         locale = C.ui_locale()
-        figures = ((len(rows), self.tr("sources")), (datasets, self.tr("datasets")),
-                   (len(countries), self.tr("countries")))
-        for index, (number, words) in enumerate(figures):
-            if index:
-                rule = QFrame(self._stats)
-                rule.setFixedSize(1, C.px(28))
-                rule.setStyleSheet(f"background: {C.T.border}; border: none;")
-                self._stats_row.addWidget(rule, 0, Qt.AlignmentFlag.AlignVCenter)
-            block = QWidget(self._stats)
-            col = QVBoxLayout(block)
-            col.setContentsMargins(0, 0, 0, 0)
-            col.setSpacing(0)
-            figure = label(block, locale.toString(int(number)), C.FIGURE_PX, C.T.text, C.MEDIUM)
-            font = figure.font()
-            try:
-                font.setFeature(QFont.Tag("tnum"), 1)
-                figure.setFont(font)
-            except (AttributeError, TypeError):
-                pass
-            figure.setAlignment(Qt.AlignmentFlag.AlignHCenter)
-            col.addWidget(figure)
-            word = label(block, words, C.SMALL_PX, C.T.text_2)
-            word.setAlignment(Qt.AlignmentFlag.AlignHCenter)
-            col.addWidget(word)
-            self._stats_row.addWidget(block)
+        return self.tr("{sources} sources the AI agent finds and loads by itself: "
+                       "{datasets} datasets in {countries} countries.").format(
+            sources=locale.toString(len(rows)), datasets=locale.toString(int(datasets)),
+            countries=locale.toString(len(countries)))
 
     def _on_search(self, _text: str) -> None:
         self._paint()
@@ -598,10 +545,6 @@ class ConnectorsPage(QWidget):
             self._header.set_hero(not self._section)
             self._header.set_text(self.section_label() if self._section else self.tr("Data sources"),
                                   self._subtitle() if self._sources else "")
-            home = not self._section and bool(self._sources) and not self._query()
-            if home:
-                self._paint_figures()
-            self._stats.setVisible(home)
             query = self._query()
             hits = self._hits if query and query == self._hits_query else []
             if query:
@@ -651,10 +594,9 @@ class ConnectorsPage(QWidget):
 
         holder = self._holder()
         head = SectionHead(text, holder)
-        head.setToolTip(self.tr("See all"))
         head.setObjectName("sourcesSection")
         head.clicked.connect(lambda k=key: self.section_opened.emit(k))
-        holder.layout().addWidget(head, 0, Qt.AlignmentFlag.AlignLeft)
+        holder.layout().addWidget(head)
         holder.layout().addWidget(self._grid(rows, holder))
 
     def _paint_countries(self, rows: list) -> None:
@@ -700,7 +642,6 @@ class ConnectorsPage(QWidget):
 
     def _hit_group(self, hits: list) -> None:
 
-        from .library.dataset_rows import DatasetHit
 
         by_id = {str(r.get("id")): r for r in self._sources}
         by_id[OTHER_KEY] = other_row()
@@ -712,7 +653,7 @@ class ConnectorsPage(QWidget):
         hits = sorted(hits, key=lambda r: source_rows.relevance(r, country, language)[:2])
         for index, row in enumerate(hits):
             family = by_id.get(str(row.get("family") or "")) or {}
-            card = DatasetHit(row, family, accent_of(family.get("category")), host)
+            card = DatasetHit(row, family, C.accent_of(family.get("category")), host)
             card.clicked.connect(lambda k=card.family: self.connector_opened.emit(k))
             grid.addWidget(card, index // self._cols, index % self._cols)
             self._cards.append(card)

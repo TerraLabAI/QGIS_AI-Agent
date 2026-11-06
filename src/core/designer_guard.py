@@ -45,7 +45,7 @@ from qgis.core import QgsProject
 from qgis.PyQt.QtCore import QCoreApplication, QEvent
 
 from .logger import log_warning
-from .qt_compat import qgis_iface
+from .qt_compat import disconnect_quietly, qgis_iface
 
 _CONNECTED = False
 
@@ -170,8 +170,5 @@ def shutdown() -> None:
         log_warning(f"Layout designer guard not disconnected: {exc}")
     iface = qgis_iface()
     if iface is not None:
-        try:
-            iface.layoutDesignerOpened.disconnect(quiet_atlas)
-        except Exception:  # nosec B110
-            pass
+        disconnect_quietly(iface, "layoutDesignerOpened", quiet_atlas)
     _CONNECTED = False

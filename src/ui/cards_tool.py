@@ -54,6 +54,9 @@ from qgis.PyQt.QtWidgets import (
     QWidget,
 )
 
+from ..core.numbers import as_float
+from ..core.served_state import connector_for_call
+from ..core.siblings import is_sibling_installed
 from .card_base import (
     _FADE_UP_WINDOW_S,
     _args_text,
@@ -63,13 +66,13 @@ from .card_base import (
     stop_fade_up,
 )
 from .code_block import CodeBlock
-from .cross_plugin_discovery import is_sibling_installed, open_sibling
+from .cross_plugin_discovery import open_sibling
 from .font_scale import scale_qss_font_px
-from .icons import pixmap_for
-from .shared import connector_for_call
+from .icons import pixmap_for, sibling_logo_pixmap
 from .style import (
     _BTN_QUIET,
     ACCENT_INK,
+    FILE_BADGES,
     FONT_BODY,
     FONT_HINT,
     GREEN,
@@ -83,6 +86,7 @@ from .style import (
     ROW_PX,
     SPACE_CARD,
     SPACE_TIGHT,
+    TAGS,
     qcolor,
     repolish,
 )
@@ -117,7 +121,6 @@ SCRIPT_PREAMBLE = (
     "except NameError:\n"
     "    from qgis.utils import iface\n"
 )
-_CODE_TOOLS = ("execute_code", "run_code", "run_python", "python")
 _COPIED_MS = 1500
 
 
@@ -166,14 +169,16 @@ _BODY_INDENT_PX = _GLYPH_SLOT_PX + _ROW_GAP_PX + _ROW_PAD_PX
 
 
 _TOOL_LINE_QSS = scale_qss_font_px(
-    f"QLabel {{ font-size: {FONT_BODY}px; font-weight: 500; color: {INK};"
+    f"QLabel {{ font-size: {FONT_BODY}px; color: {INK};"
     " background: transparent; border: none; }"
     f'QLabel[failed="true"] {{ color: {INK_2}; }}'
 )
 
 
 FAMILY_COLOURS = {"accent_ink": ACCENT_INK, "orange": ORANGE, "ink_2": INK_2, "ink_3": INK_3,
-                  "green": GREEN, "red": RED}
+                  "green": GREEN, "red": RED,
+                  **{f"tag_{tone}": text for tone, (_bg, text) in TAGS.items()},
+                  "tag_teal": FILE_BADGES["image"][1], "tag_orange": FILE_BADGES["web"][1]}
 _TOOL_SUB_QSS = scale_qss_font_px(
     f"QLabel {{ font-size: {FONT_BODY}px; color: {INK_2}; background: transparent; border: none; }}"
 )
@@ -184,8 +189,6 @@ _ROW_HOVER_QSS = (
     f"QWidget#toolRow {{ background: transparent; border-radius: {RADIUS_CONTROL}px; }}"
     f"QWidget#toolRow:hover {{ background: {HOVER}; }}"
 )
-
-
 
 
 class ToolCard(QWidget):
@@ -281,7 +284,7 @@ class ToolCard(QWidget):
         self._icon = QLabel(self._header)
         self._icon.setFixedSize(_GLYPH_SLOT_PX, _GLYPH_SLOT_PX)
         self._icon.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self._icon.setPixmap(pixmap_for(self, self.glyph, _GLYPH_PX, self.glyph_colour()))
+        self._icon.setPixmap(self.glyph_pixmap())
         head.addWidget(self._icon, 0, Qt.AlignmentFlag.AlignVCenter)
         self._spinner = Spinner(_GLYPH_PX, INK_3, self._header)
         head.addWidget(self._spinner, 0, Qt.AlignmentFlag.AlignVCenter)
@@ -328,7 +331,6 @@ class ToolCard(QWidget):
         self._header.hovered.connect(self._on_hover)
         self._header.clicked.connect(self.toggle)
         col.addWidget(self._header)
-
 
 
 
@@ -410,6 +412,9 @@ class ToolCard(QWidget):
             sibling_row.addWidget(self._sibling_btn)
             body.addWidget(self._sibling_host)
             self._sync_sibling_button()
+
+
+        self._details = None
         self._body.hide()
         col.addWidget(self._body)
         self._sync_sentence()
@@ -428,8 +433,7 @@ class ToolCard(QWidget):
             return f"{label}: {words.get(self.ended, self.tr('never finished'))}"
         source = str(self.connector.get("name") or "") if self.connector else ""
         line = call_sentence(self.name, self.args, source)
-        duration = format_duration(self.duration_s) if self.ok is not None else ""
-        outcome = outcome_sentence(self.ok, self.summary, duration, line)
+        outcome = outcome_sentence(self.ok, self.summary, "", line)
         return f"{line}, {outcome}" if outcome else line
 
     def extra_text(self) -> str:
@@ -503,11 +507,12 @@ class ToolCard(QWidget):
 
     def opens(self) -> bool:
 
-        if self.has_code() or self.extra_text():
+        if self.has_code() or self.extra_text() or self.ok is not None:
             return True
         return bool(self._sibling_id) and is_sibling_installed(self._sibling_id)
 
     def _sync_sentence(self) -> None:
+        self._sync_details()
         text = self.extra_text() if self._bare else self.sentence_text()
         self._sentence_label.setText(text)
         self._sentence_label.setVisible(bool(text))
@@ -515,6 +520,20 @@ class ToolCard(QWidget):
         self._failure_btn.setText(self.tr("Show less") if self._failure_full
                                   else self.tr("Show the whole message"))
         self._failure_host.setVisible(more)
+
+    def _show_details(self, shown: bool) -> None:
+        if shown and self._details is None and self.ok is not None:
+            from .tool_details import ToolDetails
+            self._details = ToolDetails(self, self._body)
+            self._body.layout().addWidget(self._details)
+        elif shown and self._details is not None:
+            self._details.refresh()
+        if self._details is not None:
+            self._details.setVisible(shown)
+
+    def _sync_details(self) -> None:
+        if self._expanded:
+            self._show_details(True)
 
     def _toggle_source(self) -> None:
         self.reveal_source(self._source_block is None or not self._source_block.isVisible())
@@ -532,7 +551,9 @@ class ToolCard(QWidget):
                 source, "script.py" if language == "python" else self.tr("expression"),
                 language, self._body, wrap=self._bare, foldable=True)
             self._source_block.hide()
-            self._body.layout().addWidget(self._source_block)
+            layout = self._body.layout()
+            at = layout.indexOf(self._details) if self._details is not None else -1
+            layout.insertWidget(at, self._source_block)
         return self._source_block
 
     def reveal_source(self, shown: bool = True) -> None:
@@ -629,6 +650,15 @@ class ToolCard(QWidget):
             self._chevron.setPixmap(pixmap_for(self, name, _CHEVRON_PX, qcolor(INK_3)))
         self._chevron.setVisible(show)
 
+    def glyph_pixmap(self):
+
+
+        if self.connector is None and self.family == "plugin":
+            logo = sibling_logo_pixmap(self, self.name, _GLYPH_PX)
+            if logo is not None:
+                return logo
+        return pixmap_for(self, self.glyph, _GLYPH_PX, self.glyph_colour())
+
     def glyph_colour(self):
 
 
@@ -715,10 +745,7 @@ class ToolCard(QWidget):
             self.ended = "stopped"
         if self.ended not in ("denied", "stopped"):
             self._tries.append((bool(ok), self.summary))
-        try:
-            self.duration_s = float(duration_s or 0.0)
-        except (TypeError, ValueError):
-            self.duration_s = 0.0
+        self.duration_s = as_float(duration_s or 0.0, 0.0)
         self.detail = str(detail or "")
         note = self.summary.strip()
         if note and _EMPTY_SUMMARY_RE.match(note):
@@ -775,13 +802,11 @@ class ToolCard(QWidget):
 
 
         if ok:
-            self._icon.setPixmap(pixmap_for(self, self.glyph, _GLYPH_PX, self.glyph_colour()))
+            self._icon.setPixmap(self.glyph_pixmap())
         elif self.ended in ("denied", "stopped"):
             self._icon.setPixmap(pixmap_for(self, "dash", _GLYPH_PX, qcolor(INK_3)))
         else:
             self._icon.setPixmap(pixmap_for(self, "close", _GLYPH_PX, qcolor(RED)))
-        line = self.line()
-        self.setToolTip(f"{line}  ·  {note}" if note else line)
         self.finished.emit()
         self.state_changed.emit()
 
@@ -830,7 +855,7 @@ class ToolCard(QWidget):
         self._layer_label.hide()
         self._text.setProperty("failed", False)
         repolish(self._text)
-        self._icon.setPixmap(pixmap_for(self, self.glyph, _GLYPH_PX, self.glyph_colour()))
+        self._icon.setPixmap(self.glyph_pixmap())
         self.ok = None
         self.ended = ""
         self._sync_sentence()
@@ -841,7 +866,7 @@ class ToolCard(QWidget):
 
         code = self.args.get("code") if isinstance(self.args, dict) else None
         if isinstance(code, str) and code.strip() and (
-                self.name in _CODE_TOOLS or "code" in self.name):
+                self.name == "execute_code"):
             return code
         return ""
 
@@ -869,6 +894,7 @@ class ToolCard(QWidget):
         if self._expanded:
             self._sync_sibling_button()
         self._body.setVisible(self._expanded)
+        self._show_details(self._expanded)
 
 
 

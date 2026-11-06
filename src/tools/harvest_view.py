@@ -14,35 +14,37 @@
 from __future__ import annotations
 
 import os
-import re
 import time
 import uuid
 
 from qgis.core import (
-    Qgis,
     QgsApplication,
-    QgsContrastEnhancement,
     QgsDataSourceUri,
     QgsFeatureRequest,
     QgsProject,
     QgsRasterLayer,
-    QgsSingleBandGrayRenderer,
     QgsTask,
     QgsVectorLayer,
 )
 from qgis.PyQt.QtCore import QT_TRANSLATE_NOOP
 from qgis.utils import iface
 
-from ..core import background, canvas_glide, layer_order, limits
+from ..core import background, canvas_glide, layer_egress, layer_order, limits, security
 from ..core.follow import hold_view
+from ..core.layer_release import PROCESSING_TASKS, readers_of, remove_layers, sweep_consumed_tasks
 from ..core.logger import log, log_warning
+from ..core.output_paths import file_stem
 from ..core.policy import create_managed_temp_dir
+from ..core.postcondition import read_ahead
 from ..core.qt_compat import enum_member
 from ..core.tool_registry import Tool, ToolRegistry, coded_fact, tool_error
+from ..core.vsi import thread_options
 from ._layers import layer_not_found, resolve_layer, wfs_feature_cap
-from .data_tools import _avoid_reserved_name
+from .data_common import built_here, worker_options
+from .layer_files import release_layers_at_path
 from .layer_lookup import require_vector
-from .processing_run import _PROCESSING_TASKS, _readers_of, _sweep_consumed_tasks, remove_layers
+from .processing_guards import HILLSHADE_PROPERTY, hillshade_of_hillshade
+from .style_defaults import style_hillshade
 
 _REMOTE_PREFIXES = ("/vsicurl/", "http://", "https://", "/vsis3/", "/vsiaz/", "/vsigs/")
 
@@ -100,7 +102,9 @@ def register_harvest_view_tools(registry: ToolRegistry):
 
     registry.register(Tool(
         name="create_hillshade",
+        derives_layers=True,
         danger="write",
+        writes_at=("output_path",), file_extensions=(".tif", ".tiff"),
         label=QT_TRANSLATE_NOOP("AIAgent", "Create a hillshade[ from {layer_name}]"),
         input_schema={
             "type": "object",
@@ -310,9 +314,7 @@ def _put_in_place(old, new) -> bool:
 
     from qgis.PyQt.QtXml import QDomDocument
 
-    from ..core import layer_egress
-
-    if _readers_of(old):
+    if readers_of(old):
         return False
     project = QgsProject.instance()
     root = project.layerTreeRoot()
@@ -493,40 +495,10 @@ def _open_attribute_table(args: dict) -> dict:
     return out
 
 
-def _stretch_algorithm():
-    for owner in (
-        QgsContrastEnhancement,
-        getattr(QgsContrastEnhancement, "ContrastEnhancementAlgorithm", None),
-        getattr(Qgis, "ContrastEnhancementAlgorithm", None),
-    ):
-        value = getattr(owner, "StretchToMinimumMaximum", None) if owner is not None else None
-        if value is not None:
-            return value
-    return None
-
-
-def _style_hillshade(layer, opacity: float):
-
-    provider = layer.dataProvider()
-    renderer = QgsSingleBandGrayRenderer(provider, 1)
-    enhancement = QgsContrastEnhancement(provider.dataType(1))
-    algorithm = _stretch_algorithm()
-    if algorithm is not None:
-        enhancement.setContrastEnhancementAlgorithm(algorithm, True)
-    enhancement.setMinimumValue(0.0)
-    enhancement.setMaximumValue(255.0)
-    renderer.setContrastEnhancement(enhancement)
-    renderer.setOpacity(opacity)
-    layer.setRenderer(renderer)
-    layer.triggerRepaint()
-
-
 def _hillshade_built_here(path: str, name: str):
 
 
 
-    from ..core.postcondition import read_ahead
-    from .data_common import built_here, worker_options
 
     def make():
         layer = QgsRasterLayer(path, name, "gdal", worker_options(QgsRasterLayer))
@@ -560,22 +532,12 @@ class _HillshadeTask(QgsTask):
             self.error = f"The osgeo module is not importable: {e}"
             return False
 
-
         over_http = self.source.startswith(_REMOTE_PREFIXES)
-
-        set_option = getattr(gdal, "SetThreadLocalConfigOption", lambda *_: None)
         try:
-            if over_http:
-                set_option("GDAL_DISABLE_READDIR_ON_OPEN", "EMPTY_DIR")
-            self.error = self._shade(gdal)
+            with thread_options(gdal, **({"GDAL_DISABLE_READDIR_ON_OPEN": "EMPTY_DIR"} if over_http else {})):
+                self.error = self._shade(gdal)
         except Exception as e:
             self.error = f"{type(e).__name__}: {e}"
-        finally:
-            if over_http:
-                try:
-                    set_option("GDAL_DISABLE_READDIR_ON_OPEN", None)
-                except Exception:  # nosec B110
-                    pass
         if not self.error and not self.isCanceled():
             self.built = _hillshade_built_here(self.output_path, self.layer_name)
         return not self.error
@@ -614,7 +576,7 @@ class _HillshadeTask(QgsTask):
         )
 
     def finished(self, result: bool):
-        entry = _PROCESSING_TASKS.get(self.task_id)
+        entry = PROCESSING_TASKS.get(self.task_id)
         if entry is None:
             return
         try:
@@ -645,8 +607,7 @@ class _HillshadeTask(QgsTask):
             entry["error"] = f"GDAL wrote {self.output_path} but QGIS cannot open it as a raster."
             return
         opacity = self.options["opacity"]
-        _style_hillshade(layer, opacity)
-        from .processing_guards import HILLSHADE_PROPERTY
+        style_hillshade(layer, opacity)
 
         layer.setCustomProperty(HILLSHADE_PROPERTY, self.dem_id or "dem")
         QgsProject.instance().addMapLayer(layer)
@@ -718,8 +679,6 @@ def _release_path(path: str):
 
 
 
-    from ..core import security
-    from .layer_io_tools import _release_layers_at_path
 
     if security.validate_path(path, write=True, overwrite=True):
         return
@@ -727,14 +686,13 @@ def _release_path(path: str):
 
 
 
-    _release_layers_at_path(path, delete_existing=True)
+    release_layers_at_path(path, delete_existing=True)
 
 
 def _create_hillshade(args: dict) -> dict:
     layer, error = _hillshade_source(args)
     if error:
         return error
-    from .processing_guards import hillshade_of_hillshade
 
     refused = hillshade_of_hillshade(layer, "create_hillshade")
     if refused:
@@ -781,21 +739,14 @@ def _create_hillshade(args: dict) -> dict:
             os.makedirs(parent, exist_ok=True)
         _release_path(output_path)
     else:
-
-        safe = re.sub(r"[^\w-]", "_", name) or "hillshade"
-
-
-
-
-        safe = safe[:60]
-        safe = _avoid_reserved_name(safe)
+        safe = file_stem(name, "hillshade")
         output_path = os.path.join(create_managed_temp_dir("hillshade"), f"{safe}.tif")
 
-    _sweep_consumed_tasks()
+    sweep_consumed_tasks()
     task_id = "hill-" + uuid.uuid4().hex[:12]
     task = _HillshadeTask(task_id, source, output_path, name, values)
     task.dem_id = layer.id()
-    _PROCESSING_TASKS[task_id] = {
+    PROCESSING_TASKS[task_id] = {
         "status": "running",
         "progress": 0,
         "algorithm": "gdal hillshade (create_hillshade)",

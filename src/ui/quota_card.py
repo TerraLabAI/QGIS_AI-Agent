@@ -27,7 +27,7 @@ from __future__ import annotations
 
 import html
 
-from qgis.PyQt.QtCore import QCoreApplication, Qt, QTimer, pyqtSignal
+from qgis.PyQt.QtCore import QCoreApplication, Qt, pyqtSignal
 from qgis.PyQt.QtGui import QColor, QIcon
 from qgis.PyQt.QtWidgets import (
     QApplication,
@@ -40,10 +40,8 @@ from qgis.PyQt.QtWidgets import (
     QWidget,
 )
 
-from .external_links import open_external_url
-from .font_scale import scale_px_length, scale_qss_font_px
-from .icons import pixmap_for
-from .shared import (
+from ..core.qt_compat import disconnect_quietly, one_shot
+from ..core.served_state import (
     get_pro_price,
     get_pro_price_excludes_tax,
     get_pro_runs_per_month,
@@ -51,6 +49,9 @@ from .shared import (
     get_student_offer,
     get_support_email,
 )
+from .external_links import open_external_url
+from .font_scale import scale_px_length, scale_qss_font_px
+from .icons import pixmap_for
 from .style import (
     _BTN_GHOST,
     _BTN_PRIMARY_WIDE,
@@ -305,6 +306,7 @@ class QuotaCard(QWidget):
     low_closed = pyqtSignal()
     welcome_closed = pyqtSignal()
     start_now_requested = pyqtSignal()
+    pay_requested = pyqtSignal()
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -570,6 +572,25 @@ class QuotaCard(QWidget):
         self._invoice.show()
         self._plan.show()
 
+    def show_payment_failed(self, amount: str = "") -> None:
+
+
+
+        self.state = "payment_failed"
+        self._title.setText(self.tr("Your payment of {amount} failed").format(amount=amount) if amount
+                            else self.tr("Your Pro payment failed"))
+        self._title.show()
+        self._note.setText(self.tr("Pro is off until it's paid. You're on the free plan for now."))
+        self._note.show()
+        for w in (self._body, self._ghost, self._escape, self._promise, self._more, self._details,
+                  self._invoice, self._contact, self._close, self._student):
+            w.hide()
+        self._button.setText(self.tr("Pay {amount} now").format(amount=amount.replace("&", "&&")) if amount
+                             else self.tr("Pay now"))
+        self._route_button(self.pay_requested.emit)
+        self._plan.show()
+        self.show()
+
     def show_checkout_return(self) -> None:
 
 
@@ -614,10 +635,7 @@ class QuotaCard(QWidget):
         self.hide()
 
     def _route_button(self, slot) -> None:
-        try:
-            self._button.clicked.disconnect()
-        except (TypeError, RuntimeError):
-            pass  # nosec B110
+        disconnect_quietly(self._button, "clicked")
         if slot is not None:
             self._button.clicked.connect(slot)
 
@@ -627,7 +645,5 @@ class QuotaCard(QWidget):
         except (RuntimeError, AttributeError):
             return
         self._ghost.setText(self.tr("Copied"))
-        timer = QTimer(self)
-        timer.setSingleShot(True)
-        timer.timeout.connect(lambda: self._ghost.setText(self.tr("Copy email")))
+        timer = one_shot(self, lambda: self._ghost.setText(self.tr("Copy email")))
         timer.start(_COPIED_MS)

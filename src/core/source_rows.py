@@ -22,6 +22,11 @@ import urllib.parse
 from qgis.PyQt.QtCore import QUrl
 from qgis.PyQt.QtNetwork import QNetworkReply, QNetworkRequest
 
+from .i18n import current_locale
+from .numbers import as_int
+from .qt_compat import disconnect_quietly
+from .settings import Settings
+
 OTHER = "__other__"
 _MAX_BYTES = 8 * 1024 * 1024
 
@@ -55,14 +60,8 @@ def relevance(row: dict, country: str = "", language: str = "") -> tuple:
         step = 3
     else:
         step = 4
-    try:
-        rank = int(row.get("rank") or 0)
-    except (TypeError, ValueError):
-        rank = 0
-    try:
-        datasets = int(row.get("datasets") or 0)
-    except (TypeError, ValueError):
-        datasets = 0
+    rank = as_int(row.get("rank") or 0, 0)
+    datasets = as_int(row.get("datasets") or 0, 0)
     return (step, -rank, -datasets, str(row.get("name") or row.get("title") or "").lower())
 
 
@@ -82,14 +81,10 @@ def available() -> bool:
 
 
 def other_count() -> int:
-    try:
-        return int((_flag or {}).get("other") or 0)
-    except (TypeError, ValueError):
-        return 0
+    return as_int((_flag or {}).get("other") or 0, 0)
 
 
 def _base() -> str:
-    from .settings import Settings
 
     parts = urllib.parse.urlsplit(Settings().server_url)
     scheme = "http" if parts.scheme == "ws" else "https"
@@ -97,7 +92,6 @@ def _base() -> str:
 
 
 def _locale() -> str:
-    from .i18n import current_locale
 
     return str(current_locale() or "").replace("-", "_").split("_")[0][:8]
 
@@ -106,7 +100,7 @@ def _disk_path(family: str, locale: str) -> str:
     import hashlib
     import os
 
-    from ..ui.shared import PLUGIN_CACHE_DIR
+    from .policy import PLUGIN_CACHE_DIR
 
     digest = hashlib.sha256(f"{family}|{locale}|{_tag}".encode()).hexdigest()[:32]
     return os.path.join(PLUGIN_CACHE_DIR, "source_rows", f"{digest}.json")
@@ -164,8 +158,6 @@ def fetch(on_done, family: str = "", query: str = "", country: str = ""):
             return None
     from qgis.core import QgsNetworkAccessManager
 
-    from .settings import Settings
-
     key = Settings().activation_key
     if not key:
         on_done([], "no key")
@@ -210,10 +202,7 @@ def fetch(on_done, family: str = "", query: str = "", country: str = ""):
 def abort(reply) -> None:
     if reply is None:
         return
-    try:
-        reply.finished.disconnect()
-    except (RuntimeError, TypeError):
-        pass
+    disconnect_quietly(reply, "finished")
     try:
         reply.abort()
         reply.deleteLater()

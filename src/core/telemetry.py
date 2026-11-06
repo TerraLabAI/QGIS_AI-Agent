@@ -35,9 +35,8 @@ from datetime import datetime, timezone
 from qgis.core import QgsApplication, QgsTask
 from qgis.PyQt.QtCore import QTimer
 
-from ..api.terralab_client import TerraLabClient, plugin_version, qgis_version
 from . import telemetry_events as ev
-from .host_platform import os_info
+from .host_platform import os_info, plugin_version, qgis_version
 from .log_scrub import is_secret_key, scrub_secrets
 from .privacy_notice import has_accepted_privacy_notice
 from .settings import profile_settings
@@ -71,7 +70,7 @@ SEND_TIMEOUT_MS = 8_000
 
 LIFECYCLE = frozenset({
     ev.PLUGIN_FIRST_OPEN, ev.PLUGIN_OPENED, ev.PLUGIN_ACTIVATED,
-    ev.TELEMETRY_OPT_CHANGED, ev.TUTORIAL_OPENED,
+    ev.TELEMETRY_OPT_CHANGED, ev.TUTORIAL_OPENED, ev.PAIRING_STARTED, ev.PAIRING_FAILED,
 })
 
 FLUSH_NOW = frozenset({
@@ -298,6 +297,12 @@ def track(event: str, properties: dict | None = None, flush_now: bool = False) -
     _arm_flush_timer()
 
 
+def track_setting(setting: str, value: object) -> None:
+
+    text = "on" if value is True else "off" if value is False else str(value if value not in (None, "") else "auto")
+    track(ev.SETTING_CHANGED, {"setting": setting, "value": text})
+
+
 def _trim_locked() -> None:
     drop = len(_batch) - QUEUE_HARD_MAX
     if drop <= 0:
@@ -396,6 +401,9 @@ class _TelemetryFlushTask(QgsTask):
             if self.isCanceled():
                 return False
             try:
+
+                from ..api.terralab_client import TerraLabClient
+
                 result = TerraLabClient().send_telemetry_batch(
                     self._events, self._auth, timeout_ms=FINAL_TIMEOUT_MS if self._final else SEND_TIMEOUT_MS)
                 if not isinstance(result, dict) or not result.get("error"):

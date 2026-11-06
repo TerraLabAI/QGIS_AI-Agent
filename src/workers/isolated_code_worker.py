@@ -273,20 +273,21 @@ def _load_guard(plugin_root: str):
         "_ai_agent_plugin": [plugin_root],
         "_ai_agent_plugin.src": [os.path.join(plugin_root, "src")],
         "_ai_agent_plugin.src.core": [os.path.join(plugin_root, "src", "core")],
+        "_ai_agent_plugin.src.tools": [os.path.join(plugin_root, "src", "tools")],
     }
     for name, paths in packages.items():
         module = types.ModuleType(name)
         module.__path__ = paths
         sys.modules[name] = module
-    guard = importlib.import_module("_ai_agent_plugin.src.core.code_guard")
+    guard = importlib.import_module("_ai_agent_plugin.src.tools.code_guard_runtime")
     security = importlib.import_module("_ai_agent_plugin.src.core.security")
-    code_split = importlib.import_module("_ai_agent_plugin.src.core.code_split")
-    helpers = importlib.import_module("_ai_agent_plugin.src.core.code_namespace")
+    code_split = importlib.import_module("_ai_agent_plugin.src.tools.code_split")
+    helpers = importlib.import_module("_ai_agent_plugin.src.tools.code_namespace")
     return guard, security, code_split, helpers
 
 
 def _tripwire():
-    return importlib.import_module("_ai_agent_plugin.src.core.code_tripwire")
+    return importlib.import_module("_ai_agent_plugin.src.tools.code_tripwire")
 
 
 def _layer_from_xml(kind: str, xml_text: str):

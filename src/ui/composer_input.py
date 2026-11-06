@@ -185,7 +185,7 @@ class ComposerInput(QPlainTextEdit):
     def _connectors(self) -> list:
 
         try:
-            from .shared import get_connectors
+            from ..core.served_state import get_connectors
 
             return get_connectors()
         except Exception:  # noqa: BLE001
@@ -208,7 +208,8 @@ class ComposerInput(QPlainTextEdit):
         self._plugins = []
         try:
             from ..core.qgis_plugins import installed_plugins, plugin_logo
-            from .shared import PLUGIN_FOLDERS, get_hidden_plugins, known_plugins_by_folder
+            from ..core.served_state import get_hidden_plugins, known_plugins_by_folder
+            from .shared import PLUGIN_FOLDERS
 
             local = installed_plugins()
             known = known_plugins_by_folder()

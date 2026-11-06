@@ -9,6 +9,39 @@ is what the QGIS Plugin Manager renders.
 
 ## [Unreleased]
 
+## [1.9.4] - 2026-11-06
+
+### Added
+
+- A data source's page has a "Use in chat" button that puts only that source's mention in the
+  message box, so you type your own task next to it.
+- Project memory: the AI agent keeps notes per project, which Settings can show or clear (Clear
+  asks first). An unsaved project or a lost connection now says why instead of a greyed button.
+- A pasted private or signed link reads as one lock chip in your message: its signature stays on
+  this computer.
+
+### Changed
+
+- Thumbs under an answer toggle: click the same thumb again to take it back, or the other to
+  switch. The feedback form is a framed card with quick reasons for a thumbs down.
+- Each kind of tool in the step list wears its own colour, so consecutive steps no longer look
+  alike.
+- No more hover boxes over sources, links, layer names and steps in the chat; icon buttons keep
+  their names.
+- A data source reached through a map service (WFS, WMS) links to its site's home page rather
+  than the raw service address.
+
+### Removed
+
+- The proactive triggers setting (watched folder and schedules), which was never released.
+
+### Fixed
+
+- After a crash QGIS reopens the chat it died under, with Retry, and a Windows shutdown is no
+  longer reported as a crash.
+- Fewer freezes before code runs in large projects; save asks before writing over your project
+  file.
+
 ## [1.9.3] - 2026-10-29
 
 ### Added

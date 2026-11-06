@@ -25,6 +25,7 @@ import unicodedata
 from qgis.core import QgsVectorLayer
 
 from . import tuning
+from .snapshot import _sidecars, _stamp, source_path
 
 
 
@@ -42,7 +43,6 @@ def _items() -> int:
 
 def _fields() -> int:
     return tuning.ceiling("journal_max_fields", MAX_FIELDS, 5)
-
 
 
 _FIELD_KEYS = ("field_name", "field", "fields", "new_name", "old_name", "new_field_name", "target_field",
@@ -76,7 +76,6 @@ class _Disk:
 
 
     def __init__(self, paths, stamps: bool = True):
-        from .snapshot import _sidecars, _stamp
 
         self._files: dict[str, list[str] | None] = {}
         self._stamps: dict[str, tuple | None] = {}
@@ -155,7 +154,6 @@ def _listing(folder: str) -> _Listing | None:
 
 def _paths(layers, files: bool) -> dict:
 
-    from .snapshot import source_path
 
     paths = {}
     if not files:
@@ -175,7 +173,6 @@ def layer_state(layer, files: bool = True, disk: _Disk | None = None) -> dict:
 
 
 
-    from .snapshot import source_path
 
     state: dict = {"name": _text(layer.name())}
     try:
@@ -288,7 +285,6 @@ def watched_layer_ids(project, files: bool = True) -> list:
 
 
 
-    from .snapshot import source_path
 
     layers = list(project.mapLayers().items())
     paths = _paths(layers, files)

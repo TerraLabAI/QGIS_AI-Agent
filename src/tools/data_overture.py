@@ -16,15 +16,15 @@ import urllib.request
 
 from qgis.core import QgsProject
 
-from ..core import catalog, limits, net, tuning
+from ..core import catalog, geodata_rules, limits, net, tuning
 from ..core.background import run_on_main_thread
 from ..core.net_state import set_cancel_check
+from ..core.numbers import as_finite
 from ..core.tool_registry import ServedValueMissing, coded_fact, tool_error
 from . import volume_guard
 from .data_common import (
     _MAX_DOWNLOAD_SIZE,
     _TOTAL_TIMEOUT_FACTOR,
-    _USER_AGENT,
     _bbox_km2,
     _is_number,
     _json_object,
@@ -34,6 +34,7 @@ from .data_common import (
     _worker_layer,
 )
 from .data_inspect import _add_vector_over_range_requests, _tune_gdal_for_range_reads
+from .data_outline import _outline_shape, _polys_bbox, _prepared
 
 
 
@@ -69,48 +70,37 @@ def _overture_limit() -> int:
 
 
 
-_OVERTURE_TILE_ZOOM = 8
-_OVERTURE_MAX_TILES = 4
-class _ThemeLicences(dict):
+def _tile_zoom() -> int:
+    return geodata_rules.rule("overture", "tile_zoom")
+
+
+def _max_tiles() -> int:
+    return geodata_rules.rule("overture", "max_tiles")
 
 
 
 
+def _theme_row(theme: str, field: str) -> str:
+    served = catalog.theme_licence(f"overture:{theme}")
+    if not served or not served.get(field):
+        raise ServedValueMissing(f"source_licences.overture:{theme}")
+    return served[field]
 
 
-
-    def __getitem__(self, theme):
-        found = self.get(theme)
-        if found is None:
-            raise KeyError(theme)
-        return found
-
-    def get(self, theme, default=None):
-        served = catalog.theme_licence(f"overture:{theme}")
-        if served and served["licence"]:
-            return served["licence"]
-
-        return super().get(theme, "ODbL 1.0" if theme in _osm_themes() else default)
-
-
-_OVERTURE_LICENCES = _ThemeLicences({"buildings": "ODbL 1.0", "roads": "ODbL 1.0", "divisions": "ODbL 1.0",
-                                     "places": "CDLA Permissive 2.0",
-                                     "addresses": "mixed open licences per country",
-                                     "protected_areas": "ODbL 1.0"})
-_OVERTURE_ATTRIBUTION = "© Overture Maps Foundation, © OpenStreetMap contributors"
-_OVERTURE_BUILDING_ATTRIBUTION = (_OVERTURE_ATTRIBUTION + ", Microsoft Building Footprints, "
-                                  "Google Open Buildings, Esri Community Maps")
-_OSM_ATTRIBUTION = "© OpenStreetMap contributors"
+def _overture_licence(theme: str) -> str:
+    return _theme_row(theme, "licence")
 
 
 def _overture_attribution(theme: str) -> str:
+    return _theme_row(theme, "attribution")
 
-    served = catalog.theme_licence(f"overture:{theme}")
-    if served and served["attribution"]:
-        return served["attribution"]
-    if theme in _osm_themes():
-        return _OSM_ATTRIBUTION
-    return _OVERTURE_BUILDING_ATTRIBUTION if theme == "buildings" else _OVERTURE_ATTRIBUTION
+
+def _osm_licence() -> str:
+    return geodata_rules.rule("osm", "licence")
+
+
+def _osm_attribution() -> str:
+    return geodata_rules.rule("osm", "attribution")
 
 
 def _overture_source(theme: str) -> str:
@@ -126,7 +116,7 @@ def _overture_tile(lon: float, lat: float) -> tuple:
 
     import math
 
-    side = 2 ** _OVERTURE_TILE_ZOOM
+    side = 2 ** _tile_zoom()
     lat = max(-85.05112878, min(85.05112878, lat))
     radians = math.radians(lat)
     x = int((lon + 180.0) / 360.0 * side)
@@ -141,6 +131,38 @@ def _overture_tiles(box) -> list:
     right, bottom = _overture_tile(east, south)
     return [(x, y) for y in range(min(top, bottom), max(top, bottom) + 1)
             for x in range(min(left, right), max(left, right) + 1)]
+
+
+
+
+
+
+_MANIFEST_FROM_TILES = 16
+_MANIFEST_TTL_S = 6 * 3600.0
+_published: dict = {}
+
+
+def _present_tiles(theme: str, tiles: list) -> list:
+
+
+
+
+
+
+    if len(tiles) <= _MANIFEST_FROM_TILES:
+        return tiles
+    base = _tiles_base(theme)
+    if base not in _published:
+        request = urllib.request.Request(f"{base}/manifest.json")
+        try:
+            themes = json.loads(net.fetch(request, timeout=tuning.limit("net", "hosted_timeout_s", 30),
+                                          max_bytes=_MAX_DOWNLOAD_SIZE, cache_ttl=_MANIFEST_TTL_S).body)["themes"]
+            _published[base] = {name: {(int(t[0]), int(t[1])) for t in row["tiles"]}
+                                for name, row in themes.items() if isinstance(row, dict) and row.get("tiles")}
+        except Exception:  # noqa: BLE001
+            return tiles
+    present = _published[base].get(theme)
+    return tiles if present is None else [tile for tile in tiles if tuple(tile) in present]
 
 
 def _osm_themes() -> tuple:
@@ -166,7 +188,7 @@ def _tiles_base(theme: str) -> str:
 
 
 def _overture_tile_url(theme: str, x: int, y: int) -> str:
-    return f"{_tiles_base(theme)}/{theme}/{_OVERTURE_TILE_ZOOM}/{x}/{y}.fgb"
+    return f"{_tiles_base(theme)}/{theme}/{_tile_zoom()}/{x}/{y}.fgb"
 
 
 
@@ -186,17 +208,6 @@ def _comparison(value):
     return None
 
 
-def _number(value):
-
-    if value is None or isinstance(value, bool):
-        return None
-    try:
-        number = float(str(value).strip())
-    except ValueError:
-        return None
-    return number if number == number else None
-
-
 def _compares(got, op: str, operand: str) -> bool:
 
 
@@ -204,9 +215,9 @@ def _compares(got, op: str, operand: str) -> bool:
 
     if got is None or not str(got).strip():
         return False
-    target = _number(operand)
+    target = as_finite(operand)
     if target is not None:
-        number = _number(got)
+        number = as_finite(got)
         if number is None:
             return False
         return {">=": number >= target, "<=": number <= target, ">": number > target,
@@ -399,8 +410,7 @@ def _overture_call(theme: str, box, timeout: int = 0, subtype: str = "", limit: 
     if where:
         params["filter"] = where
     query = urllib.parse.urlencode(params)
-    request = urllib.request.Request(f"{_service('overture_api')}/v1/{theme}?{query}",
-                                     headers={"User-Agent": _USER_AGENT})
+    request = urllib.request.Request(f"{_service('overture_api')}/v1/{theme}?{query}")
     try:
         answer = net.fetch(request, timeout=timeout, max_bytes=_MAX_DOWNLOAD_SIZE,
                            total_timeout=timeout * _TOTAL_TIMEOUT_FACTOR, cache_ttl=600.0)
@@ -482,8 +492,7 @@ def _overture_divisions_presence(box) -> dict:
     west, south, east, north = box
     params = {"bbox": f"{west},{south},{east},{north}"}
     query = urllib.parse.urlencode(params)
-    request = urllib.request.Request(f"{_service('overture_api')}/v1/divisions/count?{query}",
-                                     headers={"User-Agent": _USER_AGENT})
+    request = urllib.request.Request(f"{_service('overture_api')}/v1/divisions/count?{query}")
     try:
         answer = net.fetch(request, timeout=tuning.limit("net", "hosted_timeout_s", _OVERTURE_TIMEOUT),
                            max_bytes=_MAX_DOWNLOAD_SIZE, cache_ttl=600.0)
@@ -537,7 +546,7 @@ def _overture_divisions_named(box, names: list):
                              where=",".join(f"name={text}" for text in variants))
     if payload.get("_error") or not isinstance(payload.get("features"), list):
         return None
-    order = {subtype: rank for rank, subtype in enumerate(_CLIP_SUBTYPE_ORDER)}
+    order = {subtype: rank for rank, subtype in enumerate(_clip_subtype_order())}
     named = []
     for feature in payload["features"]:
         props = feature.get("properties") if isinstance(feature, dict) else None
@@ -553,13 +562,21 @@ def _overture_divisions_named(box, names: list):
     return sorted(named, key=lambda entry: order.get(entry["subtype"], len(order)))
 
 
-def _named_sentence(asked: list, names: list, named: list) -> str:
+def _names_the_place(wanted) -> bool:
+
+
+    return not (isinstance(wanted, dict) and any(str(key).startswith("name") for key in wanted))
+
+
+def _named_sentence(asked: list, names: list, named: list, inside: bool = False) -> str:
 
     shown = " or ".join(repr(name) for name in names)
     if not named:
         return f"No division in this box is named {shown} exactly, at any level."
     listed = "; ".join(f"{entry['subtype']} {entry['name']!r}"
                        + (f" ({entry['extent_km']} km)" if entry.get("extent_km") else "") for entry in named[:6])
+    if inside:
+        return f"No {' or '.join(asked)} division came back inside {shown}. Divisions named {shown} here: {listed}."
     return f"No {' or '.join(asked)} division named {shown} in this box. Named so here: {listed}."
 
 
@@ -589,7 +606,7 @@ _STREAM_SPLIT_MAX_CALLS = 4
 
 def _tile_bounds(x: int, y: int) -> tuple:
 
-    side = 2 ** _OVERTURE_TILE_ZOOM
+    side = 2 ** _tile_zoom()
 
     def _lat(row: int) -> float:
         return math.degrees(math.atan(math.sinh(math.pi * (1 - 2 * row / side))))
@@ -633,15 +650,15 @@ def _stream_split_refusal(theme: str, box, count: int) -> dict:
     source = _overture_source(theme)
     pieces = _stream_boxes(box)
     if pieces and len(pieces) <= _STREAM_SPLIT_MAX_CALLS and all(
-            len(_overture_tiles(piece)) <= _OVERTURE_MAX_TILES for piece in pieces):
+            len(_overture_tiles(piece)) <= _max_tiles() for piece in pieces):
         listed = "; ".join("[" + ", ".join(f"{value:g}" for value in piece) + "]" for piece in pieces)
 
-        return tool_error(f"This box spans {count} {source} tiles and one call opens at most {_OVERTURE_MAX_TILES}. "
+        return tool_error(f"This box spans {count} {source} tiles and one call opens at most {_max_tiles()}. "
                           f"These {len(pieces)} boxes [west, south, east, north] cover it, each within "
-                          f"{_OVERTURE_MAX_TILES} tiles: {listed}.", limits.CEILING_CODE,
+                          f"{_max_tiles()} tiles: {listed}.", limits.CEILING_CODE,
                           **volume_guard.coded(hint="overture_too_big", variant="tiles"))
-    calls = len(pieces) or -(-count // _OVERTURE_MAX_TILES)
-    return tool_error(f"This box spans {count} {source} tiles and one call opens at most {_OVERTURE_MAX_TILES}: "
+    calls = len(pieces) or -(-count // _max_tiles())
+    return tool_error(f"This box spans {count} {source} tiles and one call opens at most {_max_tiles()}: "
                       f"covering it would take {calls} calls, each adding its tiles as layers."
                       + volume_guard.WHOLE_BEFORE_PART, limits.CEILING_CODE,
                       **volume_guard.coded(hint="overture_too_big", variant="tiles"))
@@ -652,7 +669,7 @@ def _stream_refusal(theme: str, box) -> dict | None:
     if theme == "divisions":
         return None
     count = len(_overture_tiles(box))
-    return _stream_split_refusal(theme, box, count) if count > _OVERTURE_MAX_TILES else None
+    return _stream_split_refusal(theme, box, count) if count > _max_tiles() else None
 
 
 def _overture_stream(theme: str, box, args: dict) -> dict:
@@ -719,7 +736,7 @@ def _overture_stream(theme: str, box, args: dict) -> dict:
     out = {"mode": "stream", "theme": theme, "layers": layers, "tiles": [label for label, _ in urls],
            "missing_tiles": missing, "crs": "EPSG:4326",
            "coverage": "partial" if refused else "complete",
-           "licence": _OVERTURE_LICENCES.get(theme, ""), "attribution": _overture_attribution(theme),
+           "licence": _overture_licence(theme), "attribution": _overture_attribution(theme),
            "_note": "The tiles are read in place rather than copied.",
            "stream_note": coded_fact(hint="overture_stream_in_place")}
     if theme != "divisions":
@@ -777,7 +794,7 @@ def _subset_string(wanted: dict, keys: set) -> str:
             return ""
         equals = [v for v in values if not _comparison(v)]
         for op, operand in (c for c in (_comparison(v) for v in values) if c):
-            number = _number(operand)
+            number = as_finite(operand)
             if number is None and op != "!=":
                 return ""
             literal = repr(number) if number is not None else "'" + operand.replace("'", "''") + "'"
@@ -803,23 +820,22 @@ def _subset_string(wanted: dict, keys: set) -> str:
 
 
 
-_CLIP_SUBTYPE_ORDER = ("neighborhood", "macrohood", "locality", "localadmin", "county", "region", "country")
-
-_CLIP_SUBTYPE_WAVES = (("neighborhood", "macrohood"), ("locality", "localadmin", "county"), ("region", "country"))
-
+def _clip_subtype_order() -> list:
+    return geodata_rules.rule("overture", "subtype_order")
 
 
-_CLIP_MAX_PARTS = 200
-
-_HIT_SUBTYPES = {"country": "country", "state": "region", "county": "county"}
-
+def _clip_subtype_waves() -> list:
+    return geodata_rules.rule("overture", "subtype_waves")
 
 
-_CLIP_MAX_BOXES = 12
+def _hit_subtypes() -> dict:
+    return geodata_rules.rule("overture", "hit_subtypes")
 
 
+def _clip_max_parts() -> int:
+    return geodata_rules.rule("overture", "clip_max_parts")
 
-_CLIP_MAX_GRID = 20000
+
 
 
 
@@ -865,113 +881,12 @@ def _rings_of(geometry) -> list:
     return out
 
 
-def _polys_bbox(polys: list):
-
-    xs: list = []
-    ys: list = []
-    for exterior, _holes in polys:
-        for x, y in exterior:
-            xs.append(x)
-            ys.append(y)
-    if not xs:
-        return None
-    return (min(xs), min(ys), max(xs), max(ys))
-
-
-def _ring_contains(x: float, y: float, ring: list) -> bool:
-
-    inside = False
-    count = len(ring)
-    previous = count - 1
-    for current in range(count):
-        xi, yi = ring[current]
-        xj, yj = ring[previous]
-        if (yi > y) != (yj > y):
-            if x < (xj - xi) * (y - yi) / (yj - yi) + xi:
-                inside = not inside
-        previous = current
-    return inside
-
-
-
-
-
-
-_RING_BAND_EDGES = 8
-_RING_MAX_BANDS = 4096
-
-
-def _ring_index(ring: list):
-
-    count = len(ring)
-    if count < 3:
-        return (0.0, 1.0, 1, [[]])
-    ys = [point[1] for point in ring]
-    south, north = min(ys), max(ys)
-    bands = max(1, min(_RING_MAX_BANDS, count // _RING_BAND_EDGES))
-    height = (north - south) / bands or 1.0
-    table: list = [[] for _ in range(bands)]
-    last = bands - 1
-    previous = count - 1
-    for current in range(count):
-        xi, yi = ring[current]
-        xj, yj = ring[previous]
-        previous = current
-        if yi == yj:
-
-            continue
-        low, high = (yi, yj) if yi < yj else (yj, yi)
-        first = min(last, int((low - south) / height))
-        final = min(last, int((high - south) / height))
-        edge = (xi, yi, xj, yj)
-        for band in range(first, final + 1):
-            table[band].append(edge)
-    return (south, height, bands, table)
-
-
-def _ring_index_contains(x: float, y: float, index) -> bool:
-
-
-
-
-
-    south, height, bands, table = index
-    band = min(bands - 1, max(0, int((y - south) / height)))
-    inside = False
-    for xi, yi, xj, yj in table[band]:
-        if (yi > y) != (yj > y) and x < (xj - xi) * (y - yi) / (yj - yi) + xi:
-            inside = not inside
-    return inside
-
-
-def _outline_contains(x: float, y: float, outline: dict) -> bool:
-
-    west, south, east, north = outline["bbox"]
-    if not (west <= x <= east and south <= y <= north):
-        return False
-    indexed = outline.get("_rings")
-    if indexed is None:
-
-        indexed = outline["_rings"] = [
-            (_ring_index(exterior), _polys_bbox([(exterior, [])]), [_ring_index(hole) for hole in holes])
-            for exterior, holes in outline["polys"]]
-    for exterior, bounds, holes in indexed:
-        if bounds is None or not (bounds[0] <= x <= bounds[2] and bounds[1] <= y <= bounds[3]):
-            continue
-        if not _ring_index_contains(x, y, exterior):
-            continue
-        if any(_ring_index_contains(x, y, hole) for hole in holes):
-            continue
-        return True
-    return False
-
-
 def _clip_grid(box, max_km2: float, max_span: float, outline: dict | None = None):
 
     import math
 
     west, south, east, north = box
-    ceiling = _CLIP_MAX_GRID if outline is not None else _CLIP_MAX_BOXES
+    ceiling = geodata_rules.rule("overture", "clip_max_grid" if outline is not None else "clip_max_boxes")
     columns = max(1, int(math.ceil((east - west) / max_span))) if max_span > 0 else 1
     rows = max(1, int(math.ceil((north - south) / max_span))) if max_span > 0 else 1
     def largest(columns: int, rows: int) -> float:
@@ -1002,18 +917,13 @@ def _clip_grid(box, max_km2: float, max_span: float, outline: dict | None = None
 
         meets = _boxes_meeting_outline(pieces, outline)
         pieces = [piece for piece, inside in zip(pieces, meets) if inside] or pieces[:1]
-    if len(pieces) > _CLIP_MAX_BOXES:
+    if len(pieces) > geodata_rules.rule("overture", "clip_max_boxes"):
         return [], len(pieces)
     return pieces, len(pieces)
 
 
 
 
-_DIVISION_WORDS = {"state": "region", "province": "region", "department": "county", "departement": "county",
-                   "city": "locality", "town": "locality", "village": "locality", "municipality": "locality",
-                   "commune": "locality", "neighbourhood": "neighborhood"}
-
-_DIVISION_SUBTYPES_PER_CALL = 3
 
 
 def _divisions_subtypes_asked(wanted) -> tuple:
@@ -1036,24 +946,26 @@ def _divisions_subtypes_asked(wanted) -> tuple:
 
         return [], tool_error("Divisions are one whole-world file per subtype, so the subtype is not optional.",
                               "INVALID_ARGS", hint="overture_divisions_subtype_required", subtypes=list(known))
+    division_words = geodata_rules.rule("overture", "division_words")
+    per_call = geodata_rules.rule("overture", "division_subtypes_per_call")
 
     unknown = [name for name in names if known and name not in known]
-    if unknown and all(_DIVISION_WORDS.get(name) in known for name in unknown):
+    if unknown and all(division_words.get(name) in known for name in unknown):
 
 
 
 
-        names = list(dict.fromkeys(_DIVISION_WORDS.get(name, name) for name in names))
+        names = list(dict.fromkeys(division_words.get(name, name) for name in names))
         unknown = []
     if unknown:
         word = unknown[0]
         return [], tool_error(f"{word!r} is not a divisions subtype. The subtypes are: {', '.join(known)}.",
                               "INVALID_ARGS", hint="overture_divisions_subtype_unknown", word=word)
-    if len(names) > _DIVISION_SUBTYPES_PER_CALL:
+    if len(names) > per_call:
         return [], tool_error(f"{len(names)} subtypes were named and one call reads at most "
-                              f"{_DIVISION_SUBTYPES_PER_CALL}: each is a whole-world file.",
+                              f"{per_call}: each is a whole-world file.",
                               "INVALID_ARGS", hint="overture_divisions_too_many_subtypes", asked=len(names),
-                              max_per_call=_DIVISION_SUBTYPES_PER_CALL)
+                              max_per_call=per_call)
     return names, None
 
 
@@ -1101,11 +1013,11 @@ def _clip_split_refusal(theme: str, box, max_km2: float, touching: int | None = 
     west, south, east, north = box
     if touching is not None:
         size = (f"This outline meets {touching:,} clips of the {max_km2:,.0f} km2 one {theme} call "
-                f"covers, more than the {_CLIP_MAX_BOXES} one call makes.")
+                f"covers, more than the {geodata_rules.rule('overture', 'clip_max_boxes')} one call makes.")
     else:
         size = (f"This outline is {_bbox_km2(south, west, north, east):,.0f} km2 and would "
-                f"take more than {_CLIP_MAX_BOXES} clips of the {max_km2:,.0f} km2 one "
-                f"{theme} call covers.")
+                f"take more than {geodata_rules.rule('overture', 'clip_max_boxes')} clips of the "
+                f"{max_km2:,.0f} km2 one {theme} call covers.")
 
 
     return tool_error(size + volume_guard.WHOLE_BEFORE_PART, limits.CEILING_CODE,
@@ -1121,8 +1033,6 @@ _QUARTER_DEPTH = 3
 def _boxes_meeting_outline(pieces: list, outline: dict) -> list:
 
     from osgeo import ogr
-
-    from .data_overture_extract import _outline_shape, _prepared
 
     try:
         shape = _outline_shape(outline)
@@ -1271,28 +1181,29 @@ def _overture_boxes(theme: str, box, max_km2: float, max_span: float, args: dict
 __all__ = [
     "QgsProject",
     "_CLIP_CHECK_EVERY",
-    "_CLIP_MAX_PARTS",
-    "_CLIP_SUBTYPE_ORDER",
-    "_HIT_SUBTYPES",
-    "_OSM_ATTRIBUTION",
-    "_OVERTURE_BUILDING_ATTRIBUTION",
-    "_OVERTURE_LICENCES",
     "_OVERTURE_MAX_KM2",
     "_OVERTURE_MAX_SPAN_DEG",
-    "_OVERTURE_MAX_TILES",
-    "_OVERTURE_TILE_ZOOM",
     "_add_vector_over_range_requests",
+    "_clip_max_parts",
+    "_clip_subtype_order",
+    "_clip_subtype_waves",
+    "_hit_subtypes",
+    "_max_tiles",
+    "_osm_attribution",
+    "_osm_licence",
+    "_overture_licence",
+    "_tile_zoom",
     "_clip_split_refusal",
     "_division_names",
     "_divisions_subtypes_asked",
     "_filter_miss_suggestion",
     "_layer_from_source",
     "_osm_themes",
-    "_outline_contains",
     "_overture_attribution",
     "_overture_boxes",
     "_overture_call",
     "_named_sentence",
+    "_names_the_place",
     "_overture_divisions_named",
     "_overture_divisions_presence",
     "_overture_feature_key",
@@ -1306,7 +1217,6 @@ __all__ = [
     "_overture_tile",
     "_overture_tile_url",
     "_overture_tiles",
-    "_polys_bbox",
     "_rings_of",
     "_clip_grid",
     "_clip_grid",

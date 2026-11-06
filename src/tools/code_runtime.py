@@ -52,7 +52,9 @@ import threading
 from dataclasses import dataclass
 
 from ..core import code_effects as ce
-from ..core import code_namespace, code_tripwire
+from ..core.output_paths import default_folder
+from . import code_namespace, code_tripwire, guards
+from .danger import effective_danger
 
 
 _NOT_FROM_CODE = frozenset({"execute_code", "ask_user", "verify_run", "call_tool",
@@ -227,6 +229,23 @@ def keep(chat: str, namespace: dict, bound: set, lost: dict | None = None) -> No
     _DROPPED[chat] = dict(list(dropped.items())[-_DROPPED_MAX:])
 
 
+def runs_in(chat: str, namespace: dict) -> bool:
+
+
+    def uses(value, depth: int = 0) -> bool:
+        if getattr(value, "__globals__", None) is namespace:
+            return True
+        if isinstance(value, type):
+            return any(getattr(item, "__globals__", None) is namespace for item in vars(value).values())
+        if depth < 2 and isinstance(value, (list, tuple, set, frozenset)):
+            return any(uses(item, depth + 1) for item in list(value)[:1000])
+        if depth < 2 and isinstance(value, dict):
+            return any(uses(item, depth + 1) for item in list(value.values())[:1000])
+        return False
+
+    return any(uses(value) for value in _KEPT.get(chat, {}).values())
+
+
 def dropped_help(chat: str, name: str) -> str:
 
     held = _DROPPED.get(chat, {}).get(str(name or ""))
@@ -246,7 +265,6 @@ def bindings(iface, project) -> dict:
         active = iface.activeLayer() if iface is not None else None
     except Exception:  # noqa: BLE001
         active = None
-    from ..core.output_paths import default_folder
 
     try:
         exports = default_folder()
@@ -284,8 +302,6 @@ def tool_code_class(name: str, args: dict | None = None, registry=None) -> str |
             return None
     except Exception:  # noqa: BLE001
         return None
-    from . import guards
-    from .danger import effective_danger
 
     if guards.always_confirm(name, args) or guards.unvouched_urls(name, args):
         return None
@@ -298,10 +314,10 @@ def tool_code_class(name: str, args: dict | None = None, registry=None) -> str |
         pass
     danger = effective_danger(name, args) if args else tool.danger
     cls = {"read": ce.R, "write": ce.P}.get(danger, ce.FW)
-    if name in guards.DATA_MUTATORS:
+    if guards.mutates_data(name):
 
         cls = ce.higher(cls, ce.FW)
-    for key in guards.WRITE_PATH_ARGS.get(name, ()):
+    for key in guards.writes_at(name):
         if isinstance(args.get(key), str) and args[key].strip():
             cls = ce.higher(cls, code_tripwire.file_class(args[key])[0])
     return cls
@@ -325,7 +341,6 @@ class Tools:
 
     @staticmethod
     def _call(name: str, arguments: dict | None = None, **kwargs):
-        from . import guards
 
         args = dict(arguments or {}, **kwargs)
         cls = tool_code_class(name, args)

@@ -17,7 +17,7 @@ from __future__ import annotations
 from qgis.PyQt.QtCore import QEasingCurve, Qt, QVariantAnimation, pyqtSignal
 from qgis.PyQt.QtWidgets import QSizePolicy, QVBoxLayout, QWidget
 
-from .bubbles import StatusLine
+from .bubbles import AgentBubble, StatusLine
 from .chat_panel_layout import _ChatPanelLayout
 from .chat_panel_prompts import _ChatPanelPrompts
 from .chat_panel_queue import TRAY_TUCK, QueueStrip, _ChatPanelQueue
@@ -35,6 +35,7 @@ from .message_list import MessageList
 from .notice_bar import NoticeBar
 from .quota_card import QuotaCard, RunsLeftLine
 from .style import MIN_PANEL_WIDTH, SPACE_CARD, SPACE_TIGHT, panel_qss
+from .tasks_panel import TasksPanel
 from .toast import Toast
 from .update_gate import UpdateGate
 
@@ -48,6 +49,7 @@ class ChatPanel(_ChatPanelRuns, _ChatPanelQueue, _ChatPanelPrompts, _ChatPanelTh
 
     send_requested = pyqtSignal(str, str, str, object, object)
     stop_requested = pyqtSignal(str)
+    task_stop_requested = pyqtSignal(str)
     steer_requested = pyqtSignal(str, str, str)
     unsteer_requested = pyqtSignal(str, str)
 
@@ -64,6 +66,7 @@ class ChatPanel(_ChatPanelRuns, _ChatPanelQueue, _ChatPanelPrompts, _ChatPanelTh
     retry_requested = pyqtSignal(str)
     continue_requested = pyqtSignal(str)
     answer_rated = pyqtSignal(str, str)
+    answer_reason = pyqtSignal(str, str, str, str)
     undo_requested = pyqtSignal()
     restore_requested = pyqtSignal(str, bool)
 
@@ -100,6 +103,9 @@ class ChatPanel(_ChatPanelRuns, _ChatPanelQueue, _ChatPanelPrompts, _ChatPanelTh
 
 
     upsell_shown = pyqtSignal(str)
+
+    payment_card_shown = pyqtSignal(str, bool)
+    pay_requested = pyqtSignal(str)
     limit_reached = pyqtSignal(bool, int)
     pro_pill_requested = pyqtSignal()
     start_now_requested = pyqtSignal(str)
@@ -108,6 +114,7 @@ class ChatPanel(_ChatPanelRuns, _ChatPanelQueue, _ChatPanelPrompts, _ChatPanelTh
     help_requested = pyqtSignal(str)
     update_clicked = pyqtSignal(str)
     update_dismissed = pyqtSignal(str)
+    update_download_clicked = pyqtSignal(str)
     low_balance_shown = pyqtSignal(int)
     attachment_added = pyqtSignal(int)
     example_chosen = pyqtSignal(str)
@@ -128,19 +135,17 @@ class ChatPanel(_ChatPanelRuns, _ChatPanelQueue, _ChatPanelPrompts, _ChatPanelTh
         self._compaction_marked = False
         self._current_run: str | None = None
         self._error_cards: dict = {}
-        self._explain_runs = True
-        self._show_tool_details = True
         self._last_run = ""
         self._last_error = ""
         self._error_said: dict[str, str] = {}
-
-
         self._low_balance_visible = False
         self._upsell_seen: set = set()
         self._checkout_return = False
         self._return_view_pending = False
 
         self._pro_welcome = None
+
+        self._payfail = None
         self._limit_said = False
         self._attachment_count = 0
         self._privacy_dialog = None
@@ -186,6 +191,13 @@ class ChatPanel(_ChatPanelRuns, _ChatPanelQueue, _ChatPanelPrompts, _ChatPanelTh
         self._quota_host = _wrap(self.quota_card, (12, SPACE_CARD, 12, 0), self)
         self._quota_host.hide()
         self._col.addWidget(self._quota_host)
+
+        self.tasks_panel = TasksPanel(self)
+        self._task_cards = {}
+        self.tasks_panel.stop_requested.connect(self.task_stop_requested)
+        self.tasks_panel.permission_decided.connect(self.permission_decided)
+        self._tasks_host = _wrap(self.tasks_panel, (12, SPACE_CARD, 12, 0), self)
+        self._col.addWidget(self._tasks_host)
 
 
         self.composer = Composer(self)
@@ -233,6 +245,32 @@ class ChatPanel(_ChatPanelRuns, _ChatPanelQueue, _ChatPanelPrompts, _ChatPanelTh
         self._wire()
         self._init_queue()
         self._show_thread_surface()
+
+    def task_update(self, frame: dict) -> None:
+        self.tasks_panel.task_update(frame)
+        task_id = str(frame.get("task_id") or "")
+        if task_id in self._task_cards and not self.tasks_panel.is_live(task_id):
+
+            for card in self._task_cards.pop(task_id):
+                if card.is_open():
+                    card.collapse(self.tr("Task ended"))
+            self.composer.set_reply_placeholder("")
+
+    def ask_task_permission(self, tool_call_id: str, task_id: str, sentence: str, name: str = "", args=None,
+                            addresses=None, grant: str = "", group: str = "", preview=None) -> None:
+        if not self.tasks_panel.ask_permission(task_id, tool_call_id, sentence, name, args, addresses, grant,
+                                               preview):
+            self.permission_decided.emit(tool_call_id, "deny", None)
+
+    def task_result(self, frame: dict) -> None:
+
+        self.tasks_panel.task_result(frame)
+        summary = str(frame.get("summary") or "").strip()
+        if summary:
+            bubble = AgentBubble()
+            bubble.run_id = str(frame.get("task_id") or "")
+            bubble.set_text(summary)
+            self._add(bubble)
 
     def detach_header(self) -> Header:
 

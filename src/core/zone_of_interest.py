@@ -191,8 +191,6 @@ class ZoneSource:
 
 
 
-
-
 def _project(project: Any = None) -> QgsProject:
     return project if project is not None else QgsProject.instance()
 
@@ -255,8 +253,6 @@ def _zone_parts(layer: QgsVectorLayer) -> list[QgsGeometry]:
         if geom is not None and not geom.isEmpty():
             parts.append(QgsGeometry(geom))
     return parts
-
-
 
 
 
@@ -348,8 +344,6 @@ def restore_zone_layer(project: Any = None) -> bool:
     if layer is None:
         return False
     return _refill_zone_layer(layer)
-
-
 
 
 
@@ -498,8 +492,6 @@ def style_zone_layer(layer: QgsVectorLayer) -> None:
 
 
 
-
-
 def outline_of_layer(layer: Any, selected_only: bool = False
                      ) -> tuple[QgsGeometry, QgsCoordinateReferenceSystem, bool] | None:
 
@@ -621,8 +613,6 @@ def has_zone_sources(project: Any = None) -> bool:
                 and layer.featureCount() != 0):
             return True
     return False
-
-
 
 
 

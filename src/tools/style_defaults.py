@@ -17,9 +17,15 @@ from __future__ import annotations
 import contextlib
 import math
 
+from qgis.core import Qgis, QgsContrastEnhancement, QgsSingleBandGrayRenderer
+
 from ..core import tuning
 from ..core.qt_compat import enum_member
 from ..core.tool_registry import coded_fact
+from ._compat import composition_mode
+from .band_reads import read_ahead
+from .elevation_style import band_range, names_elevation
+from .processing_guards import computed_hillshade
 
 
 
@@ -33,20 +39,6 @@ def _rules(section: str) -> dict:
     doc = tuning.service_doc("style_rules") or {}
     value = doc.get(section)
     return value if isinstance(value, dict) else {}
-
-
-def _number(value):
-
-    if value is None:
-        return None
-    with contextlib.suppress(AttributeError):
-        if value.isNull():
-            return None
-    try:
-        number = float(value)
-    except (TypeError, ValueError):
-        return None
-    return number if math.isfinite(number) else None
 
 
 def skewness(values: list):
@@ -248,7 +240,6 @@ def raster_codes(layer, band: int = 1, strict: bool = True) -> list:
 
 
 
-    from .elevation_style import band_range, names_elevation
 
     rules = _rules("raster_codes") if strict else {}
     if strict and (not rules.get("max_codes") or not rules.get("max_consecutive")):
@@ -352,8 +343,6 @@ def long_tail_cut(layer, band: int, low: float, high: float) -> dict:
     if lower is None or upper is None or ratio is None:
         return {}
     try:
-        from .raster_overviews import read_ahead
-
         cut_low, cut_high = read_ahead(("cut", int(band), lower, upper), lambda: tuple(
             layer.dataProvider().cumulativeCut(int(band), lower / 100.0, upper / 100.0, layer.extent(),
                                                _RASTER_SAMPLE)))
@@ -368,26 +357,6 @@ def long_tail_cut(layer, band: int, low: float, high: float) -> dict:
             "reason": coded_fact(hint="style_long_tail_cut", low=_short(low), high=_short(high),
                                  cut_min=_short(cut_low), cut_max=_short(cut_high), cut_low=lower, cut_high=upper,
                                  kept=round(upper - lower, 1))}
-
-
-def min_max_origin(limits: str, cut: tuple | None = None):
-
-
-
-
-
-
-
-    from qgis.core import QgsRasterMinMaxOrigin
-
-    origin = QgsRasterMinMaxOrigin()
-    origin.setLimits(QgsRasterMinMaxOrigin.limitsFromString(limits))
-    origin.setExtent(QgsRasterMinMaxOrigin.extentFromString("WholeRaster"))
-    origin.setStatAccuracy(QgsRasterMinMaxOrigin.statAccuracyFromString("Estimated"))
-    if cut is not None:
-        origin.setCumulativeCutLower(float(cut[0]) / 100.0)
-        origin.setCumulativeCutUpper(float(cut[1]) / 100.0)
-    return origin
 
 
 _SCALE_TYPES = {"linear": "Linear", "area": "Area", "flannery": "Flannery", "exponential": "Exponential"}
@@ -531,15 +500,12 @@ def style_computed_hillshade(layer) -> dict:
 
 
 
-    from .harvest_view import _style_hillshade
-    from .processing_guards import computed_hillshade
-    from .symbology_tools import _composition_mode
 
     if not computed_hillshade(layer):
         return {}
     try:
-        _style_hillshade(layer, 1.0)
-        mode = _composition_mode("multiply")
+        style_hillshade(layer, 1.0)
+        mode = composition_mode("multiply")
         if mode is not None:
             layer.setBlendMode(mode)
         layer.triggerRepaint()
@@ -547,3 +513,31 @@ def style_computed_hillshade(layer) -> dict:
         return {}
     return {"renderer": "singlebandgray 0-255", "blend": "multiply" if mode is not None else "normal",
             "note": coded_fact(hint="style_hillshade_already_styled", layer=layer.name())}
+
+
+def _stretch_algorithm():
+    for owner in (
+        QgsContrastEnhancement,
+        getattr(QgsContrastEnhancement, "ContrastEnhancementAlgorithm", None),
+        getattr(Qgis, "ContrastEnhancementAlgorithm", None),
+    ):
+        value = getattr(owner, "StretchToMinimumMaximum", None) if owner is not None else None
+        if value is not None:
+            return value
+    return None
+
+
+def style_hillshade(layer, opacity: float):
+
+    provider = layer.dataProvider()
+    renderer = QgsSingleBandGrayRenderer(provider, 1)
+    enhancement = QgsContrastEnhancement(provider.dataType(1))
+    algorithm = _stretch_algorithm()
+    if algorithm is not None:
+        enhancement.setContrastEnhancementAlgorithm(algorithm, True)
+    enhancement.setMinimumValue(0.0)
+    enhancement.setMaximumValue(255.0)
+    renderer.setContrastEnhancement(enhancement)
+    renderer.setOpacity(opacity)
+    layer.setRenderer(renderer)
+    layer.triggerRepaint()

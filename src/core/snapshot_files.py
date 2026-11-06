@@ -24,6 +24,7 @@ from qgis.core import QgsProject
 from . import tuning
 from .host_platform import remove_quietly, remove_tree, resolved, retry_file_op
 from .logger import log, log_warning
+from .security import MAX_PATH, fits_path, long_paths_ok
 from .snapshot_paths import (
     _SQLITE_EXTENSIONS,
     _file_hash,
@@ -111,19 +112,18 @@ def _backup_copies(folder: str, sources: list) -> list:
 
 
 
-    from .security import _MAX_PATH, _long_paths_ok
 
     plain = [(src, os.path.join(folder, os.path.basename(src))) for src in sources]
-    if _long_paths_ok() or not plain:
+    if long_paths_ok() or not plain:
         return plain
     longest = max(len(dst) for _src, dst in plain) + _COPY_SUFFIX_ROOM
-    if longest < _MAX_PATH:
+    if longest < MAX_PATH:
         return plain
     stem = os.path.splitext(os.path.basename(sources[0]))[0]
     tag = hashlib.sha1(stem.encode("utf-8", "replace"),
                        usedforsecurity=False).hexdigest()[:8]
     widest = max(len(os.path.splitext(src)[1]) for src in sources)
-    room = _MAX_PATH - len(folder) - 1 - widest - len(tag) - 1 - _COPY_SUFFIX_ROOM
+    room = MAX_PATH - len(folder) - 1 - widest - len(tag) - 1 - _COPY_SUFFIX_ROOM
     short = (stem[:room] + "-" + tag) if room > 0 else tag
     return [(src, os.path.join(folder, short + os.path.splitext(src)[1])) for src in sources]
 
@@ -361,7 +361,6 @@ def restore_group(pairs: list) -> None:
 
 
 
-    from .security import fits_path
 
 
 

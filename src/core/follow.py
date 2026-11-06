@@ -50,7 +50,7 @@ from qgis.PyQt.QtCore import QEvent, QObject, QTimer
 from . import canvas_glide, tuning
 from .layer_order import is_backdrop, reading_back
 from .logger import log, log_warning
-from .qt_compat import enum_member, qgis_iface
+from .qt_compat import disconnect_quietly, enum_member, one_shot, qgis_iface
 from .tool_registry import NAMED_LAYER, spec
 from .vsi import streamed_in_place
 
@@ -364,7 +364,6 @@ class EditWatcher:
             self._add(_to_canvas_crs(extent, layer, canvas))
 
 
-
     def _geometry_slot(self, layer):
         def on_changed(_fid, geometry):
             self._add_geometry(geometry, layer)
@@ -619,10 +618,7 @@ def _undo_first_layer_frame(canvas) -> None:
         if state["done"]:
             return
         state["done"] = True
-        try:
-            canvas.extentsChanged.disconnect(on_change)
-        except (TypeError, RuntimeError):
-            pass
+        disconnect_quietly(canvas, "extentsChanged", on_change)
 
     def on_change():
         if state["done"]:
@@ -685,10 +681,7 @@ def keep_view_over_add(canvas=None) -> None:
         if state["done"]:
             return
         state["done"] = True
-        try:
-            canvas.extentsChanged.disconnect(on_change)
-        except (TypeError, RuntimeError):
-            pass
+        disconnect_quietly(canvas, "extentsChanged", on_change)
 
     def on_change():
         if state["done"]:
@@ -1207,19 +1200,6 @@ def target_of(name: str, args, canvas=None) -> QgsRectangle | None:
     return None
 
 
-def go_to(rect, canvas=None) -> str:
-
-
-
-
-
-
-
-
-
-    return move_to(rect, canvas)
-
-
 class HandWatch(QObject):
 
 
@@ -1338,10 +1318,7 @@ class Follower:
     def end(self) -> None:
         self.watcher.stop()
         self._hands.detach()
-        try:
-            QgsProject.instance().layersAdded.disconnect(self._on_layers_added)
-        except Exception:  # nosec B110
-            pass
+        disconnect_quietly(QgsProject.instance(), "layersAdded", self._on_layers_added)
         self._cancel_timer()
         self._named = []
         self._approached_at = None
@@ -1404,7 +1381,7 @@ class Follower:
         if rect is None:
             return ""
         try:
-            action = go_to(rect)
+            action = move_to(rect)
         except Exception as exc:  # noqa: BLE001
             log_warning(f"Follow: could not go to {name}'s place: {exc}")
             return ""
@@ -1427,10 +1404,7 @@ class Follower:
             if isinstance(layer_id, str) and layer_id and layer_id not in self._named:
                 self._named.append(layer_id)
         self._cancel_timer()
-        timer = QTimer()
-        timer.setSingleShot(True)
-        timer.setInterval(int(FEEL["settle_ms"]))
-        timer.timeout.connect(self.now)
+        timer = one_shot(None, self.now, int(FEEL["settle_ms"]))
         timer.start()
         self._timer = timer
 

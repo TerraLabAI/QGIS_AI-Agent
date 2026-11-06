@@ -28,15 +28,19 @@ from qgis.PyQt.QtCore import (
     QObject,
     QSysInfo,
     Qt,
-    QTimer,
     QUrl,
     pyqtSignal,
 )
 from qgis.PyQt.QtGui import QDesktopServices, QGuiApplication
 
-from ..core import sibling_sign_in
+from ..core import sibling_sign_in, telemetry
+from ..core import telemetry_events as ev
 from ..core.logger import log, log_warning
-from ..core.settings import KEY_RE, Settings, key_prefix
+from ..core.qt_compat import disconnect_quietly, one_shot
+from ..core.served_state import get_dashboard_url as served_dashboard_url
+from ..core.served_state import get_payment_failed, get_upgrade_url, set_payment_failed
+from ..core.served_state import get_trial_checkout_url as served_trial_checkout_url
+from ..core.settings import KEY_RE, Settings, key_prefix, reset_account_tag_cache
 from .pairing_poll_task import PairingPollTask
 from .pairing_v2 import PairingV2
 from .terralab_client import HARD_CONNECTIVITY_CODES, PRODUCT_ID, TerraLabClient
@@ -121,6 +125,23 @@ def site_url(url: object) -> str:
     return url if host == "terra-lab.ai" or host.endswith(".terra-lab.ai") else ""
 
 
+def payment_failed(issue: object) -> dict | None:
+
+
+
+
+
+    if not isinstance(issue, dict) or issue.get("kind") != "trial_charge_failed" or issue.get("reason"):
+        return None
+    url = site_url(issue.get("pay_url"))
+    if not url:
+        return None
+    amount = issue.get("amount_label")
+    amount = amount.strip() if isinstance(amount, str) else ""
+    plain = 0 < len(amount) <= 24 and amount.isprintable() and not set(amount) & set("<>&\"'")
+    return {"amount": amount if plain else "", "url": url}
+
+
 def _with_cta_source(url: str, cta_source: str) -> str:
 
     from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
@@ -136,17 +157,14 @@ def _with_cta_source(url: str, cta_source: str) -> str:
 
 
 def get_trial_checkout_url() -> str:
-    from ..core.served_state import get_trial_checkout_url as served_trial_checkout_url
     return served_trial_checkout_url()
 
 
 def get_dashboard_url() -> str:
-    from ..core.served_state import get_dashboard_url as served_dashboard_url
     return served_dashboard_url()
 
 
 def get_plans_page_url(cta_source: str = "plugin") -> str:
-    from ..core.served_state import get_upgrade_url
     source = "".join(ch for ch in str(cta_source or "") if ch.isalnum() or ch == "_") or "plugin"
     return get_upgrade_url() or f"{PLANS_URL_FALLBACK}?{_UTM}&utm_content={source}"
 
@@ -284,9 +302,7 @@ class Account(QObject):
         self._return_check_pending = False
 
         self._return_confirming = False
-        self._return_timer = QTimer(self)
-        self._return_timer.setSingleShot(True)
-        self._return_timer.timeout.connect(self._confirm_return)
+        self._return_timer = one_shot(self, self._confirm_return)
 
         self.signed_in_from: tuple[str, str] | None = None
         self._state = self._stored_state()
@@ -614,7 +630,6 @@ class Account(QObject):
             return False
         if not unlocked or self._settings.activation_key_is_locked() or not self.has_activation_key:
             return False
-        from ..core.settings import reset_account_tag_cache
 
         reset_account_tag_cache()
         self._set_state(self.ACTIVATED, "")
@@ -883,6 +898,7 @@ class Account(QObject):
         self._settings.clear_activation_key()
         self._last_key_validation_at = float("-inf")
         self._billing_warning_shown = False
+        set_payment_failed(None)
         self.stop_upgrade_watch()
         self._set_state(self.SIGNED_OUT, "")
         self.signed_out.emit()
@@ -924,10 +940,7 @@ class Account(QObject):
         self._upgrade_watching = False
         app = QGuiApplication.instance()
         if app is not None:
-            try:
-                app.applicationStateChanged.disconnect(self._on_application_state)
-            except (TypeError, RuntimeError):
-                pass  # nosec B110
+            disconnect_quietly(app, "applicationStateChanged", self._on_application_state)
 
     def stop_upgrade_watch(self) -> None:
 
@@ -1011,6 +1024,15 @@ class Account(QObject):
 
 
 
+        if get_payment_failed():
+
+            if on_outcome is not None:
+                try:
+                    on_outcome("direct")
+                except Exception:  # nosec B110
+                    pass
+            self.open_payment(cta_source[7:] if cta_source.startswith("plugin_") else cta_source)
+            return
         self.watch_for_upgrade()
 
         self._reset_return_check()
@@ -1021,6 +1043,18 @@ class Account(QObject):
             self.open_website("checkout", source, served or get_plans_page_url(cta_source), on_outcome)
             return
         self.open_website("/pricing", cta_source, get_plans_page_url(cta_source), on_outcome)
+
+    def open_payment(self, surface: str) -> None:
+
+        info = get_payment_failed()
+        if not info:
+            return
+
+        telemetry.track(ev.PAYMENT_FAILED_CARD_CLICKED,
+                        {"surface": str(surface or "")[:32], "amount_shown": bool(info["amount"])})
+
+        self.watch_for_upgrade()
+        QDesktopServices.openUrl(QUrl(info["url"]))
 
     def is_valid_key(self, key: str) -> bool:
         return bool(KEY_RE.match((key or "").strip()))

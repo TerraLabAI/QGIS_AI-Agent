@@ -36,32 +36,21 @@ from qgis.PyQt.QtWidgets import (
     QWidget,
 )
 
+from ...core.numbers import as_int
 from ...core.tool_registry import tool_error
-from .._images import (  # noqa: F401
-    image_to_base64,
-    normalize_fmt,
-    scale_image,
-)
-from .._widgets import (  # noqa: F401
+from .._images import image_to_base64, normalize_fmt, scale_image
+from .._widgets import (
     _is_password_field,
     cap_text,
-    descendants,
-    find_plugin,
     fingerprint_marker,
     geometry,
-    is_alive,
     label_and_tooltip,
-    plugin_widgets,
-    process_events,
     redact_secrets,
     safe_call,
-    top_level_roots,
-    widget_ident,
-    widget_label,
     widget_path,
-    widget_summary,
     widget_text,
 )
+from .refs import get_ref_store
 
 
 def grab_widget(
@@ -228,16 +217,6 @@ def scroll_state(area: QWidget) -> dict | None:
 _ITEM_ROLES = {"tree": "treeitem", "list": "listitem", "table": "row", "itemview": "item"}
 
 
-def item_path_of(index) -> str:
-
-    parts = []
-    node = index
-    while node is not None and node.isValid():
-        parts.append(str(node.row()))
-        node = node.parent()
-    return "/".join(reversed(parts))
-
-
 def item_check_state(model, index):
 
     try:
@@ -246,9 +225,8 @@ def item_check_state(model, index):
         return None
     if raw is None:
         return None
-    try:
-        value = int(raw)
-    except (TypeError, ValueError):
+    value = as_int(raw)
+    if value is None:
         return None
     if value == int(Qt.CheckState.PartiallyChecked):
         return "partial"
@@ -266,8 +244,6 @@ def _cell_text(model, index, max_text: int) -> str:
 
 
 def _item_row_node(view, model, index, path: str, role_token: str, columns: int, max_text: int) -> dict | None:
-
-    from .refs import get_ref_store
 
     text = _cell_text(model, index, max_text)
     checked = item_check_state(model, index)
@@ -464,13 +440,3 @@ def matches(widget: QWidget, query: str | None, widget_type: str | None = None) 
     )).lower()
     return query.lower() in haystack
 
-
-
-
-__all__ = [
-    "find_plugin",
-    "is_alive",
-    "plugin_widgets",
-    "widget_label",
-    "widget_summary",
-]

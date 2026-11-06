@@ -1163,14 +1163,6 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <translation>空間對位 {raster}</translation>
         </message>
         <message>
-            <source>Get a Sentinel image</source>
-            <translation>取得 Sentinel 影像</translation>
-        </message>
-        <message>
-            <source>Get an elevation model</source>
-            <translation>取得數值高程模型</translation>
-        </message>
-        <message>
             <source>Hans van der Kwast's review, recorded in QGIS.</source>
             <translation>Hans van der Kwast 的評測，在 QGIS 中錄製。</translation>
         </message>
@@ -1231,10 +1223,6 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <translation>列出外掛</translation>
         </message>
         <message>
-            <source>List the satellite catalogs</source>
-            <translation>列出衛星目錄</translation>
-        </message>
-        <message>
             <source>Load 3D Tiles[ from {url}]</source>
             <translation>載入 3D Tiles[ 從 {url}]</translation>
         </message>
@@ -1255,20 +1243,12 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <translation>查看介面</translation>
         </message>
         <message>
-            <source>Look for data on the web[ for {query}]</source>
-            <translation>在網路上尋找資料[ 關於 {query}]</translation>
-        </message>
-        <message>
             <source>Look for data on this computer</source>
             <translation>在這部電腦上尋找資料</translation>
         </message>
         <message>
             <source>Look for relief anomalies[ in {lrm_layer}][ in {dem}]</source>
             <translation>尋找地形起伏異常[ 於 {lrm_layer}][ 於 {dem}]</translation>
-        </message>
-        <message>
-            <source>Look up the place[ {query}]</source>
-            <translation>查詢地點[ {query}]</translation>
         </message>
         <message>
             <source>Make the temporary layers permanent[ in {gpkg_path}]</source>
@@ -1327,10 +1307,6 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <translation>網格計算[ 為 {name}]</translation>
         </message>
         <message>
-            <source>Read a NASA Earthdata collection[ {short_name}]</source>
-            <translation>讀取 NASA Earthdata 資料集合[ {short_name}]</translation>
-        </message>
-        <message>
             <source>Read a coordinate from the map</source>
             <translation>從地圖讀取坐標</translation>
         </message>
@@ -1339,20 +1315,12 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <translation>讀取圖徵 {layer_name}</translation>
         </message>
         <message>
-            <source>Read the AI Agent documentation[ on {query}]</source>
-            <translation>閱讀 AI Agent 說明文件[ 關於 {query}]</translation>
-        </message>
-        <message>
             <source>Read the CRS of {layer_name}</source>
             <translation>讀取 CRS {layer_name}</translation>
         </message>
         <message>
             <source>Read the Python errors</source>
             <translation>讀取 Python 錯誤</translation>
-        </message>
-        <message>
-            <source>Read the QGIS documentation[ on {query}]</source>
-            <translation>閱讀 QGIS 說明文件[ 關於 {query}]</translation>
         </message>
         <message>
             <source>Read the extent of {layer_name}</source>
@@ -1471,48 +1439,16 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <translation>已儲存空間運算指令碼</translation>
         </message>
         <message>
-            <source>Search Copernicus images[ of {collection}]</source>
-            <translation>搜尋 Copernicus 影像[ {collection}]</translation>
-        </message>
-        <message>
-            <source>Search NASA Earthdata files</source>
-            <translation>搜尋 NASA Earthdata 檔案</translation>
-        </message>
-        <message>
-            <source>Search NASA Earthdata[ for {query}]</source>
-            <translation>搜尋 NASA Earthdata[ 關於 {query}]</translation>
-        </message>
-        <message>
             <source>Search open data[ for {query}]</source>
             <translation>搜尋開放資料[ 關於 {query}]</translation>
-        </message>
-        <message>
-            <source>Search satellite images</source>
-            <translation>搜尋衛星影像</translation>
-        </message>
-        <message>
-            <source>Search statistics[ on {topic}]</source>
-            <translation>搜尋統計資料[ 關於 {topic}]</translation>
-        </message>
-        <message>
-            <source>Search the Earth Engine catalog[ for {query}]</source>
-            <translation>搜尋 Earth Engine 目錄[ 關於 {query}]</translation>
         </message>
         <message>
             <source>Search the QGIS Hub[ for {query}]</source>
             <translation>搜尋 QGIS Hub[ 關於 {query}]</translation>
         </message>
         <message>
-            <source>Search the data catalog[ for {query}]</source>
-            <translation>搜尋資料目錄[ 關於 {query}]</translation>
-        </message>
-        <message>
             <source>Search the processing tools[ for {query}]</source>
             <translation>搜尋空間運算工具[ 關於 {query}]</translation>
-        </message>
-        <message>
-            <source>Search the web[ for {query}]</source>
-            <translation>搜尋網路[ 關於 {query}]</translation>
         </message>
         <message>
             <source>Select features in {layer_name}</source>
@@ -2546,6 +2482,38 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <source>This report includes your description and the current conversation. We use it to fix issues and improve AI Agent.</source>
             <translation>此回報包含您的描述和目前的對話。我們會用它來修正問題並改進 AI Agent。</translation>
         </message>
+        <message>
+            <source>Copy</source>
+            <translation>複製</translation>
+        </message>
+        <message>
+            <source>Real tasks the AI agent does from one sentence.</source>
+            <translation>AI 代理只需一句話就能完成的實際任務。</translation>
+        </message>
+        <message>
+            <source>Uses</source>
+            <translation>用途</translation>
+        </message>
+        <message>
+            <source>What you type</source>
+            <translation>你輸入的內容</translation>
+        </message>
+        <message>
+            <source>Expired on {day}.</source>
+            <translation>已於 {day} 過期。</translation>
+        </message>
+        <message>
+            <source>Expires on {day}.</source>
+            <translation>將於 {day} 過期。</translation>
+        </message>
+        <message>
+            <source>Private link: its signature stays on this computer. TerraLab and the AI agent see only the site and the file name.</source>
+            <translation>私人連結：簽章只留在這台電腦上。TerraLab 和 AI 代理只會看到網站與檔案名稱。</translation>
+        </message>
+        <message>
+            <source>expired</source>
+            <translation>已過期</translation>
+        </message>
     </context>
     <context>
         <name>AIAgentContext</name>
@@ -3288,6 +3256,18 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <source>Type the code shown in your browser:</source>
             <translation>輸入瀏覽器中顯示的代碼：</translation>
         </message>
+        <message>
+            <source>Ask it to load data, style layers, run analyses or edit features.</source>
+            <translation>你可以請它載入資料、設定圖層樣式、執行分析或編輯要素。</translation>
+        </message>
+        <message>
+            <source>Free. Opens your browser, takes about 15 seconds.</source>
+            <translation>免費。會開啟瀏覽器，約需 15 秒。</translation>
+        </message>
+        <message>
+            <source>Sign in or create an account</source>
+            <translation>登入或建立帳號</translation>
+        </message>
     </context>
     <context>
         <name>ActivityRow</name>
@@ -3475,6 +3455,10 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <source>Write the request for an HTML report of this analysis, with its maps and charts</source>
             <translation>寫下請求，為這項分析製作含地圖與圖表的 HTML 報告</translation>
+        </message>
+        <message>
+            <source>Remove rating</source>
+            <translation>移除評分</translation>
         </message>
     </context>
     <context>
@@ -4109,6 +4093,42 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <source>a temporary layer</source>
             <translation>一個暫存圖層</translation>
         </message>
+        <message>
+            <source>Not handled, the AI agent is offline: {0}</source>
+            <translation>未處理，AI 代理已離線：{0}</translation>
+        </message>
+        <message>
+            <source>Nothing is kept about this project yet.</source>
+            <translation>目前尚未保存任何關於此專案的內容。</translation>
+        </message>
+        <message>
+            <source>Project memory</source>
+            <translation>專案記憶</translation>
+        </message>
+        <message>
+            <source>Project memory cleared.</source>
+            <translation>專案記憶已清除。</translation>
+        </message>
+        <message>
+            <source>Watched folder: not handled, no answer from the server: {0}</source>
+            <translation>監看資料夾：未處理，伺服器沒有回應：{0}</translation>
+        </message>
+        <message>
+            <source>Watched folder: not handled, the AI agent is offline: {0}</source>
+            <translation>監看資料夾：未處理，AI 代理已離線：{0}</translation>
+        </message>
+        <message>
+            <source>Clear what the AI agent remembers about this project?</source>
+            <translation>要清除 AI Agent 對此專案的記憶嗎？</translation>
+        </message>
+        <message>
+            <source>Save the project first: its memory is kept under the project file.</source>
+            <translation>請先儲存專案：它的記憶存放在專案檔案底下。</translation>
+        </message>
+        <message>
+            <source>The AI agent is not connected. Try again in a moment.</source>
+            <translation>AI Agent 尚未連線。請稍後再試。</translation>
+        </message>
     </context>
     <context>
         <name>AgentSession</name>
@@ -4633,6 +4653,14 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <source>Make an HTML report of this analysis, with its maps, charts and method.</source>
             <translation>為這項分析製作 HTML 報告，包含地圖、圖表與方法。</translation>
+        </message>
+        <message>
+            <source>Pay to get Pro back</source>
+            <translation>付款後即可恢復 Pro</translation>
+        </message>
+        <message>
+            <source>Task ended</source>
+            <translation>任務已結束</translation>
         </message>
     </context>
     <context>
@@ -5475,6 +5503,30 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <source>Try in chat</source>
             <translation>在對話中試試</translation>
         </message>
+        <message>
+            <source>All %n</source>
+            <translation>全部 %n</translation>
+        </message>
+        <message>
+            <source>Examples with this source</source>
+            <translation>此資料來源的範例</translation>
+        </message>
+        <message>
+            <source>Fewer</source>
+            <translation>較少</translation>
+        </message>
+        <message>
+            <source>More</source>
+            <translation>更多</translation>
+        </message>
+        <message>
+            <source>More in {shelf}</source>
+            <translation>{shelf} 中的更多內容</translation>
+        </message>
+        <message>
+            <source>{first} and %n more licences</source>
+            <translation>{first} 和另外 %n 個授權</translation>
+        </message>
     </context>
     <context>
         <name>ConnectorsPage</name>
@@ -5653,6 +5705,14 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <source>sources</source>
             <translation>個來源</translation>
+        </message>
+        <message>
+            <source>Search sources, datasets or a country</source>
+            <translation>搜尋資料來源、資料集或國家</translation>
+        </message>
+        <message>
+            <source>{sources} sources the AI agent finds and loads by itself: {datasets} datasets in {countries} countries.</source>
+            <translation>AI 代理可自行尋找並載入 {sources} 個資料來源：{countries} 個國家共 {datasets} 個資料集。</translation>
         </message>
     </context>
     <context>
@@ -5840,8 +5900,8 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <translation>教學</translation>
         </message>
         <message>
-            <source>You are talking to an AI system. It can be wrong: check its changes.</source>
-            <translation>您正與 AI 系統對話，可能出錯：請檢查其變更。</translation>
+            <source>AI can make mistakes. Check its changes.</source>
+            <translation>AI 可能會出錯。請查核它的變更。</translation>
         </message>
         <message>
             <source>Asks before it acts.</source>
@@ -6195,6 +6255,14 @@ Click to open its page.</source>
             <source>Videos and guides to get started. They open in your browser.</source>
             <translation>入門影片與指南，會在瀏覽器中開啟。</translation>
         </message>
+        <message>
+            <source>Learn</source>
+            <translation>學習</translation>
+        </message>
+        <message>
+            <source>Videos, guides and the other TerraLab plugins. Links open in your browser.</source>
+            <translation>影片、指南和其他 TerraLab 外掛程式。連結會在瀏覽器中開啟。</translation>
+        </message>
     </context>
     <context>
         <name>MapHooks</name>
@@ -6462,6 +6530,46 @@ Click to open its page.</source>
         <message>
             <source>The page links to {hosts}, a site the agent does not know.</source>
             <translation>此頁面連結到 {hosts}，這是 AI 助理不認識的網站。</translation>
+        </message>
+        <message>
+            <source>Adds: {}</source>
+            <translation>新增：{}</translation>
+        </message>
+        <message>
+            <source>Also covers the next calls of this kind in this answer</source>
+            <translation>同時涵蓋此回答中接下來同類型的呼叫</translation>
+        </message>
+        <message>
+            <source>Changes: {}</source>
+            <translation>變更：{}</translation>
+        </message>
+        <message>
+            <source>Deletes files: {}</source>
+            <translation>刪除檔案：{}</translation>
+        </message>
+        <message>
+            <source>Deletes: {}</source>
+            <translation>刪除：{}</translation>
+        </message>
+        <message>
+            <source>Not in this project: {}</source>
+            <translation>不在此專案中：{}</translation>
+        </message>
+        <message>
+            <source>Other effects the preview could not read: {}</source>
+            <translation>預覽無法讀取的其他影響：{}</translation>
+        </message>
+        <message>
+            <source>Reads: {}</source>
+            <translation>讀取：{}</translation>
+        </message>
+        <message>
+            <source>Runs: {}</source>
+            <translation>執行：{}</translation>
+        </message>
+        <message>
+            <source>Writes files: {}</source>
+            <translation>寫入檔案：{}</translation>
         </message>
     </context>
     <context>
@@ -6949,6 +7057,26 @@ Click to open its page.</source>
             <source>{n} free tasks left</source>
             <translation>剩餘 {n} 項免費任務</translation>
         </message>
+        <message>
+            <source>Pay now</source>
+            <translation>立即付款</translation>
+        </message>
+        <message>
+            <source>Pay {amount} now</source>
+            <translation>立即支付 {amount}</translation>
+        </message>
+        <message>
+            <source>Pro is off until it's paid. You're on the free plan for now.</source>
+            <translation>付款完成前，Pro 會暫停。目前先使用免費方案。</translation>
+        </message>
+        <message>
+            <source>Your Pro payment failed</source>
+            <translation>你的 Pro 付款失敗了</translation>
+        </message>
+        <message>
+            <source>Your payment of {amount} failed</source>
+            <translation>你的 {amount} 付款失敗了</translation>
+        </message>
     </context>
     <context>
         <name>QuotaPauseCard</name>
@@ -7177,6 +7305,10 @@ Click to open its page.</source>
             <source>{n} steps</source>
             <translation>{n} 個步驟</translation>
         </message>
+        <message>
+            <source>Thought</source>
+            <translation>思考</translation>
+        </message>
     </context>
     <context>
         <name>SettingsDialog</name>
@@ -7189,8 +7321,8 @@ Click to open its page.</source>
             <translation>要刪除全部 {n} 則筆記嗎？AI 不會再把它們加回來。</translation>
         </message>
         <message>
-            <source>Lets us read a chat only to fix a bug. Chats are kept 30 days.</source>
-            <translation>允許我們僅為修正錯誤而讀取對話。對話會保留 30 天。</translation>
+            <source>We may read a chat only to fix a bug, never to train AI. Chats are kept 30 days.</source>
+            <translation>我們只會為了修正程式錯誤而查看對話，絕不會用來訓練 AI。對話會保留 30 天。</translation>
         </message>
         <message>
             <source>The AI saves notes on its own</source>
@@ -7371,8 +7503,8 @@ Click to open its page.</source>
         </message>
         <message>
             <location filename="src/ui/settings_dialog.py" />
-            <source>Help improve AI Agent</source>
-            <translation>協助改善 AI Agent</translation>
+            <source>Allow chat review</source>
+            <translation>允許查看對話</translation>
         </message>
         <message>
             <location filename="src/ui/settings_dialog.py" />
@@ -7937,8 +8069,8 @@ Click to open its page.</source>
         </message>
         <message>
             <location filename="src/ui/settings_account.py" />
-            <source>Lets us read a chat only to fix a wrong answer or a bug.</source>
-            <translation>允許我們讀取對話，僅用於修正錯誤回答或程式錯誤。</translation>
+            <source>We may read a chat only to fix a wrong answer or a bug, never to train AI.</source>
+            <translation>我們只會為了修正錯誤的回答或程式錯誤而查看對話，絕不會用來訓練 AI。</translation>
         </message>
         <message>
             <location filename="src/ui/settings_account.py" />
@@ -8159,6 +8291,95 @@ Click to open its page.</source>
         <message>
             <source>Send feedback</source>
             <translation>傳送意見回饋</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_dialog.py" />
+            <source>See usage</source>
+            <translation>查看用量</translation>
+        </message>
+        <message>
+            <source>Always answer in French, never delete a layer without asking</source>
+            <translation>一律以法文回答，未經詢問不得刪除圖層</translation>
+        </message>
+        <message>
+            <source>Choose folder...</source>
+            <translation>選擇資料夾...</translation>
+        </message>
+        <message>
+            <source>Clear project memory</source>
+            <translation>清除專案記憶</translation>
+        </message>
+        <message>
+            <source>Connected accounts</source>
+            <translation>已連結的帳號</translation>
+        </message>
+        <message>
+            <source>Folder to watch</source>
+            <translation>要監看的資料夾</translation>
+        </message>
+        <message>
+            <source>Instructions</source>
+            <translation>指示</translation>
+        </message>
+        <message>
+            <source>Job</source>
+            <translation>工作</translation>
+        </message>
+        <message>
+            <source>Learn</source>
+            <translation>學習</translation>
+        </message>
+        <message>
+            <source>Name</source>
+            <translation>名稱</translation>
+        </message>
+        <message>
+            <source>No folder chosen</source>
+            <translation>尚未選擇資料夾</translation>
+        </message>
+        <message>
+            <source>Pro reads both before every run.</source>
+            <translation>Pro 在每次執行前都會讀取這兩項。</translation>
+        </message>
+        <message>
+            <source>Proactive triggers</source>
+            <translation>主動觸發</translation>
+        </message>
+        <message>
+            <source>Project memory</source>
+            <translation>專案記憶</translation>
+        </message>
+        <message>
+            <source>Read by the AI agent at the start of every conversation.</source>
+            <translation>AI 代理在每次對話開始時讀取。</translation>
+        </message>
+        <message>
+            <source>Saved notes · {n}</source>
+            <translation>已儲存的筆記 · {n}</translation>
+        </message>
+        <message>
+            <source>Show project memory</source>
+            <translation>顯示專案記憶</translation>
+        </message>
+        <message>
+            <source>The AI agent looks at new data files in this folder and at the schedules you ask for, only while QGIS is open. Nothing runs when QGIS is closed.</source>
+            <translation>AI 代理會查看此資料夾中的新資料檔案和你要求的排程，但只在 QGIS 開啟時進行。QGIS 關閉時不會執行任何動作。</translation>
+        </message>
+        <message>
+            <source>Urban planner at the city of Lyon, cadastre and PLU layers in EPSG:2154</source>
+            <translation>里昂市的都市規劃師，地籍和 PLU 圖層使用 EPSG:2154</translation>
+        </message>
+        <message>
+            <source>Watch a folder and run my schedules while QGIS is open</source>
+            <translation>在 QGIS 開啟時監看資料夾並執行我的排程</translation>
+        </message>
+        <message>
+            <source>What Pro adds: {points}</source>
+            <translation>Pro 新增的內容：{points}</translation>
+        </message>
+        <message>
+            <source>commercial use, more tasks, memory, your instructions and higher effort</source>
+            <translation>商業用途、更多任務、記憶、你的指示和更高的投入程度</translation>
         </message>
     </context>
     <context>
@@ -8602,6 +8823,22 @@ Click to open its page.</source>
             <source>its changes to your project cannot be shown before it runs</source>
             <translation>執行前無法顯示它對您專案所做的變更</translation>
         </message>
+        <message>
+            <source>Access to {host}</source>
+            <translation>{host} 的存取權</translation>
+        </message>
+        <message>
+            <source>Allowed for this conversation</source>
+            <translation>已在此對話中允許</translation>
+        </message>
+        <message>
+            <source>Allowed once</source>
+            <translation>已允許一次</translation>
+        </message>
+        <message>
+            <source>Signed in</source>
+            <translation>已登入</translation>
+        </message>
     </context>
     <context>
         <name>ToolGroup</name>
@@ -8667,6 +8904,14 @@ Click to open its page.</source>
         <message>
             <source>Updating…</source>
             <translation>正在更新…</translation>
+        </message>
+        <message>
+            <source>Download</source>
+            <translation>下載</translation>
+        </message>
+        <message>
+            <source>This QGIS has no plugin repository turned on. Download the ZIP, then use Install from ZIP in Plugins &gt; Manage and Install Plugins.</source>
+            <translation>此 QGIS 未啟用任何外掛程式庫。請下載 ZIP，然後在 外掛 &gt; 管理與安裝外掛 中使用「從 ZIP 安裝」。</translation>
         </message>
     </context>
     <context>
@@ -10043,6 +10288,1320 @@ This file is no longer where the run wrote it.</source>
         <message>
             <source>Thanks for the feedback</source>
             <translation>感謝您的意見回饋</translation>
+        </message>
+    </context>
+    <context>
+        <name>ToolDetails</name>
+        <message>
+            <source>Copied</source>
+            <translation>已複製</translation>
+        </message>
+        <message>
+            <source>Copy as Python</source>
+            <translation>複製為 Python</translation>
+        </message>
+        <message>
+            <source>Open in Processing</source>
+            <translation>在處理中開啟</translation>
+        </message>
+        <message>
+            <source>Open this algorithm's dialog with the same settings, to check them or run it again. The output goes to a new temporary layer.</source>
+            <translation>以相同設定開啟此演算法的對話框，可檢查設定或重新執行。輸出會存入新的暫存圖層。</translation>
+        </message>
+        <message>
+            <source>Show less</source>
+            <translation>顯示較少</translation>
+        </message>
+        <message>
+            <source>Show {n} more</source>
+            <translation>再顯示 {n} 項</translation>
+        </message>
+        <message>
+            <source>The processing.run line, ready for the QGIS Python console</source>
+            <translation>processing.run 這一行，可直接貼到 QGIS Python 主控台</translation>
+        </message>
+        <message>
+            <source>Fewer</source>
+            <translation>較少</translation>
+        </message>
+        <message>
+            <source>{n} more</source>
+            <translation>另外 {n} 個</translation>
+        </message>
+    </context>
+    <context>
+        <name>AccountCard</name>
+        <message>
+            <source>Add keys</source>
+            <translation>新增金鑰</translation>
+        </message>
+        <message>
+            <source>Add token</source>
+            <translation>新增權杖</translation>
+        </message>
+        <message>
+            <source>Allow</source>
+            <translation>允許</translation>
+        </message>
+        <message>
+            <source>Allow for this conversation</source>
+            <translation>在此對話中允許</translation>
+        </message>
+        <message>
+            <source>Allowed for this conversation</source>
+            <translation>已在此對話中允許</translation>
+        </message>
+        <message>
+            <source>Allowed once</source>
+            <translation>已允許一次</translation>
+        </message>
+        <message>
+            <source>Connect your {label} account</source>
+            <translation>連結你的 {label} 帳號</translation>
+        </message>
+        <message>
+            <source>Connected</source>
+            <translation>已連線</translation>
+        </message>
+        <message>
+            <source>Continue with your {label} account</source>
+            <translation>使用你的 {label} 帳號繼續</translation>
+        </message>
+        <message>
+            <source>Deny</source>
+            <translation>拒絕</translation>
+        </message>
+        <message>
+            <source>Keys refused</source>
+            <translation>金鑰遭拒</translation>
+        </message>
+        <message>
+            <source>Needs your answer</source>
+            <translation>需要你的回覆</translation>
+        </message>
+        <message>
+            <source>Not allowed</source>
+            <translation>不允許</translation>
+        </message>
+        <message>
+            <source>Replace keys</source>
+            <translation>更換金鑰</translation>
+        </message>
+        <message>
+            <source>Replace token</source>
+            <translation>更換權杖</translation>
+        </message>
+        <message>
+            <source>Sent to {host} only.</source>
+            <translation>只會傳送給 {host}。</translation>
+        </message>
+        <message>
+            <source>Sign in</source>
+            <translation>登入</translation>
+        </message>
+        <message>
+            <source>Sign in again</source>
+            <translation>重新登入</translation>
+        </message>
+        <message>
+            <source>Sign in to {host}</source>
+            <translation>登入 {host}</translation>
+        </message>
+        <message>
+            <source>Sign-in refused</source>
+            <translation>登入遭拒</translation>
+        </message>
+        <message>
+            <source>Skip</source>
+            <translation>略過</translation>
+        </message>
+        <message>
+            <source>Skipped</source>
+            <translation>已略過</translation>
+        </message>
+        <message>
+            <source>Stored encrypted in QGIS on this computer. Never sent to TerraLab or the AI agent.</source>
+            <translation>以加密方式儲存在這台電腦的 QGIS 中。絕不會傳送給 TerraLab 或 AI 代理。</translation>
+        </message>
+        <message>
+            <source>TerraLab's shared access is used up. A free token keeps you going.</source>
+            <translation>TerraLab 的共用額度已用完。免費權杖可讓你繼續使用。</translation>
+        </message>
+        <message>
+            <source>TerraLab's shared access is used up. Free S3 keys keep you going.</source>
+            <translation>TerraLab 的共用額度已用完。免費 S3 金鑰可讓你繼續使用。</translation>
+        </message>
+        <message>
+            <source>This service answers only a signed-in user.</source>
+            <translation>此服務只回應已登入的使用者。</translation>
+        </message>
+        <message>
+            <source>Token refused</source>
+            <translation>權杖遭拒</translation>
+        </message>
+        <message>
+            <source>Use your {label} access?</source>
+            <translation>要使用你的 {label} 存取權嗎？</translation>
+        </message>
+        <message>
+            <source>{host} opens with a token or an API key from your account.</source>
+            <translation>{host} 需使用你帳號中的權杖或 API 金鑰才能開啟。</translation>
+        </message>
+        <message>
+            <source>{host} refused your saved access ({user}).</source>
+            <translation>{host} 拒絕了你已儲存的存取權 ({user})。</translation>
+        </message>
+        <message>
+            <source>{host} refused your saved access.</source>
+            <translation>{host} 拒絕了你已儲存的存取權。</translation>
+        </message>
+        <message>
+            <source>{label} answers only a signed-in user.</source>
+            <translation>{label} 只回應已登入的使用者。</translation>
+        </message>
+        <message>
+            <source>{label} refused your saved S3 keys.</source>
+            <translation>{label} 拒絕了你已儲存的 S3 金鑰。</translation>
+        </message>
+        <message>
+            <source>{label} refused your saved token.</source>
+            <translation>{label} 拒絕了你已儲存的權杖。</translation>
+        </message>
+        <message>
+            <source>{service} needs a token</source>
+            <translation>{service} 需要權杖</translation>
+        </message>
+        <message>
+            <source>Sign in with {name}</source>
+            <translation>使用 {name} 登入</translation>
+        </message>
+        <message>
+            <source>TerraLab's shared access is used up. Your free account keeps you going.</source>
+            <translation>TerraLab 的共用額度已用完。你的免費帳號可讓你繼續使用。</translation>
+        </message>
+        <message>
+            <source>Try again</source>
+            <translation>再試一次</translation>
+        </message>
+        <message>
+            <source>Use S3 keys instead</source>
+            <translation>改用 S3 金鑰</translation>
+        </message>
+        <message>
+            <source>{name} no longer accepts your saved sign-in.</source>
+            <translation>{name} 不再接受你已儲存的登入。</translation>
+        </message>
+        <message>
+            <source>Keys expired</source>
+            <translation>金鑰已過期</translation>
+        </message>
+        <message>
+            <source>Sign-in expired</source>
+            <translation>登入已過期</translation>
+        </message>
+        <message>
+            <source>Token expired</source>
+            <translation>權杖已過期</translation>
+        </message>
+        <message>
+            <source>{host} no longer accepts your saved access.</source>
+            <translation>{host} 不再接受您已儲存的存取憑證。</translation>
+        </message>
+        <message>
+            <source>{label} no longer accepts your saved S3 keys.</source>
+            <translation>{label} 不再接受您已儲存的 S3 金鑰。</translation>
+        </message>
+        <message>
+            <source>{label} no longer accepts your saved token.</source>
+            <translation>{label} 不再接受您已儲存的權杖。</translation>
+        </message>
+        <message>
+            <source>Your {name} sign-in expired.</source>
+            <translation>您的 {name} 登入已過期。</translation>
+        </message>
+        <message>
+            <source>Details</source>
+            <translation>詳細資料</translation>
+        </message>
+        <message>
+            <source>File: {value}</source>
+            <translation>檔案：{value}</translation>
+        </message>
+        <message>
+            <source>Only this file is read with it; nothing is written.</source>
+            <translation>只會用它讀取這個檔案，不會寫入任何內容。</translation>
+        </message>
+        <message>
+            <source>Saved access: {value}</source>
+            <translation>已儲存的存取權：{value}</translation>
+        </message>
+        <message>
+            <source>Sent to: {value}</source>
+            <translation>傳送至：{value}</translation>
+        </message>
+        <message>
+            <source>Choose in Google Drive</source>
+            <translation>在 Google Drive 中選擇</translation>
+        </message>
+    </context>
+    <context>
+        <name>ConnectedAccountsPage</name>
+        <message>
+            <source>API key</source>
+            <translation>API 金鑰</translation>
+        </message>
+        <message>
+            <source>Connected accounts</source>
+            <translation>已連結的帳號</translation>
+        </message>
+        <message>
+            <source>Kept in QGIS's encrypted vault, on this computer. Neither TerraLab nor the AI agent sees them.</source>
+            <translation>保存在這台電腦上 QGIS 的加密保險庫中。TerraLab 和 AI 代理都看不到。</translation>
+        </message>
+        <message>
+            <source>No account yet. When a source asks you to sign in, the AI agent shows a card, and the access you save appears here.</source>
+            <translation>目前還沒有帳號。當資料來源要求登入時，AI 代理會顯示一張卡片，你儲存的存取權會出現在這裡。</translation>
+        </message>
+        <message>
+            <source>Remove</source>
+            <translation>移除</translation>
+        </message>
+        <message>
+            <source>Remove the access to {host}</source>
+            <translation>移除 {host} 的存取權</translation>
+        </message>
+        <message>
+            <source>S3 keys</source>
+            <translation>S3 金鑰</translation>
+        </message>
+        <message>
+            <source>The sign-ins the AI agent may use, each only after you allow it.</source>
+            <translation>AI 代理可使用的登入資訊，每一項都要經過你允許。</translation>
+        </message>
+        <message>
+            <source>Token</source>
+            <translation>權杖</translation>
+        </message>
+        <message>
+            <source>Username and password</source>
+            <translation>使用者名稱和密碼</translation>
+        </message>
+        <message>
+            <source>Google account</source>
+            <translation>Google 帳戶</translation>
+        </message>
+        <message>
+            <source>No project picked</source>
+            <translation>尚未選擇專案</translation>
+        </message>
+        <message>
+            <source>Project {project}</source>
+            <translation>專案 {project}</translation>
+        </message>
+        <message>
+            <source>Change project…</source>
+            <translation>變更專案…</translation>
+        </message>
+        <message>
+            <source>Google sign-in</source>
+            <translation>Google 登入</translation>
+        </message>
+        <message>
+            <source>Signed in with the browser</source>
+            <translation>已透過瀏覽器登入</translation>
+        </message>
+        <message>
+            <source>Add account</source>
+            <translation>新增帳戶</translation>
+        </message>
+        <message>
+            <source>Expired</source>
+            <translation>已過期</translation>
+        </message>
+        <message>
+            <source>Expires on {day}</source>
+            <translation>於 {day} 過期</translation>
+        </message>
+        <message>
+            <source>More actions for {label}</source>
+            <translation>{label} 的更多動作</translation>
+        </message>
+        <message>
+            <source>QGIS deletes it from its vault. Layers loaded with it stop loading, and the AI agent asks you to sign in again the next time {host} needs it.</source>
+            <translation>QGIS 會將它從認證資料庫中刪除。使用它載入的圖層將無法再載入，下次 {host} 需要時，AI 代理會請您重新登入。</translation>
+        </message>
+        <message>
+            <source>Refused at its last use</source>
+            <translation>上次使用時被拒絕</translation>
+        </message>
+        <message>
+            <source>Remove your {label} access?</source>
+            <translation>要移除您的 {label} 存取權嗎？</translation>
+        </message>
+        <message>
+            <source>Remove…</source>
+            <translation>移除…</translation>
+        </message>
+        <message>
+            <source>Replace…</source>
+            <translation>取代…</translation>
+        </message>
+        <message>
+            <source>Storage keys</source>
+            <translation>儲存空間金鑰</translation>
+        </message>
+        <message>
+            <source>Choose files…</source>
+            <translation>選擇檔案…</translation>
+        </message>
+        <message>
+            <source>{name} sign-in</source>
+            <translation>{name} 登入</translation>
+        </message>
+    </context>
+    <context>
+        <name>KeysDialog</name>
+        <message>
+            <source>Access key</source>
+            <translation>存取金鑰</translation>
+        </message>
+        <message>
+            <source>Cancel</source>
+            <translation>取消</translation>
+        </message>
+        <message>
+            <source>Connect</source>
+            <translation>連結</translation>
+        </message>
+        <message>
+            <source>Connect {label}</source>
+            <translation>連結 {label}</translation>
+        </message>
+        <message>
+            <source>Connected</source>
+            <translation>已連線</translation>
+        </message>
+        <message>
+            <source>Header name</source>
+            <translation>標頭名稱</translation>
+        </message>
+        <message>
+            <source>Hide</source>
+            <translation>隱藏</translation>
+        </message>
+        <message>
+            <source>Key</source>
+            <translation>金鑰</translation>
+        </message>
+        <message>
+            <source>Not saved. Fill in the fields, and unlock QGIS's vault with its master password when QGIS asks.</source>
+            <translation>尚未儲存。請填寫欄位，並在 QGIS 詢問時用主密碼解鎖 QGIS 保險庫。</translation>
+        </message>
+        <message>
+            <source>Not saved. Paste both keys, and unlock QGIS's vault with its master password when QGIS asks.</source>
+            <translation>尚未儲存。請貼上兩把金鑰，並在 QGIS 詢問時用主密碼解鎖 QGIS 保險庫。</translation>
+        </message>
+        <message>
+            <source>Open {host}</source>
+            <translation>開啟 {host}</translation>
+        </message>
+        <message>
+            <source>Password</source>
+            <translation>密碼</translation>
+        </message>
+        <message>
+            <source>Secret key</source>
+            <translation>私密金鑰</translation>
+        </message>
+        <message>
+            <source>Show</source>
+            <translation>顯示</translation>
+        </message>
+        <message>
+            <source>Sign in</source>
+            <translation>登入</translation>
+        </message>
+        <message>
+            <source>Sign in to {host}</source>
+            <translation>登入 {host}</translation>
+        </message>
+        <message>
+            <source>Sign in with a free account, add a credential and paste both keys here.</source>
+            <translation>用免費帳號登入，新增一組憑證，再把兩把金鑰貼到這裡。</translation>
+        </message>
+        <message>
+            <source>Stored encrypted in QGIS on this computer, behind your QGIS master password. Never sent to TerraLab or the AI agent.</source>
+            <translation>以加密方式儲存在這台電腦的 QGIS 中，並受你的 QGIS 主密碼保護。絕不會傳送給 TerraLab 或 AI 代理。</translation>
+        </message>
+        <message>
+            <source>Use a username and password instead</source>
+            <translation>改用使用者名稱和密碼</translation>
+        </message>
+        <message>
+            <source>Use an API key instead</source>
+            <translation>改用 API 金鑰</translation>
+        </message>
+        <message>
+            <source>Username</source>
+            <translation>使用者名稱</translation>
+        </message>
+        <message>
+            <source>the S3 keys manager</source>
+            <translation>S3 金鑰管理員</translation>
+        </message>
+        <message>
+            <source>Checking…</source>
+            <translation>正在檢查…</translation>
+        </message>
+        <message>
+            <source>QGIS will ask you to choose a master password. It locks every sign-in saved in QGIS and cannot be recovered, so keep it somewhere safe.</source>
+            <translation>QGIS 會請您設定主密碼。它會鎖定 QGIS 中儲存的所有登入資訊，且無法復原，請妥善保管。</translation>
+        </message>
+        <message>
+            <source>{host} refused these details. Check them and try again.</source>
+            <translation>{host} 拒絕了這些資料。請檢查後再試一次。</translation>
+        </message>
+    </context>
+    <context>
+        <name>ProLock</name>
+        <message>
+            <source>Pro</source>
+            <translation>Pro</translation>
+        </message>
+    </context>
+    <context>
+        <name>ProNote</name>
+        <message>
+            <source>Get Pro</source>
+            <translation>取得 Pro</translation>
+        </message>
+    </context>
+    <context>
+        <name>SectionHead</name>
+        <message>
+            <source>See all</source>
+            <translation>查看全部</translation>
+        </message>
+    </context>
+    <context>
+        <name>SiblingRow</name>
+        <message>
+            <source>Install</source>
+            <translation>安裝</translation>
+        </message>
+        <message>
+            <source>Installed</source>
+            <translation>已安裝</translation>
+        </message>
+        <message>
+            <source>Open</source>
+            <translation>開啟</translation>
+        </message>
+        <message>
+            <source>Opens the QGIS plugin manager on this plugin.</source>
+            <translation>在 QGIS 外掛程式管理員中開啟此外掛程式。</translation>
+        </message>
+        <message>
+            <source>Show the plugin's panel.</source>
+            <translation>顯示外掛程式的面板。</translation>
+        </message>
+    </context>
+    <context>
+        <name>SiblingsSection</name>
+        <message>
+            <source>Edit your imagery with a single sentence.</source>
+            <translation>一句話就能編輯你的影像。</translation>
+        </message>
+        <message>
+            <source>Other TerraLab plugins</source>
+            <translation>其他 TerraLab 外掛程式</translation>
+        </message>
+        <message>
+            <source>Turn buildings, trees or water into polygons.</source>
+            <translation>把建築物、樹木或水體轉成多邊形。</translation>
+        </message>
+    </context>
+    <context>
+        <name>SignInDialog</name>
+        <message>
+            <source>Cancel</source>
+            <translation>取消</translation>
+        </message>
+        <message>
+            <source>Connect</source>
+            <translation>連結</translation>
+        </message>
+        <message>
+            <source>Connected</source>
+            <translation>已連線</translation>
+        </message>
+        <message>
+            <source>Header name</source>
+            <translation>標頭名稱</translation>
+        </message>
+        <message>
+            <source>Hide</source>
+            <translation>隱藏</translation>
+        </message>
+        <message>
+            <source>Key</source>
+            <translation>金鑰</translation>
+        </message>
+        <message>
+            <source>Not saved. Fill in the fields, and unlock QGIS's vault with its master password when QGIS asks.</source>
+            <translation>尚未儲存。請填寫欄位，並在 QGIS 詢問時用主密碼解鎖 QGIS 保險庫。</translation>
+        </message>
+        <message>
+            <source>Open {host}</source>
+            <translation>開啟 {host}</translation>
+        </message>
+        <message>
+            <source>Password</source>
+            <translation>密碼</translation>
+        </message>
+        <message>
+            <source>Show</source>
+            <translation>顯示</translation>
+        </message>
+        <message>
+            <source>Sign in</source>
+            <translation>登入</translation>
+        </message>
+        <message>
+            <source>Sign in to {host}</source>
+            <translation>登入 {host}</translation>
+        </message>
+        <message>
+            <source>Stored encrypted in QGIS on this computer, behind your QGIS master password. Never sent to TerraLab or the AI agent.</source>
+            <translation>以加密方式儲存在這台電腦的 QGIS 中，並受你的 QGIS 主密碼保護。絕不會傳送給 TerraLab 或 AI 代理。</translation>
+        </message>
+        <message>
+            <source>Use a username and password instead</source>
+            <translation>改用使用者名稱和密碼</translation>
+        </message>
+        <message>
+            <source>Use an API key instead</source>
+            <translation>改用 API 金鑰</translation>
+        </message>
+        <message>
+            <source>Username</source>
+            <translation>使用者名稱</translation>
+        </message>
+        <message>
+            <source>Checking…</source>
+            <translation>正在檢查…</translation>
+        </message>
+        <message>
+            <source>QGIS will ask you to choose a master password. It locks every sign-in saved in QGIS and cannot be recovered, so keep it somewhere safe.</source>
+            <translation>QGIS 會請您設定主密碼。它會鎖定 QGIS 中儲存的所有登入資訊，且無法復原，請妥善保管。</translation>
+        </message>
+        <message>
+            <source>{host} refused these details. Check them and try again.</source>
+            <translation>{host} 拒絕了這些資料。請檢查後再試一次。</translation>
+        </message>
+    </context>
+    <context>
+        <name>TasksPanel</name>
+        <message>
+            <source>Done</source>
+            <translation>完成</translation>
+        </message>
+        <message>
+            <source>Failed</source>
+            <translation>失敗</translation>
+        </message>
+        <message>
+            <source>Paused</source>
+            <translation>已暫停</translation>
+        </message>
+        <message>
+            <source>Queued</source>
+            <translation>已排入佇列</translation>
+        </message>
+        <message>
+            <source>Stopped</source>
+            <translation>已停止</translation>
+        </message>
+        <message>
+            <source>Stopping...</source>
+            <translation>正在停止...</translation>
+        </message>
+        <message>
+            <source>Tasks</source>
+            <translation>任務</translation>
+        </message>
+        <message>
+            <source>Working</source>
+            <translation>處理中</translation>
+        </message>
+    </context>
+    <context>
+        <name>TokenDialog</name>
+        <message>
+            <source>A token or an API key from your {service} account. Sent to {host} only.</source>
+            <translation>你的 {service} 帳號中的權杖或 API 金鑰。只會傳送給 {host}。</translation>
+        </message>
+        <message>
+            <source>Cancel</source>
+            <translation>取消</translation>
+        </message>
+        <message>
+            <source>Connect</source>
+            <translation>連結</translation>
+        </message>
+        <message>
+            <source>Connect {label}</source>
+            <translation>連結 {label}</translation>
+        </message>
+        <message>
+            <source>Connect {service}</source>
+            <translation>連結 {service}</translation>
+        </message>
+        <message>
+            <source>Connected</source>
+            <translation>已連線</translation>
+        </message>
+        <message>
+            <source>Header name</source>
+            <translation>標頭名稱</translation>
+        </message>
+        <message>
+            <source>Hide</source>
+            <translation>隱藏</translation>
+        </message>
+        <message>
+            <source>Key</source>
+            <translation>金鑰</translation>
+        </message>
+        <message>
+            <source>Not saved. Fill in the fields, and unlock QGIS's vault with its master password when QGIS asks.</source>
+            <translation>尚未儲存。請填寫欄位，並在 QGIS 詢問時用主密碼解鎖 QGIS 保險庫。</translation>
+        </message>
+        <message>
+            <source>Not saved. Paste the token, and unlock QGIS's vault with its master password when QGIS asks.</source>
+            <translation>尚未儲存。請貼上權杖，並在 QGIS 詢問時用主密碼解鎖 QGIS 保險庫。</translation>
+        </message>
+        <message>
+            <source>Open {host}</source>
+            <translation>開啟 {host}</translation>
+        </message>
+        <message>
+            <source>Password</source>
+            <translation>密碼</translation>
+        </message>
+        <message>
+            <source>Paste your token</source>
+            <translation>貼上你的權杖</translation>
+        </message>
+        <message>
+            <source>Show</source>
+            <translation>顯示</translation>
+        </message>
+        <message>
+            <source>Sign in</source>
+            <translation>登入</translation>
+        </message>
+        <message>
+            <source>Sign in to {host}</source>
+            <translation>登入 {host}</translation>
+        </message>
+        <message>
+            <source>Sign in with a free account, choose Generate Token, copy it and paste it here.</source>
+            <translation>用免費帳號登入，選擇「Generate Token」，複製後貼到這裡。</translation>
+        </message>
+        <message>
+            <source>Stored encrypted in QGIS on this computer, behind your QGIS master password. Never sent to TerraLab or the AI agent.</source>
+            <translation>以加密方式儲存在這台電腦的 QGIS 中，並受你的 QGIS 主密碼保護。絕不會傳送給 TerraLab 或 AI 代理。</translation>
+        </message>
+        <message>
+            <source>Token</source>
+            <translation>權杖</translation>
+        </message>
+        <message>
+            <source>Token for {host}</source>
+            <translation>{host} 的權杖</translation>
+        </message>
+        <message>
+            <source>Use a username and password instead</source>
+            <translation>改用使用者名稱和密碼</translation>
+        </message>
+        <message>
+            <source>Use an API key instead</source>
+            <translation>改用 API 金鑰</translation>
+        </message>
+        <message>
+            <source>Username</source>
+            <translation>使用者名稱</translation>
+        </message>
+        <message>
+            <source>Checking…</source>
+            <translation>正在檢查…</translation>
+        </message>
+        <message>
+            <source>QGIS will ask you to choose a master password. It locks every sign-in saved in QGIS and cannot be recovered, so keep it somewhere safe.</source>
+            <translation>QGIS 會請您設定主密碼。它會鎖定 QGIS 中儲存的所有登入資訊，且無法復原，請妥善保管。</translation>
+        </message>
+        <message>
+            <source>{host} refused these details. Check them and try again.</source>
+            <translation>{host} 拒絕了這些資料。請檢查後再試一次。</translation>
+        </message>
+    </context>
+    <context>
+        <name>_TaskRow</name>
+        <message>
+            <source>Stop</source>
+            <translation>停止</translation>
+        </message>
+    </context>
+    <context>
+        <name>EarthEngineConnect</name>
+        <message>
+            <source>A non-commercial Earth Engine project is not for commercial work.</source>
+            <translation>非商業用途的 Earth Engine 專案不能用於商業工作。</translation>
+        </message>
+        <message>
+            <source>Cancel</source>
+            <translation>取消</translation>
+        </message>
+        <message>
+            <source>Change project</source>
+            <translation>變更專案</translation>
+        </message>
+        <message>
+            <source>Choose project</source>
+            <translation>選擇專案</translation>
+        </message>
+        <message>
+            <source>Choose your Earth Engine project</source>
+            <translation>選擇你的 Earth Engine 專案</translation>
+        </message>
+        <message>
+            <source>Connect</source>
+            <translation>連線</translation>
+        </message>
+        <message>
+            <source>Connect Earth Engine</source>
+            <translation>連線 Earth Engine</translation>
+        </message>
+        <message>
+            <source>Connected</source>
+            <translation>已連線</translation>
+        </message>
+        <message>
+            <source>Earth Engine needs Google's earthengine-api package. It installs into QGIS in about a minute, then you sign in with Google.</source>
+            <translation>Earth Engine 需要 Google 的 earthengine-api 套件。它約一分鐘就會安裝到 QGIS，接著你用 Google 登入。</translation>
+        </message>
+        <message>
+            <source>Earth Engine refused your project {project}.</source>
+            <translation>Earth Engine 拒絕了你的專案 {project}。</translation>
+        </message>
+        <message>
+            <source>Earth Engine runs on one of your Google Cloud projects.</source>
+            <translation>Earth Engine 在你的其中一個 Google Cloud 專案上執行。</translation>
+        </message>
+        <message>
+            <source>Finish signing in to Google in your browser.</source>
+            <translation>請在瀏覽器中完成 Google 登入。</translation>
+        </message>
+        <message>
+            <source>Google refused the sign-in ({error}).</source>
+            <translation>Google 拒絕了登入（{error}）。</translation>
+        </message>
+        <message>
+            <source>Google refused your saved sign-in.</source>
+            <translation>Google 拒絕了你已儲存的登入。</translation>
+        </message>
+        <message>
+            <source>Install</source>
+            <translation>安裝</translation>
+        </message>
+        <message>
+            <source>Installing earthengine-api...</source>
+            <translation>正在安裝 earthengine-api...</translation>
+        </message>
+        <message>
+            <source>No Earth Engine project on this account yet. Registering one is free for noncommercial use.</source>
+            <translation>這個帳戶還沒有 Earth Engine 專案。非商業用途可免費註冊一個。</translation>
+        </message>
+        <message>
+            <source>Not saved: QGIS's vault stayed locked. Connect again and set the master password when QGIS asks.</source>
+            <translation>未儲存：QGIS 的認證資料庫仍然鎖定。請再連線一次，並在 QGIS 詢問時設定主密碼。</translation>
+        </message>
+        <message>
+            <source>Open the sign-in page again</source>
+            <translation>重新開啟登入頁面</translation>
+        </message>
+        <message>
+            <source>Pick the Cloud project Earth Engine runs on.</source>
+            <translation>選擇 Earth Engine 要使用的 Cloud 專案。</translation>
+        </message>
+        <message>
+            <source>Project refused</source>
+            <translation>專案遭拒</translation>
+        </message>
+        <message>
+            <source>Reading your Cloud projects...</source>
+            <translation>正在讀取你的 Cloud 專案...</translation>
+        </message>
+        <message>
+            <source>Refresh</source>
+            <translation>重新整理</translation>
+        </message>
+        <message>
+            <source>Register a project</source>
+            <translation>註冊專案</translation>
+        </message>
+        <message>
+            <source>Sign in again</source>
+            <translation>重新登入</translation>
+        </message>
+        <message>
+            <source>Sign in with Google</source>
+            <translation>使用 Google 登入</translation>
+        </message>
+        <message>
+            <source>Sign in with Google and pick your own Cloud project.</source>
+            <translation>使用 Google 登入，並選擇你自己的 Cloud 專案。</translation>
+        </message>
+        <message>
+            <source>Sign-in didn't finish ({error}).</source>
+            <translation>登入未完成（{error}）。</translation>
+        </message>
+        <message>
+            <source>Sign-in didn't finish within 5 minutes.</source>
+            <translation>登入未在 5 分鐘內完成。</translation>
+        </message>
+        <message>
+            <source>Sign-in didn't finish. You can close this window and return to QGIS.</source>
+            <translation>登入未完成。你可以關閉此視窗並回到 QGIS。</translation>
+        </message>
+        <message>
+            <source>Sign-in expired</source>
+            <translation>登入已過期</translation>
+        </message>
+        <message>
+            <source>The Earth Engine API is off in your project {project}.</source>
+            <translation>你的專案 {project} 未啟用 Earth Engine API。</translation>
+        </message>
+        <message>
+            <source>Try again</source>
+            <translation>再試一次</translation>
+        </message>
+        <message>
+            <source>Turn on the Earth Engine API</source>
+            <translation>啟用 Earth Engine API</translation>
+        </message>
+        <message>
+            <source>Use this project</source>
+            <translation>使用此專案</translation>
+        </message>
+        <message>
+            <source>You're signed in. You can close this window and return to QGIS.</source>
+            <translation>你已登入。你可以關閉此視窗並回到 QGIS。</translation>
+        </message>
+        <message>
+            <source>Your Cloud projects could not be read ({error}).</source>
+            <translation>無法讀取你的 Cloud 專案（{error}）。</translation>
+        </message>
+        <message>
+            <source>Your Earth Engine sign-in expired.</source>
+            <translation>你的 Earth Engine 登入已過期。</translation>
+        </message>
+        <message>
+            <source>Your Google sign-in stays in QGIS's encrypted vault on this computer. Never sent to TerraLab or the AI agent.</source>
+            <translation>你的 Google 登入資訊保存在這台電腦上 QGIS 的加密認證資料庫中，絕不會傳送給 TerraLab 或 AI 代理。</translation>
+        </message>
+        <message>
+            <source>Your browser opens Google's sign-in. Earth Engine then runs on your own Google Cloud project, under that project's terms.</source>
+            <translation>你的瀏覽器會開啟 Google 登入頁面。之後 Earth Engine 會在你自己的 Google Cloud 專案上執行，並適用該專案的條款。</translation>
+        </message>
+        <message>
+            <source>Your project {project} is not registered for Earth Engine.</source>
+            <translation>你的專案 {project} 尚未註冊 Earth Engine。</translation>
+        </message>
+        <message>
+            <source>earthengine-api did not install: {error}</source>
+            <translation>earthengine-api 未安裝成功：{error}</translation>
+        </message>
+        <message>
+            <source>{count} other projects do not have Earth Engine.</source>
+            <translation>另有 {count} 個專案沒有 Earth Engine。</translation>
+        </message>
+        <message>
+            <source>QGIS will ask you to choose a master password. It locks every sign-in saved in QGIS and cannot be recovered, so keep it somewhere safe.</source>
+            <translation>QGIS 會要求你選擇一個主密碼。它會鎖定 QGIS 中儲存的所有登入資訊，且無法復原，請妥善保管。</translation>
+        </message>
+    </context>
+    <context>
+        <name>BrowserWait</name>
+        <message>
+            <source>Cancel</source>
+            <translation>取消</translation>
+        </message>
+        <message>
+            <source>Check that the page shows the code {code}, then sign in.</source>
+            <translation>請確認頁面顯示代碼 {code}，然後登入。</translation>
+        </message>
+        <message>
+            <source>Connecting…</source>
+            <translation>連線中…</translation>
+        </message>
+        <message>
+            <source>Finish signing in to {name} in your browser.</source>
+            <translation>請在瀏覽器中完成 {name} 的登入。</translation>
+        </message>
+        <message>
+            <source>Not saved. Unlock QGIS's vault with its master password when QGIS asks.</source>
+            <translation>未儲存。QGIS 詢問時，請用主密碼解鎖 QGIS 的驗證資料庫。</translation>
+        </message>
+        <message>
+            <source>Open the page again</source>
+            <translation>重新開啟頁面</translation>
+        </message>
+        <message>
+            <source>Opening your browser…</source>
+            <translation>正在開啟瀏覽器…</translation>
+        </message>
+        <message>
+            <source>Sign-in didn't finish.</source>
+            <translation>登入未完成。</translation>
+        </message>
+        <message>
+            <source>The sign-in was declined in the browser.</source>
+            <translation>登入在瀏覽器中被拒絕。</translation>
+        </message>
+        <message>
+            <source>{label} did not answer. Check your connection.</source>
+            <translation>{label} 沒有回應。請檢查網路連線。</translation>
+        </message>
+        <message>
+            <source>{label} did not create the S3 keys.</source>
+            <translation>{label} 未建立 S3 金鑰。</translation>
+        </message>
+        <message>
+            <source>{label} refused the sign-in.</source>
+            <translation>{label} 拒絕了登入。</translation>
+        </message>
+        <message>
+            <source>Send this approval link to your IT admin: {link}</source>
+            <translation>請將此核准連結傳給您的 IT 管理員：{link}</translation>
+        </message>
+        <message>
+            <source>Your organization lets only an admin approve TerraLab AI Agent for {label}.</source>
+            <translation>您的組織只允許管理員核准 TerraLab AI Agent 使用 {label}。</translation>
+        </message>
+    </context>
+    <context>
+        <name>CloudKeysDialog</name>
+        <message>
+            <source>Access key ID</source>
+            <translation>存取金鑰 ID</translation>
+        </message>
+        <message>
+            <source>Account key</source>
+            <translation>帳戶金鑰</translation>
+        </message>
+        <message>
+            <source>Cancel</source>
+            <translation>取消</translation>
+        </message>
+        <message>
+            <source>Checking…</source>
+            <translation>檢查中…</translation>
+        </message>
+        <message>
+            <source>Connect</source>
+            <translation>連線</translation>
+        </message>
+        <message>
+            <source>Connect {label}</source>
+            <translation>連線 {label}</translation>
+        </message>
+        <message>
+            <source>Connect {store}</source>
+            <translation>連線 {store}</translation>
+        </message>
+        <message>
+            <source>Connected</source>
+            <translation>已連線</translation>
+        </message>
+        <message>
+            <source>Endpoint, empty for Amazon S3</source>
+            <translation>端點，Amazon S3 請留空</translation>
+        </message>
+        <message>
+            <source>For {address}. A read-only key is enough: the AI agent only reads from it.</source>
+            <translation>用於 {address}。唯讀金鑰就夠了：AI agent 只會從中讀取。</translation>
+        </message>
+        <message>
+            <source>HMAC access key</source>
+            <translation>HMAC 存取金鑰</translation>
+        </message>
+        <message>
+            <source>HMAC secret</source>
+            <translation>HMAC 密鑰</translation>
+        </message>
+        <message>
+            <source>Header name</source>
+            <translation>標頭名稱</translation>
+        </message>
+        <message>
+            <source>Hide</source>
+            <translation>隱藏</translation>
+        </message>
+        <message>
+            <source>JSON key (*.json)</source>
+            <translation>JSON 金鑰 (*.json)</translation>
+        </message>
+        <message>
+            <source>Key</source>
+            <translation>金鑰</translation>
+        </message>
+        <message>
+            <source>Keys expired</source>
+            <translation>金鑰已過期</translation>
+        </message>
+        <message>
+            <source>Keys refused</source>
+            <translation>金鑰被拒絕</translation>
+        </message>
+        <message>
+            <source>Not saved. Fill in the fields, and unlock QGIS's vault with its master password when QGIS asks.</source>
+            <translation>尚未儲存。請填寫各欄位，並在 QGIS 詢問時用主密碼解鎖 QGIS 的密碼庫。</translation>
+        </message>
+        <message>
+            <source>Open {host}</source>
+            <translation>開啟 {host}</translation>
+        </message>
+        <message>
+            <source>Password</source>
+            <translation>密碼</translation>
+        </message>
+        <message>
+            <source>QGIS will ask you to choose a master password. It locks every sign-in saved in QGIS and cannot be recovered, so keep it somewhere safe.</source>
+            <translation>QGIS 會請你設定一組主密碼。它會鎖住 QGIS 中儲存的所有登入資訊，且無法復原，請妥善保管。</translation>
+        </message>
+        <message>
+            <source>Region (optional)</source>
+            <translation>區域（選填）</translation>
+        </message>
+        <message>
+            <source>SAS token</source>
+            <translation>SAS 權杖</translation>
+        </message>
+        <message>
+            <source>Secret access key</source>
+            <translation>私密存取金鑰</translation>
+        </message>
+        <message>
+            <source>Service account key (JSON file)</source>
+            <translation>服務帳戶金鑰（JSON 檔案）</translation>
+        </message>
+        <message>
+            <source>Show</source>
+            <translation>顯示</translation>
+        </message>
+        <message>
+            <source>Sign in</source>
+            <translation>登入</translation>
+        </message>
+        <message>
+            <source>Sign in to {host}</source>
+            <translation>登入 {host}</translation>
+        </message>
+        <message>
+            <source>Storage account name</source>
+            <translation>儲存體帳戶名稱</translation>
+        </message>
+        <message>
+            <source>Stored encrypted in QGIS on this computer, behind your QGIS master password. Never sent to TerraLab or the AI agent.</source>
+            <translation>已加密儲存在這台電腦的 QGIS 中，並受 QGIS 主密碼保護。絕不會傳送給 TerraLab 或 AI agent。</translation>
+        </message>
+        <message>
+            <source>The keys could not be checked: {error}</source>
+            <translation>無法檢查金鑰：{error}</translation>
+        </message>
+        <message>
+            <source>This bucket opens only with a service account key.</source>
+            <translation>這個儲存貯體只能用服務帳戶金鑰開啟。</translation>
+        </message>
+        <message>
+            <source>This bucket opens only with your access keys.</source>
+            <translation>這個儲存貯體只能用你的存取金鑰開啟。</translation>
+        </message>
+        <message>
+            <source>This container opens only with your account key or a SAS token.</source>
+            <translation>這個容器只能用你的帳戶金鑰或 SAS 權杖開啟。</translation>
+        </message>
+        <message>
+            <source>This file is not a service account key. In the Google Cloud console, open the service account, then Keys, Add key, JSON.</source>
+            <translation>這個檔案不是服務帳戶金鑰。請在 Google Cloud 控制台開啟該服務帳戶，然後依序選擇「金鑰」、「新增金鑰」、「JSON」。</translation>
+        </message>
+        <message>
+            <source>Use a SAS token instead</source>
+            <translation>改用 SAS 權杖</translation>
+        </message>
+        <message>
+            <source>Use a service account key instead</source>
+            <translation>改用服務帳戶金鑰</translation>
+        </message>
+        <message>
+            <source>Use a username and password instead</source>
+            <translation>改用使用者名稱和密碼</translation>
+        </message>
+        <message>
+            <source>Use an API key instead</source>
+            <translation>改用 API 金鑰</translation>
+        </message>
+        <message>
+            <source>Use an HMAC key instead</source>
+            <translation>改用 HMAC 金鑰</translation>
+        </message>
+        <message>
+            <source>Use the account key instead</source>
+            <translation>改用帳戶金鑰</translation>
+        </message>
+        <message>
+            <source>Username</source>
+            <translation>使用者名稱</translation>
+        </message>
+        <message>
+            <source>{host} refused these details. Check them and try again.</source>
+            <translation>{host} 拒絕了這些資料。請檢查後再試一次。</translation>
+        </message>
+        <message>
+            <source>{store} no longer accepts your saved keys.</source>
+            <translation>{store} 不再接受你儲存的金鑰。</translation>
+        </message>
+        <message>
+            <source>{store} refused your saved keys.</source>
+            <translation>{store} 拒絕了你儲存的金鑰。</translation>
+        </message>
+        <message>
+            <source>{where} refused these keys.</source>
+            <translation>{where} 拒絕了這些金鑰。</translation>
+        </message>
+    </context>
+    <context>
+        <name>AccountDrive</name>
+        <message>
+            <source>Allow SharePoint sites</source>
+            <translation>允許 SharePoint 網站</translation>
+        </message>
+        <message>
+            <source>Cancel</source>
+            <translation>取消</translation>
+        </message>
+        <message>
+            <source>Choose this file in Google Drive</source>
+            <translation>在 Google Drive 中選擇此檔案</translation>
+        </message>
+        <message>
+            <source>Connect Google Drive</source>
+            <translation>連接 Google Drive</translation>
+        </message>
+        <message>
+            <source>Connect OneDrive and SharePoint</source>
+            <translation>連接 OneDrive 和 SharePoint</translation>
+        </message>
+        <message>
+            <source>Connect SharePoint</source>
+            <translation>連接 SharePoint</translation>
+        </message>
+        <message>
+            <source>Read with your account, only for this request.</source>
+            <translation>使用您的帳號讀取，僅限這次請求。</translation>
+        </message>
+        <message>
+            <source>Read-only: the AI agent can open your files, never change or delete them.</source>
+            <translation>唯讀：AI 代理可以開啟您的檔案，但絕不會修改或刪除。</translation>
+        </message>
+        <message>
+            <source>Reading SharePoint sites needs one more permission. Your organization's admin may have to approve it.</source>
+            <translation>讀取 SharePoint 網站需要再多一項權限。您組織的管理員可能需要核准。</translation>
+        </message>
+        <message>
+            <source>Sign in again</source>
+            <translation>重新登入</translation>
+        </message>
+        <message>
+            <source>Sign in with {name}</source>
+            <translation>使用 {name} 登入</translation>
+        </message>
+        <message>
+            <source>The AI agent sees only the files you pick. Pick this one to let it open it.</source>
+            <translation>AI 代理只能看到您選取的檔案。選取這個檔案，它才能開啟。</translation>
+        </message>
+        <message>
+            <source>Try again</source>
+            <translation>再試一次</translation>
+        </message>
+        <message>
+            <source>Use your {label} access?</source>
+            <translation>要使用您的 {label} 存取權嗎？</translation>
+        </message>
+        <message>
+            <source>You pick the files the AI agent may open. It sees nothing else in your Drive.</source>
+            <translation>由您選擇 AI 代理可以開啟的檔案。它看不到您 Drive 裡的其他任何內容。</translation>
+        </message>
+        <message>
+            <source>Your sign-in stays in QGIS's encrypted vault on this computer. Never sent to TerraLab or the AI agent.</source>
+            <translation>您的登入資訊會保存在這台電腦上 QGIS 的加密保險庫中，絕不會傳送給 TerraLab 或 AI 代理。</translation>
+        </message>
+        <message>
+            <source>{name} no longer accepts your saved sign-in.</source>
+            <translation>{name} 不再接受您儲存的登入資訊。</translation>
+        </message>
+    </context>
+    <context>
+        <name>RatingCard</name>
+        <message>
+            <source>Add details (optional)</source>
+            <translation>補充細節（選填）</translation>
+        </message>
+        <message>
+            <source>Close</source>
+            <translation>關閉</translation>
+        </message>
+        <message>
+            <source>Could not send. Try again.</source>
+            <translation>無法傳送。請再試一次。</translation>
+        </message>
+        <message>
+            <source>Not what I asked</source>
+            <translation>不是我要的</translation>
+        </message>
+        <message>
+            <source>Send</source>
+            <translation>傳送</translation>
+        </message>
+        <message>
+            <source>Tell us more (optional)</source>
+            <translation>告訴我們更多（選填）</translation>
+        </message>
+        <message>
+            <source>Thanks for the feedback</source>
+            <translation>感謝您的意見回饋</translation>
+        </message>
+        <message>
+            <source>Too slow</source>
+            <translation>太慢了</translation>
+        </message>
+        <message>
+            <source>What went wrong?</source>
+            <translation>哪裡出了問題？</translation>
+        </message>
+        <message>
+            <source>What worked well?</source>
+            <translation>哪裡做得好？</translation>
+        </message>
+        <message>
+            <source>Wrong result</source>
+            <translation>結果錯誤</translation>
+        </message>
+        <message>
+            <source>Your words are sent with this chat and recent logs.</source>
+            <translation>您的文字會連同此對話和最近的日誌一併傳送。</translation>
         </message>
     </context>
 </TS>

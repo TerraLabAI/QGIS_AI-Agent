@@ -34,20 +34,18 @@ from qgis.PyQt.QtWidgets import (
     QWidget,
 )
 
-from . import style as S
-from .external_links import open_external_url
-from .font_scale import scale_px_length, scale_qss_font_px
-from .settings_pages import PRIMARY_BTN_QSS
-from .shared import (
-    ICONS_DIR,
-    available_screen_rect,
+from ..core.served_state import (
     get_pricing_url,
     get_privacy_notice_heading,
     get_privacy_notice_rows,
     get_privacy_url,
     get_terms_url,
-    tr,
 )
+from . import style as S
+from .external_links import open_external_url
+from .font_scale import scale_px_length, scale_qss_font_px
+from .settings_pages import PRIMARY_BTN_QSS
+from .shared import ICONS_DIR, available_screen_rect, tr
 
 DIALOG_W = 500
 SIDE_PAD = 24

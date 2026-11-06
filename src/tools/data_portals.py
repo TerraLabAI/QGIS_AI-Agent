@@ -13,23 +13,23 @@ import urllib.parse
 import urllib.request
 import xml.etree.ElementTree as ET  # nosec B405
 
-from ..core import links, net, tuning
+from ..core import links, net, source_rules, tuning
+from ..core.numbers import as_int
 from ..core.tool_registry import tool_error
 from . import ogc_inspect
 from .data_common import (
     _CACHE_CATALOG_S,
     _PORTAL_TIMEOUT,
-    _SERVICE_FORMAT_HINTS,
     _SOCRATA_GEOMETRY_TYPES,
-    _VECTOR_FORMAT_HINTS,
     _http_get,
     _open_data_portals,
 )
 
 
+def _kind_by_ext() -> dict:
 
-_KIND_BY_EXT = {".pmtiles": "pmtiles", ".tif": "cog", ".tiff": "cog", ".jp2": "raster", ".nc": "raster",
-                ".laz": "pointcloud", ".las": "pointcloud", ".copc": "pointcloud"}
+
+    return source_rules.table("files", "kind_by_ext", {})
 
 
 def _portal_table(name: str, empty):
@@ -48,7 +48,7 @@ def _downloads_as_vector(entry: dict) -> bool:
     if entry.get("folder") or entry.get("service"):
         return False
     ext = links.extension(entry.get("name") or "") or links.extension(entry["url"])
-    return ext in links.DATA_EXTENSIONS and ext not in _KIND_BY_EXT
+    return ext in links.data_extensions() and ext not in _kind_by_ext()
 
 
 def _link_file_call(entry: dict) -> dict:
@@ -61,26 +61,13 @@ def _link_file_call(entry: dict) -> dict:
     if _downloads_as_vector(entry):
         return {"tool": "add_vector_from_url", "args": {"url": entry["url"], "layer_name": name}}
     ext = links.extension(entry.get("name") or "") or links.extension(entry["url"])
-    if ext in _KIND_BY_EXT:
-        return {"tool": "add_data", "args": {"source": entry["url"], "name": name, "kind": _KIND_BY_EXT[ext]}}
+    if ext in _kind_by_ext():
+        return {"tool": "add_data", "args": {"source": entry["url"], "name": name, "kind": _kind_by_ext()[ext]}}
     return {"tool": "fetch_text", "args": {"url": entry["url"]}}
 
 
 _DEFAULT_FORMAT_PREFERENCE = "geojson"
 
-
-
-_FORMAT_PREFERENCE_WORDS = {
-    "geojson": "geojson",
-    "geo json": "geojson",
-    "gpkg": "gpkg",
-    "geopackage": "gpkg",
-    "geo package": "gpkg",
-    "shp": "shp",
-    "shapefile": "shp",
-    "shape file": "shp",
-    "any": "any",
-}
 
 
 _PORTAL_RESULT_CAP = 15
@@ -122,7 +109,7 @@ def _normalise_format_preference(value) -> str:
     if not text:
         return _DEFAULT_FORMAT_PREFERENCE
     first, position = _DEFAULT_FORMAT_PREFERENCE, len(text)
-    for word, fmt in _FORMAT_PREFERENCE_WORDS.items():
+    for word, fmt in source_rules.table("portals", "format_words", {}).items():
         found = re.search(rf"\b{word}\b", text)
         if found and found.start() < position:
             first, position = fmt, found.start()
@@ -139,10 +126,7 @@ def _search_open_data(args: dict) -> dict:
 
 
 
-    try:
-        cap = int(args.get("limit") or _PORTAL_RESULT_CAP)
-    except (TypeError, ValueError):
-        cap = _PORTAL_RESULT_CAP
+    cap = as_int(args.get("limit") or _PORTAL_RESULT_CAP, _PORTAL_RESULT_CAP)
     cap = max(1, min(cap, _PORTAL_RESULT_CAP))
 
     if portal_url:
@@ -275,14 +259,7 @@ def _portal_text(value, limit: int = 200) -> str:
 
 
 
-_PORTAL_STOP_WORDS = frozenset({
-    "au", "aux", "avec", "dans", "de", "des", "du", "en", "et", "la", "le", "les", "ou", "par",
-    "pour", "sur", "un", "une",
-    "and", "at", "by", "for", "in", "of", "on", "or", "the", "to", "with",
-    "carte", "couche", "data", "dataset", "donnee", "donnees", "fichier", "layer", "liste",
-    "map", "niveau",
-})
-_PORTAL_NARROW_WIDTHS = (3, 2, 1)
+
 
 
 def _portal_terms(query: str) -> list[str]:
@@ -293,9 +270,10 @@ def _portal_terms(query: str) -> list[str]:
 
 
     seen: list[str] = []
+    stop = source_rules.table("portals", "stop_words", [])
     for word in re.findall(r"[^\W\d_]{3,}", str(query or ""), re.UNICODE):
         word = word.lower()
-        if word in _PORTAL_STOP_WORDS or word in seen:
+        if word in stop or word in seen:
             continue
         seen.append(word)
     return seen
@@ -305,7 +283,7 @@ def _portal_narrowings(query: str) -> list[str]:
 
     terms = _portal_terms(query)
     tries: list[str] = []
-    for width in _PORTAL_NARROW_WIDTHS:
+    for width in source_rules.table("portals", "narrow_widths", []):
         if len(terms) > width:
             candidate = " ".join(terms[:width])
             if candidate not in tries:
@@ -664,7 +642,7 @@ def _pick_resource(resources: list, format_pref: str) -> dict | None:
     fallback = None
     for res in resources:
         fmt = (res.get("format") or "").lower()
-        if any(marker in fmt for marker in ("jsonl", "ndjson", "json_ld", "jsonld", "ld+json")):
+        if any(marker in fmt for marker in source_rules.table("portals", "skip_formats", [])):
             continue
         url = res.get("url") or res.get("download_url")
         if not url:
@@ -672,7 +650,7 @@ def _pick_resource(resources: list, format_pref: str) -> dict | None:
         if format_pref != "any" and format_pref in fmt:
             preferred = res
             break
-        if fallback is None and any(marker in fmt for marker in _VECTOR_FORMAT_HINTS | _SERVICE_FORMAT_HINTS):
+        if fallback is None and any(marker in fmt for marker in source_rules.table("portals", "resource_formats", [])):
             fallback = res
     return preferred or fallback
 
@@ -729,7 +707,7 @@ def _entry_for(name: str, url: str, fmt: str = "", size=None) -> dict | None:
     entry = {"name": str(name or os.path.basename(urllib.parse.urlsplit(url).path) or "file")[:120], "url": url}
     ext = (links.extension(entry["name"]) or links.extension(url)
            or _portal_table("format_ext", {}).get(str(fmt or "").lower(), ""))
-    if ext not in links.DATA_EXTENSIONS:
+    if ext not in links.data_extensions():
         return None
     if not links.extension(entry["name"]):
         entry["name"] += ext
@@ -759,14 +737,36 @@ def _json_download_links(payload) -> list:
                     if isinstance(value, str) and value.startswith(("http://", "https://"))])
 
 
-_JSONLD_RE = re.compile(r"<script[^>]*application/ld\+json[^>]*>(.*?)</script>", re.IGNORECASE | re.DOTALL)
-_LINK_TAG_RE = re.compile(r"<link\b[^>]*>", re.IGNORECASE)
-_ANCHOR_TAG_RE = re.compile(r"<a\b[^>]*href\s*=\s*[\"']([^\"'#]+)[\"'][^>]*>(.*?)</a>", re.IGNORECASE | re.DOTALL)
+_JSONLD_RE = re.compile(r"<script[^<>]*application/ld\+json[^<>]*>", re.IGNORECASE)
+_SCRIPT_END_RE = re.compile(r"</script>", re.IGNORECASE)
+_LINK_TAG_RE = re.compile(r"<link\b[^<>]*>", re.IGNORECASE)
+_ANCHOR_TAG_RE = re.compile(r"<a\b[^<>]*href\s*=\s*[\"']([^\"'#<>]+)[\"'][^<>]*>", re.IGNORECASE)
+_ANCHOR_END_RE = re.compile(r"</a>", re.IGNORECASE)
 _ATTR_RE = re.compile(r"([a-zA-Z:-]+)\s*=\s*[\"']([^\"']*)[\"']")
 _DATA_TYPES = ("application/geo+json", "application/vnd.geo+json", "application/json", "text/csv",
                "application/vnd.google-earth.kml+xml", "application/vnd.google-earth.kmz",
                "application/geopackage+sqlite3", "application/zip", "image/tiff", "application/x-shapefile")
-_RDF_RE = re.compile(r"<dcat:(?:downloadURL|accessURL)[^>]*rdf:resource=[\"']([^\"']+)[\"']", re.IGNORECASE)
+_RDF_RE = re.compile(r"<dcat:(?:downloadURL|accessURL)[^<>]*rdf:resource=[\"']([^\"']+)[\"']", re.IGNORECASE)
+
+
+
+def _spans(page: str, opener, closer):
+
+
+
+
+
+
+    position = 0
+    while True:
+        start = opener.search(page, position)
+        if start is None:
+            return
+        end = closer.search(page, start.end())
+        if end is None:
+            return
+        yield start, page[start.end():end.start()]
+        position = end.end()
 
 
 def _page_distributions(final_url: str, page: str) -> list:
@@ -779,7 +779,7 @@ def _page_distributions(final_url: str, page: str) -> list:
 
     page = page[:3_000_000]
     entries: list = []
-    for block in _JSONLD_RE.findall(page):
+    for _tag, block in _spans(page, _JSONLD_RE, _SCRIPT_END_RE):
         try:
             data = json.loads(block.strip())
         except ValueError:
@@ -805,9 +805,9 @@ def _page_distributions(final_url: str, page: str) -> list:
             fmt = attrs["type"].lower().rsplit("/", 1)[-1]
             entries.append(_entry_for(attrs.get("title", ""), urllib.parse.urljoin(final_url, _html.unescape(
                 attrs.get("href", ""))), {"geo+json": "geojson", "vnd.geo+json": "geojson"}.get(fmt, fmt)))
-    for href, text in _ANCHOR_TAG_RE.findall(page):
-        url = urllib.parse.urljoin(final_url, _html.unescape(href.strip()))
-        label = " ".join(re.sub(r"<[^>]+>", " ", text).split())
+    for tag, text in _spans(page, _ANCHOR_TAG_RE, _ANCHOR_END_RE):
+        url = urllib.parse.urljoin(final_url, _html.unescape(tag.group(1).strip()))
+        label = " ".join(re.sub(r"<[^<>]+>", " ", text).split())
         entries.append(_entry_for(label if links.extension(label) else "", url))
     return _ranked(entries)
 

@@ -13,7 +13,9 @@ import re
 
 from qgis.core import QgsApplication
 
-from ..core import tuning
+from ..core import tool_rules, tuning, vsi
+from ..core.output_paths import safe_file_name
+from ..core.policy import create_managed_temp_dir
 from ..core.tool_registry import tool_error
 
 
@@ -123,26 +125,6 @@ def _model_steps_may_leave(alg) -> bool:
     return True
 
 
-def _goes_to_task(alg, args: dict, parameters: dict) -> bool:
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    del args, parameters
-    return _threadable(alg)
-
-
 def _geometry_word(layer) -> str:
 
     try:
@@ -182,7 +164,6 @@ def geometry_defaults(alg, algorithm_id: str, parameters: dict, layer) -> tuple[
 
 
 
-_NODATA_DEFAULT = -9999.0
 _SIGNED_TYPES = ("Int8", "Int16", "Int32", "Float32", "Float64")
 _INT_RANGES = {"Int8": (-128.0, 127.0), "Int16": (-32768.0, 32767.0), "Int32": (-2147483648.0, 2147483647.0)}
 
@@ -284,6 +265,11 @@ def _output_type(alg, parameters: dict, layer) -> str:
     return _type_name(layer) if layer is not None else ""
 
 
+def _nodata_default():
+
+    return tool_rules.number("decisions", "nodata_default")
+
+
 def _default_nodata_for(type_name: str, layer):
 
 
@@ -291,12 +277,14 @@ def _default_nodata_for(type_name: str, layer):
         return None
     low, high = _INT_RANGES.get(type_name, (-math.inf, math.inf))
     if layer is not None:
-        from .processing_guards import _nodata_sentinel
 
-        sentinel = _nodata_sentinel(layer, 1)
+        sentinel = nodata_sentinel(layer, 1)
         if sentinel is not None and low <= sentinel <= high:
             return sentinel
-    return _NODATA_DEFAULT if low <= _NODATA_DEFAULT <= high else low
+    default = _nodata_default()
+    if default is None:
+        return None
+    return default if low <= default <= high else low
 
 
 def _plain_number(value: float) -> str:
@@ -353,9 +341,8 @@ def raster_nodata_defaults(alg, algorithm_id: str, parameters: dict) -> tuple[di
         if declared != {None} or parameters.get(key) not in (None, ""):
             return out, notes
         sample = layers[0]
-        from .processing_guards import _nodata_sentinel
 
-        markers = {_nodata_sentinel(layer, 1) for layer in layers}
+        markers = {nodata_sentinel(layer, 1) for layer in layers}
         if reads_nodata and parameters.get("NODATA_INPUT") in (None, "") and len(markers) == 1 \
                 and None not in markers:
             marker = markers.pop()
@@ -437,8 +424,6 @@ def _warped_input(layer, reference, key: str, whole_grid: bool, stem: str = "") 
         from osgeo import gdal
     except ImportError:
         return ""
-    from ..core import vsi
-    from ..core.policy import create_managed_temp_dir
 
     ext = reference.extent()
     cx, cy = _cell(reference)
@@ -452,10 +437,10 @@ def _warped_input(layer, reference, key: str, whole_grid: bool, stem: str = "") 
     fill = declared if declared is not None else _default_nodata_for(_type_name(layer), layer)
     if fill is not None:
         options["dstNodata"] = fill
-    elif whole_grid:
+    elif whole_grid and _nodata_default() is not None:
 
 
-        options.update(outputType=gdal.GDT_Float32, dstNodata=_NODATA_DEFAULT)
+        options.update(outputType=gdal.GDT_Float32, dstNodata=_nodata_default())
     if not stem:
         stem = key.lower() + "_" + (re.sub(r"[^A-Za-z0-9_-]+", "_", layer.name())[:40].strip("_") or "raster")
     path = os.path.join(create_managed_temp_dir("aligned_inputs"), f"{stem}.vrt")
@@ -479,7 +464,6 @@ def calculator_inputs_on_grid(layers, reference) -> dict:
 
 
 
-    from ..core.output_paths import safe_file_name
 
     out = {}
     for layer in layers:
@@ -634,7 +618,6 @@ def _processing_error(detail: str, alg=None) -> dict:
 __all__ = [
     "_FIELD_EXISTS_RE",
     "_LAYER_ERROR_RE",
-    "_goes_to_task",
     "_processing_error",
     "geometry_defaults",
     "raster_nodata_defaults",
@@ -642,3 +625,27 @@ __all__ = [
     "_unsafe_processing_algorithm",
     "main_thread_facts",
 ]
+
+
+
+
+def nodata_sentinel(rast, band: int) -> float | None:
+
+    try:
+        import qgis.core as _core
+
+        provider = rast.dataProvider()
+        if (provider.sourceHasNoDataValue(band) and provider.useSourceNoDataValue(band)) \
+                or provider.userNoDataValues(band):
+            return None
+
+        wanted = getattr(getattr(getattr(_core, "Qgis", None), "RasterBandStatistic", None), "Min", None)
+        if wanted is None:
+            wanted = getattr(_core.QgsRasterBandStats, "Min", None)
+        minimum = float(provider.bandStatistics(band, wanted, rast.extent(), 250000).minimumValue)
+    except Exception:  # noqa: BLE001
+        return None
+    for sentinel in tool_rules.names("guards", "nodata_sentinels"):
+        if abs(minimum - sentinel) <= abs(sentinel) * 1e-9:
+            return sentinel
+    return None

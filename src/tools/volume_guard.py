@@ -46,7 +46,9 @@ import re
 import time
 
 from ..core import limits, tuning
+from ..core.context_layers import canvas_bbox_4326
 from ..core.logger import log_warning
+from ..core.numbers import as_float, as_int
 from ..core.tool_registry import spec, tool_error
 
 
@@ -115,21 +117,7 @@ FOOTPRINTS_MAX_KM2 = 25.0
 
 LABEL = "data volume"
 
-
-
-ZONE_TOOLS = {
-    "fetch_osm_data": "query",
-    "fetch_building_footprints": "dense",
-    "add_pmtiles_layer": "query",
-}
 COUNT_KEYS = ("max_features", "limit", "max_items", "max_results")
-
-
-
-
-
-
-HELD_TOOLS = frozenset({"add_points_from_json", "add_arcgis_rest_layer"})
 
 
 
@@ -697,7 +685,7 @@ def clamp_to_cap(name: str, args: dict) -> dict:
         args["bbox"] = [west, south, east, north]
     else:
         args["bbox"] = {"south": south, "west": west, "north": north, "east": east}
-    if _num(args.get("confirm_area_km2")) is not None:
+    if as_float(args.get("confirm_area_km2")) is not None:
         args["confirm_area_km2"] = used
     return {"asked_km2": round(float(area), 1), "box_km2": used,
             "bbox": {"south": south, "west": west, "north": north, "east": east},
@@ -741,30 +729,21 @@ def hosted_fallback(name: str, args: dict) -> list:
     return themes
 
 
-def _num(value) -> float | None:
-    try:
-        if isinstance(value, bool):
-            return None
-        return float(value)
-    except (TypeError, ValueError):
-        return None
-
-
 def bbox_of(args: dict) -> tuple[float, float, float, float] | None:
 
     raw = args.get("bbox")
     if isinstance(raw, dict):
-        south = _num(raw.get("south", raw.get("ymin")))
-        west = _num(raw.get("west", raw.get("xmin")))
-        north = _num(raw.get("north", raw.get("ymax")))
-        east = _num(raw.get("east", raw.get("xmax")))
+        south = as_float(raw.get("south", raw.get("ymin")))
+        west = as_float(raw.get("west", raw.get("xmin")))
+        north = as_float(raw.get("north", raw.get("ymax")))
+        east = as_float(raw.get("east", raw.get("xmax")))
     elif isinstance(raw, (list, tuple)) and len(raw) == 4:
-        west, south, east, north = (_num(v) for v in raw)
+        west, south, east, north = (as_float(v) for v in raw)
     else:
-        south = _num(args.get("south"))
-        west = _num(args.get("west"))
-        north = _num(args.get("north"))
-        east = _num(args.get("east"))
+        south = as_float(args.get("south"))
+        west = as_float(args.get("west"))
+        north = as_float(args.get("north"))
+        east = as_float(args.get("east"))
     if None in (south, west, north, east):
         return None
     if not (-90 <= south <= 90 and -90 <= north <= 90 and -180 <= west <= 180 and -180 <= east <= 180):
@@ -795,7 +774,6 @@ def not_degrees(west, south, east, north) -> str:
 
 def _canvas_bbox() -> tuple[float, float, float, float] | None:
 
-    from ..core.context_layers import canvas_bbox_4326
 
     box = canvas_bbox_4326()
     return (box[1], box[0], box[3], box[2]) if box else None
@@ -815,7 +793,8 @@ def zone_km2(args: dict) -> float | None:
 
 
 def is_dense(name: str, args: dict) -> bool:
-    kind = ZONE_TOOLS.get(name, "query")
+    declared = spec(name)
+    kind = declared.zone_load if declared is not None and declared.zone_load else "query"
     if kind == "dense":
         return True
     if kind == "sparse":
@@ -837,7 +816,7 @@ def requested_count(args: dict) -> int | None:
 
 
 def _confirmed(args: dict, area: float) -> bool:
-    confirmed = _num(args.get("confirm_area_km2"))
+    confirmed = as_float(args.get("confirm_area_km2"))
     return confirmed is not None and abs(confirmed - area) <= max(0.15, area * 0.1)
 
 
@@ -872,7 +851,8 @@ def check(name: str, args: dict) -> dict:
 
 
         return {}
-    if name in ZONE_TOOLS:
+    declared = spec(name)
+    if declared is not None and declared.zone_load:
         area = zone_km2(args)
         if area is not None:
             dense = is_dense(name, args)
@@ -954,7 +934,7 @@ def check(name: str, args: dict) -> dict:
                 return {"label": LABEL, "area_km2": area,
                         "sentence": (f"Load {'dense ' if dense else ''}data over {area:,.1f} km² with {name}? "
                                      "This can take a while and slow QGIS down.")}
-    if name in HELD_TOOLS:
+    if declared is not None and declared.held_in_memory:
         count = requested_count(args)
         if count is not None and count > hard_max_features():
             return {
@@ -1004,9 +984,8 @@ def too_many(count: int, args: dict, what: str = "this source", held: str = "") 
 
     if not held:
         return None
-    try:
-        count = int(count)
-    except (TypeError, ValueError):
+    count = as_int(count)
+    if count is None:
         return None
     if count <= hard_max_features():
         return None

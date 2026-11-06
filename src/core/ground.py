@@ -28,6 +28,8 @@ from __future__ import annotations
 import math
 import re
 
+from .qt_compat import enum_member
+
 
 
 
@@ -305,7 +307,6 @@ def area_expression_error(layer) -> float | None:
 
 
 
-
     try:
         from qgis.core import (
             QgsDistanceArea,
@@ -392,8 +393,6 @@ def measure_on_ellipsoid(expression, layer) -> str:
 def _metre_units():
 
     from qgis.core import Qgis, QgsUnitTypes
-
-    from .qt_compat import enum_member
 
 
 

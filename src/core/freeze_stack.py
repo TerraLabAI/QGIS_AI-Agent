@@ -27,6 +27,7 @@ import re
 import time
 
 from .logger import log_warning
+from .numbers import as_int
 from .policy import AGENT_HOME, ensure_agent_directories
 
 _PREFIX = "freeze-stack-"
@@ -48,10 +49,7 @@ def pid_of(name: str) -> int:
 
     if not (name.startswith(_PREFIX) and name.endswith(_SUFFIX)):
         return 0
-    try:
-        return int(name[len(_PREFIX):len(name) - len(_SUFFIX)])
-    except ValueError:
-        return 0
+    return as_int(name[len(_PREFIX):len(name) - len(_SUFFIX)], 0)
 
 
 class FreezeStack:

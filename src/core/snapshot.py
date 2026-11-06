@@ -27,6 +27,7 @@ from __future__ import annotations
 import contextlib
 import hashlib
 import os
+import re
 import sqlite3
 import threading
 import time
@@ -35,10 +36,12 @@ import zipfile
 
 from qgis.core import QgsProject, QgsVectorLayer
 
-from . import designer_guard, tuning
+from . import designer_guard, net, tuning
 from .host_platform import file_error_kind, in_synced_folder, is_transient_refusal, release_pooled_handles, resolved
 from .layer_order import is_remote_vector, is_web_service, read_back
 from .logger import log, log_warning
+from .numbers import as_float, as_int
+from .settings import account_dir
 from .snapshot_features import (
     MAX_CAPTURE_SECONDS,
     MAX_SIGNATURE_TOTAL,
@@ -214,7 +217,6 @@ _style_memory: dict = {}
 
 def style_memory_dir() -> str:
 
-    from .settings import account_dir
 
     path = os.path.join(account_dir(), "style_undo")
     os.makedirs(path, exist_ok=True)
@@ -424,7 +426,6 @@ def prune_soon(protect: str = "") -> None:
 
 
 
-    from .settings import account_dir
 
     try:
         base = snapshots_dir()
@@ -445,6 +446,14 @@ def prune_soon(protect: str = "") -> None:
     _jobs().schedule_job(lambda: prune_snapshots(protect=protect, base=base, index_dir=index_dir,
                                                  disk_mb=disk_mb, threads_dir=threads_dir))
     _jobs().schedule_job(lambda: _prune_style_files(style_dir, kept))
+
+
+def _backup_folder(snapshot_dir: str, lid: str) -> str:
+
+
+    tag = hashlib.sha1(lid.encode("utf-8", "replace"), usedforsecurity=False).hexdigest()[:8]
+    short = re.sub(r"[^\w.-]", "_", lid[:31])
+    return os.path.join(snapshot_dir, "backup", f"{short}_{tag}")
 
 
 class RunSnapshot:
@@ -594,10 +603,7 @@ class RunSnapshot:
         snap.captured = bool(record.get("captured"))
         snap.quiet = bool(record.get("quiet"))
         snap.own_paths = record.get("own_paths") if record.get("own_paths") in ("absolute", "relative") else ""
-        try:
-            snap.captured_at = float(record.get("captured_at") or 0.0)
-        except (TypeError, ValueError):
-            snap.captured_at = 0.0
+        snap.captured_at = as_float(record.get("captured_at") or 0.0, 0.0)
         original = record.get("original_file")
         snap.original_file = original if isinstance(original, str) else ""
         try:
@@ -673,9 +679,8 @@ class RunSnapshot:
 
                 if table and not is_copy_table(table[0]):
                     continue
-                try:
-                    count = int(count or 0)
-                except (TypeError, ValueError):
+                count = as_int(count or 0)
+                if count is None:
                     continue
                 snap.memory_files[str(lid)] = (path, count, *table)
 
@@ -683,10 +688,7 @@ class RunSnapshot:
         for lid, rec in snap.layers.items():
             if not isinstance(rec, dict) or rec.get("provider") != "memory":
                 continue
-            try:
-                count = int(rec.get("feature_count") or 0)
-            except (TypeError, ValueError):
-                count = 0
+            count = as_int(rec.get("feature_count") or 0, 0)
             if count > 0 and lid not in snap.memory_files and lid not in snap.unbacked:
                 snap.unbacked[lid] = str(rec.get("name") or lid)
                 snap.unbacked_reasons[lid] = REASON_MEMORY_LOST
@@ -974,8 +976,7 @@ class RunSnapshot:
 
 
 
-        tag = hashlib.sha1(lid.encode("utf-8", "replace"), usedforsecurity=False).hexdigest()[:8]
-        folder = os.path.join(self.dir, "backup", f"{lid[:31]}_{tag}")
+        folder = _backup_folder(self.dir, lid)
         copies = _backup_copies(folder, _sidecars(path))
         self.backups[lid] = copies
         self.path_backups[canonical] = copies
@@ -1096,7 +1097,6 @@ class RunSnapshot:
 
 
 
-        from . import net
 
         stop = net.current_cancel_check() or (lambda: False)
         with self._copy_lock:
@@ -1200,8 +1200,7 @@ class RunSnapshot:
                 if too_large:
                     out.append(("unbacked", lid, name, None))
                     continue
-                tag = hashlib.sha1(lid.encode("utf-8", "replace"), usedforsecurity=False).hexdigest()[:8]
-                folder = os.path.join(self.dir, "backup", f"{lid[:31]}_{tag}")
+                folder = _backup_folder(self.dir, lid)
                 copies = _backup_copies(folder, _sidecars(path))
                 reason = _copy_files(folder, copies, name or os.path.basename(path))
             except Exception as exc:  # noqa: BLE001

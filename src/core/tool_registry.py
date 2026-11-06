@@ -26,6 +26,7 @@ import traceback
 from dataclasses import dataclass
 from typing import Any, Callable
 
+from . import limits, machine
 from .host_platform import IS_WINDOWS, expand_leading_env
 from .logger import log_warning
 from .serialization import CodedText, carried_code, reads_the_outside_world
@@ -57,9 +58,25 @@ def _schema_copy(value: Any) -> Any:
 _SPECS: dict[str, Tool] = {}
 
 
+
+
+PINNED_LAYER_KEYS = ("layer_name", "layer", "layer_id", "target_layer")
+LAYER_LIST_KEYS = ("layers", "layer_names")
+
+
 def spec(name: str) -> Tool | None:
 
     return _SPECS.get(name)
+
+
+def main_budget(name: str) -> float:
+
+
+
+
+    tool = _SPECS.get(name)
+    return limits.current("CALL_MAX_SECONDS_MAIN_LONG" if tool is not None and tool.long_main
+                          else "CALL_MAX_SECONDS_MAIN")
 
 
 def _expand_home(arguments: dict) -> dict:
@@ -164,14 +181,15 @@ def _network_failure(exc: BaseException) -> str | None:
 
 
 
+    from .net_failure import describe_failure
+
     try:
-        from . import net
         from .background import MainThreadBusy
     except ImportError:
-        return None
+        return describe_failure(exc)
     if isinstance(exc, MainThreadBusy):
         return None
-    return net.describe_failure(exc)
+    return describe_failure(exc)
 
 
 def _refused_file_hint(exc: BaseException) -> str:
@@ -339,6 +357,63 @@ class Tool:
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     name: str
     input_schema: dict
     handler: Callable[[dict], Any]
@@ -389,16 +464,35 @@ class Tool:
     reads_when: Callable[[dict], bool] | None = None
     destructive_when: Callable[[dict], bool] | None = None
     replaces_file_at: str = ""
+    writes_at: tuple[str, ...] = ()
+    creates_layer_at: tuple[str, ...] = ()
+    file_extensions: tuple[str, ...] = ()
+    replaces_on_main: bool = False
     processing: Callable[[dict], tuple[str, list]] | None = None
     gpkg_table: Callable[[dict, str], str | None] | None = None
     table_at: str = ""
     saves_open_project: bool = False
     removes_layer_at: str = ""
     waits_on_user: bool = False
+    mutates_data: bool = False
+    takes_temporary_output: bool = False
+    reads_whole_layer: bool = False
+    render_size: str = ""
+    own_area_rule: bool = False
+    zone_load: str = ""
+    held_in_memory: bool = False
+    loads_source: bool = False
+    check_shape: str = ""
+    layer_use: str = ""
+    derives_layers: bool = False
+    reads_task: bool = False
+    long_main: bool = False
 
     def __post_init__(self):
         if self.danger not in DANGER_LEVELS:
             raise ValueError(f"Tool {self.name}: danger must be one of {DANGER_LEVELS}, got {self.danger!r}")
+        if self.layer_use not in ("", "keep", "visibility", "render"):
+            raise ValueError(f"Tool {self.name}: layer_use must be keep, visibility or render, got {self.layer_use!r}")
         fixed = {
             "input_schema": self._normalize_schema(self.input_schema),
 
@@ -415,9 +509,12 @@ class Tool:
         for key, value in fixed.items():
             object.__setattr__(self, key, value)
 
-    @property
-    def destructive(self) -> bool:
-        return self.danger == "destructive"
+    def written_name(self, path: str) -> str:
+
+
+        if self.file_extensions and not path.lower().endswith(self.file_extensions):
+            return path + self.file_extensions[0]
+        return path
 
     @property
     def annotations(self) -> dict:
@@ -434,7 +531,6 @@ class Tool:
 
 
 
-        from . import limits, machine
 
         hints = {
             "readOnlyHint": self.danger == "read",

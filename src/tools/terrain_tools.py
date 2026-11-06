@@ -66,20 +66,18 @@ from qgis.core import (
 from qgis.PyQt.QtCore import QT_TRANSLATE_NOOP
 from qgis.PyQt.QtGui import QColor
 
-from ..core import limits, net
+from ..core import limits, net, tuning
 from ..core.background import run_on_main_thread
 from ..core.host_platform import remove_tree
 from ..core.logger import log_warning
 from ..core.policy import create_managed_temp_dir
 from ..core.qt_compat import field_type
-from ..core.tool_registry import Tool, ToolRegistry, coded_fact, tool_error
+from ..core.tool_registry import ServedValueMissing, Tool, ToolRegistry, coded_fact, tool_error
 from ._compat import CONTRAST_STRETCH_MINMAX, GRAY_BLACK_TO_WHITE, GRAY_WHITE_TO_BLACK, SHADER_INTERPOLATED
-from .layer_lookup import _find_layer, _layer_not_found_error
+from ._layers import layer_not_found, resolve_layer
 
 PRODUCTS = ("lrm", "svf", "openness_positive", "openness_negative", "multi_hillshade", "slope")
 DEFAULT_PRODUCTS = ("lrm", "svf", "multi_hillshade", "slope")
-
-_STACK = ("multi_hillshade", "slope", "openness_negative", "openness_positive", "svf", "lrm")
 _NUMPY_PRODUCTS = frozenset({"lrm", "svf", "openness_positive", "openness_negative"})
 
 _BLOCK = 1024
@@ -87,9 +85,6 @@ _NODATA = -9999.0
 _FLOAT_TIFF = ["TILED=YES", "COMPRESS=DEFLATE", "PREDICTOR=3", "BIGTIFF=IF_SAFER"]
 _BYTE_TIFF = ["TILED=YES", "COMPRESS=DEFLATE", "BIGTIFF=IF_SAFER"]
 
-_DEFAULT_LRM_RADIUS_M = 20.0
-_DEFAULT_SVF_RADIUS_M = 10.0
-_DEFAULT_DIRECTIONS = 16
 
 
 _MAX_SCAN_STEPS = 64
@@ -98,28 +93,60 @@ _MAX_SCAN_STEPS = 64
 _MAX_LRM_RADIUS_PX = 1024
 _MAX_SVF_RADIUS_PX = 512
 
-_DEFAULT_THRESHOLD_M = 0.3
-_DEFAULT_MIN_AREA_M2 = 10.0
-_DEFAULT_MAX_AREA_M2 = 50_000.0
-_DEFAULT_MAX_CANDIDATES = 200
 _MAX_CANDIDATES = 2000
-_DEFAULT_REFERENCE_DISTANCE_M = 50.0
 
 
 
 _MAX_POLYGONS = 400_000
 _MAX_MEASURED = 50_000
 
-MOUND = "mound or barrow"
-PIT = "pit or hollow"
-RING = "enclosure or ring"
-LINEAR = "linear (road, wall, ditch)"
-RECTANGULAR = "rectangular"
+
+
+
 IRREGULAR = "irregular"
-_TYPE_COLOURS = {
-    MOUND: "#d7301f", PIT: "#2b8cbe", RING: "#ae017e", LINEAR: "#fe9929",
-    RECTANGULAR: "#238443", IRREGULAR: "#737373",
-}
+_IRREGULAR_COLOUR = "#737373"
+
+
+def _rules() -> dict:
+    return tuning.service_doc("terrain_rules") or {}
+
+
+def _default(name: str) -> float:
+
+    value = (_rules().get("defaults") or {}).get(name)
+    if value is None:
+        raise ServedValueMissing(f"terrain_rules.defaults.{name}")
+    return value
+
+
+def _stack() -> tuple:
+
+    stack = tuple(p for p in _rules().get("stack") or () if p in PRODUCTS)
+    if not stack:
+        raise ServedValueMissing("terrain_rules.stack")
+    return stack
+
+
+def _class_name(row: dict, raised: bool):
+    name = row.get("type")
+    if isinstance(name, dict):
+        name = name.get("raised" if raised else "sunken")
+    return name if isinstance(name, str) and name else None
+
+
+def _class_colours(rules: dict) -> dict:
+    colours = {}
+    for row in rules.get("classes") or ():
+        if not isinstance(row, dict):
+            continue
+        for raised in (True, False):
+            name, colour = _class_name(row, raised), row.get("colour")
+            colour = colour.get("raised" if raised else "sunken") if isinstance(colour, dict) else colour
+            if name and isinstance(colour, str):
+                colours[name] = colour
+    colours.setdefault(IRREGULAR, _IRREGULAR_COLOUR)
+    return colours
+
 
 
 
@@ -146,6 +173,7 @@ def register_terrain_tools(registry: ToolRegistry):
     registry.register(Tool(
         name="terrain_visualisation",
         danger="write",
+        check_shape="arrives",
         label=QT_TRANSLATE_NOOP("AIAgent", "Compute relief images[ of {dem}]"),
         input_schema={
             "type": "object",
@@ -167,6 +195,7 @@ def register_terrain_tools(registry: ToolRegistry):
     registry.register(Tool(
         name="detect_terrain_anomalies",
         danger="write",
+        check_shape="arrives",
         label=QT_TRANSLATE_NOOP("AIAgent", "Look for relief anomalies[ in {lrm_layer}][ in {dem}]"),
         input_schema={
             "type": "object",
@@ -192,9 +221,9 @@ def register_terrain_tools(registry: ToolRegistry):
 
 
 def _raster_facts(name: str, extent) -> dict:
-    layer = _find_layer(name)
+    layer = resolve_layer(name)
     if layer is None:
-        return _layer_not_found_error(name)
+        return layer_not_found(name)
     if not isinstance(layer, QgsRasterLayer):
         return tool_error(f"{layer.name()} is not a raster layer.", "INVALID_ARGS",
                           hint="terrain_dem_needed", layer=layer.name())
@@ -309,9 +338,9 @@ def _reference_geometries(names: list, crs_wkt: str, cap: int, window: tuple | N
     target = QgsCoordinateReferenceSystem.fromWkt(crs_wkt)
     out, used = [], []
     for name in names:
-        layer = _find_layer(name)
+        layer = resolve_layer(name)
         if layer is None:
-            return _layer_not_found_error(name)
+            return layer_not_found(name)
         if not isinstance(layer, QgsVectorLayer):
             return tool_error(f"{layer.name()} is not a vector layer.", "INVALID_ARGS",
                               hint="terrain_reference_not_vector", layer=layer.name())
@@ -366,7 +395,7 @@ def _add_candidates(crs_wkt: str, name: str, rows: list) -> dict:
     provider.addFeatures(features)
     layer.updateExtents()
     categories = []
-    for hint, colour in _TYPE_COLOURS.items():
+    for hint, colour in _class_colours(_rules()).items():
         symbol = QgsSymbol.defaultSymbol(layer.geometryType())
         fill = QColor(colour)
         fill.setAlpha(60)
@@ -715,9 +744,10 @@ def _terrain_visualisation(args: dict) -> dict:
     if unknown:
         return tool_error(f"Unknown products: {', '.join(map(str, unknown))}.", "INVALID_ARGS",
                           hint="terrain_products_unknown", products=", ".join(PRODUCTS))
-    lrm_radius_m = float(args.get("lrm_radius_m") or _DEFAULT_LRM_RADIUS_M)
-    svf_radius_m = float(args.get("svf_radius_m") or _DEFAULT_SVF_RADIUS_M)
-    directions = int(args.get("directions") or _DEFAULT_DIRECTIONS)
+    stack = _stack()
+    lrm_radius_m = float(args.get("lrm_radius_m") or _default("lrm_radius_m"))
+    svf_radius_m = float(args.get("svf_radius_m") or _default("svf_radius_m"))
+    directions = int(args.get("directions") or _default("directions"))
     cancelled = net.current_cancel_check()
 
     facts = run_on_main_thread(_raster_facts, str(args["dem"]), args.get("extent"))
@@ -787,7 +817,7 @@ def _terrain_visualisation(args: dict) -> dict:
 
     blend = "lrm" in products and bool({"svf", "multi_hillshade"} & set(products))
     entries = []
-    for product in _STACK:
+    for product in stack:
         if product not in products:
             continue
         s = stats[product]
@@ -898,43 +928,52 @@ def shape_metrics(geometry: QgsGeometry, cell: float) -> dict:
     }
 
 
-def type_hint(raised: bool, m: dict) -> str:
+def _number(value) -> float | None:
+    return float(value) if isinstance(value, (int, float)) and not isinstance(value, bool) else None
 
 
+def type_hint(raised: bool, m: dict, rules: dict) -> str:
 
-    if m["hole_share"] >= 0.15 and m["circularity"] >= 0.6 and m["elongation"] < 2.5:
-        return RING
-    if m["elongation"] >= 3.5:
-        return LINEAR
-    if m["rectangularity"] >= 0.85:
-        return RECTANGULAR
-    if m["circularity"] >= 0.7 and m["elongation"] < 2.0:
-        return MOUND if raised else PIT
+    for row in rules.get("classes") or ():
+        if not isinstance(row, dict):
+            continue
+        low, high = row.get("min") or {}, row.get("max") or {}
+        if all(_number(v) is not None and m.get(k, 0.0) >= v for k, v in low.items()) \
+                and all(_number(v) is not None and m.get(k, 0.0) < v for k, v in high.items()):
+            name = _class_name(row, raised)
+            if name:
+                return name
     return IRREGULAR
 
 
-def relief_weight(peak_m: float) -> float:
+def relief_weight(peak_m: float, relief: dict) -> float:
 
-
-
-
-
+    rise, full, zero = (_number(relief.get(k)) for k in ("rise_to_m", "full_to_m", "zero_at_m"))
+    if not (rise and full and zero) or not rise <= full < zero:
+        return 0.0
     height = abs(peak_m)
-    if height < 0.5:
-        return height / 0.5
-    if height <= 1.5:
+    if height < rise:
+        return height / rise
+    if height <= full:
         return 1.0
-    return max(0.0, 1.0 - (height - 1.5) / 4.5)
+    return max(0.0, 1.0 - (height - full) / (zero - full))
 
 
-def candidate_score(hint: str, peak_m: float, m: dict, near: float | None) -> float:
+def candidate_score(hint: str, peak_m: float, m: dict, near: float | None, rules: dict) -> float:
 
-    shape = {RING: m["circularity"], RECTANGULAR: m["rectangularity"], MOUND: m["circularity"],
-             PIT: m["circularity"],
-
-             LINEAR: m["rectangularity"] * min(1.0, m["elongation"] / 8.0)}.get(hint, 0.1)
-    base = 0.6 * relief_weight(peak_m) + 0.4 * shape
-    return round(100.0 * (base if near is None else 0.75 * base + 0.25 * near), 1)
+    weights = rules.get("score") or {}
+    w_relief, w_shape, w_near = (_number(weights.get(k)) or 0.0 for k in ("relief", "shape", "near"))
+    shape = _number(weights.get("other_shape")) or 0.0
+    for row in rules.get("classes") or ():
+        if isinstance(row, dict) and hint in (_class_name(row, True), _class_name(row, False)):
+            spec = row.get("shape") if isinstance(row.get("shape"), dict) else {}
+            shape = float(m.get(spec.get("metric"), 0.0)) if spec.get("metric") else shape
+            full = _number(spec.get("elongation_full"))
+            if full:
+                shape *= min(1.0, m.get("elongation", 0.0) / full)
+            break
+    base = w_relief * relief_weight(peak_m, rules.get("relief") or {}) + w_shape * shape
+    return round(100.0 * (base if near is None else (1.0 - w_near) * base + w_near * near), 1)
 
 
 def _reference_buckets(wkbs: list, size: float) -> dict:
@@ -992,14 +1031,15 @@ def _detect_anomalies(args: dict, folder: str) -> dict:
     if not source_name:
         return tool_error("dem or lrm_layer (an LRM from terrain_visualisation) is needed.", "INVALID_ARGS",
                           hint="terrain_anomalies_input")
-    threshold = float(args.get("threshold_m") or _DEFAULT_THRESHOLD_M)
+    threshold = float(args.get("threshold_m") or _default("threshold_m"))
     kinds = set(args.get("kinds") or ("raised", "sunken"))
-    min_area = float(args["min_area_m2"]) if args.get("min_area_m2") is not None else _DEFAULT_MIN_AREA_M2
-    max_area = float(args.get("max_area_m2") or _DEFAULT_MAX_AREA_M2)
-    keep = min(_MAX_CANDIDATES, int(args.get("max_candidates") or _DEFAULT_MAX_CANDIDATES),
+    min_area = float(args["min_area_m2"]) if args.get("min_area_m2") is not None else _default("min_area_m2")
+    max_area = float(args.get("max_area_m2") or _default("max_area_m2"))
+    keep = min(_MAX_CANDIDATES, int(args.get("max_candidates") or _default("max_candidates")),
                int(limits.current("MAX_FEATURES_CREATED")))
-    reference_m = float(args.get("reference_distance_m") or _DEFAULT_REFERENCE_DISTANCE_M)
-    lrm_radius_m = float(args.get("lrm_radius_m") or _DEFAULT_LRM_RADIUS_M)
+    reference_m = float(args.get("reference_distance_m") or _default("reference_distance_m"))
+    lrm_radius_m = float(args.get("lrm_radius_m") or _default("lrm_radius_m"))
+    rules = _rules()
     cancelled = net.current_cancel_check()
 
     facts = run_on_main_thread(_raster_facts, str(source_name), args.get("extent"))
@@ -1187,7 +1227,7 @@ def _detect_anomalies(args: dict, folder: str) -> dict:
             if nearest is not None:
                 near_m = nearest * distance_unit_m
                 near = 1.0 if near_m <= reference_m else max(0.0, 1.0 - (near_m - reference_m) / (2.0 * reference_m))
-        hint = type_hint(raised, metrics)
+        hint = type_hint(raised, metrics, rules)
         perimeter = geometry_m.length() * (1.0 if to_metric is not None else unit_m)
         rows.append({
             "wkb": wkb, "type_hint": hint, "relief": "raised" if raised else "sunken",
@@ -1196,7 +1236,7 @@ def _detect_anomalies(args: dict, folder: str) -> dict:
             "elongation": round(metrics["elongation"], 2), "rectangul": round(metrics["rectangularity"], 2),
             "solidity": round(metrics["solidity"], 2), "hole_share": round(metrics["hole_share"], 2),
             "near_ref_m": None if near_m is None else round(near_m, 1),
-            "score": candidate_score(hint, peak_m, metrics, near),
+            "score": candidate_score(hint, peak_m, metrics, near, rules),
             "status": "candidate, not verified",
             "_centre": geometry.centroid().asPoint(),
         })

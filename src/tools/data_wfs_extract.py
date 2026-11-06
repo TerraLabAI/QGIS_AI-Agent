@@ -39,10 +39,12 @@ from ..core import background, limits, net, quiet_credentials
 from ..core.background import run_on_main_thread
 from ..core.crs_ref import crs_ref
 from ..core.host_platform import remove_tree
+from ..core.numbers import as_int
+from ..core.output_paths import file_stem
 from ..core.policy import create_managed_temp_dir
 from ..core.qt_compat import enum_member
 from ..core.tool_registry import coded_fact, tool_error
-from .data_common import _avoid_reserved_name, built_here, worker_options
+from .data_common import built_here, worker_options
 
 
 
@@ -64,10 +66,7 @@ _ISO_WITH_MS = enum_member(Qt, "DateFormat", "ISODateWithMs")
 
 def _type_number(field) -> int:
     kind = field.type()
-    try:
-        return int(getattr(kind, "value", kind))
-    except (TypeError, ValueError):
-        return 10
+    return as_int(getattr(kind, "value", kind), 10)
 
 
 def _ogr_geometry_type(ogr, wkb: int) -> int:
@@ -339,9 +338,8 @@ def extract(url: str, typename: str, name: str, uri: str, count_at: int | None =
     started = time.monotonic()
     deadline = started + limits.current("CALL_MAX_SECONDS_BACKGROUND") * _CLOCK_SHARE
     directory = create_managed_temp_dir("wfs")
-    stem = _avoid_reserved_name("".join(c if c.isalnum() or c in "-_." else "_" for c in typename)[:60] or "wfs")
+    stem = table = file_stem(typename, "wfs")
     path = os.path.join(directory, f"{stem}.gpkg")
-    table = stem.replace(".", "_")
     state: dict = {"written": 0, "ended_by": "", "count_at": count_at, "view": view}
     halted, over, failure = threading.Event(), threading.Event(), []
     keep = {"file": True}

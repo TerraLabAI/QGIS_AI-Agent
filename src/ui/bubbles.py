@@ -15,9 +15,11 @@ import os
 import time
 
 from qgis.PyQt.QtCore import (
+    QT_TRANSLATE_NOOP,
     QAbstractAnimation,
     QCoreApplication,
     QEasingCurve,
+    QEvent,
     QPropertyAnimation,
     QSize,
     Qt,
@@ -30,13 +32,14 @@ from qgis.PyQt.QtWidgets import (
     QGraphicsOpacityEffect,
     QHBoxLayout,
     QLabel,
-    QLineEdit,
+    QPlainTextEdit,
     QPushButton,
     QVBoxLayout,
     QWidget,
 )
 
 from ..core import openui
+from ..core.qt_compat import one_shot
 from .attach_card import AttachCard
 from .attachments import attachment_caption, attachment_kind, card_art, is_picture, tile_pixmap
 from .blocks import BlockPlaceholder, BlockView
@@ -47,24 +50,34 @@ from .image_preview import ClickableThumb, open_image_preview
 from .layer_card import LayerCard
 from .layer_icons import follows_layers
 from .layer_links import LAYER_URL, follow_layer_links
-from .loader import GAP_PX, LINE_PX, DotsLoader, ElapsedClock, ShimmerLabel
+from .loader import GAP_PX, LINE_PX, DotsLoader, ShimmerLabel
 from .markdown_view import MarkdownView
 from .source_marks import SourcesButton
 from .style import (
     _BTN_PRIMARY,
     _BTN_QUIET,
+    ACCENT_INK,
+    BTN_SMALL_PX,
     FONT_BODY,
-    FONT_HINT,
+    FONT_MICRO,
     GREEN,
+    HOVER,
+    HOVER_ON,
     INK,
     INK_2,
     INK_3,
     LINE,
     LINE_STRONG,
     MOTION_FADE_UP_MS,
+    RADIUS_CARD,
+    RADIUS_CHIP,
+    RADIUS_CONTROL,
     RED,
     SPACE_OUTER,
+    SPACE_STAGE,
     SPACE_TIGHT,
+    SURFACE,
+    qcolor,
 )
 from .widgets import FlowLayout, IconButton
 
@@ -100,7 +113,6 @@ SOURCE_PAGE_SCHEME = "library-source:"
 def _tag(text: str, parent=None) -> QLabel:
     label = QLabel(text, parent)
     label.setObjectName("tag")
-    label.setToolTip(text)
     return label
 
 
@@ -177,6 +189,7 @@ class UserBubble(QWidget):
         self._view = MarkdownView(self._frame)
         self._view.set_plain_text(self._text)
         self._view.chip_open_data_links()
+        self._view.chip_private_links()
         self._link_mentions()
         self._view.link_activated.connect(self._on_link)
         self._view.height_changed.connect(self._on_text_height)
@@ -203,8 +216,6 @@ class UserBubble(QWidget):
         if not sources:
             return
         from qgis.PyQt.QtGui import QFont, QTextCharFormat
-
-        from .style import ACCENT_INK, qcolor
 
         document = self._view.document()
         for label, value in sources:
@@ -343,17 +354,6 @@ class UserBubble(QWidget):
             self._tags_host.setFixedHeight(max(0, self._tags_flow.heightForWidth(width)))
 
 
-def _set_layout_visible(layout, visible: bool) -> None:
-    if layout is None:
-        return
-    for i in range(layout.count()):
-        item = layout.itemAt(i)
-        if item.widget() is not None:
-            item.widget().setVisible(visible)
-        elif item.layout() is not None:
-            _set_layout_visible(item.layout(), visible)
-
-
 class _Thumb(IconButton):
 
 
@@ -361,98 +361,229 @@ class _Thumb(IconButton):
     def __init__(self, parent, name: str, tooltip: str, tone: str):
         super().__init__(parent, None, 14, tooltip)
         self.setFixedSize(22, 22)
-        self._name, self._tone = name, tone
+        self._name, self._tone, self._tooltip = name, tone, tooltip
         self.set_icon(self._name, 14, QColor(INK_3))
 
-    def lock_chosen(self) -> None:
-        self.set_icon(self._name + "-solid", 14, QColor(self._tone))
+    def show_chosen(self, chosen: bool) -> None:
+        if chosen:
+            self.set_icon(self._name + "-solid", 14, QColor(self._tone))
+        else:
+            self.set_icon(self._name, 14, QColor(INK_3))
+        self.setToolTip(QCoreApplication.translate("AgentBubble", "Remove rating") if chosen else self._tooltip)
 
-        self.setToolTip(QCoreApplication.translate("RatingWords", "Thanks for the feedback"))
-        self.setCursor(Qt.CursorShape.ArrowCursor)
 
 
-_MORE_FIELD = (
-    "QLineEdit { background: transparent; border: none;"
-    f" border-bottom: 1px solid {LINE}; color: {INK}; font-size: {FONT_BODY}px; padding: 4px 2px; }}"
-    f"QLineEdit:focus {{ border-bottom-color: {LINE_STRONG}; }}"
+_REASONS = (
+    ("wrong_result", QT_TRANSLATE_NOOP("RatingCard", "Wrong result")),
+    ("not_what_i_asked", QT_TRANSLATE_NOOP("RatingCard", "Not what I asked")),
+    ("too_slow", QT_TRANSLATE_NOOP("RatingCard", "Too slow")),
+)
+_REASON_MAX = 500
+_THANKS_MS = 1800
+
+_CARD = (
+    f"QFrame#ratingCard {{ background: {SURFACE}; border: 1px solid {LINE};"
+    f" border-radius: {RADIUS_CARD}px; }}"
+    f"QLabel#ratingQuestion {{ color: {INK}; font-size: {FONT_BODY}px; font-weight: 600; }}"
+    f"QLabel#ratingNote {{ color: {INK_3}; font-size: {FONT_MICRO}px; }}"
+    f"QLabel#ratingThanks {{ color: {INK_2}; font-size: {FONT_BODY}px; }}"
+    f"QPlainTextEdit {{ background: transparent; color: {INK}; border: 1px solid {LINE};"
+    f" border-radius: {RADIUS_CONTROL}px; padding: 4px 6px; font-size: {FONT_BODY}px; }}"
+    f"QPlainTextEdit:focus {{ border-color: {LINE_STRONG}; }}"
+    f"QPushButton#ratingReason {{ background: transparent; color: {INK_2}; border: 1px solid {LINE};"
+    f" border-radius: {RADIUS_CHIP}px; padding: 3px 8px; font-size: {FONT_BODY}px; }}"
+    f"QPushButton#ratingReason:hover {{ background: {HOVER}; color: {INK}; }}"
+    f"QPushButton#ratingReason:checked {{ background: {HOVER_ON}; color: {INK};"
+    f" border-color: {LINE_STRONG}; }}"
 )
 
 
-class RatingWords(QWidget):
+class RatingCard(QFrame):
 
 
 
 
 
 
-    sent = pyqtSignal(str)
 
-    def __init__(self, parent=None):
+
+
+    sent = pyqtSignal(str, str)
+    dismissed = pyqtSignal()
+    finished = pyqtSignal()
+
+    def __init__(self, rating: str, parent=None):
         super().__init__(parent)
+        self.setObjectName("ratingCard")
+        self.setStyleSheet(_CARD)
+        self.setFocusPolicy(Qt.FocusPolicy.ClickFocus)
         col = QVBoxLayout(self)
-        col.setContentsMargins(0, SPACE_TIGHT, 0, 0)
-        col.setSpacing(SPACE_TIGHT)
-        line = QHBoxLayout()
-        line.setContentsMargins(0, 0, 0, 0)
-        line.setSpacing(8)
-        self._field = QLineEdit(self)
-        self._field.setMaxLength(1500)
-        self._field.setPlaceholderText(self.tr("Tell us more"))
-        self._field.setStyleSheet(_MORE_FIELD)
-        self._field.textChanged.connect(self._sync)
-        self._field.returnPressed.connect(self._on_send)
-        line.addWidget(self._field, 1)
-        self._send = QPushButton(self.tr("Send"), self)
+        col.setContentsMargins(SPACE_STAGE, SPACE_OUTER + 2, SPACE_OUTER, SPACE_STAGE)
+        col.setSpacing(SPACE_OUTER)
+        self._body = QWidget(self)
+        body = QVBoxLayout(self._body)
+        body.setContentsMargins(0, 0, SPACE_TIGHT, 0)
+        body.setSpacing(SPACE_OUTER)
+
+        head = QHBoxLayout()
+        head.setContentsMargins(0, 0, 0, 0)
+        head.setSpacing(SPACE_TIGHT)
+        asked = self.tr("What went wrong?") if rating == "down" else self.tr("What worked well?")
+        self._question = question = QLabel(asked, self)
+        question.setObjectName("ratingQuestion")
+        question.setWordWrap(True)
+        head.addWidget(question, 1)
+        self._close = IconButton(self, "lu.x", 14, self.tr("Close"))
+        self._close.setFixedSize(22, 22)
+        self._close.setProperty("agentAction", "rating_close")
+        self._close.clicked.connect(self.dismiss)
+        head.addWidget(self._close, 0, Qt.AlignmentFlag.AlignTop)
+        col.addLayout(head)
+
+        self._reasons: dict[str, QPushButton] = {}
+        self._chips = None
+        if rating == "down":
+            self._chips = QWidget(self._body)
+            flow = FlowLayout(self._chips, 6, 6)
+            for code, label in _REASONS:
+                chip = QPushButton(QCoreApplication.translate("RatingCard", label), self._chips)
+                chip.setObjectName("ratingReason")
+                chip.setCheckable(True)
+                chip.setCursor(Qt.CursorShape.PointingHandCursor)
+                chip.setProperty("agentAction", "rating_reason_" + code)
+                chip.toggled.connect(lambda on, c=code: self._on_reason(c, on))
+                flow.addWidget(chip)
+                self._reasons[code] = chip
+            body.addWidget(self._chips)
+
+        self._field = QPlainTextEdit(self._body)
+        self._field.setPlaceholderText(self.tr("Add details (optional)") if rating == "down"
+                                       else self.tr("Tell us more (optional)"))
+        self._field.setTabChangesFocus(True)
+        self._field.setFixedHeight(58)
+        self._field.textChanged.connect(self._on_text)
+        self._field.installEventFilter(self)
+        body.addWidget(self._field)
+
+        foot = QHBoxLayout()
+        foot.setContentsMargins(0, 0, 0, 0)
+        foot.setSpacing(SPACE_OUTER)
+
+        self._note = QLabel(self.tr("Your words are sent with this chat and recent logs."), self._body)
+        self._note.setObjectName("ratingNote")
+        self._note.setWordWrap(True)
+        foot.addWidget(self._note, 1, Qt.AlignmentFlag.AlignVCenter)
+        self._send = QPushButton(self.tr("Send"), self._body)
         self._send.setStyleSheet(_BTN_PRIMARY)
-        self._send.setFixedHeight(28)
+        self._send.setFixedHeight(BTN_SMALL_PX)
         self._send.setCursor(Qt.CursorShape.PointingHandCursor)
         self._send.setProperty("agentAction", "rating_send")
         self._send.clicked.connect(self._on_send)
-        line.addWidget(self._send)
-        col.addLayout(line)
-        self._line = line
+        foot.addWidget(self._send, 0, Qt.AlignmentFlag.AlignVCenter)
+        body.addLayout(foot)
+        col.addWidget(self._body)
 
-        self._hint = QLabel(
-            self.tr("Sent with this conversation and your recent logs, to fix issues and improve AI Agent."), self)
-        self._hint.setWordWrap(True)
-        self._hint.setStyleSheet(f"color: {INK_3}; font-size: {FONT_HINT}px;")
-        col.addWidget(self._hint)
-        self._note = QLabel(self)
-        self._note.setStyleSheet(f"color: {INK_3}; font-size: {FONT_HINT}px;")
-        self._note.setAlignment(Qt.AlignmentFlag.AlignRight)
-        self._note.hide()
-        col.addWidget(self._note)
+        self._thanks = QLabel(self.tr("Thanks for the feedback"), self)
+        self._thanks.setObjectName("ratingThanks")
+        self._thanks.hide()
+        col.addWidget(self._thanks)
+        self._busy = False
+        self._fade = None
         self._sync()
 
-    def focus(self) -> None:
-        self._field.setFocus()
+    def resizeEvent(self, event):  # noqa: N802
+        super().resizeEvent(event)
+        if self._chips is not None:
+            self._chips.setFixedHeight(self._chips.layout().heightForWidth(max(60, self._chips.width())))
 
-    def is_done(self) -> bool:
-        return self._line is None
+    def eventFilter(self, obj, event):  # noqa: N802
+        if obj is self._field and event.type() == QEvent.Type.KeyPress:
+            key = event.key()
+            if key == Qt.Key.Key_Escape:
+                self.dismiss()
+                return True
+            if key in (Qt.Key.Key_Return, Qt.Key.Key_Enter) and (
+                    event.modifiers() & (Qt.KeyboardModifier.ControlModifier | Qt.KeyboardModifier.MetaModifier)):
+                self._on_send()
+                return True
+        return super().eventFilter(obj, event)
+
+    def keyPressEvent(self, event):  # noqa: N802
+        if event.key() == Qt.Key.Key_Escape:
+            self.dismiss()
+            return
+        super().keyPressEvent(event)
+
+    def reason_code(self) -> str:
+        return next((code for code, chip in self._reasons.items() if chip.isChecked()), "")
+
+    def text(self) -> str:
+        return self._field.toPlainText().strip()[:_REASON_MAX]
+
+    def _on_reason(self, code: str, on: bool) -> None:
+
+        if on:
+            for other, chip in self._reasons.items():
+                if other != code and chip.isChecked():
+                    chip.setChecked(False)
+        self._sync()
+
+    def _on_text(self) -> None:
+        if len(self._field.toPlainText()) > _REASON_MAX:
+            cursor = self._field.textCursor()
+            self._field.setPlainText(self._field.toPlainText()[:_REASON_MAX])
+            cursor.setPosition(_REASON_MAX)
+            self._field.setTextCursor(cursor)
+        self._sync()
 
     def _sync(self) -> None:
-        self._send.setEnabled(bool(self._field.text().strip()) and self._field.isEnabled())
+        self._send.setEnabled(not self._busy and bool(self.text() or self.reason_code()))
 
     def _on_send(self) -> None:
-        text = self._field.text().strip()
-        if not text or not self._field.isEnabled():
+        if self._busy or not (self.text() or self.reason_code()):
             return
-        self._field.setEnabled(False)
+        self._busy = True
+        self._body.setEnabled(False)
         self._sync()
-        self.sent.emit(text)
+        self.sent.emit(self.reason_code(), self.text())
+
+    def dismiss(self) -> None:
+        if not self._busy:
+            self.dismissed.emit()
 
     def done(self, ok: bool) -> None:
+
+        if not self._busy:
+            return
         try:
-            if ok:
-                _set_layout_visible(self._line, False)
-                self._line = None
-                self._hint.hide()
-                self._note.setText(self.tr("Thanks for the feedback"))
-            else:
-                self._field.setEnabled(True)
-                self._sync()
+            self._busy = False
+            if not ok:
+                self._body.setEnabled(True)
                 self._note.setText(self.tr("Could not send. Try again."))
-            self._note.show()
+                self._sync()
+                return
+            self._body.hide()
+            self._close.hide()
+            self._question.hide()
+            self.setStyleSheet(_CARD.replace(f"border: 1px solid {LINE};", "border: none;", 1)
+                               .replace(f"background: {SURFACE};", "background: transparent;", 1))
+            self.layout().setContentsMargins(0, SPACE_TIGHT, 0, 0)
+            self._thanks.show()
+            one_shot(self, self._fade_out, _THANKS_MS).start()
+        except RuntimeError:
+            pass
+
+    def _fade_out(self) -> None:
+        try:
+            effect = QGraphicsOpacityEffect(self)
+            self.setGraphicsEffect(effect)
+            fade = QPropertyAnimation(effect, b"opacity", self)
+            fade.setDuration(MOTION_FADE_UP_MS)
+            fade.setStartValue(1.0)
+            fade.setEndValue(0.0)
+            fade.finished.connect(self.finished.emit)
+            self._fade = fade
+            fade.start()
         except RuntimeError:
             pass
 
@@ -482,7 +613,7 @@ class AgentBubble(QWidget):
 
 
     rated = pyqtSignal(str)
-    rating_words = pyqtSignal(str, str)
+    rating_words = pyqtSignal(str, str, str)
 
     report_clicked = pyqtSignal()
 
@@ -555,7 +686,7 @@ class AgentBubble(QWidget):
             thumb.hide()
             actions.addWidget(thumb, 0, Qt.AlignmentFlag.AlignVCenter)
         self._rating = ""
-        self._words: RatingWords | None = None
+        self._words: RatingCard | None = None
         self._actions.hide()
         follows_layers(self)
         self._col.addWidget(self._actions)
@@ -567,10 +698,7 @@ class AgentBubble(QWidget):
         self._finished = False
         self._linked = False
         self._followed = ""
-        self._timer = QTimer(self)
-        self._timer.setSingleShot(True)
-        self._timer.setInterval(_STREAM_INTERVAL_MS)
-        self._timer.timeout.connect(self._flush_pending)
+        self._timer = one_shot(self, self._flush_pending, _STREAM_INTERVAL_MS)
         if text:
             self.set_text(text)
 
@@ -780,9 +908,6 @@ class AgentBubble(QWidget):
         self._report.setVisible(bool(shown))
         self._sync_actions()
 
-    def report_offered(self) -> bool:
-        return not self._report.isHidden()
-
     def _on_report(self) -> None:
         self.set_report_offer(False)
         self.report_clicked.emit()
@@ -812,8 +937,8 @@ class AgentBubble(QWidget):
 
         has_sources = bool(self._sources.sources())
         rateable = self._finished and bool(self._text.strip()) and bool(self.run_id)
-        for name, thumb in self._thumbs.items():
-            thumb.setVisible(rateable and self._rating in ("", name))
+        for thumb in self._thumbs.values():
+            thumb.setVisible(rateable)
         shown = has_sources or not self._restore.isHidden() or not self._report.isHidden() or rateable
         if shown != (not self._actions.isHidden()):
             self._actions.setVisible(shown)
@@ -821,25 +946,43 @@ class AgentBubble(QWidget):
 
     def set_rating(self, rating: str) -> None:
 
-        if rating not in ("up", "down") or self._rating:
-            return
+        rating = rating if rating in ("up", "down") else ""
         self._rating = rating
-        self._thumbs[rating].lock_chosen()
+        for name, thumb in self._thumbs.items():
+            thumb.show_chosen(name == rating)
         self._sync_actions()
 
     def _on_thumb(self, rating: str) -> None:
 
-        if self._rating:
-            return
+
+        rating = "" if rating == self._rating else rating
         self.set_rating(rating)
         self.rated.emit(rating)
-        if self._words is None:
-            self._words = RatingWords(self)
-            self._words.sent.connect(lambda text: self.rating_words.emit(self._rating, text))
-            self._col.addWidget(self._words)
-            self._words.show()
-            self._words.focus()
-            self._on_text_height(0)
+        self._close_words()
+        if not rating:
+            return
+        card = RatingCard(rating, self)
+        card.sent.connect(lambda code, text, r=rating: self.rating_words.emit(r, code, text))
+        card.dismissed.connect(self._close_words)
+        card.finished.connect(self._close_words)
+        self._words = card
+        self._col.addWidget(card)
+        card.show()
+        self._fade_up(card)
+
+        self._on_text_height(0)
+
+    def _close_words(self) -> None:
+        card, self._words = self._words, None
+        if card is None:
+            return
+        try:
+            card.hide()
+            self._col.removeWidget(card)
+            card.deleteLater()
+        except RuntimeError:
+            return
+        self._on_text_height(0)
 
     def words_done(self, ok: bool) -> None:
         if self._words is not None:
@@ -942,9 +1085,7 @@ class StatusLine(QWidget):
 
 
 
-
-    def __init__(self, text: str = "", parent=None, started: float | None = None,
-                 reduced_motion=None):
+    def __init__(self, text: str = "", parent=None, reduced_motion=None):
         super().__init__(parent)
         self._reduced_motion = reduced_motion
         row = QHBoxLayout(self)
@@ -955,8 +1096,6 @@ class StatusLine(QWidget):
         self._label = ShimmerLabel("", self)
         self._label.setObjectName("statusText")
         row.addWidget(self._label, 0, Qt.AlignmentFlag.AlignVCenter)
-        self._clock = ElapsedClock(started, self)
-        row.addWidget(self._clock, 0, Qt.AlignmentFlag.AlignVCenter)
         row.addStretch(1)
         self.setFixedHeight(LINE_PX)
         self.set_text(text)
@@ -971,12 +1110,6 @@ class StatusLine(QWidget):
     def text(self) -> str:
         return self._label.text()
 
-    def set_started(self, started: float) -> None:
-        self._clock.set_started(started)
-
-    def hide_clock(self, hidden: bool) -> None:
-        self._clock.setVisible(not hidden)
-
     def start(self) -> None:
         motion = not (callable(self._reduced_motion) and self._reduced_motion())
         for part in (self._dots, self._label):
@@ -986,7 +1119,6 @@ class StatusLine(QWidget):
     def stop(self) -> None:
         self._dots.stop()
         self._label.stop()
-        self._clock.stop()
 
     def showEvent(self, event):  # noqa: N802
         super().showEvent(event)

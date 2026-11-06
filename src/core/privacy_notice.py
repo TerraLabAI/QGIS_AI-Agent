@@ -37,6 +37,9 @@
 
 from __future__ import annotations
 
+from .numbers import as_int
+from .settings import profile_settings
+
 PRIVACY_NOTICE_VERSION = 1
 
 
@@ -56,9 +59,8 @@ _served_version = 0
 def set_served_notice_version(version: int) -> None:
 
     global _served_version, _accepted_memo
-    try:
-        value = int(version)
-    except (TypeError, ValueError):
+    value = as_int(version)
+    if value is None:
         return
     if value > _served_version:
         _served_version = value
@@ -112,13 +114,7 @@ def save_privacy_notice_accepted(settings=None) -> None:
         settings.setValue(PRIVACY_NOTICE_KEY, current_notice_version())
         _accepted_memo = True
         return
-    from .settings import profile_settings
 
     profile_settings().setValue(PRIVACY_NOTICE_KEY, current_notice_version())
     _accepted_memo = True
 
-
-def reset_privacy_notice_memo() -> None:
-
-    global _accepted_memo
-    _accepted_memo = None

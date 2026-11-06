@@ -29,12 +29,17 @@ from __future__ import annotations
 
 import os
 import re
+import secrets
 import sys
 
 from qgis.PyQt.QtCore import QUrl
 
 from ..core.links import URL_STOP, open_data_chip
-from .markdown_view import SOURCE_SCHEME
+
+
+
+
+SOURCE_SCHEME = f"source-{secrets.token_hex(6)}:"
 
 
 
@@ -126,7 +131,8 @@ def suffix_of(path: str) -> str:
 
 
 
-    name = str(path or "").rstrip(". \t")
+
+    name = str(path or "").rstrip(". \t/\\")
     return os.path.splitext(name)[1].lstrip(".").lower()
 
 

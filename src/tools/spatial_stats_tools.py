@@ -48,16 +48,18 @@ from qgis.core import (
 from qgis.PyQt.QtCore import QT_TRANSLATE_NOOP, QCoreApplication
 from qgis.PyQt.QtGui import QColor
 
-from ..core import background, limits, net, security, tuning
+from ..core import background, limits, net, output_paths, security, tuning
 from ..core.background import run_on_main_thread
 from ..core.host_platform import remove_quietly
 from ..core.invariants import metres_per_map_unit
 from ..core.layer_order import feature_count_of
+from ..core.numbers import as_float
 from ..core.policy import create_managed_temp_dir
 from ..core.qt_compat import enum_member, field_type
 from ..core.tool_registry import Tool, ToolRegistry, coded_fact, tool_error
 from . import spatial_stats_math as sm
-from .layer_lookup import _field_not_found_error, _find_layer, _is_qgis_null, _layer_not_found_error
+from ._layers import layer_not_found, resolve_layer, take_layer_name
+from .layer_lookup import _field_not_found_error, _is_qgis_null
 
 METHODS = ("getis_ord_gi_star", "local_moran", "standard_deviational_ellipse")
 NEIGHBOURS = ("queen", "rook", "distance_band", "k_nearest")
@@ -208,9 +210,9 @@ def _field(layer, name: str, role: str, numeric: bool):
 def _plan(args: dict) -> dict:
 
     ref = str(args.get("layer") or "").strip()
-    layer = _find_layer(ref)
+    layer = resolve_layer(ref)
     if layer is None:
-        return _layer_not_found_error(ref)
+        return layer_not_found(ref)
     if not isinstance(layer, QgsVectorLayer):
         return tool_error(f"{layer.name()} is not a vector layer.", "INVALID_ARGS",
                           hint="spatial_stats_not_vector", layer=layer.name())
@@ -389,9 +391,8 @@ def _read(state: dict, plan: dict, rows: list, cancelled) -> None:
 def _plain_number(value):
     if value is None or _is_qgis_null(value) or isinstance(value, bool):
         return None
-    try:
-        number = float(value)
-    except (TypeError, ValueError):
+    number = as_float(value)
+    if number is None:
         return None
     return number if math.isfinite(number) else None
 
@@ -690,7 +691,6 @@ def _writer(path: str, table: str, fields: QgsFields, wkb_type, crs, context):
 
 
 def _target(plan: dict, stem: str) -> tuple:
-    from ..core import output_paths
 
     folder = create_managed_temp_dir("spatial-stats")
     name = output_paths.safe_file_name(f"{plan['layer']} {stem}", stem).replace(" ", "_")[:80]
@@ -773,7 +773,6 @@ def _symbol(kind: str, color: str):
 
 def _add_layer(plan: dict, path: str, table: str, field: str, name: str) -> dict:
 
-    from ._layers import take_layer_name
 
     layer = QgsVectorLayer(f"{path}|layername={table}", name, "ogr")
     if not layer.isValid():

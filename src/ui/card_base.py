@@ -19,6 +19,7 @@ from qgis.PyQt.QtCore import QCoreApplication, Qt
 from qgis.PyQt.QtGui import QColor
 from qgis.PyQt.QtWidgets import QHBoxLayout, QLabel, QPushButton, QVBoxLayout, QWidget
 
+from ..core.numbers import as_float
 from .font_scale import scale_point_size, scale_qss_font_px
 from .icons import ink_of, pixmap_for
 from .style import (
@@ -56,7 +57,7 @@ _MSG_KIND_ICONS = {
     "warning": "warning",
     "error": "close",
     "error_transient": "close",
-    "premium": "spark",
+    "premium": "gem",
 }
 
 
@@ -123,9 +124,8 @@ def format_duration(seconds) -> str:
 
 
 
-    try:
-        value = float(seconds)
-    except (TypeError, ValueError):
+    value = as_float(seconds)
+    if value is None:
         return ""
     if value < 0:
         return ""

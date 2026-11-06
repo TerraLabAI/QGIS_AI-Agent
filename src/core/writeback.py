@@ -33,6 +33,7 @@ from typing import Callable
 
 from .host_platform import remove_quietly, retry_file_op
 from .logger import log_warning
+from .qt_compat import one_shot
 
 DEFAULT_DELAY_MS = 150
 
@@ -118,12 +119,7 @@ class WriteBehind:
             if app is None:
                 return False
             try:
-                from qgis.PyQt.QtCore import QTimer
-
-                timer = QTimer()
-                timer.setSingleShot(True)
-                timer.setInterval(self._delay_ms)
-                timer.timeout.connect(self.flush)
+                timer = one_shot(None, self.flush, self._delay_ms)
             except Exception:  # noqa: BLE001
                 return False
             self._timer = timer

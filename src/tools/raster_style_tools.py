@@ -13,9 +13,10 @@ except ImportError:  # pragma: no cover
     QgsRasterAttributeTable = None
 from qgis.PyQt.QtCore import QT_TRANSLATE_NOOP
 
+from ..core.numbers import as_int
 from ..core.tool_registry import Tool, ToolRegistry, tool_error
+from ._layers import resolve_layer
 from .colour_text import qcolor_from_text
-from .layer_lookup import _find_layer
 from .style_tools import _previous_style_keys, _style_to_put_back
 
 
@@ -30,6 +31,7 @@ def register_raster_style_tools(registry: ToolRegistry) -> None:
         "required": ["value", "color"], "additionalProperties": False}
     registry.register(Tool(
         name="set_raster_class_style",
+        layer_use="keep",
         danger="write",
         label=QT_TRANSLATE_NOOP("AIAgent", "Style raster classes on {layer_name}"),
         input_schema={
@@ -39,14 +41,13 @@ def register_raster_style_tools(registry: ToolRegistry) -> None:
 
 
 def _validate(args):
-    layer = _find_layer(str(args.get("layer_name") or ""))
+    layer = resolve_layer(str(args.get("layer_name") or ""))
     if layer is None:
         return None, tool_error(f"Layer {args.get('layer_name')!r} was not found.", "LAYER_NOT_FOUND")
     if not isinstance(layer, QgsRasterLayer):
         return None, tool_error("This tool needs a raster layer.", "INVALID_ARGS")
-    try:
-        band = int(args.get("band") or 1)
-    except (TypeError, ValueError):
+    band = as_int(args.get("band") or 1)
+    if band is None:
         return None, tool_error("band must be a positive integer.", "INVALID_ARGS")
     if band < 1 or band > layer.bandCount():
         return None, tool_error(f"Band {band} is outside 1..{layer.bandCount()}.", "INVALID_ARGS")

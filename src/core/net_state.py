@@ -2,9 +2,21 @@
 # SPDX-License-Identifier: GPL-2.0-or-later
 
 
+
+
 from __future__ import annotations
 
 import threading
+from collections import OrderedDict
+
+
+_CACHE: OrderedDict = OrderedDict()
+_CACHE_LOCK = threading.Lock()
+
+
+def clear_cache() -> None:
+    with _CACHE_LOCK:
+        _CACHE.clear()
 
 
 

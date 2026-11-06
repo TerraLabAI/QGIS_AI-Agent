@@ -18,25 +18,20 @@ import json
 import os
 import re
 import uuid
-from datetime import datetime, timezone
 
 from qgis.core import QgsApplication, QgsAuthMethodConfig, QgsSettings
 from qgis.PyQt.QtCore import QLocale, QSysInfo
 
+from .dev_env import dev_env
 from .host_platform import IS_WINDOWS, retry_file_op
+from .i18n import current_locale, qgis_locale_names
+from .net_state import clear_cache
 from .plan import effort_allowed, effort_default, effort_name, efforts_stated, plan_features, stated
 from .policy import state_dir  # noqa: F401
 
 GROUP = "TerraLab/AIAgent"
 DEFAULT_SERVER_URL = "wss://agent.terra-lab.ai/ws"
 _LOOPBACK_HOSTS = ("localhost", "127.0.0.1", "::1")
-
-
-
-
-
-
-
 
 
 def profile_settings():
@@ -52,39 +47,6 @@ def profile_settings():
 
 
 UNSAVED_KEY = "(unsaved)"
-_unsaved_grants: dict[str, str] = {}
-_unsaved_watch = {"tried": False}
-
-
-def forget_unsaved_grants() -> None:
-
-    _unsaved_grants.clear()
-
-
-def _watch_project_cleared() -> None:
-
-    if _unsaved_watch["tried"]:
-        return
-    _unsaved_watch["tried"] = True
-    try:
-        from qgis.core import QgsProject
-
-        QgsProject.instance().cleared.connect(forget_unsaved_grants)
-    except Exception:  # nosec B110
-        pass
-
-
-def stop_watching_project() -> None:
-
-    if not _unsaved_watch["tried"]:
-        return
-    _unsaved_watch["tried"] = False
-    try:
-        from qgis.core import QgsProject
-
-        QgsProject.instance().cleared.disconnect(forget_unsaved_grants)
-    except Exception:  # nosec B110
-        pass
 
 
 def server_url_problem(url: str) -> str | None:
@@ -266,12 +228,7 @@ def reset_account_tag_cache() -> None:
 
     global _account_tag_cache
     _account_tag_cache = None
-    try:
-        from . import net
-
-        net.clear_cache()
-    except Exception:  # nosec B110
-        pass
+    clear_cache()
 
 
 def account_tag(key: str = "") -> str:
@@ -293,11 +250,15 @@ def account_tag(key: str = "") -> str:
 
 def account_dir() -> str:
 
+
+
+
+
     folder = os.path.join(state_dir(), "accounts", account_tag())
     try:
         os.makedirs(folder, exist_ok=True)
     except OSError:
-        return state_dir()
+        return folder
     _adopt_legacy_state(folder)
     return folder
 
@@ -343,26 +304,6 @@ def _cache_path(name: str) -> str:
     profile = hashlib.sha1(QgsApplication.qgisSettingsDirPath().encode("utf-8"),
                            usedforsecurity=False).hexdigest()[:10]
     return os.path.join(state_dir(), "server-cache", f"{profile}-{name}.json")
-
-
-_CHINESE_SCRIPTS = {"hans": "zh_CN", "hant": "zh_TW"}
-_CHINESE_REGIONS = ("CN", "TW", "HK", "MO", "SG")
-
-
-def plugin_locale(tag: str) -> str:
-
-
-
-
-
-
-
-
-    parts = str(tag or "").replace("_", "-").split("-")
-    if parts[0].lower() == "zh" and len(parts) > 1 and parts[1].lower() in _CHINESE_SCRIPTS:
-        region = parts[2].upper() if len(parts) > 2 else ""
-        return "zh_" + region if region in _CHINESE_REGIONS else _CHINESE_SCRIPTS[parts[1].lower()]
-    return str(tag or "")[:5]
 
 
 class Settings:
@@ -515,7 +456,7 @@ class Settings:
 
     @property
     def website_url(self) -> str:
-        env = os.environ.get("TERRALAB_BASE_URL")
+        env = dev_env("TERRALAB_BASE_URL")
         if env:
             return env.rstrip("/")
         return (self._get("website_url", DEFAULT_WEBSITE_URL) or DEFAULT_WEBSITE_URL).rstrip("/")
@@ -811,14 +752,7 @@ class Settings:
     def locale(self) -> str:
 
         self._drop_stored_locale()
-        try:
-            override = self._s.value("locale/overrideFlag", False, type=bool)
-            user = self._s.value("locale/userLocale", "", type=str)
-            if override and user:
-                return plugin_locale(user)
-        except Exception:  # nosec B110
-            pass
-        return plugin_locale(QLocale.system().name() or "en")
+        return current_locale()
 
 
     @property
@@ -839,14 +773,6 @@ class Settings:
         self._set_choice("reply_style", value)
 
     @property
-    def explain_runs(self) -> bool:
-        return self._get("explain_runs", "1") == "1"
-
-    @explain_runs.setter
-    def explain_runs(self, value: bool) -> None:
-        self._set("explain_runs", "1" if value else "0")
-
-    @property
     def follow_edits(self) -> bool:
 
 
@@ -861,13 +787,6 @@ class Settings:
     def follow_edits(self, value: bool) -> None:
         self._set("follow_edits", "1" if value else "0")
 
-    @property
-    def show_tool_details(self) -> bool:
-        return self._get("show_tool_details", "1") == "1"
-
-    @show_tool_details.setter
-    def show_tool_details(self, value: bool) -> None:
-        self._set("show_tool_details", "1" if value else "0")
 
 
     @property
@@ -888,7 +807,19 @@ class Settings:
 
     @property
     def units(self) -> str:
-        return self._choice("units")
+
+
+
+        stored = self._get("units", "")
+        if stored in self.CHOICES["units"]:
+            return stored
+        try:
+            override, _ = qgis_locale_names()
+            where = QLocale(override) if override else QLocale.system()
+            us = getattr(QLocale, "MeasurementSystem", QLocale).ImperialUSSystem
+            return "imperial" if where.measurementSystem() == us else "metric"
+        except Exception:  # noqa: BLE001
+            return "metric"
 
     @units.setter
     def units(self, value: str) -> None:
@@ -989,10 +920,37 @@ class Settings:
     def memory_forgotten(self, texts: list) -> None:
         self._set("memory_forgotten", json.dumps(list(texts or []), ensure_ascii=False))
 
+    @property
+    def personal_owner(self) -> str:
+
+        return self._get("personal_owner", "")
+
+    @personal_owner.setter
+    def personal_owner(self, tag: str) -> None:
+        self._set("personal_owner", tag or "")
+
+    @property
+    def personal_by_account(self) -> dict:
+
+
+
+
+
+        try:
+            data = json.loads(self._get("personal_by_account", "") or "{}")
+        except ValueError:
+            return {}
+        return data if isinstance(data, dict) else {}
+
+    @personal_by_account.setter
+    def personal_by_account(self, values: dict) -> None:
+        self._set("personal_by_account", json.dumps(values or {}, ensure_ascii=False))
+
 
     PREFERENCE_KEYS = (
-        "mode", "approval", "effort", "effort_pro", "model_mode", "reply_language", "reply_style", "explain_runs",
-        "show_tool_details",
+        "mode", "approval", "effort", "effort_pro", "model_mode", "reply_language", "reply_style",
+
+        "explain_runs", "show_tool_details",
 
         "question_timeout_s", "question_policy", "follow_edits", "send_shortcut",
         "expertise", "units", "layer_naming",
@@ -1061,9 +1019,6 @@ class Settings:
 
 
 
-
-
-
     def _allow_map(self) -> dict:
         raw = self._get("allow_project", "")
         if not raw:
@@ -1111,22 +1066,9 @@ class Settings:
 
     def is_allowed(self, project_path: str, tool_name: str) -> bool:
         if self._grant_key(project_path) == UNSAVED_KEY:
-            return tool_name in _unsaved_grants
+            return False
         data = self._allow_map()
         return any(tool_name in data.get(key, {}) for key in self._grant_keys(project_path))
-
-    def allow(self, project_path: str, tool_name: str) -> None:
-        if self._grant_key(project_path) == UNSAVED_KEY:
-
-            _watch_project_cleared()
-            _unsaved_grants.setdefault(
-                tool_name, datetime.now(timezone.utc).replace(microsecond=0).isoformat())
-            return
-        data = self._allow_map()
-        tools = data.setdefault(self._grant_key(project_path), {})
-        tools.setdefault(tool_name, datetime.now(timezone.utc).replace(microsecond=0).isoformat())
-        self._set("allow_project", json.dumps(data))
-
 
     def _machine_seed(self) -> bytes:
 

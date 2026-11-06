@@ -37,7 +37,6 @@
 
 
 
-
 from __future__ import annotations
 
 from qgis.PyQt.QtCore import (
@@ -50,14 +49,14 @@ from qgis.PyQt.QtCore import (
 from qgis.PyQt.QtGui import QPainter
 from qgis.PyQt.QtWidgets import QHBoxLayout, QLabel, QSizePolicy, QVBoxLayout, QWidget
 
-from .card_base import format_duration
 from .cards_tool import ToolCard
 from .font_scale import scale_qss_font_px
 from .icons import pixmap_for
-from .loader import ElapsedClock, ShimmerLabel
+from .loader import DotsLoader, ElapsedClock, ShimmerLabel
 from .style import (
     FONT_BASE,
     FONT_BODY,
+    GREEN,
     INK_2,
     INK_3,
     LINE,
@@ -88,7 +87,7 @@ _BODY_PAD_Y = 4
 _LIVE_ROWS = 4
 
 _TRACE_TITLE_QSS = scale_qss_font_px(
-    f"QLabel {{ font-size: {FONT_BASE}px; color: {INK_2}; font-weight: 500;"
+    f"QLabel {{ font-size: {FONT_BASE}px; color: {INK_2};"
     " background: transparent; border: none; }"
 )
 _NOTE_QSS = scale_qss_font_px(
@@ -145,9 +144,10 @@ class RunTrace(QWidget):
         self._icon = QLabel(self._head)
         self._icon.setFixedSize(_SPARK_PX + 2, _SPARK_PX + 2)
         self._icon.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self._icon.setPixmap(pixmap_for(self, "lu.sparkle", _SPARK_PX,
-                                        qcolor(INK_2 if self._live else INK_3)))
         head.addWidget(self._icon, 0, Qt.AlignmentFlag.AlignVCenter)
+
+        self._dots = DotsLoader(self._head)
+        head.addWidget(self._dots, 0, Qt.AlignmentFlag.AlignVCenter)
 
         self._live_text = ShimmerLabel("", self._head)
         self._live_text.setObjectName("traceLive")
@@ -169,9 +169,10 @@ class RunTrace(QWidget):
         self._title_outcome.setStyleSheet(_HINT_QSS)
         self._title_outcome.hide()
         head.addWidget(self._title_outcome, 0, Qt.AlignmentFlag.AlignVCenter)
+
+
         self._clock = ElapsedClock(started, self._head)
-        self._clock_hidden = False
-        head.addWidget(self._clock, 0, Qt.AlignmentFlag.AlignVCenter)
+        self._clock.hide()
         self._chevron = Chevron(_CHEVRON_PX, self._head)
         head.addWidget(self._chevron, 0, Qt.AlignmentFlag.AlignVCenter)
         head.addStretch(1)
@@ -226,10 +227,6 @@ class RunTrace(QWidget):
         self._latest = row.line()
         self._sync_head()
         self._grew()
-
-    def hide_clock(self, hidden: bool) -> None:
-        self._clock_hidden = bool(hidden)
-        self._sync_head()
 
     def set_activity(self, text: str, progress=None) -> None:
 
@@ -374,11 +371,18 @@ class RunTrace(QWidget):
         elif blocked:
 
             self._icon.setPixmap(pixmap_for(self, "lock", _SPARK_PX, qcolor(INK_2)))
+        elif self.status in ("cancelled", "interrupted"):
+            self._icon.setPixmap(pixmap_for(self, "lu.minus", _SPARK_PX, qcolor(INK_3)))
         else:
-            self._icon.setPixmap(pixmap_for(self, "lu.sparkle", _SPARK_PX,
-                                            qcolor(INK_2 if live and self._live else INK_3)))
-
-        self._clock.setVisible(live and self._live and not self._clock_hidden)
+            self._icon.setPixmap(pixmap_for(self, "lu.circle-check", _SPARK_PX, qcolor(GREEN)))
+        dots = live and self._live
+        self._icon.setVisible(not dots)
+        self._dots.setVisible(dots)
+        if dots:
+            self._dots.set_motion(not (callable(self._reduced_motion) and self._reduced_motion()))
+            self._dots.start()
+        else:
+            self._dots.stop()
         if live:
             self._live_text.setText(self.running_title())
             motion = not (callable(self._reduced_motion) and self._reduced_motion())
@@ -404,13 +408,10 @@ class RunTrace(QWidget):
 
 
 
-
-
-        took = format_duration(self.duration_s) if self.duration_s else ""
         if self.status == "failed":
-            return self.tr("Failed after {time}").format(time=took) if took else self.tr("Failed")
+            return self.tr("Failed")
         if self.status == "cancelled":
-            return self.tr("Stopped after {time}").format(time=took) if took else self.tr("Stopped")
+            return self.tr("Stopped")
         if self.status == "waiting":
 
             return self.tr("Waiting for you")
@@ -424,13 +425,9 @@ class RunTrace(QWidget):
 
             said = rows[0].described()
             return said if said and rows[0].repeats == 1 else rows[0].line()
-        if rows and took:
-            return self.tr("Worked for {time}").format(time=took)
         if rows:
             return self.tr("{n} steps").format(n=len(rows))
-        if took:
-            return self.tr("Thought for {time}").format(time=took)
-        return self.tr("Done")
+        return self.tr("Thought")
 
     def close(self) -> None:
 
@@ -599,6 +596,7 @@ class RunTrace(QWidget):
         self._anims.clear()
         self._chevron.cleanup()
         self._live_text.stop()
+        self._dots.stop()
         self._clock.stop()
         for row in self.rows():
             row.cleanup()
@@ -626,9 +624,8 @@ class RunTrace(QWidget):
 class RunFootnote(QLabel):
 
 
-    def __init__(self, duration_s=None, parent=None):
+    def __init__(self, parent=None):
         super().__init__(parent)
         self.setObjectName("traceHead")
         self.setContentsMargins(2, 0, 2, 0)
-        self.setText(format_duration(duration_s) if duration_s is not None else "")
-        self.setVisible(bool(self.text()))
+        self.hide()

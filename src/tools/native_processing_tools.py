@@ -36,9 +36,13 @@ from typing import Any
 from qgis.core import Qgis, QgsApplication
 
 from ..core import tuning
+from ..core.host_platform import remove_quietly, retry_file_op
 from ..core.logger import log_warning
+from ..core.numbers import as_int
+from ..core.policy import state_dir
 from ..core.tool_registry import Tool as RuntimeTool
 from ..core.tool_registry import ToolRegistry, tool_error
+from .core_tools import _runs_a_script
 from .processing_run import _run_processing
 
 
@@ -336,10 +340,7 @@ def _schema_for(algorithm) -> dict:
     properties: dict[str, dict] = {}
     required: list[str] = []
     for definition in algorithm.parameterDefinitions():
-        try:
-            flags = int(definition.flags())
-        except (TypeError, ValueError):
-            flags = 0
+        flags = as_int(definition.flags(), 0)
         if flags & _FLAG_HIDDEN or getattr(definition, "isDestination", lambda: False)():
             continue
         name = str(definition.name() or "")
@@ -398,7 +399,6 @@ def _code_card(algorithm_id: str):
 
 
     def asks(args: dict) -> bool:
-        from .core_tools import _runs_a_script
 
         parameters = {key: value for key, value in args.items() if key not in _CONTROL_KEYS}
         return _runs_a_script({"algorithm_id": algorithm_id, "parameters": parameters})
@@ -411,10 +411,7 @@ def _eligible(algorithm) -> bool:
     provider_id, _provider_name = _provider(algorithm)
     if provider_id.casefold() not in _PROVIDER_NAMESPACES or algorithm_id in _excluded():
         return False
-    try:
-        flags = int(algorithm.flags())
-    except (TypeError, ValueError):
-        flags = 0
+    flags = as_int(algorithm.flags(), 0)
     if flags & (_ALG_HIDDEN | _ALG_DEPRECATED | _ALG_SECURITY_RISK):
         return False
     try:
@@ -455,7 +452,7 @@ def _catalog_key(algorithms: list) -> str:
             except Exception:  # noqa: BLE001
                 providers[provider_id] = ""
     try:
-        from ..api.terralab_client import plugin_version
+        from ..core.host_platform import plugin_version
 
         code = f"{plugin_version()}|{os.stat(__file__).st_mtime_ns}"
     except Exception:  # noqa: BLE001
@@ -468,7 +465,6 @@ def _catalog_key(algorithms: list) -> str:
 
 
 def _cache_path() -> str:
-    from ..core.policy import state_dir
 
     return os.path.join(state_dir(), _SCHEMA_CACHE_FILE)
 
@@ -497,7 +493,6 @@ def _store_entries(key: str, rows: list) -> None:
         return
 
     def write() -> None:
-        from ..core.host_platform import remove_quietly, retry_file_op
 
         tmp = ""
         try:
@@ -544,7 +539,7 @@ def _built_entries(algorithms: list, registry: ToolRegistry) -> list:
     return rows
 
 
-def add_native_processing_tools(registry: ToolRegistry) -> int:
+def complete_native_processing_tools(registry: ToolRegistry) -> int:
 
 
 

@@ -21,12 +21,13 @@ import os
 import subprocess  # nosec B404
 import time
 
-from ..core import tuning
+from ..core import net, tuning
+from ..core.background import run_on_main_thread
 from ..core.host_platform import IS_WINDOWS
 from ..core.policy import create_managed_temp_dir
 from ..core.security import validate_path
 from ..core.tool_registry import Tool, ToolRegistry, tool_error
-from .isolated_centerlines import _child_environment, _qgis_python, _read_json, _tail
+from .child_python import _child_environment, _qgis_python, _read_json, _tail
 
 _PLUGIN_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 _WORKER = os.path.join(_PLUGIN_ROOT, "src", "workers", "project_check_worker.py")
@@ -116,8 +117,6 @@ def _run_child(path: str, stopped, python_executable: str) -> dict:
 
 def _check_saved_project(args: dict) -> dict:
 
-    from ..core import net
-    from ..core.background import run_on_main_thread
 
     path = str(args.get("path") or "").strip()
     if not path:

@@ -1,7 +1,5 @@
 # SPDX-FileCopyrightText: 2026 TerraLab <yvann.barbot@terra-lab.ai>
 # SPDX-License-Identifier: GPL-2.0-or-later
-# ruff: noqa: F401
-
 
 from __future__ import annotations
 
@@ -10,56 +8,13 @@ from qgis.PyQt.QtCore import QT_TRANSLATE_NOOP
 from ..core import tuning
 from ..core.tool_registry import Tool, ToolRegistry
 from . import volume_guard
-from .data_basemaps import (
-    _add_xyz_layer,
-    _list_xyz_sources,
-    add_xyz_runs_in_background,
-)
-from .data_common import (
-    _OSRM_PROFILES,
-    _USER_AGENT,
-    _WINDOWS_FORBIDDEN_CHARS,
-    _WINDOWS_RESERVED_NAMES,
-    _avoid_reserved_name,
-    _canvas_viewbox_4326,
-    _safe_filename,
-)
-from .data_geocoding import (
-    _BACKEND_GEOCODE_BATCH_MAX,
-    _GEOCODE_PROVIDER_IDS,
-    _geocode,
-    _geocode_one_address,
-    _get_route,
-    _measure_distance,
-    _reverse_geocode,
-)
-from .data_inspect import (
-    _add_vector_from_url,
-    _add_vector_over_range_requests,
-    _extract_remote_vector,
-    _inspect_data_source,
-    expand_link,
-)
-from .data_ogc import (
-    _add_wfs_layer,
-    _add_wms_layer,
-)
-from .data_osm import (
-    _FOOTPRINT_SOURCE_INPUTS,
-    _fetch_building_footprints,
-    _fetch_osm_data,
-    _fetch_osm_data_preflight,
-)
-from .data_overture import (
-    _overture_tiles,
-)
-from .data_overture_extract import (
-    _fetch_overture,
-    _fetch_overture_preflight,
-)
-from .data_portals import (
-    _search_open_data,
-)
+from .data_basemaps import _add_xyz_layer, _list_xyz_sources, add_xyz_runs_in_background
+from .data_geocoding import _GEOCODE_PROVIDER_IDS, _geocode, _get_route, _measure_distance, _reverse_geocode
+from .data_inspect import _add_vector_from_url, _inspect_data_source
+from .data_ogc import _add_wfs_layer, _add_wms_layer
+from .data_osm import _FOOTPRINT_SOURCE_INPUTS, _fetch_building_footprints, _fetch_osm_data, _fetch_osm_data_preflight
+from .data_overture_extract import _fetch_overture, _fetch_overture_preflight
+from .data_portals import _search_open_data
 
 
 def _reads_what_fits(name: str, handler):
@@ -166,6 +121,7 @@ def register_data_tools(registry: ToolRegistry):
     registry.register(Tool(
         name="fetch_osm_data",
         danger="write",
+        own_area_rule=True, zone_load="query", check_shape="arrives",
         label=QT_TRANSLATE_NOOP("AIAgent", "Fetch OpenStreetMap data[ as {layer_name}]"),
         provider="overpass",
         input_schema={
@@ -211,6 +167,7 @@ def register_data_tools(registry: ToolRegistry):
     registry.register(Tool(
         name="fetch_building_footprints",
         danger="write",
+        own_area_rule=True, zone_load="dense", check_shape="arrives",
         label=QT_TRANSLATE_NOOP("AIAgent", "Fetch building footprints[ as {layer_name}]"),
         provider="footprints",
         input_schema={
@@ -246,6 +203,7 @@ def register_data_tools(registry: ToolRegistry):
     registry.register(Tool(
         name="fetch_overture",
         danger="write",
+        own_area_rule=True, check_shape="arrives",
         label=QT_TRANSLATE_NOOP("AIAgent", "Fetch Overture {theme}[ as {layer_name}]"),
         label_for=_overture_label,
         input_schema={
@@ -316,6 +274,7 @@ def register_data_tools(registry: ToolRegistry):
     registry.register(Tool(
         name="add_xyz_layer",
         danger="write",
+        loads_source=True, check_shape="arrives",
         label=QT_TRANSLATE_NOOP("AIAgent", "Add the basemap[ {name}]"),
         input_schema={
             "type": "object",
@@ -335,6 +294,7 @@ def register_data_tools(registry: ToolRegistry):
     registry.register(Tool(
         name="add_wms_layer",
         danger="write",
+        loads_source=True, check_shape="arrives",
         label=QT_TRANSLATE_NOOP("AIAgent", "Add the WMS layer[ {name}]"),
         input_schema={
             "type": "object",
@@ -354,6 +314,7 @@ def register_data_tools(registry: ToolRegistry):
     registry.register(Tool(
         name="add_wfs_layer",
         danger="write",
+        loads_source=True, check_shape="arrives",
         label=QT_TRANSLATE_NOOP("AIAgent", "Add the WFS layer[ {name}]"),
         input_schema={
             "type": "object",
@@ -386,6 +347,7 @@ def register_data_tools(registry: ToolRegistry):
     registry.register(Tool(
         name="add_vector_from_url",
         danger="write",
+        own_area_rule=True, loads_source=True, check_shape="arrives",
         label=QT_TRANSLATE_NOOP("AIAgent", "Add {url}[ as {layer_name}]"),
         input_schema={
             "type": "object",
@@ -420,6 +382,7 @@ def register_data_tools(registry: ToolRegistry):
     registry.register(Tool(
         name="get_route",
         danger="write",
+        check_shape="arrives",
         label=QT_TRANSLATE_NOOP("AIAgent", "Compute a route"),
         input_schema={
             "type": "object",
@@ -491,7 +454,6 @@ def register_data_tools(registry: ToolRegistry):
         name="search_open_data",
         danger="read",
         label=QT_TRANSLATE_NOOP("AIAgent", "Search open data[ for {query}]"),
-        catalog=True,
         input_schema={
             "type": "object",
             "properties": {
@@ -575,23 +537,3 @@ def _refresh_served_vocabularies() -> None:
     for schema, key, shipped, aliases in _ENUM_NODES:
         schema["enum"] = list(dict.fromkeys((*tuning.service_list(key, shipped), *aliases)))
 
-
-
-
-__all__ = [
-    "register_data_tools",
-    "_BACKEND_GEOCODE_BATCH_MAX",
-    "_OSRM_PROFILES",
-    "_USER_AGENT",
-    "_WINDOWS_FORBIDDEN_CHARS",
-    "_WINDOWS_RESERVED_NAMES",
-    "_add_vector_over_range_requests",
-    "_avoid_reserved_name",
-    "_canvas_viewbox_4326",
-    "_extract_remote_vector",
-    "_geocode_one_address",
-    "_overture_tiles",
-    "_safe_filename",
-    "expand_link",
-    "volume_guard",
-]

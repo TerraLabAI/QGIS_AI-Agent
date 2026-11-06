@@ -8,27 +8,15 @@ import re
 
 from qgis.core import QgsApplication, QgsProject
 
+from ..core import tool_rules
+from ..core.layer_release import remove_layers
 from ..core.logger import log_warning
+from ..core.output_paths import gpkg_table_target
 from ..core.qt_compat import enum_member
 from ..core.tool_registry import tool_error
-from .danger import _OGR_DBNAME_PATTERN
-from .layer_io_tools import _same_file
-from .layer_lookup import _find_layer
+from ._layers import resolve_layer
+from .layer_files import same_file
 from .processing_decisions import _LAYER_ERROR_RE
-
-
-
-_GPKG_TABLE_RE = re.compile(r"^(?P<path>.+\.gpkg)\|layername=(?P<table>[^|]+)$", re.IGNORECASE)
-_OGR_DBNAME_TABLE_RE = re.compile(_OGR_DBNAME_PATTERN + r"\s+table=\"(?P<table>[^\"]+)\"", re.IGNORECASE)
-
-
-def _gpkg_table_target(value: str):
-
-    text = (value or "").strip()
-    match = _GPKG_TABLE_RE.match(text) or _OGR_DBNAME_TABLE_RE.match(text)
-    if not match:
-        return None
-    return match.group("path"), match.group("table").strip()
 
 
 def _fid_blocks_geopackage(layer_ids) -> bool:
@@ -122,22 +110,6 @@ def _fid_safe_suffix(definition, layer_ids=()) -> str:
     return ".gpkg"
 
 
-def _gpkg_sink_uri(path: str, table: str) -> str | None:
-
-
-
-
-
-
-
-
-
-
-    if "'" in (path or "") or '"' in (table or ""):
-        return None
-    return f"ogr:dbname='{path}' table=\"{table}\" (geom)"
-
-
 def _destination_names(alg) -> set:
 
     try:
@@ -156,7 +128,7 @@ def _reads_as_destination(value) -> bool:
         return False
     text = value.strip()
     return (text == "TEMPORARY_OUTPUT" or text.startswith(("memory:", "ogr:", "~")) or "/" in text
-            or "\\" in text or _gpkg_table_target(text) is not None or bool(_FILE_EXTENSION_RE.search(text)))
+            or "\\" in text or gpkg_table_target(text) is not None or bool(_FILE_EXTENSION_RE.search(text)))
 
 
 def _output_names(alg, parameters, label: str) -> tuple:
@@ -278,7 +250,7 @@ def _required_input_name(definition, layers_only: bool) -> str:
 def _names_a_kept_file(value, parameters: dict, inputs) -> bool:
 
     def path_of(text):
-        table = _gpkg_table_target(text)
+        table = gpkg_table_target(text)
         return os.path.expanduser((table[0] if table else text.split("|", 1)[0]).strip())
 
     path = path_of(str(value))
@@ -289,7 +261,7 @@ def _names_a_kept_file(value, parameters: dict, inputs) -> bool:
     for key in inputs:
         given = parameters.get(key)
         for item in (given if isinstance(given, (list, tuple)) else [given]):
-            if isinstance(item, str) and item.strip() and _same_file(path_of(item), path):
+            if isinstance(item, str) and item.strip() and same_file(path_of(item), path):
                 return True
     return False
 
@@ -309,7 +281,7 @@ def _input_file_paths(parameters: dict, destination_names: set) -> set:
         for item in (value if isinstance(value, (list, tuple)) else [value]):
             if not isinstance(item, str) or not item:
                 continue
-            candidate = _gpkg_table_target(item)
+            candidate = gpkg_table_target(item)
             candidate = candidate[0] if candidate else item.split("|", 1)[0]
             try:
                 if candidate and os.path.isfile(candidate):
@@ -322,8 +294,6 @@ def _input_file_paths(parameters: dict, destination_names: set) -> set:
 def _release_table_layers(path: str, table: str, skip_ids=None) -> list:
 
 
-    from .processing_run import remove_layers
-
     removed = []
     skip_ids = set(skip_ids or ())
     project = QgsProject.instance()
@@ -332,7 +302,7 @@ def _release_table_layers(path: str, table: str, skip_ids=None) -> list:
         if layer_id in skip_ids:
             continue
         parts = (layer.source() or "").split("|")
-        if not parts[0] or not os.path.exists(path) or not _same_file(parts[0], path):
+        if not parts[0] or not os.path.exists(path) or not same_file(parts[0], path):
             continue
         if any(p.strip().lower() == wanted for p in parts[1:]):
             removed += remove_layers([layer_id])
@@ -354,7 +324,7 @@ def modified_destination_layers(path: str, table: str | None = None, skip_ids=No
         if layer_id in skip_ids:
             continue
         parts = str(layer.source() or "").split("|")
-        if not parts[0] or not _same_file(parts[0], path):
+        if not parts[0] or not same_file(parts[0], path):
             continue
         if wanted and not any(part.strip().casefold() == wanted for part in parts[1:]):
             continue
@@ -432,12 +402,9 @@ def _ensure_proj_env() -> None:
         os.environ["PROJ_LIB"] = own
 
 
+def _optional_providers() -> dict:
 
-
-_OPTIONAL_PROVIDERS = {
-    "grass": "GRASS", "grass7": "GRASS", "saga": "SAGA", "sagang": "SAGA",
-    "pdal": "PDAL", "otb": "Orfeo Toolbox", "r": "R",
-}
+    return tool_rules.section("destinations").get("optional_providers") or {}
 
 
 def _provider_hint(algorithm_id: str) -> dict:
@@ -470,9 +437,9 @@ def _provider_hint(algorithm_id: str) -> dict:
     prefix, name = text.split(":", 1)
     if prefix in registered and not counts.get(prefix):
         return {"hint": "algorithm_provider_empty", "prefix": prefix,
-                "product": _OPTIONAL_PROVIDERS.get(prefix, prefix), "providers": providers}
+                "product": _optional_providers().get(prefix, prefix), "providers": providers}
     if prefix not in registered:
-        product = _OPTIONAL_PROVIDERS.get(prefix)
+        product = _optional_providers().get(prefix)
         if product:
             return {"hint": "algorithm_provider_optional", "prefix": prefix, "product": product,
                     "providers": providers}
@@ -500,16 +467,6 @@ def _provider_hint(algorithm_id: str) -> dict:
     return {}
 
 
-
-
-
-
-
-
-_SIBLING_EXTENSIONS = (".sdat", ".sgrd", ".tif", ".tiff", ".vrt", ".asc", ".img", ".bil",
-                       ".gpkg", ".shp", ".geojson", ".json", ".gml", ".kml", ".csv", ".dbf")
-
-
 def written_path_for(path: str) -> str:
 
 
@@ -525,7 +482,8 @@ def written_path_for(path: str) -> str:
     folder = os.path.dirname(stem)
     if not folder or not os.path.isdir(folder):
         return ""
-    for candidate_ext in _SIBLING_EXTENSIONS:
+    siblings = tool_rules.names("destinations", "sibling_extensions")
+    for candidate_ext in siblings:
         if candidate_ext == ext.lower():
             continue
         candidate = stem + candidate_ext
@@ -538,7 +496,7 @@ def written_path_for(path: str) -> str:
         return ""
     for entry in entries:
         entry_stem, entry_ext = os.path.splitext(entry)
-        if entry_stem.casefold() == base and entry_ext.lower() in _SIBLING_EXTENSIONS:
+        if entry_stem.casefold() == base and entry_ext.lower() in siblings:
             return os.path.join(folder, entry)
     return ""
 
@@ -562,7 +520,7 @@ def destination_report(alg, parameters: dict) -> tuple:
         value = parameters.get(definition.name())
         if not isinstance(value, str) or value in ("", "memory:", "TEMPORARY_OUTPUT"):
             continue
-        target = _gpkg_table_target(value)
+        target = gpkg_table_target(value)
         path = target[0] if target else value.split("|", 1)[0]
         if not os.path.isabs(path):
             continue
@@ -625,7 +583,7 @@ def output_evidence_problem(alg, parameters: dict, outputs: dict) -> str:
         if isinstance(summary, dict) and summary.get("readable") is True:
             continue
         value = parameters.get(name)
-        target = _gpkg_table_target(value) if isinstance(value, str) else None
+        target = gpkg_table_target(value) if isinstance(value, str) else None
         if target:
             where = f"{target[0]} table {target[1]}"
         elif isinstance(value, str):
@@ -665,7 +623,7 @@ def _inputs_as_layers(alg, parameters: dict, message: str) -> dict | None:
     for key, value in parameters.items():
         if key in destinations or not isinstance(value, str):
             continue
-        layer = _find_layer(value)
+        layer = resolve_layer(value)
         if layer is None:
             continue
         out[key] = layer

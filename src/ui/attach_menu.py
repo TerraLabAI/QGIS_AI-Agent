@@ -18,6 +18,7 @@
 
 
 
+
 from __future__ import annotations
 
 from qgis.PyQt.QtCore import QPoint, Qt, pyqtSignal
@@ -25,20 +26,11 @@ from qgis.PyQt.QtWidgets import QFrame, QVBoxLayout, QWidget
 
 from .popover_rows import _POPOVER_QSS, _Row
 from .shared import keep_on_screen, paint_styled_ground, round_popup_corners, screen_area_at
-from .style import ACCENT, DARK, INK_3, LINE_STRONG, RADIUS_CARD, SURFACE
+from .style import INK_3, LINE_STRONG, RADIUS_CARD, SURFACE
 
 
 SHEET_WIDTH = 280
 _MIN_WIDTH = 200
-
-
-
-
-FILES_ACCENT = "#a78bfa" if DARK else "#7c3aed"
-LAYER_ACCENT = ACCENT
-
-SOURCES_ACCENT = "#60a5fa" if DARK else "#2563eb"
-
 _SHEET_QSS = _POPOVER_QSS + (
     f"QFrame#attachPopover {{ background: {SURFACE};"
     f" border: 1px solid {LINE_STRONG}; border-radius: {RADIUS_CARD}px; }}"
@@ -115,10 +107,10 @@ class AttachPopover(QFrame):
         self._col.setContentsMargins(6, 6, 6, 6)
         self._col.setSpacing(2)
         self._add_row(
-            _Row("file", FILES_ACCENT, self.tr("Add files from your computer"), "", "", self),
+            _Row("file", "", self.tr("Add files from your computer"), "", "", self),
             self.add_files_requested)
         self._layer_row = _Row(
-            "layers", LAYER_ACCENT, self.tr("Attach a layer of this project"), "", "", self)
+            "layers", "", self.tr("Attach a layer of this project"), "", "", self)
         self._add_row(
 
 
@@ -126,7 +118,7 @@ class AttachPopover(QFrame):
             self._layer_row,
             self.add_layer_requested)
         self._add_row(
-            _Row("globe", SOURCES_ACCENT, self.tr("Data sources"), "", "", self),
+            _Row("globe", "", self.tr("Data sources"), "", "", self),
             self.sources_requested)
 
     def set_layers_available(self, available: bool) -> None:

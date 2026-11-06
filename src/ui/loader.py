@@ -24,6 +24,8 @@ from qgis.PyQt.QtCore import QRectF, QSize, Qt, QTimer
 from qgis.PyQt.QtGui import QColor, QFont, QLinearGradient, QPainter, QPen
 from qgis.PyQt.QtWidgets import QHBoxLayout, QLabel, QSizePolicy, QWidget
 
+from ..core.numbers import as_float
+from .card_base import tr
 from .font_scale import scale_point_size
 from .style import FONT_BODY, INK, INK_2, INK_3, qcolor
 
@@ -37,7 +39,7 @@ _DELAYS = ((0.09, 0.18, 0.27), (0.0, 0.09, 0.18), (0.09, 0.18, 0.27))
 _SHIMMER_S = 1.4
 
 _TICK_MS = 40
-_CLOCK_MS = 100
+_CLOCK_MS = 250
 LINE_PX = 20
 GAP_PX = 8
 
@@ -62,17 +64,17 @@ def pixel_on(phase: float) -> float:
 
 def format_elapsed(seconds: float) -> str:
 
-    try:
-        seconds = float(seconds)
-    except (TypeError, ValueError, OverflowError):
-        seconds = 0.0
+    seconds = as_float(seconds, 0.0)
     if math.isnan(seconds) or math.isinf(seconds):
         seconds = 0.0
-    seconds = max(0.0, seconds)
-    if seconds < 60:
-        return f"{seconds:.1f}s"
-    minutes = int(seconds // 60)
-    return f"{minutes}m {seconds - minutes * 60:.1f}s"
+
+    whole = int(max(0.0, seconds))
+    if whole < 60:
+        return tr("{count} s").format(count=whole)
+    minutes, rest = divmod(whole, 60)
+    if rest:
+        return tr("{minutes} min {seconds} s").format(minutes=minutes, seconds=rest)
+    return tr("{minutes} min").format(minutes=minutes)
 
 
 class _Ticker(QWidget):
@@ -266,10 +268,6 @@ class ElapsedClock(QWidget):
         self._timer.timeout.connect(self._tick)
         self._tick()
 
-    def set_started(self, started: float) -> None:
-        self._started = float(started)
-        self._tick()
-
     def elapsed(self) -> float:
         now = time.monotonic()
         return max(0.0, now - self._started - waited_between(self._started, now))
@@ -305,12 +303,9 @@ class ElapsedClock(QWidget):
 
 def _mono_label(parent):
 
+
     label = QLabel(parent)
     label.setObjectName("statusTime")
-    font = QFont(label.font())
-
-    font.setStyleHint(QFont.StyleHint.Monospace)
-    label.setFont(font)
     return label
 
 

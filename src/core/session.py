@@ -32,10 +32,14 @@ from typing import Callable
 
 from qgis.PyQt.QtCore import QCoreApplication, QObject, QTimer, pyqtSignal
 
-from . import crash_note, data_access, protocol, stalls, tuning
+from . import crash_note, data_access, protocol, stalls, tuning, tuning_frame
+from .host_platform import remove_quietly, retry_file_op
 from .logger import log, log_warning
+from .policy import state_dir
 from .protocol import ProtocolError, ServerErrorCode
+from .qt_compat import one_shot
 from .security_urls import host_name
+from .text_encoding import ansi_encoding
 from .ws_client import _CONNECT_TIMEOUT_S, _SEND_TIMEOUT_S, DEAD_AFTER_S, IDLE_PING_S, QUIET_DNS_RETRIES_S, WsClient
 
 
@@ -148,8 +152,12 @@ _CATALOG_FILE = "session-catalogs.z"
 _CATALOG_MAGIC = b"TLCAT1 "
 
 
+
+
+_CATALOG_FIELDS_ID = hashlib.sha256(",".join(sorted(protocol.CATALOG_FIELDS)).encode("ascii")).hexdigest()[:12]
+
+
 def _catalog_path() -> str:
-    from .policy import state_dir
 
     return os.path.join(state_dir(), _CATALOG_FILE)
 
@@ -176,7 +184,9 @@ def _held_catalog_tag() -> str:
         return ""
     if not head.startswith(_CATALOG_MAGIC):
         return ""
-    tag = head[len(_CATALOG_MAGIC):].strip().decode("ascii", "replace")
+    tag, _, fields_id = head[len(_CATALOG_MAGIC):].strip().decode("ascii", "replace").partition(" ")
+    if fields_id != _CATALOG_FIELDS_ID:
+        return ""
     return tag if tag.isalnum() and len(tag) <= 64 else ""
 
 
@@ -186,7 +196,7 @@ def _held_catalogs(tag: str) -> dict | None:
         with open(_catalog_path(), "rb") as handle:
             data = handle.read()
         head, _, body = data.partition(b"\n")
-        if head != _CATALOG_MAGIC + tag.encode("ascii"):
+        if head != _CATALOG_MAGIC + f"{tag} {_CATALOG_FIELDS_ID}".encode("ascii"):
             return None
         fields = json.loads(zlib.decompress(body).decode("utf-8"))
     except (OSError, ValueError, UnicodeError, zlib.error) as exc:
@@ -211,12 +221,12 @@ def _store_catalogs(tag: str, fields: dict) -> threading.Thread | None:
         return None
 
     def write() -> None:
-        from .host_platform import remove_quietly, retry_file_op
 
         tmp = ""
         try:
             path = _catalog_path()
-            data = _CATALOG_MAGIC + tag.encode("ascii") + b"\n" + zlib.compress(text.encode("utf-8"), 6)
+            data = (_CATALOG_MAGIC + f"{tag} {_CATALOG_FIELDS_ID}".encode("ascii") + b"\n"
+                    + zlib.compress(text.encode("utf-8"), 6))
             fd, tmp = tempfile.mkstemp(prefix=".agent-", suffix=".tmp", dir=os.path.dirname(path))
             with os.fdopen(fd, "wb") as handle:
                 handle.write(data)
@@ -319,12 +329,17 @@ class AgentSession(QObject):
     counts = pyqtSignal(str, int, int)
     steer_ack = pyqtSignal(str, str, bool)
 
+    task_update = pyqtSignal(object)
+    task_result = pyqtSignal(object)
+
 
     connection_failed = pyqtSignal(object)
 
 
 
     connection_ready = pyqtSignal(object)
+
+    project_memory = pyqtSignal(object)
 
     def __init__(self, settings, account, identity_provider: Callable[[], dict],
                  manifest_provider: Callable[[], tuple], parent=None):
@@ -347,13 +362,8 @@ class AgentSession(QObject):
         self._heartbeat = QTimer(self)
         self._heartbeat.setInterval(int(socket_clocks()["heartbeat_s"] * 1000))
         self._heartbeat.timeout.connect(self._on_heartbeat)
-        self._reconnect = QTimer(self)
-        self._reconnect.setSingleShot(True)
-        self._reconnect.timeout.connect(self._reconnect_now)
-        self._hello_deadline = QTimer(self)
-        self._hello_deadline.setSingleShot(True)
-        self._hello_deadline.setInterval(int(socket_clocks()["hello_timeout_s"] * 1000))
-        self._hello_deadline.timeout.connect(self._on_hello_timeout)
+        self._reconnect = one_shot(self, self._reconnect_now)
+        self._hello_deadline = one_shot(self, self._on_hello_timeout, int(socket_clocks()["hello_timeout_s"] * 1000))
         self._state = "offline"
         self._session_id: str | None = None
 
@@ -363,6 +373,7 @@ class AgentSession(QObject):
 
 
         self._crash_note: dict | None = None
+        self.crashed_chat: tuple = ("", "")
 
 
         self._threads_told: set = set()
@@ -405,6 +416,7 @@ class AgentSession(QObject):
         self._dropped_at = 0.0
         self._failed_streak = 0
         self._failing_since = 0.0
+        self._failed_code = ""
         self._url_failures = 0
 
 
@@ -514,6 +526,7 @@ class AgentSession(QObject):
 
 
 
+
     def _key_tag(self) -> str:
         import hashlib
 
@@ -551,13 +564,26 @@ class AgentSession(QObject):
         self._write_saved(
             f"{tag}|{self._session_id}|{int(self._last_seq)}|{int(time.time())}|{self._profile_tag()}")
 
+    def keep_for_reopen(self) -> None:
+
+
+
+        self._save_session()
+        sync = getattr(getattr(self._settings, "_s", None), "sync", None)
+        if sync is not None:
+            try:
+                sync()
+            except Exception as exc:  # noqa: BLE001
+                log_warning(f"Session id not written to disk: {exc}")
+
     def _claim_saved_session(self) -> None:
         try:
             saved = str(getattr(self._settings, "saved_session", "") or "") \
                 if hasattr(type(self._settings), "saved_session") else ""
         except Exception:  # noqa: BLE001
             saved = ""
-        if not saved:
+        if not saved or not self._key_tag():
+
             return
         self._write_saved("")
         parts = saved.split("|")
@@ -630,7 +656,7 @@ class AgentSession(QObject):
 
         attachments = [self._upload_pieces(att) for att in (attachments or [])]
 
-        crash_note.record_run(run_id, self._session_id or "")
+        crash_note.record_run(run_id, self._session_id or "", thread_id)
         turns = earlier_turns() if earlier_turns is not None and thread_id not in self._threads_told else None
         sent = self._send(protocol.user_message(
             run_id, thread_id, text, attachments, context, mode, approval, effort, example,
@@ -659,8 +685,6 @@ class AgentSession(QObject):
 
 
 
-        from .text_encoding import ansi_encoding
-
         out["code_page"] = ansi_encoding()
         return out
 
@@ -681,6 +705,10 @@ class AgentSession(QObject):
 
     def send_permission_response(self, tool_call_id: str, run_id: str, decision: str) -> bool:
         return self._send(protocol.permission_response(tool_call_id, run_id, decision))
+
+    def send_frame(self, frame: dict) -> bool:
+
+        return self._send(frame) if self.is_online else False
 
     def send_busy(self, seconds: float, where: str, calls: str, ended: bool = False) -> bool:
 
@@ -735,9 +763,13 @@ class AgentSession(QObject):
     def send_steer(self, run_id: str, steer_id: str, text: str) -> bool:
         return self._send(protocol.steer(run_id, steer_id, text))
 
-    def send_feedback(self, run_id: str, up: bool) -> bool:
+    def send_task_stop(self, task_id: str) -> bool:
+        return self._send(protocol.task_stop(task_id))
 
-        return self._send(protocol.feedback(run_id, bool(up)))
+    def send_feedback(self, run_id: str, up: bool, reason_code: str = "", reason: str = "") -> bool:
+
+
+        return self._send(protocol.feedback(run_id, bool(up), reason_code, reason))
 
     def send_cancel(self, run_id: str, reason: str = "") -> bool:
 
@@ -822,6 +854,10 @@ class AgentSession(QObject):
                                         "used_last_good", "dns_retries") if k in report}
         facts.update(hello_ms=self._connect_facts.get("connect_ms"), failures_before=failures,
                      first_connect=first, resuming=bool(self._resume_asked))
+        if failures:
+
+            facts.update(recovered_from=self._failed_code,
+                         outage_duration_ms=int(max(0.0, time.monotonic() - self._failing_since) * 1000))
         try:
             self.connection_ready.emit(facts)
         except (AttributeError, RuntimeError):
@@ -938,6 +974,8 @@ class AgentSession(QObject):
 
 
             include = self._manifest_retry
+            if not self._session_id:
+                self._claim_saved_session()
             last_seq = self._last_seq if self._session_id else 0
 
 
@@ -1154,6 +1192,7 @@ class AgentSession(QObject):
 
             self._failed_streak += 1
             self._url_failures += 1
+            self._failed_code = self.failure_facts(code)["error_code"]
             if self._failed_streak == 1:
                 self._failing_since = time.monotonic()
             if self._failed_streak in (1, 5):
@@ -1374,6 +1413,7 @@ class AgentSession(QObject):
         if self._crash_note is not None:
 
 
+            self.crashed_chat = crash_note.taken_chat()
             crash_note.acknowledge()
             self._crash_note = {}
         if frame.get("resumed") is not True:
@@ -1386,7 +1426,7 @@ class AgentSession(QObject):
 
 
 
-        tuning.apply(frame.get("policy"))
+        tuning_frame.apply(frame.get("policy"))
 
 
         data_access.apply(frame.get("data_access"))
@@ -1519,7 +1559,7 @@ class AgentSession(QObject):
 
 
 
-        tuning.apply(frame.get("policy"))
+        tuning_frame.apply(frame.get("policy"))
         self._apply_heartbeat()
 
     def _on_token(self, frame: dict) -> None:
@@ -1593,6 +1633,9 @@ class AgentSession(QObject):
                               str(frame.get("replaces") or ""), str(frame.get("setting") or ""),
                               str(frame.get("value") or ""))
 
+    def _on_project_memory(self, frame: dict) -> None:
+        self.project_memory.emit(frame)
+
     def _on_sources(self, frame: dict) -> None:
         raw = frame.get("items") if isinstance(frame.get("items"), list) else []
         items = [i for i in raw if isinstance(i, dict) and i.get("name")]
@@ -1608,6 +1651,18 @@ class AgentSession(QObject):
         run_id, steer_id = str(frame.get("run_id") or ""), str(frame.get("steer_id") or "")
         if run_id and steer_id:
             self.steer_ack.emit(run_id, steer_id, frame.get("taken") is True)
+
+    def _on_task_update(self, frame: dict) -> None:
+        if not frame.get("task_id") or not frame.get("status"):
+            self._note_bad_frame("task_update", "missing task_id or status")
+            return
+        self.task_update.emit(frame)
+
+    def _on_task_result(self, frame: dict) -> None:
+        if not frame.get("task_id"):
+            self._note_bad_frame("task_result", "missing task_id")
+            return
+        self.task_result.emit(frame)
 
     def _on_counts(self, frame: dict) -> None:
         try:

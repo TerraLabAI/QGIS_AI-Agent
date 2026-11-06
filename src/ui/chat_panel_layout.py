@@ -8,21 +8,18 @@
 from __future__ import annotations
 
 import contextlib
+import time
 
 from qgis.PyQt.QtCore import Qt, QTimer
 from qgis.PyQt.QtWidgets import QApplication, QWidget
 
-from ..core import first_run_funnel
+from ..core import first_run_funnel, telemetry
+from ..core import telemetry_events as ev
 from ..core.layer_mime import mime_has_layers
-from ..core.telemetry_errors import slot_guard
-from .bubbles import UserBubble
-from .chat_panel_shared import CompactionDivider, _turn_divider
-from .dock.about import show_contact_dialog, show_shortcuts_dialog
-from .external_links import open_external_url
-from .quota_card import WARN_AT_RUNS_LEFT, trial_promise
-from .shared import (
+from ..core.numbers import as_int
+from ..core.privacy_notice import current_notice_version, has_accepted_privacy_notice, save_privacy_notice_accepted
+from ..core.served_state import (
     LEGACY_FREE_RUNS_MAX,
-    format_reset_date,
     get_contact_call_url,
     get_dashboard_url,
     get_free_runs,
@@ -30,6 +27,15 @@ from .shared import (
     get_tutorial_url,
     set_pro_offer,
 )
+from ..core.telemetry_errors import slot_guard
+from .bubbles import UserBubble
+from .chat_panel_shared import CompactionDivider, _turn_divider
+from .dock.about import show_contact_dialog, show_shortcuts_dialog
+from .external_links import open_external_url
+from .feedback_dialog import show_feedback
+from .privacy_notice_dialog import PrivacyNoticeDialog
+from .quota_card import WARN_AT_RUNS_LEFT, trial_promise
+from .shared import format_reset_date
 
 
 
@@ -59,6 +65,7 @@ class _ChatPanelLayout:
         self.update_banner.update_clicked.connect(self._update_now)
         self.update_gate.update_clicked.connect(self._update_now)
         self.update_banner.dismissed.connect(self.update_dismissed.emit)
+        self.update_banner.download_clicked.connect(self.update_download_clicked.emit)
         a = self.activation
         a.sign_in_requested.connect(self.sign_in_requested.emit)
         a.pairing_reopen_requested.connect(self.pairing_reopen_requested.emit)
@@ -88,6 +95,7 @@ class _ChatPanelLayout:
         self.quota_card.welcome_closed.connect(self._close_pro_welcome)
         self.quota_card.start_now_requested.connect(
             lambda: self.start_now_requested.emit(getattr(self, "_start_now_url", "")))
+        self.quota_card.pay_requested.connect(lambda: self.pay_requested.emit(self._payfail_surface()))
         self.runs_line.requested.connect(self.plans_requested.emit)
         c = self.composer
         c.send_clicked.connect(self._on_send)
@@ -129,6 +137,8 @@ class _ChatPanelLayout:
             return
 
 
+        if text and self._task_cards and self._answer_open_question(text):
+            return
         chips = self.composer.peek_chips()
 
 
@@ -156,7 +166,6 @@ class _ChatPanelLayout:
 
 
 
-        from ..core.privacy_notice import has_accepted_privacy_notice
 
         if has_accepted_privacy_notice():
             return True
@@ -171,7 +180,6 @@ class _ChatPanelLayout:
 
 
 
-        from .privacy_notice_dialog import PrivacyNoticeDialog
 
         if self._privacy_dialog is not None:
             self._privacy_dialog.raise_()
@@ -182,13 +190,15 @@ class _ChatPanelLayout:
         dialog.rejected.connect(self._on_privacy_declined)
         dialog.finished.connect(self._on_privacy_closed)
         self._privacy_dialog = dialog
+        self._privacy_shown_at = time.monotonic()
         dialog.open()
 
     def _on_privacy_accepted(self) -> None:
-        from ..core import telemetry
-        from ..core.privacy_notice import save_privacy_notice_accepted
-
         save_privacy_notice_accepted()
+        shown_at = getattr(self, "_privacy_shown_at", None)
+        telemetry.track(ev.PRIVACY_NOTICE_ACCEPTED, {
+            "notice_version": current_notice_version(),
+            "duration_ms": int((time.monotonic() - shown_at) * 1000) if shown_at else 0})
 
         with contextlib.suppress(Exception):
             telemetry.flush()
@@ -255,7 +265,9 @@ class _ChatPanelLayout:
 
         offer = self.trial_offer()
         self.header.set_pro_pill_trial(trial_promise(*offer) if offer else "")
-        self.header.set_pro_pill_visible(self._signed_in and self._plan_known and not self._paid_plan)
+
+        self.header.set_pro_pill_visible(self._signed_in and self._plan_known and not self._paid_plan
+                                         and not self._payfail)
 
     def open_help(self, kind: str) -> None:
 
@@ -280,7 +292,6 @@ class _ChatPanelLayout:
         self._show_feedback(entry)
 
     def _show_feedback(self, entry: str) -> None:
-        from .feedback_dialog import show_feedback
         show_feedback(self, self._last_error, self._current_run or self._last_run, entry=entry)
 
     def feedback_sent(self) -> None:
@@ -331,8 +342,6 @@ class _ChatPanelLayout:
     def resizeEvent(self, event):  # noqa: N802
         super().resizeEvent(event)
         self._drop_overlay.sync_geometry(self)
-
-
 
 
 
@@ -404,6 +413,21 @@ class _ChatPanelLayout:
         left = max(0, limit - used)
         if is_subscriber:
             self._checkout_return = False
+        if not is_subscriber and self._payfail:
+
+
+            self._runs_host.hide()
+            self.quota_card.show_payment_failed(self._payfail["amount"])
+            self._quota_host.show()
+            self.composer.set_blocked(left <= 0, self.tr("Pay to get Pro back") if left <= 0 else "")
+            self._low_balance_visible = False
+            if left <= 0 and not self._limit_said:
+                self._limit_said = True
+                self.limit_reached.emit(False, int(limit))
+            elif left > 0:
+                self._limit_said = False
+            self._note_payfail()
+            return
         welcome = getattr(self, "_pro_welcome", None)
         if welcome is not None and is_subscriber and left > 0:
             self._runs_host.hide()
@@ -466,6 +490,26 @@ class _ChatPanelLayout:
             self.low_balance_shown.emit(left)
         self._low_balance_visible = low
 
+    def _payfail_surface(self) -> str:
+        used, limit, _end, _paid = self._usage
+        return "wall" if limit > 0 and used >= limit else "banner"
+
+    def _note_payfail(self) -> None:
+
+        key = "payfail:" + self._payfail_surface()
+        if key in self._upsell_seen or not self.isVisible():
+            return
+        self._upsell_seen.add(key)
+        self.payment_card_shown.emit(self._payfail_surface(), bool(self._payfail["amount"]))
+
+    def set_payment_failed(self, info) -> None:
+
+        if info == self._payfail:
+            return
+        self._payfail = info
+        self._apply_quota()
+        self._sync_pro_pill()
+
     def _note_upsell(self, where: str) -> None:
 
         if where in self._upsell_seen or not self.isVisible():
@@ -493,10 +537,7 @@ class _ChatPanelLayout:
     def show_pro_welcome(self, limit=None, trial_ends_on=None) -> None:
 
 
-        try:
-            limit = int(limit if limit is not None else self._usage[1])
-        except (TypeError, ValueError, OverflowError):
-            limit = 0
+        limit = as_int(limit if limit is not None else self._usage[1], 0)
         self._checkout_return = False
         self._return_view_pending = False
         self._pro_welcome = (limit, format_reset_date(str(trial_ends_on or "")))
@@ -531,6 +572,8 @@ class _ChatPanelLayout:
     def showEvent(self, event):  # noqa: N802
         super().showEvent(event)
         self._note_return_view()
+        if self._payfail:
+            self._note_payfail()
 
         QTimer.singleShot(0, self.focus_composer)
 
@@ -602,6 +645,7 @@ class _ChatPanelLayout:
             self._checkout_return = False
             self._return_view_pending = False
             self._pro_welcome = None
+            self._payfail = None
             self._start_now_url = ""
             self.header.clear_account()
             self._plan_known = False
@@ -704,11 +748,6 @@ class _ChatPanelLayout:
     def trial_offer(self) -> tuple | None:
 
         return getattr(self, "_trial_days", None)
-
-    def set_display_options(self, explain_runs: bool, show_tool_details: bool) -> None:
-
-        self._explain_runs = bool(explain_runs)
-        self._show_tool_details = bool(show_tool_details)
 
     def _composer_is_being_typed_in(self) -> bool:
 

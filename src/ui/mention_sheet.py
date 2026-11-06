@@ -42,6 +42,7 @@ from qgis.PyQt.QtWidgets import (
     QWidget,
 )
 
+from ..core.numbers import as_float
 from .font_scale import scale_px_length, scale_qss_font_px, widget_pixel_ratio
 from .icons import icon_for
 from .layer_icons import layer_icon
@@ -119,10 +120,7 @@ def _font(base: QFont, px: int, weight: int = 400, mono: bool = False) -> QFont:
     font = QFont(base)
     if mono:
         families = [f.strip().strip("'") for f in MONO_FAMILY.split(",")]
-        if hasattr(font, "setFamilies"):
-            font.setFamilies(families)
-        else:
-            font.setFamily(families[0])
+        font.setFamilies(families)
         font.setStyleHint(QFont.StyleHint.Monospace)
     font.setPixelSize(scale_px_length(px))
     font.setWeight(QFont.Weight.Medium if weight >= 500 else QFont.Weight.Normal)
@@ -470,10 +468,7 @@ class MentionSheet(QWidget):
         super().paintEvent(event)
 
     def _on_pop(self, value) -> None:
-        try:
-            progress = float(value)
-        except (TypeError, ValueError):
-            progress = 1.0
+        progress = as_float(value, 1.0)
         self.setWindowOpacity(progress)
         self.move(QPoint(self._final.x(), self._final.y() + int(_POP_RISE * (1.0 - progress))))
 

@@ -29,6 +29,7 @@
 
 from __future__ import annotations
 
+from ..core.host_platform import IS_WINDOWS
 from . import tokens
 from .font_scale import scale_qss_font_px
 from .styles import BTN_GREEN, BTN_GREEN_HOVER, DARK_UI
@@ -191,7 +192,6 @@ ACCENT = BTN_GREEN
 ACCENT_DARK = BTN_GREEN_HOVER
 ACCENT_TINT = "rgba(67, 160, 71, 0.10)"
 ACCENT_TINT_ON = "rgba(67, 160, 71, 0.20)"
-ACCENT_TINT_STRONG = T["accent_tint_on"]
 ACCENT_BORDER_SOFT = "rgba(67, 160, 71, 0.24)"
 ACCENT_BORDER = "rgba(67, 160, 71, 0.45)"
 
@@ -234,7 +234,6 @@ def platform_font_qss() -> str:
 
 
 
-    from ..core.host_platform import IS_WINDOWS
 
     if not IS_WINDOWS:
         return ""
@@ -411,13 +410,13 @@ PRO_PILL_PX = 24
 
 _BTN_PRO_PILL = (
     "QPushButton#hdrProPill { background: transparent;"
-    f" color: {INK}; border: 1px solid {LINE_STRONG};"
-    f" padding: 0 10px 0 8px; font-size: {FONT_BODY}px; font-weight: 600; }}"
+    f" color: {ACCENT_INK}; border: none;"
+    f" padding: 0 8px; font-size: {FONT_BODY}px; }}"
     f"QPushButton#hdrProPill:hover {{ background: {HOVER}; }}"
     f"QPushButton#hdrProPill:pressed {{ background: {HOVER_ON}; }}"
-    f"QPushButton#hdrProPill:focus {{ border: 2px solid {ACCENT_INK}; padding: 0 9px 0 7px; }}"
-    f'QPushButton#hdrProPill[compact="true"] {{ padding: 0 3px; font-size: {FONT_HINT}px; font-weight: 500; }}'
-    f'QPushButton#hdrProPill[compact="true"]:focus {{ padding: 0; }}'
+    f"QPushButton#hdrProPill:focus {{ border: 2px solid {ACCENT_INK}; padding: 0 6px; }}"
+    f'QPushButton#hdrProPill[compact="true"] {{ padding: 0 3px; font-size: {FONT_HINT}px; }}'
+    f'QPushButton#hdrProPill[compact="true"]:focus {{ padding: 0 1px; }}'
 )
 
 
@@ -496,7 +495,7 @@ def panel_qss() -> str:
 
         f"QLabel#statusText {{ font-size: {FONT_BODY}px; font-weight: 500;"
         f" color: {INK_2}; background: transparent; border: none; }}"
-        f"QLabel#statusTime {{ font-family: {MONO_FAMILY}; font-size: {FONT_HINT}px;"
+        f"QLabel#statusTime {{ font-size: {FONT_HINT}px;"
         f" color: {INK_3}; background: transparent; border: none; }}"
 
 

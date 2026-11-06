@@ -7,84 +7,21 @@
 
 from __future__ import annotations
 
-from qgis.core import QgsProject, QgsRasterLayer
+from qgis.core import QgsProject
 
+from ..core import siblings, zone_of_interest
 from ..core.tool_registry import tool_error
-from . import sibling_setup
-from ._widgets import AI_EDIT_KEYS, AI_SEGMENT_KEYS
-
-
-class HandoffRefused(ValueError):
-
-
-    def __init__(self, message: str, hint: str, **facts):
-        super().__init__(message)
-        self.hint = hint
-        self.facts = facts
-
-
-def refusal(exc: ValueError) -> dict:
-
-    return tool_error(str(exc), "INVALID_ARGS", hint=getattr(exc, "hint", ""), **getattr(exc, "facts", {}))
-
-
-def raster_layer(value):
-
-    project = QgsProject.instance()
-    layer = project.mapLayer(value)
-    matches = [layer] if layer is not None else list(project.mapLayersByName(value))
-    if len(matches) != 1:
-        raise HandoffRefused("The imagery is missing or its name is ambiguous.", "imagery_not_unique",
-                             layer=str(value), matches=len(matches))
-    if not isinstance(matches[0], QgsRasterLayer) or not matches[0].isValid():
-        raise ValueError("The input must be a valid raster layer in this project.")
-    return matches[0]
-
-
-def interactive_state(api):
-    reader = getattr(api, "get_interactive_state", None)
-    return reader() if callable(reader) else None
-
-
-def edit_prompt(args, state):
-
-    value = args.get("prompt") if "prompt" in args else (state or {}).get("prompt")
-    if not isinstance(value, str) or not value.strip():
-        raise HandoffRefused("No prompt was supplied and the AI Edit panel holds none.", "ai_edit_prompt_missing")
-    return value.strip()
-
-
-def segmentation_arguments(plugin, args):
-
-
-
-
-
-
-    if args.get("zone_wkt") or args.get("use_zone") or args.get("bbox") is not None \
-            or args.get("use_canvas_extent"):
-        return args
-    state = interactive_state(getattr(plugin, "mcp_api", None))
-    if not isinstance(state, dict) or not state.get("zone_wkt"):
-        return args
-    if state.get("exemplars") and state.get("examples_match_source") is False:
-        raise HandoffRefused("The drawn examples belong to another image.", "ai_segment_examples_other_image")
-    source = state.get("source") or {}
-    source_id = source.get("id") or source.get("layer_id")
-    wanted = args.get("layer_name")
-    if wanted and raster_layer(wanted).id() != source_id:
-        raise HandoffRefused("The prepared zone and examples belong to another image.",
-                             "ai_segment_zone_other_image", layer=str(wanted))
-    out = dict(args, zone_wkt=state["zone_wkt"])
-    if source_id:
-        out["layer_name"] = source_id
-    prompt = state.get("object_class") or ""
-    if "object_class" not in out:
-        out["object_class"] = prompt
-    if "exemplars" not in out and out.get("object_class") == prompt and state.get("exemplars"):
-        out["exemplars"] = state["exemplars"]
-    return out
-
+from . import sibling_setup, zone_facts
+from .adapters.ai_edit_access import ACCESS
+from .handoff_reads import (
+    HandoffRefused,
+    _aiseg_raster_layer,
+    _aiseg_zone_wkt,
+    edit_prompt,
+    raster_layer,
+    refusal,
+    segmentation_arguments,
+)
 
 _EDIT_SETTINGS = ("index", "template_id", "resolution", "reference_layers", "markup_wkt")
 
@@ -96,7 +33,7 @@ def _edit_settings(args):
 
 def prepare(which, args):
 
-    presence = sibling_setup.presence(AI_EDIT_KEYS if which == "ai_edit" else AI_SEGMENT_KEYS)
+    presence = sibling_setup.presence(sibling_setup.sibling_of(which))
     plugin = presence["plugin"]
     if plugin is None:
         return sibling_setup.not_running(which, presence)
@@ -115,21 +52,17 @@ def prepare(which, args):
             kwargs[field] = args[field]
         if args.get("use_zone") or args.get("bbox") is not None or args.get("use_canvas_extent") \
                 or args.get("zone_wkt"):
-            from . import cost_guard
             if args.get("use_zone"):
-                from ..core import zone_of_interest
                 if zone_of_interest.read_zone() is None:
                     raise HandoffRefused("The project has no area of interest.", "zone_of_interest_missing")
             if which == "ai_segment":
-                from .integration_tools import _aiseg_zone_wkt
                 kwargs["zone_wkt"] = _aiseg_zone_wkt(plugin, args)
             else:
-                if args.get("bbox") is not None and cost_guard.unknown_crs(args):
-                    raise ValueError(f"crs '{cost_guard.unknown_crs(args)}' is not a CRS QGIS knows.")
-                geometry = cost_guard.zone_from_args(args)
+                if args.get("bbox") is not None and zone_facts.unknown_crs(args):
+                    raise ValueError(f"crs '{zone_facts.unknown_crs(args)}' is not a CRS QGIS knows.")
+                geometry = zone_facts.zone_from_args(args)
                 if geometry is None:
                     raise ValueError("The requested zone could not be read.")
-                from .adapters.ai_edit_access import ACCESS
                 if not ACCESS._holds_zone(geometry.boundingBox(), geometry):
 
 
@@ -143,7 +76,6 @@ def prepare(which, args):
             result["panel_opened"] = True
             if settings:
 
-                from .adapters.ai_edit_access import ACCESS
                 applied = ACCESS.apply_panel_settings(args)
                 result["settings_applied"] = applied.get("applied", {})
                 if applied.get("failed") or applied.get("_error"):
@@ -198,21 +130,16 @@ def spending_inputs(label, args, geometry):
     import json
     import math
 
-    from . import cost_guard
-    from ._widgets import sibling_plugin
-
-    edit = label == "AI Edit"
-    _, plugin = sibling_plugin(AI_EDIT_KEYS if edit else AI_SEGMENT_KEYS)
+    edit = label == siblings.AI_EDIT.label
+    _, plugin = siblings.find(siblings.AI_EDIT if edit else siblings.AI_SEGMENTATION)
     api = getattr(plugin, "mcp_api", None)
     state = _api_state(api, "get_interactive_state")
     if state.get("drawing"):
         raise HandoffRefused("A drawing is still open in the native panel.", "native_drawing_open")
     wkt = geometry.asWkt() if callable(getattr(geometry, "asWkt", None)) else None
-    crs = cost_guard._canvas_crs()
+    crs = zone_facts._canvas_crs()
     out = {"zone_wkt": wkt, "zone_crs": crs.authid() or crs.toWkt()}
     if edit:
-        from .adapters.ai_edit_access import ACCESS
-
         source = state.get("input_layer") or _api_state(api, "get_input_layer")
         wanted = args.get("layer_name")
         out["source_id"] = raster_layer(wanted).id() if wanted else source.get("layer_id")
@@ -254,8 +181,6 @@ def spending_inputs(label, args, geometry):
             out["reference_layers"].append(matches[0].id() if len(matches) == 1 else name)
         out["markup_digest"] = _markup_digest(plugin, state)
     else:
-        from .integration_tools import _aiseg_raster_layer
-
         effective = segmentation_arguments(plugin, args)
         layer = _aiseg_raster_layer(plugin, effective.get("layer_name"))
         out["source_id"] = layer.id() if layer is not None else None

@@ -62,6 +62,9 @@ AGENT_TMP_DIR = os.path.join(AGENT_HOME, "tmp")
 AGENT_EXPORT_DIR = os.path.join(AGENT_HOME, "exports")
 
 
+PLUGIN_CACHE_DIR = os.path.normpath(os.environ.get("AI_AGENT_CACHE_DIR") or os.path.join(AGENT_ROOT, "ui-cache"))
+
+
 def state_dir() -> str:
 
 

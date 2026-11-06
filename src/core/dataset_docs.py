@@ -32,16 +32,11 @@ import threading
 import time
 import urllib.parse
 
-from . import limits, net
+from . import limits, net, source_rules
 from .background import on_main_thread
 
 
-SIDECAR_NAMES = ("AGENTS.md", "README.md")
 
-
-
-_LEVELS = 2
-_MAX_PROBES = 4
 
 
 
@@ -117,7 +112,7 @@ def _directories(url: str) -> list[str]:
         segments.pop()
     root = f"{parsed.scheme}://{parsed.netloc}"
     out: list[str] = []
-    while len(out) < _LEVELS:
+    while len(out) < source_rules.table("sidecars", "levels", 0):
         out.append(root + "".join(f"/{part}" for part in segments) + "/")
         if not segments:
             break
@@ -210,8 +205,8 @@ def notes_for(source) -> dict | None:
         deadline = time.monotonic() + limits.current("DATASET_DOCS_TOTAL_SECONDS")
         probes = 0
         for directory in _directories(url):
-            for name in SIDECAR_NAMES:
-                if probes >= _MAX_PROBES:
+            for name in source_rules.table("sidecars", "names", []):
+                if probes >= source_rules.table("sidecars", "max_probes", 0):
                     return None
                 probes += 1
                 found = _probe(directory + name, deadline)

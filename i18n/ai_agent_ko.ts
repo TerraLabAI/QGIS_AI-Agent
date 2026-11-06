@@ -599,14 +599,6 @@
             <translation>{raster} 지리참조</translation>
         </message>
         <message>
-            <source>Get a Sentinel image</source>
-            <translation>Sentinel 영상 가져오기</translation>
-        </message>
-        <message>
-            <source>Get an elevation model</source>
-            <translation>고도 모델 가져오기</translation>
-        </message>
-        <message>
             <source>Get {what}</source>
             <translation>{what} 가져오기</translation>
         </message>
@@ -751,10 +743,6 @@
             <translation>플러그인 목록 보기</translation>
         </message>
         <message>
-            <source>List the satellite catalogs</source>
-            <translation>위성 카탈로그 목록 보기</translation>
-        </message>
-        <message>
             <source>Load 3D Tiles[ from {url}]</source>
             <translation>3D Tiles 불러오기[ ({url}에서)]</translation>
         </message>
@@ -771,20 +759,12 @@
             <translation>QGIS 창 보기</translation>
         </message>
         <message>
-            <source>Look for data on the web[ for {query}]</source>
-            <translation>웹에서 데이터 찾기[ ({query})]</translation>
-        </message>
-        <message>
             <source>Look for data on this computer</source>
             <translation>이 컴퓨터에서 데이터 찾기</translation>
         </message>
         <message>
             <source>Look for relief anomalies[ in {lrm_layer}][ in {dem}]</source>
             <translation>[{lrm_layer}에서 ][{dem}에서 ]지형 이상 징후 찾기</translation>
-        </message>
-        <message>
-            <source>Look up the place[ {query}]</source>
-            <translation>장소[ {query}] 찾아보기</translation>
         </message>
         <message>
             <source>Make the temporary layers permanent[ in {gpkg_path}]</source>
@@ -967,10 +947,6 @@
             <translation>{INPUT} 래스터화</translation>
         </message>
         <message>
-            <source>Read a NASA Earthdata collection[ {short_name}]</source>
-            <translation>NASA Earthdata 컬렉션[ {short_name}] 읽기</translation>
-        </message>
-        <message>
             <source>Read a web page</source>
             <translation>웹 페이지 읽기</translation>
         </message>
@@ -983,16 +959,8 @@
             <translation>{layer_name}의 피처 읽기</translation>
         </message>
         <message>
-            <source>Read the AI Agent documentation[ on {query}]</source>
-            <translation>[{query}에 관한 ]AI Agent 문서 읽기</translation>
-        </message>
-        <message>
             <source>Read the CRS of {layer_name}</source>
             <translation>{layer_name}의 CRS 읽기</translation>
-        </message>
-        <message>
-            <source>Read the QGIS documentation[ on {query}]</source>
-            <translation>[{query}에 관한 ]QGIS 문서 읽기</translation>
         </message>
         <message>
             <source>Read the extent of {layer_name}</source>
@@ -1155,18 +1123,6 @@
             <translation>{folder}에 {file}(으)로 저장했습니다.</translation>
         </message>
         <message>
-            <source>Search Copernicus images[ of {collection}]</source>
-            <translation>Copernicus 이미지 검색[: {collection}]</translation>
-        </message>
-        <message>
-            <source>Search NASA Earthdata files</source>
-            <translation>NASA Earthdata 파일 검색</translation>
-        </message>
-        <message>
-            <source>Search NASA Earthdata[ for {query}]</source>
-            <translation>NASA Earthdata 검색[: {query}]</translation>
-        </message>
-        <message>
             <source>Search examples</source>
             <translation>예시 검색</translation>
         </message>
@@ -1175,24 +1131,8 @@
             <translation>공개 데이터 검색[: {query}]</translation>
         </message>
         <message>
-            <source>Search satellite images</source>
-            <translation>위성 이미지 검색</translation>
-        </message>
-        <message>
-            <source>Search statistics[ on {topic}]</source>
-            <translation>통계 검색[: {topic}]</translation>
-        </message>
-        <message>
-            <source>Search the Earth Engine catalog[ for {query}]</source>
-            <translation>Earth Engine 카탈로그 검색[: {query}]</translation>
-        </message>
-        <message>
             <source>Search the QGIS Hub[ for {query}]</source>
             <translation>QGIS Hub 검색[: {query}]</translation>
-        </message>
-        <message>
-            <source>Search the data catalog[ for {query}]</source>
-            <translation>데이터 카탈로그 검색[: {query}]</translation>
         </message>
         <message>
             <source>Search the processing tools[ for {query}]</source>
@@ -1201,10 +1141,6 @@
         <message>
             <source>Search the processing tools[ for {search}]</source>
             <translation>프로세싱 도구 검색[: {search}]</translation>
-        </message>
-        <message>
-            <source>Search the web[ for {query}]</source>
-            <translation>웹 검색[: {query}]</translation>
         </message>
         <message>
             <source>Select features in {layer_name}</source>
@@ -1842,6 +1778,38 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <source>This report includes your description and the current conversation. We use it to fix issues and improve AI Agent.</source>
             <translation>이 보고서에는 작성하신 설명과 현재 대화가 포함됩니다. 문제를 해결하고 AI Agent를 개선하는 데 사용합니다.</translation>
         </message>
+        <message>
+            <source>Copy</source>
+            <translation>복사</translation>
+        </message>
+        <message>
+            <source>Real tasks the AI agent does from one sentence.</source>
+            <translation>AI 에이전트가 한 문장으로 해내는 실제 작업입니다.</translation>
+        </message>
+        <message>
+            <source>Uses</source>
+            <translation>사용</translation>
+        </message>
+        <message>
+            <source>What you type</source>
+            <translation>입력하는 내용</translation>
+        </message>
+        <message>
+            <source>Expired on {day}.</source>
+            <translation>{day}에 만료되었습니다.</translation>
+        </message>
+        <message>
+            <source>Expires on {day}.</source>
+            <translation>{day}에 만료됩니다.</translation>
+        </message>
+        <message>
+            <source>Private link: its signature stays on this computer. TerraLab and the AI agent see only the site and the file name.</source>
+            <translation>비공개 링크: 서명은 이 컴퓨터에만 남습니다. TerraLab과 AI 에이전트는 사이트와 파일 이름만 볼 수 있습니다.</translation>
+        </message>
+        <message>
+            <source>expired</source>
+            <translation>만료됨</translation>
+        </message>
     </context>
     <context>
         <name>AIAgentContext</name>
@@ -2314,6 +2282,18 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <source>Your AI agent inside QGIS</source>
             <translation>QGIS 안의 AI 어시스턴트</translation>
         </message>
+        <message>
+            <source>Ask it to load data, style layers, run analyses or edit features.</source>
+            <translation>데이터 불러오기, 레이어 스타일 지정, 분석 실행, 피처 편집을 요청해 보세요.</translation>
+        </message>
+        <message>
+            <source>Free. Opens your browser, takes about 15 seconds.</source>
+            <translation>무료입니다. 브라우저가 열리며 약 15초 걸립니다.</translation>
+        </message>
+        <message>
+            <source>Sign in or create an account</source>
+            <translation>로그인 또는 계정 만들기</translation>
+        </message>
     </context>
     <context>
         <name>ActivityRow</name>
@@ -2451,6 +2431,10 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <source>Write the request for an HTML report of this analysis, with its maps and charts</source>
             <translation>이 분석의 지도와 차트를 담은 HTML 보고서 요청 작성</translation>
+        </message>
+        <message>
+            <source>Remove rating</source>
+            <translation>평가 삭제</translation>
         </message>
     </context>
     <context>
@@ -2794,6 +2778,42 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <source>a temporary layer</source>
             <translation>임시 레이어</translation>
+        </message>
+        <message>
+            <source>Not handled, the AI agent is offline: {0}</source>
+            <translation>처리되지 않음, AI 에이전트가 오프라인입니다: {0}</translation>
+        </message>
+        <message>
+            <source>Nothing is kept about this project yet.</source>
+            <translation>이 프로젝트에 대해 저장된 내용이 아직 없습니다.</translation>
+        </message>
+        <message>
+            <source>Project memory</source>
+            <translation>프로젝트 메모리</translation>
+        </message>
+        <message>
+            <source>Project memory cleared.</source>
+            <translation>프로젝트 메모리를 지웠습니다.</translation>
+        </message>
+        <message>
+            <source>Watched folder: not handled, no answer from the server: {0}</source>
+            <translation>감시 폴더: 처리되지 않음, 서버에서 응답이 없습니다: {0}</translation>
+        </message>
+        <message>
+            <source>Watched folder: not handled, the AI agent is offline: {0}</source>
+            <translation>감시 폴더: 처리되지 않음, AI 에이전트가 오프라인입니다: {0}</translation>
+        </message>
+        <message>
+            <source>Clear what the AI agent remembers about this project?</source>
+            <translation>AI 에이전트가 이 프로젝트에 대해 기억하는 내용을 지울까요?</translation>
+        </message>
+        <message>
+            <source>Save the project first: its memory is kept under the project file.</source>
+            <translation>먼저 프로젝트를 저장하세요. 메모리는 프로젝트 파일 아래에 보관됩니다.</translation>
+        </message>
+        <message>
+            <source>The AI agent is not connected. Try again in a moment.</source>
+            <translation>AI 에이전트가 연결되어 있지 않습니다. 잠시 후 다시 시도하세요.</translation>
         </message>
     </context>
     <context>
@@ -3189,6 +3209,14 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <source>Make an HTML report of this analysis, with its maps, charts and method.</source>
             <translation>이 분석의 지도, 차트, 방법을 담은 HTML 보고서를 만들어 주세요.</translation>
         </message>
+        <message>
+            <source>Pay to get Pro back</source>
+            <translation>Pro를 다시 사용하려면 결제해 주세요</translation>
+        </message>
+        <message>
+            <source>Task ended</source>
+            <translation>작업 종료</translation>
+        </message>
     </context>
     <context>
         <name>ChatSidebar</name>
@@ -3574,6 +3602,34 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <source>Your own account with the provider: it will ask for a key.</source>
             <translation>제공처에 본인 계정이 필요합니다. 키를 물어봅니다.</translation>
         </message>
+        <message>
+            <source>All %n</source>
+            <translation>전체 %n</translation>
+        </message>
+        <message>
+            <source>Examples with this source</source>
+            <translation>이 소스를 사용하는 예시</translation>
+        </message>
+        <message>
+            <source>Fewer</source>
+            <translation>간략히</translation>
+        </message>
+        <message>
+            <source>More</source>
+            <translation>더 보기</translation>
+        </message>
+        <message>
+            <source>More in {shelf}</source>
+            <translation>{shelf}에서 더 보기</translation>
+        </message>
+        <message>
+            <source>{first} and %n more licences</source>
+            <translation>{first} 외 라이선스 %n개</translation>
+        </message>
+        <message>
+            <source>Use in chat</source>
+            <translation>채팅에서 사용</translation>
+        </message>
     </context>
     <context>
         <name>ConnectorsPage</name>
@@ -3636,6 +3692,14 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <source>sources</source>
             <translation>소스</translation>
+        </message>
+        <message>
+            <source>Search sources, datasets or a country</source>
+            <translation>소스, 데이터셋 또는 국가 검색</translation>
+        </message>
+        <message>
+            <source>{sources} sources the AI agent finds and loads by itself: {datasets} datasets in {countries} countries.</source>
+            <translation>AI 에이전트가 직접 찾아 불러오는 소스 {sources}개: {countries}개 국가의 데이터셋 {datasets}개.</translation>
         </message>
     </context>
     <context>
@@ -3774,8 +3838,8 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <translation>무엇을 작업할까요?</translation>
         </message>
         <message>
-            <source>You are talking to an AI system. It can be wrong: check its changes.</source>
-            <translation>AI 시스템과 대화 중입니다. 틀릴 수 있으니 변경 내용을 확인하세요.</translation>
+            <source>AI can make mistakes. Check its changes.</source>
+            <translation>AI는 실수할 수 있습니다. 변경 내용을 확인하세요.</translation>
         </message>
     </context>
     <context>
@@ -4125,6 +4189,14 @@ Click to show it in the Layers panel.</source>
             <source>Videos and guides to get started. They open in your browser.</source>
             <translation>시작에 도움이 되는 동영상과 가이드입니다. 브라우저에서 열립니다.</translation>
         </message>
+        <message>
+            <source>Learn</source>
+            <translation>학습</translation>
+        </message>
+        <message>
+            <source>Videos, guides and the other TerraLab plugins. Links open in your browser.</source>
+            <translation>동영상, 가이드, 그리고 다른 TerraLab 플러그인. 링크는 브라우저에서 열립니다.</translation>
+        </message>
     </context>
     <context>
         <name>LibraryRail</name>
@@ -4404,6 +4476,46 @@ Click to show it in the Layers panel.</source>
         <message>
             <source>{n} actions wait for your approval.</source>
             <translation>작업 {n}개가 승인을 기다리고 있습니다.</translation>
+        </message>
+        <message>
+            <source>Adds: {}</source>
+            <translation>추가: {}</translation>
+        </message>
+        <message>
+            <source>Also covers the next calls of this kind in this answer</source>
+            <translation>이 답변에서 이어지는 같은 종류의 호출에도 적용됩니다</translation>
+        </message>
+        <message>
+            <source>Changes: {}</source>
+            <translation>변경: {}</translation>
+        </message>
+        <message>
+            <source>Deletes files: {}</source>
+            <translation>파일 삭제: {}</translation>
+        </message>
+        <message>
+            <source>Deletes: {}</source>
+            <translation>삭제: {}</translation>
+        </message>
+        <message>
+            <source>Not in this project: {}</source>
+            <translation>이 프로젝트에 없음: {}</translation>
+        </message>
+        <message>
+            <source>Other effects the preview could not read: {}</source>
+            <translation>미리보기에서 읽을 수 없었던 기타 영향: {}</translation>
+        </message>
+        <message>
+            <source>Reads: {}</source>
+            <translation>읽기: {}</translation>
+        </message>
+        <message>
+            <source>Runs: {}</source>
+            <translation>실행: {}</translation>
+        </message>
+        <message>
+            <source>Writes files: {}</source>
+            <translation>파일 쓰기: {}</translation>
         </message>
     </context>
     <context>
@@ -4721,6 +4833,26 @@ Click to show it in the Layers panel.</source>
             <source>{n} free tasks left</source>
             <translation>무료 작업 {n}개 남음</translation>
         </message>
+        <message>
+            <source>Pay now</source>
+            <translation>지금 결제하기</translation>
+        </message>
+        <message>
+            <source>Pay {amount} now</source>
+            <translation>지금 {amount} 결제하기</translation>
+        </message>
+        <message>
+            <source>Pro is off until it's paid. You're on the free plan for now.</source>
+            <translation>결제가 완료될 때까지 Pro를 사용할 수 없습니다. 지금은 무료 플랜입니다.</translation>
+        </message>
+        <message>
+            <source>Your Pro payment failed</source>
+            <translation>Pro 결제에 실패했습니다</translation>
+        </message>
+        <message>
+            <source>Your payment of {amount} failed</source>
+            <translation>{amount} 결제에 실패했습니다</translation>
+        </message>
     </context>
     <context>
         <name>QuotaPauseCard</name>
@@ -4952,6 +5084,10 @@ Click to show it in the Layers panel.</source>
             <source>{n} steps</source>
             <translation>{n}단계</translation>
         </message>
+        <message>
+            <source>Thought</source>
+            <translation>생각</translation>
+        </message>
     </context>
     <context>
         <name>RunsLeftLine</name>
@@ -5139,8 +5275,8 @@ Click to show it in the Layers panel.</source>
             <translation>Pro 시작하기</translation>
         </message>
         <message>
-            <source>Help improve AI Agent</source>
-            <translation>AI Agent 개선에 참여</translation>
+            <source>Allow chat review</source>
+            <translation>채팅 검토 허용</translation>
         </message>
         <message>
             <source>How it should work. Example: always answer in French, name new layers in snake_case, never delete a layer without asking.</source>
@@ -5187,12 +5323,12 @@ Click to show it in the Layers panel.</source>
             <translation>레이어 이름</translation>
         </message>
         <message>
-            <source>Lets us read a chat only to fix a bug. Chats are kept 30 days.</source>
-            <translation>버그를 고칠 때만 대화를 읽을 수 있게 합니다. 대화는 30일간 보관됩니다.</translation>
+            <source>We may read a chat only to fix a bug, never to train AI. Chats are kept 30 days.</source>
+            <translation>버그를 고치기 위해서만 채팅을 읽을 수 있으며, AI 학습에는 절대 사용하지 않습니다. 채팅은 30일 동안 보관됩니다.</translation>
         </message>
         <message>
-            <source>Lets us read a chat only to fix a wrong answer or a bug.</source>
-            <translation>잘못된 답변이나 버그를 고칠 때만 대화를 읽을 수 있게 합니다.</translation>
+            <source>We may read a chat only to fix a wrong answer or a bug, never to train AI.</source>
+            <translation>잘못된 답변이나 버그를 고치기 위해서만 채팅을 읽을 수 있으며, AI 학습에는 절대 사용하지 않습니다.</translation>
         </message>
         <message>
             <source>Loading account info...</source>
@@ -5557,6 +5693,95 @@ Click to show it in the Layers panel.</source>
         <message>
             <source>Send feedback</source>
             <translation>피드백 보내기</translation>
+        </message>
+        <message>
+            <location filename="src/ui/settings_dialog.py" />
+            <source>See usage</source>
+            <translation>사용량 보기</translation>
+        </message>
+        <message>
+            <source>Always answer in French, never delete a layer without asking</source>
+            <translation>항상 프랑스어로 답하고, 묻지 않고 레이어를 삭제하지 말 것</translation>
+        </message>
+        <message>
+            <source>Choose folder...</source>
+            <translation>폴더 선택...</translation>
+        </message>
+        <message>
+            <source>Clear project memory</source>
+            <translation>프로젝트 메모리 지우기</translation>
+        </message>
+        <message>
+            <source>Connected accounts</source>
+            <translation>연결된 계정</translation>
+        </message>
+        <message>
+            <source>Folder to watch</source>
+            <translation>감시할 폴더</translation>
+        </message>
+        <message>
+            <source>Instructions</source>
+            <translation>지침</translation>
+        </message>
+        <message>
+            <source>Job</source>
+            <translation>작업</translation>
+        </message>
+        <message>
+            <source>Learn</source>
+            <translation>학습</translation>
+        </message>
+        <message>
+            <source>Name</source>
+            <translation>이름</translation>
+        </message>
+        <message>
+            <source>No folder chosen</source>
+            <translation>선택한 폴더 없음</translation>
+        </message>
+        <message>
+            <source>Pro reads both before every run.</source>
+            <translation>Pro는 매번 실행하기 전에 둘 다 읽습니다.</translation>
+        </message>
+        <message>
+            <source>Proactive triggers</source>
+            <translation>능동형 트리거</translation>
+        </message>
+        <message>
+            <source>Project memory</source>
+            <translation>프로젝트 메모리</translation>
+        </message>
+        <message>
+            <source>Read by the AI agent at the start of every conversation.</source>
+            <translation>AI 에이전트가 모든 대화를 시작할 때 읽습니다.</translation>
+        </message>
+        <message>
+            <source>Saved notes · {n}</source>
+            <translation>저장된 노트 · {n}</translation>
+        </message>
+        <message>
+            <source>Show project memory</source>
+            <translation>프로젝트 메모리 보기</translation>
+        </message>
+        <message>
+            <source>The AI agent looks at new data files in this folder and at the schedules you ask for, only while QGIS is open. Nothing runs when QGIS is closed.</source>
+            <translation>AI 에이전트는 QGIS가 열려 있는 동안에만 이 폴더의 새 데이터 파일과 요청한 일정을 확인합니다. QGIS가 닫혀 있으면 아무것도 실행되지 않습니다.</translation>
+        </message>
+        <message>
+            <source>Urban planner at the city of Lyon, cadastre and PLU layers in EPSG:2154</source>
+            <translation>리옹 시의 도시 계획 담당자, EPSG:2154의 지적 및 PLU 레이어</translation>
+        </message>
+        <message>
+            <source>Watch a folder and run my schedules while QGIS is open</source>
+            <translation>QGIS가 열려 있는 동안 폴더를 감시하고 내 일정 실행</translation>
+        </message>
+        <message>
+            <source>What Pro adds: {points}</source>
+            <translation>Pro가 추가하는 기능: {points}</translation>
+        </message>
+        <message>
+            <source>commercial use, more tasks, memory, your instructions and higher effort</source>
+            <translation>상업적 사용, 더 많은 작업, 메모리, 사용자 지침, 더 높은 노력 수준</translation>
         </message>
     </context>
     <context>
@@ -5941,6 +6166,22 @@ Click to show it in the Layers panel.</source>
             <source>{what} on '{layer}' whose CRS {crs} is geographic: the distance would be in degrees, not meters.</source>
             <translation>CRS {crs}이(가) 지리 좌표계인 '{layer}'에서 {what}: 거리는 미터가 아니라 도 단위가 됩니다.</translation>
         </message>
+        <message>
+            <source>Access to {host}</source>
+            <translation>{host} 접근</translation>
+        </message>
+        <message>
+            <source>Allowed for this conversation</source>
+            <translation>이 대화에서 허용됨</translation>
+        </message>
+        <message>
+            <source>Allowed once</source>
+            <translation>한 번 허용됨</translation>
+        </message>
+        <message>
+            <source>Signed in</source>
+            <translation>로그인됨</translation>
+        </message>
     </context>
     <context>
         <name>UpdateBanner</name>
@@ -5959,6 +6200,14 @@ Click to show it in the Layers panel.</source>
         <message>
             <source>{product} {version} is out</source>
             <translation>{product} {version}이(가) 출시되었습니다</translation>
+        </message>
+        <message>
+            <source>Download</source>
+            <translation>다운로드</translation>
+        </message>
+        <message>
+            <source>This QGIS has no plugin repository turned on. Download the ZIP, then use Install from ZIP in Plugins &gt; Manage and Install Plugins.</source>
+            <translation>이 QGIS에는 활성화된 플러그인 저장소가 없습니다. ZIP 파일을 다운로드한 뒤 플러그인 &gt; 플러그인 관리 및 설치에서 'ZIP에서 설치'를 사용하세요.</translation>
         </message>
     </context>
     <context>
@@ -6370,6 +6619,1320 @@ Click to show it in the Layers panel.</source>
         <message>
             <source>Thanks for the feedback</source>
             <translation>피드백 감사합니다</translation>
+        </message>
+    </context>
+    <context>
+        <name>ToolDetails</name>
+        <message>
+            <source>Copied</source>
+            <translation>복사됨</translation>
+        </message>
+        <message>
+            <source>Copy as Python</source>
+            <translation>Python으로 복사</translation>
+        </message>
+        <message>
+            <source>Open in Processing</source>
+            <translation>공간 처리에서 열기</translation>
+        </message>
+        <message>
+            <source>Open this algorithm's dialog with the same settings, to check them or run it again. The output goes to a new temporary layer.</source>
+            <translation>같은 설정으로 이 알고리즘의 대화상자를 열어 설정을 확인하거나 다시 실행합니다. 결과는 새 임시 레이어에 저장됩니다.</translation>
+        </message>
+        <message>
+            <source>Show less</source>
+            <translation>간단히 보기</translation>
+        </message>
+        <message>
+            <source>Show {n} more</source>
+            <translation>{n}개 더 보기</translation>
+        </message>
+        <message>
+            <source>The processing.run line, ready for the QGIS Python console</source>
+            <translation>QGIS Python 콘솔에 바로 붙여 넣을 수 있는 processing.run 줄</translation>
+        </message>
+        <message>
+            <source>Fewer</source>
+            <translation>간략히</translation>
+        </message>
+        <message>
+            <source>{n} more</source>
+            <translation>{n}개 더</translation>
+        </message>
+    </context>
+    <context>
+        <name>AccountCard</name>
+        <message>
+            <source>Add keys</source>
+            <translation>키 추가</translation>
+        </message>
+        <message>
+            <source>Add token</source>
+            <translation>토큰 추가</translation>
+        </message>
+        <message>
+            <source>Allow</source>
+            <translation>허용</translation>
+        </message>
+        <message>
+            <source>Allow for this conversation</source>
+            <translation>이 대화에서 허용</translation>
+        </message>
+        <message>
+            <source>Allowed for this conversation</source>
+            <translation>이 대화에서 허용됨</translation>
+        </message>
+        <message>
+            <source>Allowed once</source>
+            <translation>한 번 허용됨</translation>
+        </message>
+        <message>
+            <source>Connect your {label} account</source>
+            <translation>{label} 계정 연결</translation>
+        </message>
+        <message>
+            <source>Connected</source>
+            <translation>연결됨</translation>
+        </message>
+        <message>
+            <source>Continue with your {label} account</source>
+            <translation>{label} 계정으로 계속</translation>
+        </message>
+        <message>
+            <source>Deny</source>
+            <translation>거부</translation>
+        </message>
+        <message>
+            <source>Keys refused</source>
+            <translation>키가 거부됨</translation>
+        </message>
+        <message>
+            <source>Needs your answer</source>
+            <translation>답변이 필요합니다</translation>
+        </message>
+        <message>
+            <source>Not allowed</source>
+            <translation>허용 안 됨</translation>
+        </message>
+        <message>
+            <source>Replace keys</source>
+            <translation>키 교체</translation>
+        </message>
+        <message>
+            <source>Replace token</source>
+            <translation>토큰 교체</translation>
+        </message>
+        <message>
+            <source>Sent to {host} only.</source>
+            <translation>{host}(으)로만 전송됩니다.</translation>
+        </message>
+        <message>
+            <source>Sign in</source>
+            <translation>로그인</translation>
+        </message>
+        <message>
+            <source>Sign in again</source>
+            <translation>다시 로그인</translation>
+        </message>
+        <message>
+            <source>Sign in to {host}</source>
+            <translation>{host}에 로그인</translation>
+        </message>
+        <message>
+            <source>Sign-in refused</source>
+            <translation>로그인이 거부됨</translation>
+        </message>
+        <message>
+            <source>Skip</source>
+            <translation>건너뛰기</translation>
+        </message>
+        <message>
+            <source>Skipped</source>
+            <translation>건너뜀</translation>
+        </message>
+        <message>
+            <source>Stored encrypted in QGIS on this computer. Never sent to TerraLab or the AI agent.</source>
+            <translation>이 컴퓨터의 QGIS에 암호화되어 저장됩니다. TerraLab이나 AI 에이전트에는 전송되지 않습니다.</translation>
+        </message>
+        <message>
+            <source>TerraLab's shared access is used up. A free token keeps you going.</source>
+            <translation>TerraLab의 공유 접근을 모두 사용했습니다. 무료 토큰이 있으면 계속할 수 있습니다.</translation>
+        </message>
+        <message>
+            <source>TerraLab's shared access is used up. Free S3 keys keep you going.</source>
+            <translation>TerraLab의 공유 접근을 모두 사용했습니다. 무료 S3 키가 있으면 계속할 수 있습니다.</translation>
+        </message>
+        <message>
+            <source>This service answers only a signed-in user.</source>
+            <translation>이 서비스는 로그인한 사용자에게만 응답합니다.</translation>
+        </message>
+        <message>
+            <source>Token refused</source>
+            <translation>토큰이 거부됨</translation>
+        </message>
+        <message>
+            <source>Use your {label} access?</source>
+            <translation>{label} 접근을 사용할까요?</translation>
+        </message>
+        <message>
+            <source>{host} opens with a token or an API key from your account.</source>
+            <translation>{host}은(는) 계정의 토큰 또는 API 키로 열립니다.</translation>
+        </message>
+        <message>
+            <source>{host} refused your saved access ({user}).</source>
+            <translation>{host}이(가) 저장된 접근({user})을 거부했습니다.</translation>
+        </message>
+        <message>
+            <source>{host} refused your saved access.</source>
+            <translation>{host}이(가) 저장된 접근을 거부했습니다.</translation>
+        </message>
+        <message>
+            <source>{label} answers only a signed-in user.</source>
+            <translation>{label}은(는) 로그인한 사용자에게만 응답합니다.</translation>
+        </message>
+        <message>
+            <source>{label} refused your saved S3 keys.</source>
+            <translation>{label}이(가) 저장된 S3 키를 거부했습니다.</translation>
+        </message>
+        <message>
+            <source>{label} refused your saved token.</source>
+            <translation>{label}이(가) 저장된 토큰을 거부했습니다.</translation>
+        </message>
+        <message>
+            <source>{service} needs a token</source>
+            <translation>{service}에는 토큰이 필요합니다</translation>
+        </message>
+        <message>
+            <source>Sign in with {name}</source>
+            <translation>{name}(으)로 로그인</translation>
+        </message>
+        <message>
+            <source>TerraLab's shared access is used up. Your free account keeps you going.</source>
+            <translation>TerraLab의 공용 액세스를 모두 사용했습니다. 무료 계정으로 계속 사용할 수 있습니다.</translation>
+        </message>
+        <message>
+            <source>Try again</source>
+            <translation>다시 시도</translation>
+        </message>
+        <message>
+            <source>Use S3 keys instead</source>
+            <translation>대신 S3 키 사용</translation>
+        </message>
+        <message>
+            <source>{name} no longer accepts your saved sign-in.</source>
+            <translation>{name}에서 저장된 로그인을 더 이상 받아들이지 않습니다.</translation>
+        </message>
+        <message>
+            <source>Keys expired</source>
+            <translation>키 만료됨</translation>
+        </message>
+        <message>
+            <source>Sign-in expired</source>
+            <translation>로그인 만료됨</translation>
+        </message>
+        <message>
+            <source>Token expired</source>
+            <translation>토큰 만료됨</translation>
+        </message>
+        <message>
+            <source>{host} no longer accepts your saved access.</source>
+            <translation>{host}에서 저장된 접근 정보를 더 이상 수락하지 않습니다.</translation>
+        </message>
+        <message>
+            <source>{label} no longer accepts your saved S3 keys.</source>
+            <translation>{label}에서 저장된 S3 키를 더 이상 수락하지 않습니다.</translation>
+        </message>
+        <message>
+            <source>{label} no longer accepts your saved token.</source>
+            <translation>{label}에서 저장된 토큰을 더 이상 수락하지 않습니다.</translation>
+        </message>
+        <message>
+            <source>Your {name} sign-in expired.</source>
+            <translation>{name} 로그인이 만료되었습니다.</translation>
+        </message>
+        <message>
+            <source>Details</source>
+            <translation>세부 정보</translation>
+        </message>
+        <message>
+            <source>File: {value}</source>
+            <translation>파일: {value}</translation>
+        </message>
+        <message>
+            <source>Only this file is read with it; nothing is written.</source>
+            <translation>이 파일만 읽으며, 아무것도 기록하지 않습니다.</translation>
+        </message>
+        <message>
+            <source>Saved access: {value}</source>
+            <translation>저장된 액세스: {value}</translation>
+        </message>
+        <message>
+            <source>Sent to: {value}</source>
+            <translation>전송 대상: {value}</translation>
+        </message>
+        <message>
+            <source>Choose in Google Drive</source>
+            <translation>Google Drive에서 선택</translation>
+        </message>
+    </context>
+    <context>
+        <name>ConnectedAccountsPage</name>
+        <message>
+            <source>API key</source>
+            <translation>API 키</translation>
+        </message>
+        <message>
+            <source>Connected accounts</source>
+            <translation>연결된 계정</translation>
+        </message>
+        <message>
+            <source>Kept in QGIS's encrypted vault, on this computer. Neither TerraLab nor the AI agent sees them.</source>
+            <translation>이 컴퓨터의 QGIS 암호화 보관소에 저장됩니다. TerraLab도 AI 에이전트도 볼 수 없습니다.</translation>
+        </message>
+        <message>
+            <source>No account yet. When a source asks you to sign in, the AI agent shows a card, and the access you save appears here.</source>
+            <translation>아직 계정이 없습니다. 소스가 로그인을 요구하면 AI 에이전트가 카드를 표시하고, 저장한 접근이 여기에 나타납니다.</translation>
+        </message>
+        <message>
+            <source>Remove</source>
+            <translation>제거</translation>
+        </message>
+        <message>
+            <source>Remove the access to {host}</source>
+            <translation>{host} 접근 제거</translation>
+        </message>
+        <message>
+            <source>S3 keys</source>
+            <translation>S3 키</translation>
+        </message>
+        <message>
+            <source>The sign-ins the AI agent may use, each only after you allow it.</source>
+            <translation>AI 에이전트가 사용할 수 있는 로그인입니다. 각각 허용한 뒤에만 사용됩니다.</translation>
+        </message>
+        <message>
+            <source>Token</source>
+            <translation>토큰</translation>
+        </message>
+        <message>
+            <source>Username and password</source>
+            <translation>사용자 이름과 비밀번호</translation>
+        </message>
+        <message>
+            <source>Google account</source>
+            <translation>Google 계정</translation>
+        </message>
+        <message>
+            <source>No project picked</source>
+            <translation>선택한 프로젝트 없음</translation>
+        </message>
+        <message>
+            <source>Project {project}</source>
+            <translation>프로젝트 {project}</translation>
+        </message>
+        <message>
+            <source>Change project…</source>
+            <translation>프로젝트 변경…</translation>
+        </message>
+        <message>
+            <source>Google sign-in</source>
+            <translation>Google 로그인</translation>
+        </message>
+        <message>
+            <source>Signed in with the browser</source>
+            <translation>브라우저로 로그인됨</translation>
+        </message>
+        <message>
+            <source>Add account</source>
+            <translation>계정 추가</translation>
+        </message>
+        <message>
+            <source>Expired</source>
+            <translation>만료됨</translation>
+        </message>
+        <message>
+            <source>Expires on {day}</source>
+            <translation>{day}에 만료</translation>
+        </message>
+        <message>
+            <source>More actions for {label}</source>
+            <translation>{label} 추가 작업</translation>
+        </message>
+        <message>
+            <source>QGIS deletes it from its vault. Layers loaded with it stop loading, and the AI agent asks you to sign in again the next time {host} needs it.</source>
+            <translation>QGIS가 인증 데이터베이스에서 삭제합니다. 이를 사용해 불러온 레이어는 더 이상 불러와지지 않으며, 다음에 {host}에 필요할 때 AI 에이전트가 다시 로그인하도록 요청합니다.</translation>
+        </message>
+        <message>
+            <source>Refused at its last use</source>
+            <translation>마지막 사용 시 거부됨</translation>
+        </message>
+        <message>
+            <source>Remove your {label} access?</source>
+            <translation>{label} 접근 정보를 제거할까요?</translation>
+        </message>
+        <message>
+            <source>Remove…</source>
+            <translation>제거…</translation>
+        </message>
+        <message>
+            <source>Replace…</source>
+            <translation>바꾸기…</translation>
+        </message>
+        <message>
+            <source>Storage keys</source>
+            <translation>스토리지 키</translation>
+        </message>
+        <message>
+            <source>Choose files…</source>
+            <translation>파일 선택…</translation>
+        </message>
+        <message>
+            <source>{name} sign-in</source>
+            <translation>{name} 로그인</translation>
+        </message>
+    </context>
+    <context>
+        <name>KeysDialog</name>
+        <message>
+            <source>Access key</source>
+            <translation>액세스 키</translation>
+        </message>
+        <message>
+            <source>Cancel</source>
+            <translation>취소</translation>
+        </message>
+        <message>
+            <source>Connect</source>
+            <translation>연결</translation>
+        </message>
+        <message>
+            <source>Connect {label}</source>
+            <translation>{label} 연결</translation>
+        </message>
+        <message>
+            <source>Connected</source>
+            <translation>연결됨</translation>
+        </message>
+        <message>
+            <source>Header name</source>
+            <translation>헤더 이름</translation>
+        </message>
+        <message>
+            <source>Hide</source>
+            <translation>숨기기</translation>
+        </message>
+        <message>
+            <source>Key</source>
+            <translation>키</translation>
+        </message>
+        <message>
+            <source>Not saved. Fill in the fields, and unlock QGIS's vault with its master password when QGIS asks.</source>
+            <translation>저장되지 않았습니다. 항목을 입력하고, QGIS가 요청하면 마스터 비밀번호로 QGIS 보관소를 잠금 해제하세요.</translation>
+        </message>
+        <message>
+            <source>Not saved. Paste both keys, and unlock QGIS's vault with its master password when QGIS asks.</source>
+            <translation>저장되지 않았습니다. 두 키를 모두 붙여넣고, QGIS가 요청하면 마스터 비밀번호로 QGIS 보관소를 잠금 해제하세요.</translation>
+        </message>
+        <message>
+            <source>Open {host}</source>
+            <translation>{host} 열기</translation>
+        </message>
+        <message>
+            <source>Password</source>
+            <translation>비밀번호</translation>
+        </message>
+        <message>
+            <source>Secret key</source>
+            <translation>비밀 키</translation>
+        </message>
+        <message>
+            <source>Show</source>
+            <translation>표시</translation>
+        </message>
+        <message>
+            <source>Sign in</source>
+            <translation>로그인</translation>
+        </message>
+        <message>
+            <source>Sign in to {host}</source>
+            <translation>{host}에 로그인</translation>
+        </message>
+        <message>
+            <source>Sign in with a free account, add a credential and paste both keys here.</source>
+            <translation>무료 계정으로 로그인하고 자격 증명을 추가한 뒤 두 키를 여기에 붙여넣으세요.</translation>
+        </message>
+        <message>
+            <source>Stored encrypted in QGIS on this computer, behind your QGIS master password. Never sent to TerraLab or the AI agent.</source>
+            <translation>이 컴퓨터의 QGIS에 마스터 비밀번호로 보호되어 암호화 저장됩니다. TerraLab이나 AI 에이전트에는 전송되지 않습니다.</translation>
+        </message>
+        <message>
+            <source>Use a username and password instead</source>
+            <translation>대신 사용자 이름과 비밀번호 사용</translation>
+        </message>
+        <message>
+            <source>Use an API key instead</source>
+            <translation>대신 API 키 사용</translation>
+        </message>
+        <message>
+            <source>Username</source>
+            <translation>사용자 이름</translation>
+        </message>
+        <message>
+            <source>the S3 keys manager</source>
+            <translation>S3 키 관리자</translation>
+        </message>
+        <message>
+            <source>Checking…</source>
+            <translation>확인하는 중…</translation>
+        </message>
+        <message>
+            <source>QGIS will ask you to choose a master password. It locks every sign-in saved in QGIS and cannot be recovered, so keep it somewhere safe.</source>
+            <translation>QGIS가 마스터 비밀번호를 설정하도록 요청합니다. QGIS에 저장된 모든 로그인 정보가 이 비밀번호로 잠기며 복구할 수 없으니 안전한 곳에 보관하세요.</translation>
+        </message>
+        <message>
+            <source>{host} refused these details. Check them and try again.</source>
+            <translation>{host}에서 이 정보를 거부했습니다. 확인한 후 다시 시도하세요.</translation>
+        </message>
+    </context>
+    <context>
+        <name>ProLock</name>
+        <message>
+            <source>Pro</source>
+            <translation>Pro</translation>
+        </message>
+    </context>
+    <context>
+        <name>ProNote</name>
+        <message>
+            <source>Get Pro</source>
+            <translation>Pro 시작하기</translation>
+        </message>
+    </context>
+    <context>
+        <name>SectionHead</name>
+        <message>
+            <source>See all</source>
+            <translation>모두 보기</translation>
+        </message>
+    </context>
+    <context>
+        <name>SiblingRow</name>
+        <message>
+            <source>Install</source>
+            <translation>설치</translation>
+        </message>
+        <message>
+            <source>Installed</source>
+            <translation>설치됨</translation>
+        </message>
+        <message>
+            <source>Open</source>
+            <translation>열기</translation>
+        </message>
+        <message>
+            <source>Opens the QGIS plugin manager on this plugin.</source>
+            <translation>이 플러그인에 대해 QGIS 플러그인 관리자를 엽니다.</translation>
+        </message>
+        <message>
+            <source>Show the plugin's panel.</source>
+            <translation>플러그인 패널을 표시합니다.</translation>
+        </message>
+    </context>
+    <context>
+        <name>SiblingsSection</name>
+        <message>
+            <source>Edit your imagery with a single sentence.</source>
+            <translation>한 문장으로 영상을 편집하세요.</translation>
+        </message>
+        <message>
+            <source>Other TerraLab plugins</source>
+            <translation>다른 TerraLab 플러그인</translation>
+        </message>
+        <message>
+            <source>Turn buildings, trees or water into polygons.</source>
+            <translation>건물, 나무, 물을 폴리곤으로 바꿉니다.</translation>
+        </message>
+    </context>
+    <context>
+        <name>SignInDialog</name>
+        <message>
+            <source>Cancel</source>
+            <translation>취소</translation>
+        </message>
+        <message>
+            <source>Connect</source>
+            <translation>연결</translation>
+        </message>
+        <message>
+            <source>Connected</source>
+            <translation>연결됨</translation>
+        </message>
+        <message>
+            <source>Header name</source>
+            <translation>헤더 이름</translation>
+        </message>
+        <message>
+            <source>Hide</source>
+            <translation>숨기기</translation>
+        </message>
+        <message>
+            <source>Key</source>
+            <translation>키</translation>
+        </message>
+        <message>
+            <source>Not saved. Fill in the fields, and unlock QGIS's vault with its master password when QGIS asks.</source>
+            <translation>저장되지 않았습니다. 항목을 입력하고, QGIS가 요청하면 마스터 비밀번호로 QGIS 보관소를 잠금 해제하세요.</translation>
+        </message>
+        <message>
+            <source>Open {host}</source>
+            <translation>{host} 열기</translation>
+        </message>
+        <message>
+            <source>Password</source>
+            <translation>비밀번호</translation>
+        </message>
+        <message>
+            <source>Show</source>
+            <translation>표시</translation>
+        </message>
+        <message>
+            <source>Sign in</source>
+            <translation>로그인</translation>
+        </message>
+        <message>
+            <source>Sign in to {host}</source>
+            <translation>{host}에 로그인</translation>
+        </message>
+        <message>
+            <source>Stored encrypted in QGIS on this computer, behind your QGIS master password. Never sent to TerraLab or the AI agent.</source>
+            <translation>이 컴퓨터의 QGIS에 마스터 비밀번호로 보호되어 암호화 저장됩니다. TerraLab이나 AI 에이전트에는 전송되지 않습니다.</translation>
+        </message>
+        <message>
+            <source>Use a username and password instead</source>
+            <translation>대신 사용자 이름과 비밀번호 사용</translation>
+        </message>
+        <message>
+            <source>Use an API key instead</source>
+            <translation>대신 API 키 사용</translation>
+        </message>
+        <message>
+            <source>Username</source>
+            <translation>사용자 이름</translation>
+        </message>
+        <message>
+            <source>Checking…</source>
+            <translation>확인하는 중…</translation>
+        </message>
+        <message>
+            <source>QGIS will ask you to choose a master password. It locks every sign-in saved in QGIS and cannot be recovered, so keep it somewhere safe.</source>
+            <translation>QGIS가 마스터 비밀번호를 설정하도록 요청합니다. QGIS에 저장된 모든 로그인 정보가 이 비밀번호로 잠기며 복구할 수 없으니 안전한 곳에 보관하세요.</translation>
+        </message>
+        <message>
+            <source>{host} refused these details. Check them and try again.</source>
+            <translation>{host}에서 이 정보를 거부했습니다. 확인한 후 다시 시도하세요.</translation>
+        </message>
+    </context>
+    <context>
+        <name>TasksPanel</name>
+        <message>
+            <source>Done</source>
+            <translation>완료</translation>
+        </message>
+        <message>
+            <source>Failed</source>
+            <translation>실패</translation>
+        </message>
+        <message>
+            <source>Paused</source>
+            <translation>일시 중지됨</translation>
+        </message>
+        <message>
+            <source>Queued</source>
+            <translation>대기 중</translation>
+        </message>
+        <message>
+            <source>Stopped</source>
+            <translation>중지됨</translation>
+        </message>
+        <message>
+            <source>Stopping...</source>
+            <translation>중지하는 중...</translation>
+        </message>
+        <message>
+            <source>Tasks</source>
+            <translation>작업</translation>
+        </message>
+        <message>
+            <source>Working</source>
+            <translation>작업 중</translation>
+        </message>
+    </context>
+    <context>
+        <name>TokenDialog</name>
+        <message>
+            <source>A token or an API key from your {service} account. Sent to {host} only.</source>
+            <translation>{service} 계정의 토큰 또는 API 키입니다. {host}(으)로만 전송됩니다.</translation>
+        </message>
+        <message>
+            <source>Cancel</source>
+            <translation>취소</translation>
+        </message>
+        <message>
+            <source>Connect</source>
+            <translation>연결</translation>
+        </message>
+        <message>
+            <source>Connect {label}</source>
+            <translation>{label} 연결</translation>
+        </message>
+        <message>
+            <source>Connect {service}</source>
+            <translation>{service} 연결</translation>
+        </message>
+        <message>
+            <source>Connected</source>
+            <translation>연결됨</translation>
+        </message>
+        <message>
+            <source>Header name</source>
+            <translation>헤더 이름</translation>
+        </message>
+        <message>
+            <source>Hide</source>
+            <translation>숨기기</translation>
+        </message>
+        <message>
+            <source>Key</source>
+            <translation>키</translation>
+        </message>
+        <message>
+            <source>Not saved. Fill in the fields, and unlock QGIS's vault with its master password when QGIS asks.</source>
+            <translation>저장되지 않았습니다. 항목을 입력하고, QGIS가 요청하면 마스터 비밀번호로 QGIS 보관소를 잠금 해제하세요.</translation>
+        </message>
+        <message>
+            <source>Not saved. Paste the token, and unlock QGIS's vault with its master password when QGIS asks.</source>
+            <translation>저장되지 않았습니다. 토큰을 붙여넣고, QGIS가 요청하면 마스터 비밀번호로 QGIS 보관소를 잠금 해제하세요.</translation>
+        </message>
+        <message>
+            <source>Open {host}</source>
+            <translation>{host} 열기</translation>
+        </message>
+        <message>
+            <source>Password</source>
+            <translation>비밀번호</translation>
+        </message>
+        <message>
+            <source>Paste your token</source>
+            <translation>토큰 붙여넣기</translation>
+        </message>
+        <message>
+            <source>Show</source>
+            <translation>표시</translation>
+        </message>
+        <message>
+            <source>Sign in</source>
+            <translation>로그인</translation>
+        </message>
+        <message>
+            <source>Sign in to {host}</source>
+            <translation>{host}에 로그인</translation>
+        </message>
+        <message>
+            <source>Sign in with a free account, choose Generate Token, copy it and paste it here.</source>
+            <translation>무료 계정으로 로그인하고 Generate Token을 선택한 뒤 복사해서 여기에 붙여넣으세요.</translation>
+        </message>
+        <message>
+            <source>Stored encrypted in QGIS on this computer, behind your QGIS master password. Never sent to TerraLab or the AI agent.</source>
+            <translation>이 컴퓨터의 QGIS에 마스터 비밀번호로 보호되어 암호화 저장됩니다. TerraLab이나 AI 에이전트에는 전송되지 않습니다.</translation>
+        </message>
+        <message>
+            <source>Token</source>
+            <translation>토큰</translation>
+        </message>
+        <message>
+            <source>Token for {host}</source>
+            <translation>{host}용 토큰</translation>
+        </message>
+        <message>
+            <source>Use a username and password instead</source>
+            <translation>대신 사용자 이름과 비밀번호 사용</translation>
+        </message>
+        <message>
+            <source>Use an API key instead</source>
+            <translation>대신 API 키 사용</translation>
+        </message>
+        <message>
+            <source>Username</source>
+            <translation>사용자 이름</translation>
+        </message>
+        <message>
+            <source>Checking…</source>
+            <translation>확인하는 중…</translation>
+        </message>
+        <message>
+            <source>QGIS will ask you to choose a master password. It locks every sign-in saved in QGIS and cannot be recovered, so keep it somewhere safe.</source>
+            <translation>QGIS가 마스터 비밀번호를 설정하도록 요청합니다. QGIS에 저장된 모든 로그인 정보가 이 비밀번호로 잠기며 복구할 수 없으니 안전한 곳에 보관하세요.</translation>
+        </message>
+        <message>
+            <source>{host} refused these details. Check them and try again.</source>
+            <translation>{host}에서 이 정보를 거부했습니다. 확인한 후 다시 시도하세요.</translation>
+        </message>
+    </context>
+    <context>
+        <name>_TaskRow</name>
+        <message>
+            <source>Stop</source>
+            <translation>중지</translation>
+        </message>
+    </context>
+    <context>
+        <name>EarthEngineConnect</name>
+        <message>
+            <source>A non-commercial Earth Engine project is not for commercial work.</source>
+            <translation>비상업용 Earth Engine 프로젝트는 상업적 작업에 사용할 수 없습니다.</translation>
+        </message>
+        <message>
+            <source>Cancel</source>
+            <translation>취소</translation>
+        </message>
+        <message>
+            <source>Change project</source>
+            <translation>프로젝트 변경</translation>
+        </message>
+        <message>
+            <source>Choose project</source>
+            <translation>프로젝트 선택</translation>
+        </message>
+        <message>
+            <source>Choose your Earth Engine project</source>
+            <translation>Earth Engine 프로젝트를 선택하세요</translation>
+        </message>
+        <message>
+            <source>Connect</source>
+            <translation>연결</translation>
+        </message>
+        <message>
+            <source>Connect Earth Engine</source>
+            <translation>Earth Engine 연결</translation>
+        </message>
+        <message>
+            <source>Connected</source>
+            <translation>연결됨</translation>
+        </message>
+        <message>
+            <source>Earth Engine needs Google's earthengine-api package. It installs into QGIS in about a minute, then you sign in with Google.</source>
+            <translation>Earth Engine에는 Google의 earthengine-api 패키지가 필요합니다. QGIS에 약 1분 만에 설치되며, 그다음 Google로 로그인합니다.</translation>
+        </message>
+        <message>
+            <source>Earth Engine refused your project {project}.</source>
+            <translation>Earth Engine이 프로젝트 {project}을(를) 거부했습니다.</translation>
+        </message>
+        <message>
+            <source>Earth Engine runs on one of your Google Cloud projects.</source>
+            <translation>Earth Engine은 사용자의 Google Cloud 프로젝트 중 하나에서 실행됩니다.</translation>
+        </message>
+        <message>
+            <source>Finish signing in to Google in your browser.</source>
+            <translation>브라우저에서 Google 로그인을 마치세요.</translation>
+        </message>
+        <message>
+            <source>Google refused the sign-in ({error}).</source>
+            <translation>Google이 로그인을 거부했습니다({error}).</translation>
+        </message>
+        <message>
+            <source>Google refused your saved sign-in.</source>
+            <translation>Google이 저장된 로그인을 거부했습니다.</translation>
+        </message>
+        <message>
+            <source>Install</source>
+            <translation>설치</translation>
+        </message>
+        <message>
+            <source>Installing earthengine-api...</source>
+            <translation>earthengine-api 설치 중...</translation>
+        </message>
+        <message>
+            <source>No Earth Engine project on this account yet. Registering one is free for noncommercial use.</source>
+            <translation>이 계정에는 아직 Earth Engine 프로젝트가 없습니다. 비상업적 용도로는 무료로 등록할 수 있습니다.</translation>
+        </message>
+        <message>
+            <source>Not saved: QGIS's vault stayed locked. Connect again and set the master password when QGIS asks.</source>
+            <translation>저장되지 않음: QGIS 인증 데이터베이스가 잠긴 채로 남아 있습니다. 다시 연결하고 QGIS가 요청하면 마스터 비밀번호를 설정하세요.</translation>
+        </message>
+        <message>
+            <source>Open the sign-in page again</source>
+            <translation>로그인 페이지 다시 열기</translation>
+        </message>
+        <message>
+            <source>Pick the Cloud project Earth Engine runs on.</source>
+            <translation>Earth Engine을 실행할 Cloud 프로젝트를 선택하세요.</translation>
+        </message>
+        <message>
+            <source>Project refused</source>
+            <translation>프로젝트 거부됨</translation>
+        </message>
+        <message>
+            <source>Reading your Cloud projects...</source>
+            <translation>Cloud 프로젝트를 읽는 중...</translation>
+        </message>
+        <message>
+            <source>Refresh</source>
+            <translation>새로고침</translation>
+        </message>
+        <message>
+            <source>Register a project</source>
+            <translation>프로젝트 등록</translation>
+        </message>
+        <message>
+            <source>Sign in again</source>
+            <translation>다시 로그인</translation>
+        </message>
+        <message>
+            <source>Sign in with Google</source>
+            <translation>Google로 로그인</translation>
+        </message>
+        <message>
+            <source>Sign in with Google and pick your own Cloud project.</source>
+            <translation>Google로 로그인하고 본인의 Cloud 프로젝트를 선택하세요.</translation>
+        </message>
+        <message>
+            <source>Sign-in didn't finish ({error}).</source>
+            <translation>로그인이 완료되지 않았습니다({error}).</translation>
+        </message>
+        <message>
+            <source>Sign-in didn't finish within 5 minutes.</source>
+            <translation>5분 안에 로그인이 완료되지 않았습니다.</translation>
+        </message>
+        <message>
+            <source>Sign-in didn't finish. You can close this window and return to QGIS.</source>
+            <translation>로그인이 완료되지 않았습니다. 이 창을 닫고 QGIS로 돌아가세요.</translation>
+        </message>
+        <message>
+            <source>Sign-in expired</source>
+            <translation>로그인 만료됨</translation>
+        </message>
+        <message>
+            <source>The Earth Engine API is off in your project {project}.</source>
+            <translation>프로젝트 {project}에서 Earth Engine API가 꺼져 있습니다.</translation>
+        </message>
+        <message>
+            <source>Try again</source>
+            <translation>다시 시도</translation>
+        </message>
+        <message>
+            <source>Turn on the Earth Engine API</source>
+            <translation>Earth Engine API 켜기</translation>
+        </message>
+        <message>
+            <source>Use this project</source>
+            <translation>이 프로젝트 사용</translation>
+        </message>
+        <message>
+            <source>You're signed in. You can close this window and return to QGIS.</source>
+            <translation>로그인되었습니다. 이 창을 닫고 QGIS로 돌아가세요.</translation>
+        </message>
+        <message>
+            <source>Your Cloud projects could not be read ({error}).</source>
+            <translation>Cloud 프로젝트를 읽을 수 없습니다({error}).</translation>
+        </message>
+        <message>
+            <source>Your Earth Engine sign-in expired.</source>
+            <translation>Earth Engine 로그인이 만료되었습니다.</translation>
+        </message>
+        <message>
+            <source>Your Google sign-in stays in QGIS's encrypted vault on this computer. Never sent to TerraLab or the AI agent.</source>
+            <translation>Google 로그인 정보는 이 컴퓨터에 있는 QGIS의 암호화된 인증 데이터베이스에만 보관됩니다. TerraLab이나 AI 에이전트로는 절대 전송되지 않습니다.</translation>
+        </message>
+        <message>
+            <source>Your browser opens Google's sign-in. Earth Engine then runs on your own Google Cloud project, under that project's terms.</source>
+            <translation>브라우저에서 Google 로그인 창이 열립니다. 이후 Earth Engine은 사용자의 Google Cloud 프로젝트에서 해당 프로젝트의 약관에 따라 실행됩니다.</translation>
+        </message>
+        <message>
+            <source>Your project {project} is not registered for Earth Engine.</source>
+            <translation>프로젝트 {project}은(는) Earth Engine에 등록되어 있지 않습니다.</translation>
+        </message>
+        <message>
+            <source>earthengine-api did not install: {error}</source>
+            <translation>earthengine-api를 설치하지 못했습니다: {error}</translation>
+        </message>
+        <message>
+            <source>{count} other projects do not have Earth Engine.</source>
+            <translation>다른 프로젝트 {count}개에는 Earth Engine이 없습니다.</translation>
+        </message>
+        <message>
+            <source>QGIS will ask you to choose a master password. It locks every sign-in saved in QGIS and cannot be recovered, so keep it somewhere safe.</source>
+            <translation>QGIS에서 마스터 비밀번호를 선택하라는 메시지가 표시됩니다. 이 비밀번호는 QGIS에 저장된 모든 로그인 정보를 잠그며 복구할 수 없으므로 안전한 곳에 보관하세요.</translation>
+        </message>
+    </context>
+    <context>
+        <name>BrowserWait</name>
+        <message>
+            <source>Cancel</source>
+            <translation>취소</translation>
+        </message>
+        <message>
+            <source>Check that the page shows the code {code}, then sign in.</source>
+            <translation>페이지에 코드 {code}이(가) 표시되는지 확인한 다음 로그인하세요.</translation>
+        </message>
+        <message>
+            <source>Connecting…</source>
+            <translation>연결 중…</translation>
+        </message>
+        <message>
+            <source>Finish signing in to {name} in your browser.</source>
+            <translation>브라우저에서 {name} 로그인을 완료하세요.</translation>
+        </message>
+        <message>
+            <source>Not saved. Unlock QGIS's vault with its master password when QGIS asks.</source>
+            <translation>저장되지 않았습니다. QGIS가 요청하면 마스터 비밀번호로 QGIS 인증 데이터베이스의 잠금을 해제하세요.</translation>
+        </message>
+        <message>
+            <source>Open the page again</source>
+            <translation>페이지 다시 열기</translation>
+        </message>
+        <message>
+            <source>Opening your browser…</source>
+            <translation>브라우저를 여는 중…</translation>
+        </message>
+        <message>
+            <source>Sign-in didn't finish.</source>
+            <translation>로그인이 완료되지 않았습니다.</translation>
+        </message>
+        <message>
+            <source>The sign-in was declined in the browser.</source>
+            <translation>브라우저에서 로그인이 거부되었습니다.</translation>
+        </message>
+        <message>
+            <source>{label} did not answer. Check your connection.</source>
+            <translation>{label}에서 응답이 없습니다. 연결을 확인하세요.</translation>
+        </message>
+        <message>
+            <source>{label} did not create the S3 keys.</source>
+            <translation>{label}에서 S3 키를 만들지 않았습니다.</translation>
+        </message>
+        <message>
+            <source>{label} refused the sign-in.</source>
+            <translation>{label}에서 로그인을 거부했습니다.</translation>
+        </message>
+        <message>
+            <source>Send this approval link to your IT admin: {link}</source>
+            <translation>이 승인 링크를 IT 관리자에게 보내세요: {link}</translation>
+        </message>
+        <message>
+            <source>Your organization lets only an admin approve TerraLab AI Agent for {label}.</source>
+            <translation>회원님의 조직에서는 관리자만 {label}에 대한 TerraLab AI Agent를 승인할 수 있습니다.</translation>
+        </message>
+    </context>
+    <context>
+        <name>CloudKeysDialog</name>
+        <message>
+            <source>Access key ID</source>
+            <translation>액세스 키 ID</translation>
+        </message>
+        <message>
+            <source>Account key</source>
+            <translation>계정 키</translation>
+        </message>
+        <message>
+            <source>Cancel</source>
+            <translation>취소</translation>
+        </message>
+        <message>
+            <source>Checking…</source>
+            <translation>확인 중…</translation>
+        </message>
+        <message>
+            <source>Connect</source>
+            <translation>연결</translation>
+        </message>
+        <message>
+            <source>Connect {label}</source>
+            <translation>{label} 연결</translation>
+        </message>
+        <message>
+            <source>Connect {store}</source>
+            <translation>{store} 연결</translation>
+        </message>
+        <message>
+            <source>Connected</source>
+            <translation>연결됨</translation>
+        </message>
+        <message>
+            <source>Endpoint, empty for Amazon S3</source>
+            <translation>엔드포인트, Amazon S3는 비워 두세요</translation>
+        </message>
+        <message>
+            <source>For {address}. A read-only key is enough: the AI agent only reads from it.</source>
+            <translation>{address}용입니다. 읽기 전용 키로 충분합니다. AI 에이전트는 읽기만 합니다.</translation>
+        </message>
+        <message>
+            <source>HMAC access key</source>
+            <translation>HMAC 액세스 키</translation>
+        </message>
+        <message>
+            <source>HMAC secret</source>
+            <translation>HMAC 시크릿</translation>
+        </message>
+        <message>
+            <source>Header name</source>
+            <translation>헤더 이름</translation>
+        </message>
+        <message>
+            <source>Hide</source>
+            <translation>숨기기</translation>
+        </message>
+        <message>
+            <source>JSON key (*.json)</source>
+            <translation>JSON 키 (*.json)</translation>
+        </message>
+        <message>
+            <source>Key</source>
+            <translation>키</translation>
+        </message>
+        <message>
+            <source>Keys expired</source>
+            <translation>키가 만료되었습니다</translation>
+        </message>
+        <message>
+            <source>Keys refused</source>
+            <translation>키가 거부되었습니다</translation>
+        </message>
+        <message>
+            <source>Not saved. Fill in the fields, and unlock QGIS's vault with its master password when QGIS asks.</source>
+            <translation>저장되지 않았습니다. 필드를 입력하고, QGIS가 요청하면 마스터 비밀번호로 QGIS 보관함의 잠금을 해제하세요.</translation>
+        </message>
+        <message>
+            <source>Open {host}</source>
+            <translation>{host} 열기</translation>
+        </message>
+        <message>
+            <source>Password</source>
+            <translation>비밀번호</translation>
+        </message>
+        <message>
+            <source>QGIS will ask you to choose a master password. It locks every sign-in saved in QGIS and cannot be recovered, so keep it somewhere safe.</source>
+            <translation>QGIS에서 마스터 비밀번호를 정하라는 요청이 표시됩니다. 마스터 비밀번호는 QGIS에 저장된 모든 로그인 정보를 잠그며 복구할 수 없으므로, 안전한 곳에 보관하세요.</translation>
+        </message>
+        <message>
+            <source>Region (optional)</source>
+            <translation>리전 (선택 사항)</translation>
+        </message>
+        <message>
+            <source>SAS token</source>
+            <translation>SAS 토큰</translation>
+        </message>
+        <message>
+            <source>Secret access key</source>
+            <translation>비밀 액세스 키</translation>
+        </message>
+        <message>
+            <source>Service account key (JSON file)</source>
+            <translation>서비스 계정 키 (JSON 파일)</translation>
+        </message>
+        <message>
+            <source>Show</source>
+            <translation>표시</translation>
+        </message>
+        <message>
+            <source>Sign in</source>
+            <translation>로그인</translation>
+        </message>
+        <message>
+            <source>Sign in to {host}</source>
+            <translation>{host}에 로그인</translation>
+        </message>
+        <message>
+            <source>Storage account name</source>
+            <translation>스토리지 계정 이름</translation>
+        </message>
+        <message>
+            <source>Stored encrypted in QGIS on this computer, behind your QGIS master password. Never sent to TerraLab or the AI agent.</source>
+            <translation>QGIS 마스터 비밀번호로 보호되어, 이 컴퓨터의 QGIS에 암호화되어 저장됩니다. TerraLab이나 AI 에이전트로는 전송되지 않습니다.</translation>
+        </message>
+        <message>
+            <source>The keys could not be checked: {error}</source>
+            <translation>키를 확인할 수 없습니다: {error}</translation>
+        </message>
+        <message>
+            <source>This bucket opens only with a service account key.</source>
+            <translation>이 버킷은 서비스 계정 키로만 열 수 있습니다.</translation>
+        </message>
+        <message>
+            <source>This bucket opens only with your access keys.</source>
+            <translation>이 버킷은 액세스 키로만 열 수 있습니다.</translation>
+        </message>
+        <message>
+            <source>This container opens only with your account key or a SAS token.</source>
+            <translation>이 컨테이너는 계정 키 또는 SAS 토큰으로만 열 수 있습니다.</translation>
+        </message>
+        <message>
+            <source>This file is not a service account key. In the Google Cloud console, open the service account, then Keys, Add key, JSON.</source>
+            <translation>이 파일은 서비스 계정 키가 아닙니다. Google Cloud 콘솔에서 서비스 계정을 열고 키, 키 추가, JSON 순으로 선택하세요.</translation>
+        </message>
+        <message>
+            <source>Use a SAS token instead</source>
+            <translation>대신 SAS 토큰 사용</translation>
+        </message>
+        <message>
+            <source>Use a service account key instead</source>
+            <translation>대신 서비스 계정 키 사용</translation>
+        </message>
+        <message>
+            <source>Use a username and password instead</source>
+            <translation>대신 사용자 이름과 비밀번호 사용</translation>
+        </message>
+        <message>
+            <source>Use an API key instead</source>
+            <translation>대신 API 키 사용</translation>
+        </message>
+        <message>
+            <source>Use an HMAC key instead</source>
+            <translation>대신 HMAC 키 사용</translation>
+        </message>
+        <message>
+            <source>Use the account key instead</source>
+            <translation>대신 계정 키 사용</translation>
+        </message>
+        <message>
+            <source>Username</source>
+            <translation>사용자 이름</translation>
+        </message>
+        <message>
+            <source>{host} refused these details. Check them and try again.</source>
+            <translation>{host}에서 이 정보를 거부했습니다. 확인한 후 다시 시도하세요.</translation>
+        </message>
+        <message>
+            <source>{store} no longer accepts your saved keys.</source>
+            <translation>{store}에서 저장된 키를 더 이상 허용하지 않습니다.</translation>
+        </message>
+        <message>
+            <source>{store} refused your saved keys.</source>
+            <translation>{store}에서 저장된 키를 거부했습니다.</translation>
+        </message>
+        <message>
+            <source>{where} refused these keys.</source>
+            <translation>{where}에서 이 키를 거부했습니다.</translation>
+        </message>
+    </context>
+    <context>
+        <name>AccountDrive</name>
+        <message>
+            <source>Allow SharePoint sites</source>
+            <translation>SharePoint 사이트 허용</translation>
+        </message>
+        <message>
+            <source>Cancel</source>
+            <translation>취소</translation>
+        </message>
+        <message>
+            <source>Choose this file in Google Drive</source>
+            <translation>Google Drive에서 이 파일 선택</translation>
+        </message>
+        <message>
+            <source>Connect Google Drive</source>
+            <translation>Google Drive 연결</translation>
+        </message>
+        <message>
+            <source>Connect OneDrive and SharePoint</source>
+            <translation>OneDrive 및 SharePoint 연결</translation>
+        </message>
+        <message>
+            <source>Connect SharePoint</source>
+            <translation>SharePoint 연결</translation>
+        </message>
+        <message>
+            <source>Read with your account, only for this request.</source>
+            <translation>회원님의 계정으로 이번 요청에만 읽습니다.</translation>
+        </message>
+        <message>
+            <source>Read-only: the AI agent can open your files, never change or delete them.</source>
+            <translation>읽기 전용: AI 에이전트는 파일을 열 수만 있고, 수정하거나 삭제할 수 없습니다.</translation>
+        </message>
+        <message>
+            <source>Reading SharePoint sites needs one more permission. Your organization's admin may have to approve it.</source>
+            <translation>SharePoint 사이트를 읽으려면 권한이 하나 더 필요합니다. 조직의 관리자가 승인해야 할 수도 있습니다.</translation>
+        </message>
+        <message>
+            <source>Sign in again</source>
+            <translation>다시 로그인</translation>
+        </message>
+        <message>
+            <source>Sign in with {name}</source>
+            <translation>{name}(으)로 로그인</translation>
+        </message>
+        <message>
+            <source>The AI agent sees only the files you pick. Pick this one to let it open it.</source>
+            <translation>AI 에이전트는 회원님이 고른 파일만 볼 수 있습니다. 이 파일을 열게 하려면 선택하세요.</translation>
+        </message>
+        <message>
+            <source>Try again</source>
+            <translation>다시 시도</translation>
+        </message>
+        <message>
+            <source>Use your {label} access?</source>
+            <translation>{label} 접근 권한을 사용할까요?</translation>
+        </message>
+        <message>
+            <source>You pick the files the AI agent may open. It sees nothing else in your Drive.</source>
+            <translation>AI 에이전트가 열 수 있는 파일은 회원님이 고릅니다. Drive의 다른 파일은 전혀 볼 수 없습니다.</translation>
+        </message>
+        <message>
+            <source>Your sign-in stays in QGIS's encrypted vault on this computer. Never sent to TerraLab or the AI agent.</source>
+            <translation>로그인 정보는 이 컴퓨터의 QGIS 암호화 보관함에만 저장됩니다. TerraLab이나 AI 에이전트에는 전송되지 않습니다.</translation>
+        </message>
+        <message>
+            <source>{name} no longer accepts your saved sign-in.</source>
+            <translation>{name}에서 저장된 로그인 정보를 더 이상 받아들이지 않습니다.</translation>
+        </message>
+    </context>
+    <context>
+        <name>RatingCard</name>
+        <message>
+            <source>Add details (optional)</source>
+            <translation>자세한 내용 추가 (선택 사항)</translation>
+        </message>
+        <message>
+            <source>Close</source>
+            <translation>닫기</translation>
+        </message>
+        <message>
+            <source>Could not send. Try again.</source>
+            <translation>보내지 못했습니다. 다시 시도하세요.</translation>
+        </message>
+        <message>
+            <source>Not what I asked</source>
+            <translation>요청한 내용과 다름</translation>
+        </message>
+        <message>
+            <source>Send</source>
+            <translation>보내기</translation>
+        </message>
+        <message>
+            <source>Tell us more (optional)</source>
+            <translation>더 알려 주세요 (선택 사항)</translation>
+        </message>
+        <message>
+            <source>Thanks for the feedback</source>
+            <translation>피드백 감사합니다</translation>
+        </message>
+        <message>
+            <source>Too slow</source>
+            <translation>너무 느림</translation>
+        </message>
+        <message>
+            <source>What went wrong?</source>
+            <translation>무엇이 잘못되었나요?</translation>
+        </message>
+        <message>
+            <source>What worked well?</source>
+            <translation>무엇이 잘 작동했나요?</translation>
+        </message>
+        <message>
+            <source>Wrong result</source>
+            <translation>잘못된 결과</translation>
+        </message>
+        <message>
+            <source>Your words are sent with this chat and recent logs.</source>
+            <translation>작성한 내용은 이 채팅 및 최근 로그와 함께 전송됩니다.</translation>
         </message>
     </context>
 </TS>

@@ -32,6 +32,7 @@ import os
 import re
 import unicodedata
 
+from ..core.qt_compat import field_type
 from ..core.tool_registry import coded_fact, tool_error
 
 
@@ -654,7 +655,6 @@ def plan_field_type(layer, qtype, length=None, precision=None) -> dict:
 
 def _fallback_chain(qtype) -> list:
 
-    from ..core.qt_compat import field_type
 
     def _kind(name):
         try:

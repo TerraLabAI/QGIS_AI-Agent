@@ -28,7 +28,7 @@ from qgis.core import QgsRectangle
 from qgis.PyQt.QtCore import QElapsedTimer, QEvent, QObject, Qt, QTimer
 
 from .logger import log_warning
-from .qt_compat import enum_member
+from .qt_compat import disconnect_quietly, enum_member
 
 
 
@@ -241,7 +241,6 @@ class Glide:
             item.setPos(*self.origin)
         self.drawn = drawn
         self.drawn_at = _started() if drawn else None
-        self._draw_under()
 
         self.hands = _Hands()
         for widget in (canvas, canvas.viewport()):
@@ -253,6 +252,8 @@ class Glide:
         self.timer.setInterval(FRAME_MS)
         self.timer.timeout.connect(self._frame)
         self.timer.start()
+
+        self._draw_under()
 
     def go_on(self) -> bool:
 
@@ -370,10 +371,7 @@ class Glide:
             return
 
 
-        try:
-            self.canvas.mapCanvasRefreshed.disconnect(self._on_rendered)
-        except (TypeError, RuntimeError):
-            pass
+        disconnect_quietly(self.canvas, "mapCanvasRefreshed", self._on_rendered)
         pixmap = self._grab_canvas()
         self.new.setPixmap(pixmap)
         self.new.setZValue(self._z(self.after, pixmap.devicePixelRatio()) + 1e-6)
@@ -397,10 +395,7 @@ class Glide:
     def _depart(self) -> None:
 
         if self.drawn:
-            try:
-                self.canvas.mapCanvasRefreshed.disconnect(self._on_rendered)
-            except (TypeError, RuntimeError):
-                pass
+            disconnect_quietly(self.canvas, "mapCanvasRefreshed", self._on_rendered)
         for layer in self.under:
             if layer["item"] is not None:
                 layer["item"].setVisible(True)
@@ -472,10 +467,7 @@ class Glide:
                 widget.removeEventFilter(self.hands)
             except RuntimeError:
                 pass
-        try:
-            self.canvas.mapCanvasRefreshed.disconnect(self._on_rendered)
-        except (TypeError, RuntimeError):
-            pass
+        disconnect_quietly(self.canvas, "mapCanvasRefreshed", self._on_rendered)
         self._drop_under()
         for item in (self.new, self.old, self.ground):
             if item is None:
