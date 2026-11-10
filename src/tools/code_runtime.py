@@ -336,12 +336,13 @@ class Tools:
 
     def __dir__(self):
         registry = _registry()
-        names = registry.tool_names() if registry is not None else []
+        names = registry.tool_names if registry is not None else []
         return [n for n in names if tool_code_class(n, registry=registry) is not None]
 
     @staticmethod
-    def _call(name: str, arguments: dict | None = None, **kwargs):
+    def _call(*call, **kwargs):
 
+        name, arguments = call[0], (call[1] if len(call) > 1 else kwargs.pop("arguments", None))
         args = dict(arguments or {}, **kwargs)
         cls = tool_code_class(name, args)
         if cls is None:

@@ -47,18 +47,6 @@
             <translation>레이어 1개</translation>
         </message>
         <message>
-            <source>1 layer added</source>
-            <translation>레이어 1개 추가됨</translation>
-        </message>
-        <message>
-            <source>1 layer changed</source>
-            <translation>레이어 1개 변경됨</translation>
-        </message>
-        <message>
-            <source>1 layer removed</source>
-            <translation>레이어 1개 제거됨</translation>
-        </message>
-        <message>
             <source>1 result</source>
             <translation>결과 1개</translation>
         </message>
@@ -215,7 +203,7 @@
             <translation>{source}에 현재 화면의 {what}을(를) 요청함</translation>
         </message>
         <message>
-            <source>Available when the agent finishes</source>
+            <source>Available when the AI agent finishes</source>
             <translation>AI 어시스턴트가 작업을 마치면 사용할 수 있습니다</translation>
         </message>
         <message>
@@ -411,10 +399,6 @@
             <translation>이메일 주소 복사</translation>
         </message>
         <message>
-            <source>Copy report</source>
-            <translation>보고서 복사</translation>
-        </message>
-        <message>
             <source>Copy the address below and paste it into a browser.</source>
             <translation>아래 주소를 복사해 브라우저에 붙여넣으세요.</translation>
         </message>
@@ -425,10 +409,6 @@
         <message>
             <source>Copy the support address below into your email app.</source>
             <translation>아래 지원 이메일 주소를 복사해 이메일 앱에 붙여넣으세요.</translation>
-        </message>
-        <message>
-            <source>Could not copy</source>
-            <translation>복사하지 못했습니다</translation>
         </message>
         <message>
             <source>Count {POINTS} in each feature of {POLYGONS}</source>
@@ -505,10 +485,6 @@
         <message>
             <source>Edit the last queued message</source>
             <translation>마지막 대기 메시지 수정</translation>
-        </message>
-        <message>
-            <source>Email address copied</source>
-            <translation>이메일 주소가 복사되었습니다</translation>
         </message>
         <message>
             <source>Enlarge</source>
@@ -807,10 +783,6 @@
             <translation>새 줄</translation>
         </message>
         <message>
-            <source>Next</source>
-            <translation>다음</translation>
-        </message>
-        <message>
             <source>No answer came back. Try again.</source>
             <translation>응답이 오지 않았습니다. 다시 시도하세요.</translation>
         </message>
@@ -877,10 +849,6 @@
         <message>
             <source>Preparing a summary…</source>
             <translation>요약을 준비하는 중…</translation>
-        </message>
-        <message>
-            <source>Previous</source>
-            <translation>이전</translation>
         </message>
         <message>
             <source>Privacy Policy</source>
@@ -1003,10 +971,6 @@
             <translation>{layer_name}의 스타일 읽기</translation>
         </message>
         <message>
-            <source>Real tasks the AI agent does from one sentence. Open one to try it.</source>
-            <translation>AI 어시스턴트가 한 문장으로 처리하는 실제 작업입니다. 하나를 열어 시험해 보세요.</translation>
-        </message>
-        <message>
             <source>Remove one item from the layout {layout_name}</source>
             <translation>레이아웃 {layout_name}에서 항목 하나 제거</translation>
         </message>
@@ -1023,20 +987,8 @@
             <translation>{layer_name}의 {old_name} 이름을 {new_name}(으)로 변경</translation>
         </message>
         <message>
-            <source>Render the map</source>
-            <translation>지도 렌더링</translation>
-        </message>
-        <message>
             <source>Reorder the layers</source>
             <translation>레이어 순서 변경</translation>
-        </message>
-        <message>
-            <source>Report a problem</source>
-            <translation>문제 신고</translation>
-        </message>
-        <message>
-            <source>Report copied</source>
-            <translation>신고 내용을 복사했습니다</translation>
         </message>
         <message>
             <source>Reproject {INPUT} to {TARGET_CRS}</source>
@@ -1159,10 +1111,6 @@
             <translation>메시지 보내기</translation>
         </message>
         <message>
-            <source>Send us a report and we will look into it and fix it.</source>
-            <translation>신고를 보내 주시면 확인하고 수정하겠습니다.</translation>
-        </message>
-        <message>
             <source>Set NoData on {layer_name}</source>
             <translation>{layer_name}에 NoData 설정</translation>
         </message>
@@ -1271,10 +1219,6 @@
             <translation>{layer_name} 스타일 지정</translation>
         </message>
         <message>
-            <source>Tell us what went wrong</source>
-            <translation>무엇이 잘못되었는지 알려 주세요</translation>
-        </message>
-        <message>
             <source>Terms</source>
             <translation>약관</translation>
         </message>
@@ -1295,7 +1239,7 @@
             <translation>AI 에이전트가 같은 단계에서 멈췄습니다.</translation>
         </message>
         <message>
-            <source>The agent reads it at its next step</source>
+            <source>The AI agent reads it at its next step</source>
             <translation>어시스턴트가 다음 단계에서 읽습니다</translation>
         </message>
         <message>
@@ -1303,7 +1247,7 @@
             <translation>한 단계 도중 AI 에이전트 서비스가 두 번 다시 시작되었습니다.</translation>
         </message>
         <message>
-            <source>The agent wants to run this action.</source>
+            <source>The AI agent wants to run this action.</source>
             <translation>어시스턴트가 이 작업을 실행하려고 합니다.</translation>
         </message>
         <message>
@@ -1355,10 +1299,6 @@
             <translation>지원 이메일 주소를 클립보드에 복사했습니다. 이메일 앱에 붙여넣으세요.</translation>
         </message>
         <message>
-            <source>Then paste it into an email to:</source>
-            <translation>그런 다음 이메일에 붙여넣어 다음 주소로 보내세요:</translation>
-        </message>
-        <message>
             <source>They help us fix bugs. You can switch them off in Settings whenever you want.</source>
             <translation>버그를 고치는 데 도움이 됩니다. 설정에서 언제든지 끌 수 있습니다.</translation>
         </message>
@@ -1369,10 +1309,6 @@
         <message>
             <source>This conversation is too long.</source>
             <translation>이 대화가 너무 깁니다.</translation>
-        </message>
-        <message>
-            <source>This conversation: your messages, each step the AI took and what it found, and technical details about QGIS and the plugin. Never your passwords, your sign-in or the contents of your files.</source>
-            <translation>이 대화: 보내신 메시지, AI가 수행한 각 단계와 확인한 내용, QGIS와 플러그인에 대한 기술 정보. 비밀번호, 로그인 정보, 파일 내용은 절대 포함되지 않습니다.</translation>
         </message>
         <message>
             <source>This layer is no longer in the project.</source>
@@ -1411,7 +1347,7 @@
             <translation>확인하려면 해당 주소를 입력하세요.</translation>
         </message>
         <message>
-            <source>Undo the agent's last request</source>
+            <source>Undo the AI agent's last request</source>
             <translation>어시스턴트의 마지막 요청 되돌리기</translation>
         </message>
         <message>
@@ -1599,10 +1535,6 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <translation>{minutes}분 {seconds}초</translation>
         </message>
         <message>
-            <source>{names} and {n} more</source>
-            <translation>{names} 외 {n}개</translation>
-        </message>
-        <message>
             <source>{n} features</source>
             <translation>피처 {n}개</translation>
         </message>
@@ -1619,20 +1551,8 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <translation>레이어 {n}개</translation>
         </message>
         <message>
-            <source>{n} layers added</source>
-            <translation>레이어 {n}개 추가됨</translation>
-        </message>
-        <message>
             <source>{n} layers can't be restored</source>
             <translation>레이어 {n}개 복원 불가</translation>
-        </message>
-        <message>
-            <source>{n} layers changed</source>
-            <translation>레이어 {n}개 변경됨</translation>
-        </message>
-        <message>
-            <source>{n} layers removed</source>
-            <translation>레이어 {n}개 제거됨</translation>
         </message>
         <message>
             <source>{n} results</source>
@@ -1767,10 +1687,6 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <translation>여기서 피드백을 보내려면 로그인하거나 {email}(으)로 문의해 주세요.</translation>
         </message>
         <message>
-            <source>We'll receive your message, this conversation and technical details (plugin and QGIS version, system, recent logs). Never your passwords or the contents of your files.</source>
-            <translation>메시지, 이 대화, 기술 정보(플러그인 및 QGIS 버전, 시스템, 최근 로그)를 받습니다. 비밀번호나 파일 내용은 절대 받지 않습니다.</translation>
-        </message>
-        <message>
             <source>You sent several reports in a short time. Try again in a few minutes.</source>
             <translation>짧은 시간에 여러 건을 보내셨습니다. 몇 분 후에 다시 시도해 주세요.</translation>
         </message>
@@ -1793,18 +1709,6 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <source>What you type</source>
             <translation>입력하는 내용</translation>
-        </message>
-        <message>
-            <source>Expired on {day}.</source>
-            <translation>{day}에 만료되었습니다.</translation>
-        </message>
-        <message>
-            <source>Expires on {day}.</source>
-            <translation>{day}에 만료됩니다.</translation>
-        </message>
-        <message>
-            <source>Private link: its signature stays on this computer. TerraLab and the AI agent see only the site and the file name.</source>
-            <translation>비공개 링크: 서명은 이 컴퓨터에만 남습니다. TerraLab과 AI 에이전트는 사이트와 파일 이름만 볼 수 있습니다.</translation>
         </message>
         <message>
             <source>expired</source>
@@ -2028,15 +1932,15 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <translation>계정을 보려면 로그인하세요.</translation>
         </message>
         <message>
-            <source>The agent finished.</source>
+            <source>The AI agent finished.</source>
             <translation>어시스턴트가 작업을 마쳤습니다.</translation>
         </message>
         <message>
-            <source>The agent is waiting for your answer.</source>
+            <source>The AI agent is waiting for your answer.</source>
             <translation>어시스턴트가 답변을 기다리고 있습니다.</translation>
         </message>
         <message>
-            <source>The agent stopped before finishing.</source>
+            <source>The AI agent stopped before finishing.</source>
             <translation>어시스턴트가 완료하기 전에 중지되었습니다.</translation>
         </message>
         <message>
@@ -2211,6 +2115,10 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <source>Your subscription is not active. Open your TerraLab dashboard, then try again.</source>
             <translation>구독이 활성 상태가 아닙니다. TerraLab 대시보드를 연 다음 다시 시도하세요.</translation>
         </message>
+        <message>
+            <source>QGIS could not save your sign-in on this computer. Click Sign in to try again.</source>
+            <translation>QGIS가 이 컴퓨터에 로그인 정보를 저장하지 못했습니다. 다시 시도하려면 로그인 버튼을 클릭하세요.</translation>
+        </message>
     </context>
     <context>
         <name>ActivationCard</name>
@@ -2247,24 +2155,12 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <translation>로그인</translation>
         </message>
         <message>
-            <source>Sign in / Sign up to start</source>
-            <translation>시작하려면 로그인 / 가입</translation>
-        </message>
-        <message>
             <source>Sign in again</source>
             <translation>다시 로그인</translation>
         </message>
         <message>
             <source>Sign in via your browser to start using AI Agent</source>
             <translation>브라우저에서 로그인하고 AI Agent를 시작하세요</translation>
-        </message>
-        <message>
-            <source>Signing up is free and takes 15 seconds, in your browser.</source>
-            <translation>가입은 무료이며 브라우저에서 15초면 끝납니다.</translation>
-        </message>
-        <message>
-            <source>Then ask the AI for anything: load data, style layers, run analyses, edit features.</source>
-            <translation>그런 다음 AI에게 무엇이든 요청하세요. 데이터 불러오기, 레이어 스타일 지정, 분석 실행, 피처 편집까지 가능합니다.</translation>
         </message>
         <message>
             <source>Type the code shown in your browser:</source>
@@ -2388,14 +2284,6 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <source>Querying the source</source>
             <translation>데이터 소스 조회 중</translation>
-        </message>
-        <message>
-            <source>{m} min {s} s</source>
-            <translation>{m}분 {s}초</translation>
-        </message>
-        <message>
-            <source>{n} s</source>
-            <translation>{n}초</translation>
         </message>
         <message>
             <source>{words} · {done} of {total}</source>
@@ -2692,10 +2580,6 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <translation>이 메시지는 더 이상 다시 보낼 수 없습니다.</translation>
         </message>
         <message>
-            <source>This plugin build cannot show that card.</source>
-            <translation>이 플러그인 빌드에서는 해당 카드를 표시할 수 없습니다.</translation>
-        </message>
-        <message>
             <source>This point belongs to an unsaved project that was closed, so it cannot be restored here.</source>
             <translation>이 시점은 닫힌 저장되지 않은 프로젝트에 속해 있어 여기서 복원할 수 없습니다.</translation>
         </message>
@@ -2780,10 +2664,6 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <translation>임시 레이어</translation>
         </message>
         <message>
-            <source>Not handled, the AI agent is offline: {0}</source>
-            <translation>처리되지 않음, AI 에이전트가 오프라인입니다: {0}</translation>
-        </message>
-        <message>
             <source>Nothing is kept about this project yet.</source>
             <translation>이 프로젝트에 대해 저장된 내용이 아직 없습니다.</translation>
         </message>
@@ -2796,14 +2676,6 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <translation>프로젝트 메모리를 지웠습니다.</translation>
         </message>
         <message>
-            <source>Watched folder: not handled, no answer from the server: {0}</source>
-            <translation>감시 폴더: 처리되지 않음, 서버에서 응답이 없습니다: {0}</translation>
-        </message>
-        <message>
-            <source>Watched folder: not handled, the AI agent is offline: {0}</source>
-            <translation>감시 폴더: 처리되지 않음, AI 에이전트가 오프라인입니다: {0}</translation>
-        </message>
-        <message>
             <source>Clear what the AI agent remembers about this project?</source>
             <translation>AI 에이전트가 이 프로젝트에 대해 기억하는 내용을 지울까요?</translation>
         </message>
@@ -2814,6 +2686,30 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <source>The AI agent is not connected. Try again in a moment.</source>
             <translation>AI 에이전트가 연결되어 있지 않습니다. 잠시 후 다시 시도하세요.</translation>
+        </message>
+        <message>
+            <source>Nothing was changed: the file of {layer} is read-only. Make it writable, then go back again.</source>
+            <translation>변경된 것은 없습니다. {layer}의 파일이 읽기 전용입니다. 쓰기 가능하게 만든 다음 다시 되돌리세요.</translation>
+        </message>
+        <message>
+            <source>Nothing was changed: {layer} is in use by another program. Close it there, then go back again.</source>
+            <translation>변경된 것은 없습니다. {layer}을(를) 다른 프로그램에서 사용 중입니다. 그쪽에서 닫은 다음 다시 되돌리세요.</translation>
+        </message>
+        <message>
+            <source>Nothing was changed: {layer} is open in {program}. Close it there, then go back again.</source>
+            <translation>변경된 것은 없습니다. {layer}이(가) {program}에서 열려 있습니다. 그쪽에서 닫은 다음 다시 되돌리세요.</translation>
+        </message>
+        <message>
+            <source>QGIS closed while going back to an earlier step: some files are at that step and others are not. Open Map history and go back to that step again to finish. It may list those files as your own changes: they are the unfinished step.</source>
+            <translation>이전 단계로 되돌리는 중에 QGIS가 종료되었습니다. 일부 파일은 해당 단계에 있고 나머지는 그렇지 않습니다. 지도 기록을 열어 해당 단계로 다시 되돌리면 마무리됩니다. 이 파일들이 사용자의 변경 사항으로 표시될 수 있지만, 완료되지 않은 단계입니다.</translation>
+        </message>
+        <message>
+            <source>{n} more files are in the same case.</source>
+            <translation>같은 상태의 파일이 {n}개 더 있습니다.</translation>
+        </message>
+        <message>
+            <source>Stopped: AI Agent was updated or turned off during this run.</source>
+            <translation>중지됨: 실행 중에 AI Agent가 업데이트되었거나 꺼졌습니다.</translation>
         </message>
     </context>
     <context>
@@ -2962,7 +2858,7 @@ The erasure is final once the grace period ends. Until then you can cancel it by
     <context>
         <name>ChatPanel</name>
         <message>
-            <source>Add a few words: what should the agent do with it?</source>
+            <source>Add a few words: what should the AI agent do with it?</source>
             <translation>몇 마디 덧붙이세요. 어시스턴트가 이것으로 무엇을 해야 하나요?</translation>
         </message>
         <message>
@@ -2976,14 +2872,6 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <source>Back to the project as this chat found it.</source>
             <translation>이 채팅이 처음 열었을 때의 프로젝트로 돌아갑니다.</translation>
-        </message>
-        <message>
-            <source>Brings back: {layers}</source>
-            <translation>되살림: {layers}</translation>
-        </message>
-        <message>
-            <source>Brings this request's changes back</source>
-            <translation>이 요청의 변경 사항을 되살립니다</translation>
         </message>
         <message>
             <source>Changed {0} to {1}</source>
@@ -3054,14 +2942,6 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <translation>메모리에서 제거됨</translation>
         </message>
         <message>
-            <source>Removes this request's changes from the map</source>
-            <translation>이 요청의 변경 사항을 지도에서 제거합니다</translation>
-        </message>
-        <message>
-            <source>Removes: {layers}</source>
-            <translation>제거됨: {layers}</translation>
-        </message>
-        <message>
             <source>Reply to the question...</source>
             <translation>질문에 답하세요...</translation>
         </message>
@@ -3086,7 +2966,7 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <translation>중지됨</translation>
         </message>
         <message>
-            <source>The agent now reads the earlier exchanges as a shorter record that keeps your requests and what it made.</source>
+            <source>The AI agent now reads the earlier exchanges as a shorter record that keeps your requests and what it made.</source>
             <translation>이제 어시스턴트는 이전 대화를 사용자의 요청과 만든 결과만 남긴 더 짧은 기록으로 읽습니다.</translation>
         </message>
         <message>
@@ -3150,11 +3030,11 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <translation>{layer}: {reason}</translation>
         </message>
         <message>
-            <source>{lead} · sent when the agent finishes</source>
+            <source>{lead} · sent when the AI agent finishes</source>
             <translation>{lead} · 어시스턴트가 끝나면 전송됨</translation>
         </message>
         <message>
-            <source>{lead} · the agent reads it at its next step</source>
+            <source>{lead} · the AI agent reads it at its next step</source>
             <translation>{lead} · 어시스턴트가 다음 단계에서 읽음</translation>
         </message>
         <message>
@@ -3216,6 +3096,10 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <source>Task ended</source>
             <translation>작업 종료</translation>
+        </message>
+        <message>
+            <source>Removed from the queue</source>
+            <translation>대기열에서 삭제했습니다</translation>
         </message>
     </context>
     <context>
@@ -3413,7 +3297,7 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <translation>대기열에 추가</translation>
         </message>
         <message>
-            <source>Queue it: the agent reads it at its next step (Enter)</source>
+            <source>Queue it: the AI agent reads it at its next step (Enter)</source>
             <translation>대기열에 추가: 어시스턴트가 다음 단계에서 읽습니다 (Enter)</translation>
         </message>
         <message>
@@ -3579,10 +3463,6 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <translation>다시 시도</translation>
         </message>
         <message>
-            <source>See all %n examples</source>
-            <translation>예시 %n개 모두 보기</translation>
-        </message>
-        <message>
             <source>The datasets could not be loaded.</source>
             <translation>데이터셋을 불러오지 못했습니다.</translation>
         </message>
@@ -3658,10 +3538,6 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <translation>이 검색어와 맞는 데이터 소스가 없습니다. AI 어시스턴트가 그래도 데이터를 찾을 수 있습니다.</translation>
         </message>
         <message>
-            <source>Search data sources</source>
-            <translation>데이터 소스 검색</translation>
-        </message>
-        <message>
             <source>See all</source>
             <translation>모두 보기</translation>
         </message>
@@ -3670,28 +3546,12 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <translation>소스</translation>
         </message>
         <message>
-            <source>The library of data the AI agent can use. It finds and loads what it needs by itself.</source>
-            <translation>AI 어시스턴트가 쓸 수 있는 데이터 라이브러리입니다. 필요한 것은 알아서 찾아 불러옵니다.</translation>
-        </message>
-        <message>
             <source>The list arrives when the panel connects.</source>
             <translation>패널이 연결되면 목록이 표시됩니다.</translation>
         </message>
         <message>
             <source>Try in chat</source>
             <translation>채팅에서 해 보기</translation>
-        </message>
-        <message>
-            <source>countries</source>
-            <translation>국가</translation>
-        </message>
-        <message>
-            <source>datasets</source>
-            <translation>데이터셋</translation>
-        </message>
-        <message>
-            <source>sources</source>
-            <translation>소스</translation>
         </message>
         <message>
             <source>Search sources, datasets or a country</source>
@@ -3795,7 +3655,7 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <translation>Pro 시작하기</translation>
         </message>
         <message>
-            <source>How hard the agent works on the next message</source>
+            <source>How hard the AI agent works on the next message</source>
             <translation>다음 메시지에서 어시스턴트가 얼마나 깊이 작업할지</translation>
         </message>
         <message>
@@ -4182,14 +4042,6 @@ Click to show it in the Layers panel.</source>
             <translation>패널이 연결되면 튜토리얼이 표시됩니다.</translation>
         </message>
         <message>
-            <source>Tutorials</source>
-            <translation>튜토리얼</translation>
-        </message>
-        <message>
-            <source>Videos and guides to get started. They open in your browser.</source>
-            <translation>시작에 도움이 되는 동영상과 가이드입니다. 브라우저에서 열립니다.</translation>
-        </message>
-        <message>
             <source>Learn</source>
             <translation>학습</translation>
         </message>
@@ -4430,28 +4282,16 @@ Click to show it in the Layers panel.</source>
             <translation>{n}개 더 보기</translation>
         </message>
         <message>
-            <source>The page links to sites the agent does not know: {hosts}.</source>
+            <source>The page links to sites the AI agent does not know: {hosts}.</source>
             <translation>이 페이지는 어시스턴트가 모르는 사이트로 연결됩니다: {hosts}.</translation>
         </message>
         <message>
-            <source>The page links to {hosts}, a site the agent does not know.</source>
+            <source>The page links to {hosts}, a site the AI agent does not know.</source>
             <translation>이 페이지는 어시스턴트가 모르는 사이트인 {hosts}(으)로 연결됩니다.</translation>
-        </message>
-        <message>
-            <source>This data comes from a site outside the sources the agent knows.</source>
-            <translation>이 데이터는 어시스턴트가 아는 소스 밖의 사이트에서 왔습니다.</translation>
-        </message>
-        <message>
-            <source>This data comes from sites outside the sources the agent knows.</source>
-            <translation>이 데이터는 어시스턴트가 아는 소스 밖의 사이트들에서 왔습니다.</translation>
         </message>
         <message>
             <source>View the code ({n} lines)</source>
             <translation>코드 보기 ({n}줄)</translation>
-        </message>
-        <message>
-            <source>Your answer also counts for the next calls of this kind in this answer.</source>
-            <translation>이 답변 안에서 같은 종류의 다음 호출에도 선택이 적용됩니다.</translation>
         </message>
         <message>
             <source>expression</source>
@@ -4618,10 +4458,6 @@ Click to show it in the Layers panel.</source>
             <source>Get Pro</source>
             <translation>Pro 시작하기</translation>
         </message>
-        <message>
-            <source>What Pro adds</source>
-            <translation>Pro가 추가하는 기능</translation>
-        </message>
     </context>
     <context>
         <name>QuestionCard</name>
@@ -4656,6 +4492,10 @@ Click to show it in the Layers panel.</source>
         <message>
             <source>skipped</source>
             <translation>건너뜀</translation>
+        </message>
+        <message>
+            <source>Question {n} of {count}</source>
+            <translation>질문 {n}/{count}</translation>
         </message>
     </context>
     <context>
@@ -4853,6 +4693,18 @@ Click to show it in the Layers panel.</source>
             <source>Your payment of {amount} failed</source>
             <translation>{amount} 결제에 실패했습니다</translation>
         </message>
+        <message>
+            <source>Free for 7 days, nothing to pay today, then monthly at your student price. Cancel in one click.</source>
+            <translation>7일 무료, 오늘 결제할 금액 없음, 이후 학생 가격으로 매월 결제됩니다. 클릭 한 번으로 취소할 수 있습니다.</translation>
+        </message>
+        <message>
+            <source>Free for 7 days, nothing to pay today, then {price}/month excl. VAT. Cancel in one click.</source>
+            <translation>7일 무료, 오늘 결제할 금액 없음, 이후 월 {price} (부가세 별도). 클릭 한 번으로 취소할 수 있습니다.</translation>
+        </message>
+        <message>
+            <source>Medium effort now, High after the trial</source>
+            <translation>지금은 Medium, 체험 후에는 High</translation>
+        </message>
     </context>
     <context>
         <name>QuotaPauseCard</name>
@@ -5002,6 +4854,10 @@ Click to show it in the Layers panel.</source>
             <source>{n} days</source>
             <translation>{n}일</translation>
         </message>
+        <message>
+            <source>1 day</source>
+            <translation>1일</translation>
+        </message>
     </context>
     <context>
         <name>RunSummaryCard</name>
@@ -5041,10 +4897,6 @@ Click to show it in the Layers panel.</source>
             <translation>실패</translation>
         </message>
         <message>
-            <source>Failed after {time}</source>
-            <translation>{time} 후 실패</translation>
-        </message>
-        <message>
             <source>QGIS closed before this finished</source>
             <translation>완료되기 전에 QGIS가 닫혔습니다</translation>
         </message>
@@ -5053,24 +4905,12 @@ Click to show it in the Layers panel.</source>
             <translation>중지됨</translation>
         </message>
         <message>
-            <source>Stopped after {time}</source>
-            <translation>{time} 후 중지됨</translation>
-        </message>
-        <message>
             <source>Thinking</source>
             <translation>생각 중</translation>
         </message>
         <message>
-            <source>Thought for {time}</source>
-            <translation>{time} 동안 생각함</translation>
-        </message>
-        <message>
             <source>Waiting for you</source>
             <translation>사용자 대기 중</translation>
-        </message>
-        <message>
-            <source>Worked for {time}</source>
-            <translation>{time} 동안 작업함</translation>
         </message>
         <message>
             <source>blocked</source>
@@ -5115,10 +4955,6 @@ Click to show it in the Layers panel.</source>
             <translation>+ 메모 추가</translation>
         </message>
         <message>
-            <source>A short summary of the changes once a task is done.</source>
-            <translation>작업이 끝나면 변경 사항을 짧게 요약합니다.</translation>
-        </message>
-        <message>
             <source>AI Agent</source>
             <translation>AI Agent</translation>
         </message>
@@ -5147,10 +4983,6 @@ Click to show it in the Layers panel.</source>
             <translation>사용자가 추가함</translation>
         </message>
         <message>
-            <source>Advanced</source>
-            <translation>고급</translation>
-        </message>
-        <message>
             <source>Another project</source>
             <translation>다른 프로젝트</translation>
         </message>
@@ -5161,10 +4993,6 @@ Click to show it in the Layers panel.</source>
         <message>
             <source>Auto</source>
             <translation>자동</translation>
-        </message>
-        <message>
-            <source>Back to defaults, memory notes included. You stay signed in.</source>
-            <translation>메모리 메모를 포함해 기본값으로 돌아갑니다. 로그인 상태는 유지됩니다.</translation>
         </message>
         <message>
             <source>Balanced</source>
@@ -5183,14 +5011,6 @@ Click to show it in the Layers panel.</source>
             <translation>인터넷 연결을 확인한 후 다시 시도해 주세요.</translation>
         </message>
         <message>
-            <source>Commercial use and more tasks with Pro</source>
-            <translation>Pro로 상업적 사용과 더 많은 작업</translation>
-        </message>
-        <message>
-            <source>Computer-style names</source>
-            <translation>컴퓨터식 이름</translation>
-        </message>
-        <message>
             <source>Concise</source>
             <translation>간결하게</translation>
         </message>
@@ -5199,20 +5019,12 @@ Click to show it in the Layers panel.</source>
             <translation>문의하기</translation>
         </message>
         <message>
-            <source>Context the AI reads at the start of every conversation, and the notes it keeps between them.</source>
-            <translation>AI 어시스턴트가 대화를 시작할 때마다 읽는 내용과 대화 사이에 보관하는 메모입니다.</translation>
-        </message>
-        <message>
             <source>Could not load your account</source>
             <translation>계정을 불러올 수 없습니다</translation>
         </message>
         <message>
             <source>Could not reach TerraLab</source>
             <translation>TerraLab에 연결할 수 없습니다</translation>
-        </message>
-        <message>
-            <source>Danger zone</source>
-            <translation>위험 구역</translation>
         </message>
         <message>
             <source>Data sources</source>
@@ -5255,10 +5067,6 @@ Click to show it in the Layers panel.</source>
             <translation>전문가</translation>
         </message>
         <message>
-            <source>Explain what it did after each run</source>
-            <translation>실행이 끝날 때마다 한 일을 설명</translation>
-        </message>
-        <message>
             <source>Free plan</source>
             <translation>무료 요금제</translation>
         </message>
@@ -5279,10 +5087,6 @@ Click to show it in the Layers panel.</source>
             <translation>채팅 검토 허용</translation>
         </message>
         <message>
-            <source>How it should work. Example: always answer in French, name new layers in snake_case, never delete a layer without asking.</source>
-            <translation>작동 방식을 정합니다. 예: 항상 프랑스어로 답변, 새 레이어 이름은 snake_case로 지정, 묻지 않고 레이어를 삭제하지 않기.</translation>
-        </message>
-        <message>
             <source>How much the AI explains.</source>
             <translation>AI 어시스턴트가 얼마나 설명할지 정합니다.</translation>
         </message>
@@ -5291,20 +5095,8 @@ Click to show it in the Layers panel.</source>
             <translation>AI 어시스턴트가 실행 전에 얼마나 자주 물어볼지 정합니다.</translation>
         </message>
         <message>
-            <source>How the AI names the layers it creates.</source>
-            <translation>AI 어시스턴트가 만드는 레이어의 이름 짓는 방식입니다.</translation>
-        </message>
-        <message>
-            <source>How you work</source>
-            <translation>작업 방식</translation>
-        </message>
-        <message>
             <source>Imperial</source>
             <translation>야드파운드법</translation>
-        </message>
-        <message>
-            <source>Instructions for the AI</source>
-            <translation>AI 어시스턴트 지침</translation>
         </message>
         <message>
             <source>Keyboard shortcuts</source>
@@ -5317,10 +5109,6 @@ Click to show it in the Layers panel.</source>
         <message>
             <source>Language, style, permissions, your profile and your memory notes go back to their defaults. You stay signed in.</source>
             <translation>언어, 스타일, 권한, 프로필, 메모리 메모가 기본값으로 돌아갑니다. 로그인 상태는 유지됩니다.</translation>
-        </message>
-        <message>
-            <source>Layer names</source>
-            <translation>레이어 이름</translation>
         </message>
         <message>
             <source>We may read a chat only to fix a bug, never to train AI. Chats are kept 30 days.</source>
@@ -5347,24 +5135,12 @@ Click to show it in the Layers panel.</source>
             <translation>메모리</translation>
         </message>
         <message>
-            <source>Memory between conversations</source>
-            <translation>대화 간 메모리</translation>
-        </message>
-        <message>
-            <source>Metres and hectares, or feet, miles and acres.</source>
-            <translation>미터와 헥타르, 또는 피트, 마일, 에이커.</translation>
-        </message>
-        <message>
             <source>Metric</source>
             <translation>미터법</translation>
         </message>
         <message>
             <source>More</source>
             <translation>더 보기</translation>
-        </message>
-        <message>
-            <source>More plugins</source>
-            <translation>다른 플러그인</translation>
         </message>
         <message>
             <source>Move the map to what it changes</source>
@@ -5391,10 +5167,6 @@ Click to show it in the Layers panel.</source>
             <translation>열기</translation>
         </message>
         <message>
-            <source>Open terra-lab.ai</source>
-            <translation>terra-lab.ai 열기</translation>
-        </message>
-        <message>
             <source>Open the AI Agent page</source>
             <translation>AI Agent 페이지 열기</translation>
         </message>
@@ -5407,24 +5179,12 @@ Click to show it in the Layers panel.</source>
             <translation>개인 설정</translation>
         </message>
         <message>
-            <source>Plain words</source>
-            <translation>쉬운 말</translation>
-        </message>
-        <message>
-            <source>Plus memory, your instructions and higher effort.</source>
-            <translation>여기에 메모리, 사용자 지침, 더 높은 노력 수준이 포함됩니다.</translation>
-        </message>
-        <message>
             <source>Privacy</source>
             <translation>개인정보</translation>
         </message>
         <message>
             <source>Pro plan</source>
             <translation>Pro 요금제</translation>
-        </message>
-        <message>
-            <source>Pro reads who you are and your standing rules before every run: your job, your city, your usual CRS, the language it answers in, how it names layers and what it must never do without asking.</source>
-            <translation>Pro는 실행할 때마다 사용자가 누구인지와 고정 규칙을 먼저 읽습니다. 직업, 도시, 자주 쓰는 CRS, 답변 언어, 레이어 이름 짓는 방식, 묻지 않고 하면 안 되는 일입니다.</translation>
         </message>
         <message>
             <source>Pro reads your notes at the start of every conversation.</source>
@@ -5441,10 +5201,6 @@ Click to show it in the Layers panel.</source>
         <message>
             <source>Regular</source>
             <translation>보통</translation>
-        </message>
-        <message>
-            <source>Report a problem</source>
-            <translation>문제 신고</translation>
         </message>
         <message>
             <source>Reset</source>
@@ -5475,10 +5231,6 @@ Click to show it in the Layers panel.</source>
             <translation>다시 시도</translation>
         </message>
         <message>
-            <source>SAVED NOTES · {n}</source>
-            <translation>저장된 메모 · {n}</translation>
-        </message>
-        <message>
             <source>Same as QGIS</source>
             <translation>QGIS와 동일</translation>
         </message>
@@ -5489,14 +5241,6 @@ Click to show it in the Layers panel.</source>
         <message>
             <source>Share usage statistics</source>
             <translation>사용 통계 공유</translation>
-        </message>
-        <message>
-            <source>Short answers, a balance, or the full reasoning.</source>
-            <translation>짧은 답변, 균형, 또는 전체 추론 중에서 고릅니다.</translation>
-        </message>
-        <message>
-            <source>Show the steps it takes</source>
-            <translation>수행 단계 표시</translation>
         </message>
         <message>
             <source>Sign in</source>
@@ -5529,14 +5273,6 @@ Click to show it in the Layers panel.</source>
         <message>
             <source>The AI saves notes on its own</source>
             <translation>AI 어시스턴트가 직접 메모를 저장</translation>
-        </message>
-        <message>
-            <source>The language the AI writes its answers in.</source>
-            <translation>AI 어시스턴트가 답변을 작성하는 언어입니다.</translation>
-        </message>
-        <message>
-            <source>The list of steps above each answer.</source>
-            <translation>각 답변 위에 표시되는 단계 목록입니다.</translation>
         </message>
         <message>
             <source>The shortcuts could not be listed.</source>
@@ -5575,10 +5311,6 @@ Click to show it in the Layers panel.</source>
             <translation>언제든 끌 수 있으며 다른 영향은 없습니다.</translation>
         </message>
         <message>
-            <source>Tutorials</source>
-            <translation>튜토리얼</translation>
-        </message>
-        <message>
             <source>Units</source>
             <translation>단위</translation>
         </message>
@@ -5595,36 +5327,8 @@ Click to show it in the Layers panel.</source>
             <translation>도시계획가</translation>
         </message>
         <message>
-            <source>Used in its answers. Empty: it uses no name.</source>
-            <translation>답변에서 사용됩니다. 비워 두면 이름을 부르지 않습니다.</translation>
-        </message>
-        <message>
-            <source>What Pro unlocks, on the TerraLab website.</source>
-            <translation>Pro로 할 수 있는 일을 TerraLab 웹사이트에서 확인하세요.</translation>
-        </message>
-        <message>
-            <source>What the AI should call you</source>
-            <translation>AI 어시스턴트가 부를 이름</translation>
-        </message>
-        <message>
-            <source>What you do</source>
-            <translation>하는 일</translation>
-        </message>
-        <message>
             <source>When needed</source>
             <translation>필요할 때</translation>
-        </message>
-        <message>
-            <source>Who you are</source>
-            <translation>사용자 소개</translation>
-        </message>
-        <message>
-            <source>Who you are and what you work on. Example: urban planner at the city of Lyon, I mostly work with cadastre and PLU layers in EPSG:2154.</source>
-            <translation>사용자가 누구이고 무슨 일을 하는지 적어 주세요. 예: 리옹시 도시계획가, 주로 EPSG:2154의 지적도와 PLU 레이어로 작업합니다.</translation>
-        </message>
-        <message>
-            <source>You can review or remove them here.</source>
-            <translation>여기에서 확인하거나 삭제할 수 있습니다.</translation>
         </message>
         <message>
             <source>You can sign back in anytime from QGIS.</source>
@@ -5639,10 +5343,6 @@ Click to show it in the Layers panel.</source>
             <translation>이름</translation>
         </message>
         <message>
-            <source>Your job in a few words. It changes which data and which method it reaches for first.</source>
-            <translation>하는 일을 몇 단어로 적어 주세요. 어떤 데이터와 방법을 먼저 쓸지가 달라집니다.</translation>
-        </message>
-        <message>
             <source>Your last payment may have failed</source>
             <translation>마지막 결제가 실패했을 수 있습니다</translation>
         </message>
@@ -5653,10 +5353,6 @@ Click to show it in the Layers panel.</source>
         <message>
             <source>Your plan, tasks and settings appear here once you sign in.</source>
             <translation>로그인하면 요금제, 작업, 설정이 여기에 표시됩니다.</translation>
-        </message>
-        <message>
-            <source>Your profile and instructions, read before every run</source>
-            <translation>실행 전에 읽는 프로필과 지침</translation>
         </message>
         <message>
             <source>Your sign-in, your plan and your privacy.</source>
@@ -5704,20 +5400,12 @@ Click to show it in the Layers panel.</source>
             <translation>항상 프랑스어로 답하고, 묻지 않고 레이어를 삭제하지 말 것</translation>
         </message>
         <message>
-            <source>Choose folder...</source>
-            <translation>폴더 선택...</translation>
-        </message>
-        <message>
             <source>Clear project memory</source>
             <translation>프로젝트 메모리 지우기</translation>
         </message>
         <message>
             <source>Connected accounts</source>
             <translation>연결된 계정</translation>
-        </message>
-        <message>
-            <source>Folder to watch</source>
-            <translation>감시할 폴더</translation>
         </message>
         <message>
             <source>Instructions</source>
@@ -5736,16 +5424,8 @@ Click to show it in the Layers panel.</source>
             <translation>이름</translation>
         </message>
         <message>
-            <source>No folder chosen</source>
-            <translation>선택한 폴더 없음</translation>
-        </message>
-        <message>
             <source>Pro reads both before every run.</source>
             <translation>Pro는 매번 실행하기 전에 둘 다 읽습니다.</translation>
-        </message>
-        <message>
-            <source>Proactive triggers</source>
-            <translation>능동형 트리거</translation>
         </message>
         <message>
             <source>Project memory</source>
@@ -5764,16 +5444,8 @@ Click to show it in the Layers panel.</source>
             <translation>프로젝트 메모리 보기</translation>
         </message>
         <message>
-            <source>The AI agent looks at new data files in this folder and at the schedules you ask for, only while QGIS is open. Nothing runs when QGIS is closed.</source>
-            <translation>AI 에이전트는 QGIS가 열려 있는 동안에만 이 폴더의 새 데이터 파일과 요청한 일정을 확인합니다. QGIS가 닫혀 있으면 아무것도 실행되지 않습니다.</translation>
-        </message>
-        <message>
             <source>Urban planner at the city of Lyon, cadastre and PLU layers in EPSG:2154</source>
             <translation>리옹 시의 도시 계획 담당자, EPSG:2154의 지적 및 PLU 레이어</translation>
-        </message>
-        <message>
-            <source>Watch a folder and run my schedules while QGIS is open</source>
-            <translation>QGIS가 열려 있는 동안 폴더를 감시하고 내 일정 실행</translation>
         </message>
         <message>
             <source>What Pro adds: {points}</source>
@@ -5783,36 +5455,24 @@ Click to show it in the Layers panel.</source>
             <source>commercial use, more tasks, memory, your instructions and higher effort</source>
             <translation>상업적 사용, 더 많은 작업, 메모리, 사용자 지침, 더 높은 노력 수준</translation>
         </message>
+        <message>
+            <source>Delete this note? The AI will not add it back.</source>
+            <translation>이 메모를 삭제할까요? AI가 다시 추가하지 않습니다.</translation>
+        </message>
     </context>
     <context>
         <name>SiblingCard</name>
         <message>
-            <source>Install in QGIS</source>
-            <translation>QGIS에 설치</translation>
-        </message>
-        <message>
             <source>Installed</source>
             <translation>설치됨</translation>
-        </message>
-        <message>
-            <source>Open in QGIS</source>
-            <translation>QGIS에서 열기</translation>
         </message>
         <message>
             <source>Opens the QGIS plugin manager on this plugin.</source>
             <translation>QGIS 플러그인 관리자에서 이 플러그인을 엽니다.</translation>
         </message>
         <message>
-            <source>Read the guide</source>
-            <translation>가이드 읽기</translation>
-        </message>
-        <message>
             <source>Show the plugin's panel.</source>
             <translation>플러그인 패널을 표시합니다.</translation>
-        </message>
-        <message>
-            <source>The written tutorial, on the TerraLab blog.</source>
-            <translation>TerraLab 블로그의 글로 된 튜토리얼입니다.</translation>
         </message>
     </context>
     <context>
@@ -5820,14 +5480,6 @@ Click to show it in the Layers panel.</source>
         <message>
             <source>Edit your imagery with a single sentence.</source>
             <translation>문장 하나로 이미지를 편집하세요.</translation>
-        </message>
-        <message>
-            <source>More plugins</source>
-            <translation>다른 플러그인</translation>
-        </message>
-        <message>
-            <source>The two other TerraLab plugins for QGIS. They install from here.</source>
-            <translation>QGIS용 다른 TerraLab 플러그인 두 개입니다. 여기에서 설치할 수 있습니다.</translation>
         </message>
         <message>
             <source>Turn buildings, trees or water into polygons.</source>
@@ -5969,7 +5621,7 @@ Click to show it in the Layers panel.</source>
     <context>
         <name>Toast</name>
         <message>
-            <source>Available when the agent finishes</source>
+            <source>Available when the AI agent finishes</source>
             <translation>AI 어시스턴트가 작업을 마치면 사용할 수 있습니다</translation>
         </message>
     </context>
@@ -6182,6 +5834,10 @@ Click to show it in the Layers panel.</source>
             <source>Signed in</source>
             <translation>로그인됨</translation>
         </message>
+        <message>
+            <source>could not be put back, so what it changed is still in the project</source>
+            <translation>다시 넣을 수 없어서, 변경한 내용이 프로젝트에 여전히 남아 있습니다</translation>
+        </message>
     </context>
     <context>
         <name>UpdateBanner</name>
@@ -6288,10 +5944,6 @@ Click to show it in the Layers panel.</source>
             <translation>CRS</translation>
         </message>
         <message>
-            <source>Click to open it in QGIS.</source>
-            <translation>클릭하여 QGIS에서 엽니다.</translation>
-        </message>
-        <message>
             <source>Click to select it in the Layers panel.</source>
             <translation>클릭하여 레이어 패널에서 선택합니다.</translation>
         </message>
@@ -6308,16 +5960,8 @@ Click to show it in the Layers panel.</source>
             <translation>원본: {value}</translation>
         </message>
         <message>
-            <source>Its CRS changed. Click to open it in QGIS.</source>
-            <translation>CRS가 변경되었습니다. 클릭하여 QGIS에서 엽니다.</translation>
-        </message>
-        <message>
             <source>Its CRS changed. Click to select it in the Layers panel.</source>
             <translation>CRS가 변경되었습니다. 클릭하여 레이어 패널에서 선택합니다.</translation>
-        </message>
-        <message>
-            <source>Its file was written on disk. Click to open it in QGIS.</source>
-            <translation>파일이 디스크에 기록되었습니다. 클릭하여 QGIS에서 엽니다.</translation>
         </message>
         <message>
             <source>Its file was written on disk. Click to select it in the Layers panel.</source>
@@ -6338,10 +5982,6 @@ Click to show it in the Layers panel.</source>
         <message>
             <source>New layer, 1 feature. Click to select it in the Layers panel.</source>
             <translation>새 레이어, 피처 1개. 클릭하여 레이어 패널에서 선택합니다.</translation>
-        </message>
-        <message>
-            <source>New layer. Click to open it in QGIS.</source>
-            <translation>새 레이어. 클릭하여 QGIS에서 엽니다.</translation>
         </message>
         <message>
             <source>New layer. Click to select it in the Layers panel.</source>
@@ -6400,16 +6040,8 @@ Click to show it in the Layers panel.</source>
             <translation>스타일 적용됨</translation>
         </message>
         <message>
-            <source>{n:+d} feature. Click to open it in QGIS.</source>
-            <translation>피처 {n:+d}개. 클릭하여 QGIS에서 엽니다.</translation>
-        </message>
-        <message>
             <source>{n:+d} feature. Click to select it in the Layers panel.</source>
             <translation>피처 {n:+d}개. 클릭하여 레이어 패널에서 선택합니다.</translation>
-        </message>
-        <message>
-            <source>{n:+d} features. Click to open it in QGIS.</source>
-            <translation>피처 {n:+d}개. 클릭하여 QGIS에서 엽니다.</translation>
         </message>
         <message>
             <source>{n:+d} features. Click to select it in the Layers panel.</source>
@@ -6425,14 +6057,6 @@ Click to show it in the Layers panel.</source>
         <message>
             <source>Layers affected</source>
             <translation>영향받은 레이어</translation>
-        </message>
-        <message>
-            <source>Removed</source>
-            <translation>제거됨</translation>
-        </message>
-        <message>
-            <source>Restored</source>
-            <translation>복원됨</translation>
         </message>
         <message>
             <source>Put back as before</source>
@@ -6609,14 +6233,6 @@ Click to show it in the Layers panel.</source>
             <translation>보내기</translation>
         </message>
         <message>
-            <source>Sent with this conversation and your recent logs, to fix issues and improve AI Agent.</source>
-            <translation>이 대화와 최근 로그가 함께 전송되며, 문제를 해결하고 AI Agent를 개선하는 데 사용됩니다.</translation>
-        </message>
-        <message>
-            <source>Tell us more</source>
-            <translation>자세히 알려 주세요</translation>
-        </message>
-        <message>
             <source>Thanks for the feedback</source>
             <translation>피드백 감사합니다</translation>
         </message>
@@ -6658,6 +6274,18 @@ Click to show it in the Layers panel.</source>
         <message>
             <source>{n} more</source>
             <translation>{n}개 더</translation>
+        </message>
+        <message>
+            <source>No</source>
+            <translation>아니요</translation>
+        </message>
+        <message>
+            <source>The algorithm's id, to find it in the Processing toolbox</source>
+            <translation>프로세싱 툴박스에서 찾을 때 쓰는 알고리즘 ID</translation>
+        </message>
+        <message>
+            <source>Yes</source>
+            <translation>예</translation>
         </message>
     </context>
     <context>
@@ -6898,10 +6526,6 @@ Click to show it in the Layers panel.</source>
             <translation>제거</translation>
         </message>
         <message>
-            <source>Remove the access to {host}</source>
-            <translation>{host} 접근 제거</translation>
-        </message>
-        <message>
             <source>S3 keys</source>
             <translation>S3 키</translation>
         </message>
@@ -6932,10 +6556,6 @@ Click to show it in the Layers panel.</source>
         <message>
             <source>Change project…</source>
             <translation>프로젝트 변경…</translation>
-        </message>
-        <message>
-            <source>Google sign-in</source>
-            <translation>Google 로그인</translation>
         </message>
         <message>
             <source>Signed in with the browser</source>
@@ -7933,6 +7553,17 @@ Click to show it in the Layers panel.</source>
         <message>
             <source>Your words are sent with this chat and recent logs.</source>
             <translation>작성한 내용은 이 채팅 및 최근 로그와 함께 전송됩니다.</translation>
+        </message>
+    </context>
+    <context>
+        <name>NoteRow</name>
+        <message>
+            <source>Delete this note</source>
+            <translation>이 메모 삭제</translation>
+        </message>
+        <message>
+            <source>Edit this note</source>
+            <translation>이 메모 편집</translation>
         </message>
     </context>
 </TS>

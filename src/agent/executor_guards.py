@@ -10,7 +10,6 @@ import math
 import os
 
 from qgis.core import QgsProject, QgsVectorLayer
-from qgis.PyQt.QtCore import QCoreApplication
 
 from ..core import limits, output_paths
 from ..core.logger import log, log_warning
@@ -18,6 +17,7 @@ from ..core.protocol import Danger
 from ..core.tool_registry import coded_fact, spec
 from ..tools import cost_guard, guards, volume_guard
 from ..tools.danger import effective_danger, processing_output_params
+from .executor_code import tr
 
 _METRIC_UNITS = frozenset({"meters", "metres", "m", "kilometers", "kilometres", "km", "feet", "ft",
                            "miles", "mi", "yards", "yd"})
@@ -26,10 +26,6 @@ _DEGREE_UNITS = frozenset({"degrees", "deg", "degree"})
 
 def _is_number(value) -> bool:
     return isinstance(value, (int, float)) and not isinstance(value, bool)
-
-
-def tr(text: str) -> str:
-    return QCoreApplication.translate("ToolExecutor", text)
 
 
 def _split_table_paths(name: str, args: dict, table_arg: str) -> list[dict]:

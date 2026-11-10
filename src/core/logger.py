@@ -15,6 +15,7 @@ from collections import deque
 from datetime import datetime, timezone
 
 from .log_scrub import scrub_secrets, scrub_user_paths
+from .qt_compat import message_log_signal
 
 TAG = "AI Agent"
 
@@ -105,7 +106,7 @@ def _rendered(message) -> str:
         return f"<a {len(text)}-char message the scrubber could not clean>"
 
 
-def _capture_message(message, tag, _level) -> None:
+def _capture_message(message, tag, _level, *_format) -> None:
     if tag == WFS_TAG:
         with _recent_lines_lock:
             _wfs_lines.append(_rendered(message))
@@ -128,9 +129,7 @@ def start_log_capture() -> None:
     if _capture_connected:
         return
     try:
-        from qgis.core import QgsApplication
-
-        QgsApplication.messageLog().messageReceived.connect(_capture_message)
+        message_log_signal().connect(_capture_message)
         _capture_connected = True
     except Exception:  # nosec B110
         pass
@@ -141,9 +140,7 @@ def stop_log_capture() -> None:
     if not _capture_connected:
         return
     try:
-        from qgis.core import QgsApplication
-
-        QgsApplication.messageLog().messageReceived.disconnect(_capture_message)
+        message_log_signal().disconnect(_capture_message)
     except (TypeError, RuntimeError, AttributeError):
         pass
     _capture_connected = False
@@ -156,7 +153,9 @@ def recent_wfs_line(needle: str) -> str:
 
 
 def recent_logs() -> str:
-    return "\n".join(_recent_lines) or "(No AI Agent logs captured this session)"
+    with _recent_lines_lock:
+        lines = list(_recent_lines)
+    return "\n".join(lines) or "(No AI Agent logs captured this session)"
 
 
 def log_warning(message):

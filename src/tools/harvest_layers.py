@@ -41,7 +41,6 @@ from ._compat import (
     CONTRAST_STRETCH_MINMAX,
     GRAY_BLACK_TO_WHITE,
     GRAY_WHITE_TO_BLACK,
-    RASTER_STATS_ALL,
     SHADER_CLASS_CONTINUOUS,
     SHADER_CLASS_EQUAL_INTERVAL,
     SHADER_CLASS_QUANTILE,
@@ -360,11 +359,6 @@ def _layer(name: str):
     return layer, None
 
 
-def _field_error(layer, field_name: str) -> dict:
-
-    return _field_not_found_error(layer, field_name)
-
-
 def _expand(path: str) -> str:
     return os.path.normpath(os.path.abspath(os.path.expanduser(os.path.expandvars(path))))
 
@@ -461,7 +455,7 @@ def _band_span(provider, band: int, low, high) -> tuple:
 
     if low is None or high is None:
         def measure() -> tuple:
-            stats = provider.bandStatistics(band, RASTER_STATS_ALL, QgsRectangle(), _STATS_SAMPLE)
+            stats = provider.bandStatistics(band, sampleSize=_STATS_SAMPLE)
             return stats.minimumValue, stats.maximumValue
 
         found_low, found_high = band_reads.read_ahead(("stats", int(band)), measure)
@@ -1226,7 +1220,7 @@ def _delete_field(args: dict) -> dict:
     field_name = args["field_name"]
     idx = layer.fields().indexOf(field_name)
     if idx < 0:
-        return _field_error(layer, field_name)
+        return _field_not_found_error(layer, field_name)
     if layer.isEditable():
         return tool_error(
             f"Layer {layer.name()!r} has an open edit session.", "INVALID_ARGS",
@@ -1256,8 +1250,10 @@ def _non_null_count(layer, field: str, limit: int = 500) -> int:
     idx = layer.fields().indexOf(field)
     if idx < 0:
         return 0
-    request = QgsFeatureRequest().setLimit(limit).setSubsetOfAttributes([idx])
+
+    request = QgsFeatureRequest().setLimit(limit)
     request.setFlags(enum_member(QgsFeatureRequest, "Flag", "NoGeometry"))
+    request.setSubsetOfAttributes([idx])
     count = 0
     for feature in layer.getFeatures(request):
         value = feature.attribute(idx)
@@ -1274,7 +1270,7 @@ def _rename_field(args: dict) -> dict:
     old_name, new_name = args["old_name"], args["new_name"]
     idx = layer.fields().indexOf(old_name)
     if idx < 0:
-        return _field_error(layer, old_name)
+        return _field_not_found_error(layer, old_name)
     if layer.fields().indexOf(new_name) >= 0:
         return tool_error(
             f"Field {new_name!r} already exists on {layer.name()!r}.", "INVALID_ARGS",
@@ -1334,8 +1330,10 @@ def _sample_key_values(layer, field: str, limit: int = 5, scan: int = 200) -> li
     idx = layer.fields().indexOf(field)
     if idx < 0:
         return []
-    request = QgsFeatureRequest().setLimit(scan).setSubsetOfAttributes([idx])
+
+    request = QgsFeatureRequest().setLimit(scan)
     request.setFlags(enum_member(QgsFeatureRequest, "Flag", "NoGeometry"))
+    request.setSubsetOfAttributes([idx])
     seen: set = set()
     values: list = []
     for feature in layer.getFeatures(request):
@@ -1414,8 +1412,10 @@ def _join_match_count(target, target_field: str, join, join_field: str):
 
     join_idx = join.fields().indexOf(join_field)
     if layer_order.is_web_service(join):
-        request = QgsFeatureRequest().setLimit(_JOIN_CHECK_REMOTE_ROWS + 1).setSubsetOfAttributes([join_idx])
+
+        request = QgsFeatureRequest().setLimit(_JOIN_CHECK_REMOTE_ROWS + 1)
         request.setFlags(enum_member(QgsFeatureRequest, "Flag", "NoGeometry"))
+        request.setSubsetOfAttributes([join_idx])
         join_values = [feature.attribute(join_idx) for feature in join.getFeatures(request)]
         if len(join_values) > _JOIN_CHECK_REMOTE_ROWS:
             return None
@@ -1433,8 +1433,10 @@ def _join_match_count(target, target_field: str, join, join_field: str):
 
     target_idx = target.fields().indexOf(target_field)
     if layer_order.is_web_service(target):
-        request = QgsFeatureRequest().setLimit(_JOIN_CHECK_REMOTE_ROWS).setSubsetOfAttributes([target_idx])
+
+        request = QgsFeatureRequest().setLimit(_JOIN_CHECK_REMOTE_ROWS)
         request.setFlags(enum_member(QgsFeatureRequest, "Flag", "NoGeometry"))
+        request.setSubsetOfAttributes([target_idx])
         by_repr: dict = {}
         for feature in target.getFeatures(request):
             value = feature.attribute(target_idx)
@@ -1484,9 +1486,9 @@ def _add_table_join(args: dict) -> dict:
         return error
     target_field, join_field = args["target_field"], args["join_field"]
     if target.fields().indexOf(target_field) < 0:
-        return _field_error(target, target_field)
+        return _field_not_found_error(target, target_field)
     if join.fields().indexOf(join_field) < 0:
-        return _field_error(join, join_field)
+        return _field_not_found_error(join, join_field)
     target_type = target.fields().field(target.fields().indexOf(target_field)).typeName()
     join_type = join.fields().field(join.fields().indexOf(join_field)).typeName()
 

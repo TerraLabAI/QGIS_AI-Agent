@@ -13,7 +13,7 @@ import time
 from qgis.PyQt.QtCore import Qt, QTimer
 from qgis.PyQt.QtWidgets import QApplication, QWidget
 
-from ..core import first_run_funnel, telemetry
+from ..core import first_run_funnel, quota_view, telemetry
 from ..core import telemetry_events as ev
 from ..core.layer_mime import mime_has_layers
 from ..core.numbers import as_int
@@ -28,13 +28,14 @@ from ..core.served_state import (
     set_pro_offer,
 )
 from ..core.telemetry_errors import slot_guard
+from . import card_base
 from .bubbles import UserBubble
 from .chat_panel_shared import CompactionDivider, _turn_divider
 from .dock.about import show_contact_dialog, show_shortcuts_dialog
 from .external_links import open_external_url
 from .feedback_dialog import show_feedback
 from .privacy_notice_dialog import PrivacyNoticeDialog
-from .quota_card import WARN_AT_RUNS_LEFT, trial_promise
+from .quota_card import trial_promise
 from .shared import format_reset_date
 
 
@@ -71,7 +72,6 @@ class _ChatPanelLayout:
         a.pairing_reopen_requested.connect(self.pairing_reopen_requested.emit)
         a.pairing_cancel_requested.connect(self.pairing_cancel_requested.emit)
         a.pairing_code_submitted.connect(self.pairing_code_submitted.emit)
-        a.account_clicked.connect(self.open_settings_requested.emit)
 
         self.empty_state.examples_requested.connect(self.open_examples)
         self.empty_state.sources_requested.connect(
@@ -124,7 +124,7 @@ class _ChatPanelLayout:
             return
         if not text:
 
-            self.composer.show_warning(self.tr("Add a few words: what should the agent do with it?"))
+            self.composer.show_warning(self.tr("Add a few words: what should the AI agent do with it?"))
             return
 
 
@@ -386,7 +386,7 @@ class _ChatPanelLayout:
             col.setStretch(host_index, 1)
         col.setStretch(spacer_index, 0)
         start = spacer.height()
-        if start <= 0 or not animate or self._reduced_motion():
+        if start <= 0 or not animate or card_base.reduced_motion(self):
             spacer.setFixedHeight(0)
             return
         spacer.setFixedHeight(start)
@@ -396,24 +396,35 @@ class _ChatPanelLayout:
 
     def _reduced_motion(self) -> bool:
 
+
+
         return not self.isVisible()
 
     def _apply_quota(self) -> None:
 
 
 
+
         used, limit, period_end, is_subscriber = self._usage
-        if not self._signed_in or limit <= 0:
+        left = quota_view.runs_left(used, limit)
+        if not quota_view.is_low(left) or is_subscriber:
+
+
+            self._low_card_closed = False
+        view = self._quota_view = quota_view.choose(
+            signed_in=self._signed_in, used=used, limit=limit, is_subscriber=bool(is_subscriber),
+            payfail=bool(self._payfail), pro_welcome=self._pro_welcome is not None,
+            checkout_return=self._checkout_return, low_closed=self._low_card_closed)
+        if view == quota_view.HIDDEN:
             self.quota_card.clear()
             self._quota_host.hide()
             self._runs_host.hide()
             self.composer.set_blocked(False)
             self._low_balance_visible = False
             return
-        left = max(0, limit - used)
         if is_subscriber:
             self._checkout_return = False
-        if not is_subscriber and self._payfail:
+        if view == quota_view.PAYMENT_FAILED:
 
 
             self._runs_host.hide()
@@ -428,15 +439,14 @@ class _ChatPanelLayout:
                 self._limit_said = False
             self._note_payfail()
             return
-        welcome = getattr(self, "_pro_welcome", None)
-        if welcome is not None and is_subscriber and left > 0:
+        if view == quota_view.PRO_WELCOME:
             self._runs_host.hide()
-            self.quota_card.show_pro_welcome(*welcome)
+            self.quota_card.show_pro_welcome(*self._pro_welcome)
             self._quota_host.show()
             self.composer.set_blocked(False)
             self._low_balance_visible = False
             return
-        if getattr(self, "_checkout_return", False):
+        if view == quota_view.CHECKOUT_RETURN:
 
 
             self._runs_host.hide()
@@ -445,7 +455,7 @@ class _ChatPanelLayout:
             self.composer.set_blocked(left <= 0, self.tr("Keep working with Pro") if left <= 0 else "")
             self._low_balance_visible = False
             return
-        if left <= 0:
+        if view == quota_view.EXHAUSTED:
             self._runs_host.hide()
             self.quota_card.show_exhausted(is_subscriber, limit, format_reset_date(period_end),
                                            None if is_subscriber else self.trial_offer(),
@@ -463,14 +473,14 @@ class _ChatPanelLayout:
             return
         self._limit_said = False
         self.composer.set_blocked(False)
-        if is_subscriber:
+        if view == quota_view.QUIET:
             self.quota_card.clear()
             self._quota_host.hide()
             self._runs_host.hide()
             self._low_balance_visible = False
             return
-        low = left <= WARN_AT_RUNS_LEFT
-        if low and not getattr(self, "_low_card_closed", False):
+        low = quota_view.is_low(left)
+        if view == quota_view.LOW_CARD:
 
 
 
@@ -644,10 +654,10 @@ class _ChatPanelLayout:
             self._signed_in = False
             self._checkout_return = False
             self._return_view_pending = False
+            self._low_card_closed = False
             self._pro_welcome = None
             self._payfail = None
             self._start_now_url = ""
-            self.header.clear_account()
             self._plan_known = False
             self._sync_pro_pill()
 
@@ -784,7 +794,7 @@ class _ChatPanelLayout:
         self._compaction_marked = True
         divider = CompactionDivider(
             self.tr("Conversation compacted"),
-            self.tr("The agent now reads the earlier exchanges as a shorter record "
+            self.tr("The AI agent now reads the earlier exchanges as a shorter record "
                     "that keeps your requests and what it made."))
         divider.show()
         self._add(divider, animate=animate)
@@ -834,10 +844,6 @@ class _ChatPanelLayout:
 
 
         self.activation.set_pairing_note(text, kind)
-
-    def set_account(self, email: str, avatar_url: str = "") -> None:
-        self.header.set_account(email, avatar_url)
-        self.activation.show_activated(email, avatar_url)
 
     def apply_server_config(self, payload: dict) -> None:
 

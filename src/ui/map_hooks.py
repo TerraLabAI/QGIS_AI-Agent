@@ -187,7 +187,9 @@ class MapHooks:
         else:
             label = tr("Ask AI Agent about these {n} layers").format(n=len(unique))
         menu.addSeparator()
-        action = menu.addAction(label)
+
+
+        action = menu.addAction(label.replace("&", "&&"))
         action.triggered.connect(lambda _checked=False, lyrs=unique: self._ask_layers(lyrs))
 
     def _ask_layers(self, layers) -> None:

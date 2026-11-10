@@ -33,6 +33,8 @@
 
 
 
+
+
 from __future__ import annotations
 
 import os
@@ -55,6 +57,9 @@ STALL_REPORT_S = 8.0
 
 STALL_REPEAT_S = 30.0
 STALL_FRAMES = 3
+
+
+HOLD_OFF_AFTER_S = 2.0
 
 
 def main_thread_frames(ident: int | None, limit: int | None = None) -> str:
@@ -190,6 +195,8 @@ class MainThreadWatchdog:
         while not stop.wait(1.0):
             last = self._last
             held = time.monotonic() - last
+            if self._stack is not None and held > HOLD_OFF_AFTER_S:
+                self._stack.hold_off(self._stall_report_s())
             if held < self._stall_report_s():
                 continue
             if reported_for == last and held - reported_at < tuning.ceiling(

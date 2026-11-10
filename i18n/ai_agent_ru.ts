@@ -47,18 +47,6 @@
             <translation>1 слой</translation>
         </message>
         <message>
-            <source>1 layer added</source>
-            <translation>Добавлен 1 слой</translation>
-        </message>
-        <message>
-            <source>1 layer changed</source>
-            <translation>Изменён 1 слой</translation>
-        </message>
-        <message>
-            <source>1 layer removed</source>
-            <translation>Удалён 1 слой</translation>
-        </message>
-        <message>
             <source>1 result</source>
             <translation>1 результат</translation>
         </message>
@@ -215,7 +203,7 @@
             <translation>Запрошено у {source}: {what} в текущем виде</translation>
         </message>
         <message>
-            <source>Available when the agent finishes</source>
+            <source>Available when the AI agent finishes</source>
             <translation>Будет доступно, когда ассистент закончит</translation>
         </message>
         <message>
@@ -411,10 +399,6 @@
             <translation>Скопировать адрес почты</translation>
         </message>
         <message>
-            <source>Copy report</source>
-            <translation>Скопировать отчёт</translation>
-        </message>
-        <message>
             <source>Copy the address below and paste it into a browser.</source>
             <translation>Скопируйте адрес ниже и вставьте его в браузер.</translation>
         </message>
@@ -425,10 +409,6 @@
         <message>
             <source>Copy the support address below into your email app.</source>
             <translation>Скопируйте адрес поддержки ниже в почтовое приложение.</translation>
-        </message>
-        <message>
-            <source>Could not copy</source>
-            <translation>Не удалось скопировать</translation>
         </message>
         <message>
             <source>Count {POINTS} in each feature of {POLYGONS}</source>
@@ -505,10 +485,6 @@
         <message>
             <source>Edit the last queued message</source>
             <translation>Изменить последнее сообщение в очереди</translation>
-        </message>
-        <message>
-            <source>Email address copied</source>
-            <translation>Адрес почты скопирован</translation>
         </message>
         <message>
             <source>Enlarge</source>
@@ -807,10 +783,6 @@
             <translation>Новая строка</translation>
         </message>
         <message>
-            <source>Next</source>
-            <translation>Далее</translation>
-        </message>
-        <message>
             <source>No answer came back. Try again.</source>
             <translation>Ответ не пришёл. Попробуйте ещё раз.</translation>
         </message>
@@ -877,10 +849,6 @@
         <message>
             <source>Preparing a summary…</source>
             <translation>Готовлю сводку…</translation>
-        </message>
-        <message>
-            <source>Previous</source>
-            <translation>Назад</translation>
         </message>
         <message>
             <source>Privacy Policy</source>
@@ -1003,10 +971,6 @@
             <translation>Прочитать стиль слоя {layer_name}</translation>
         </message>
         <message>
-            <source>Real tasks the AI agent does from one sentence. Open one to try it.</source>
-            <translation>Реальные задачи, которые ассистент выполняет по одному предложению. Откройте любую, чтобы попробовать.</translation>
-        </message>
-        <message>
             <source>Remove one item from the layout {layout_name}</source>
             <translation>Удалить один элемент из макета {layout_name}</translation>
         </message>
@@ -1023,20 +987,8 @@
             <translation>Переименовать {old_name} в {new_name} в {layer_name}</translation>
         </message>
         <message>
-            <source>Render the map</source>
-            <translation>Отрисовать карту</translation>
-        </message>
-        <message>
             <source>Reorder the layers</source>
             <translation>Изменить порядок слоёв</translation>
-        </message>
-        <message>
-            <source>Report a problem</source>
-            <translation>Сообщить о проблеме</translation>
-        </message>
-        <message>
-            <source>Report copied</source>
-            <translation>Отчёт скопирован</translation>
         </message>
         <message>
             <source>Reproject {INPUT} to {TARGET_CRS}</source>
@@ -1159,10 +1111,6 @@
             <translation>Отправить сообщение</translation>
         </message>
         <message>
-            <source>Send us a report and we will look into it and fix it.</source>
-            <translation>Отправьте нам отчёт, и мы разберёмся и исправим.</translation>
-        </message>
-        <message>
             <source>Set NoData on {layer_name}</source>
             <translation>Задать NoData для {layer_name}</translation>
         </message>
@@ -1271,10 +1219,6 @@
             <translation>Оформить {layer_name}</translation>
         </message>
         <message>
-            <source>Tell us what went wrong</source>
-            <translation>Расскажите, что пошло не так</translation>
-        </message>
-        <message>
             <source>Terms</source>
             <translation>Условия</translation>
         </message>
@@ -1295,7 +1239,7 @@
             <translation>ИИ-агент застрял на одном и том же шаге.</translation>
         </message>
         <message>
-            <source>The agent reads it at its next step</source>
+            <source>The AI agent reads it at its next step</source>
             <translation>Ассистент прочитает это на следующем шаге</translation>
         </message>
         <message>
@@ -1303,7 +1247,7 @@
             <translation>Сервис ИИ-агента дважды перезапускался во время шага.</translation>
         </message>
         <message>
-            <source>The agent wants to run this action.</source>
+            <source>The AI agent wants to run this action.</source>
             <translation>Ассистент хочет выполнить это действие.</translation>
         </message>
         <message>
@@ -1355,10 +1299,6 @@
             <translation>Адрес поддержки скопирован в буфер обмена: вставьте его в почтовое приложение.</translation>
         </message>
         <message>
-            <source>Then paste it into an email to:</source>
-            <translation>Затем вставьте это в письмо на адрес:</translation>
-        </message>
-        <message>
             <source>They help us fix bugs. You can switch them off in Settings whenever you want.</source>
             <translation>Они помогают нам исправлять ошибки. Вы можете отключить их в настройках в любой момент.</translation>
         </message>
@@ -1369,10 +1309,6 @@
         <message>
             <source>This conversation is too long.</source>
             <translation>Эта беседа слишком длинная.</translation>
-        </message>
-        <message>
-            <source>This conversation: your messages, each step the AI took and what it found, and technical details about QGIS and the plugin. Never your passwords, your sign-in or the contents of your files.</source>
-            <translation>Эта беседа: ваши сообщения, каждый шаг ИИ и то, что он нашёл, а также технические сведения о QGIS и плагине. Никогда не передаются ваши пароли, данные для входа и содержимое ваших файлов.</translation>
         </message>
         <message>
             <source>This layer is no longer in the project.</source>
@@ -1411,7 +1347,7 @@
             <translation>Введите этот адрес для подтверждения.</translation>
         </message>
         <message>
-            <source>Undo the agent's last request</source>
+            <source>Undo the AI agent's last request</source>
             <translation>Отменить последний запрос ассистента</translation>
         </message>
         <message>
@@ -1599,10 +1535,6 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <translation>{minutes} мин {seconds} с</translation>
         </message>
         <message>
-            <source>{names} and {n} more</source>
-            <translation>{names} и ещё {n}</translation>
-        </message>
-        <message>
             <source>{n} features</source>
             <translation>объектов: {n}</translation>
         </message>
@@ -1619,20 +1551,8 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <translation>слоёв: {n}</translation>
         </message>
         <message>
-            <source>{n} layers added</source>
-            <translation>добавлено слоёв: {n}</translation>
-        </message>
-        <message>
             <source>{n} layers can't be restored</source>
             <translation>не удаётся восстановить слоёв: {n}</translation>
-        </message>
-        <message>
-            <source>{n} layers changed</source>
-            <translation>изменено слоёв: {n}</translation>
-        </message>
-        <message>
-            <source>{n} layers removed</source>
-            <translation>удалено слоёв: {n}</translation>
         </message>
         <message>
             <source>{n} results</source>
@@ -1767,10 +1687,6 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <translation>Войдите, чтобы отправить отзыв отсюда, или напишите нам на {email}.</translation>
         </message>
         <message>
-            <source>We'll receive your message, this conversation and technical details (plugin and QGIS version, system, recent logs). Never your passwords or the contents of your files.</source>
-            <translation>Мы получим ваше сообщение, этот разговор и технические данные (версии плагина и QGIS, система, последние журналы). Но никогда ваши пароли или содержимое ваших файлов.</translation>
-        </message>
-        <message>
             <source>You sent several reports in a short time. Try again in a few minutes.</source>
             <translation>Вы отправили несколько сообщений за короткое время. Попробуйте снова через несколько минут.</translation>
         </message>
@@ -1793,18 +1709,6 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <source>What you type</source>
             <translation>Что ты пишешь</translation>
-        </message>
-        <message>
-            <source>Expired on {day}.</source>
-            <translation>Срок действия истёк {day}.</translation>
-        </message>
-        <message>
-            <source>Expires on {day}.</source>
-            <translation>Действует до {day}.</translation>
-        </message>
-        <message>
-            <source>Private link: its signature stays on this computer. TerraLab and the AI agent see only the site and the file name.</source>
-            <translation>Приватная ссылка: её подпись остаётся на этом компьютере. TerraLab и ИИ-агент видят только сайт и имя файла.</translation>
         </message>
         <message>
             <source>expired</source>
@@ -2028,15 +1932,15 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <translation>Войдите, чтобы увидеть свою учётную запись.</translation>
         </message>
         <message>
-            <source>The agent finished.</source>
+            <source>The AI agent finished.</source>
             <translation>Ассистент закончил.</translation>
         </message>
         <message>
-            <source>The agent is waiting for your answer.</source>
+            <source>The AI agent is waiting for your answer.</source>
             <translation>Ассистент ждёт вашего ответа.</translation>
         </message>
         <message>
-            <source>The agent stopped before finishing.</source>
+            <source>The AI agent stopped before finishing.</source>
             <translation>Ассистент остановился, не закончив.</translation>
         </message>
         <message>
@@ -2211,6 +2115,10 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <source>Your subscription is not active. Open your TerraLab dashboard, then try again.</source>
             <translation>Ваша подписка не активна. Откройте панель TerraLab и повторите.</translation>
         </message>
+        <message>
+            <source>QGIS could not save your sign-in on this computer. Click Sign in to try again.</source>
+            <translation>QGIS не удалось сохранить данные для входа на этом компьютере. Нажмите «Войти», чтобы повторить попытку.</translation>
+        </message>
     </context>
     <context>
         <name>ActivationCard</name>
@@ -2247,24 +2155,12 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <translation>Войти</translation>
         </message>
         <message>
-            <source>Sign in / Sign up to start</source>
-            <translation>Войдите или зарегистрируйтесь, чтобы начать</translation>
-        </message>
-        <message>
             <source>Sign in again</source>
             <translation>Войти снова</translation>
         </message>
         <message>
             <source>Sign in via your browser to start using AI Agent</source>
             <translation>Войдите через браузер, чтобы начать работу с AI Agent</translation>
-        </message>
-        <message>
-            <source>Signing up is free and takes 15 seconds, in your browser.</source>
-            <translation>Регистрация бесплатна и занимает 15 секунд, прямо в браузере.</translation>
-        </message>
-        <message>
-            <source>Then ask the AI for anything: load data, style layers, run analyses, edit features.</source>
-            <translation>Затем просите ИИ о чём угодно: загрузить данные, оформить слои, выполнить анализ, изменить объекты.</translation>
         </message>
         <message>
             <source>Type the code shown in your browser:</source>
@@ -2388,14 +2284,6 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <source>Querying the source</source>
             <translation>Запрос к источнику</translation>
-        </message>
-        <message>
-            <source>{m} min {s} s</source>
-            <translation>{m} мин {s} с</translation>
-        </message>
-        <message>
-            <source>{n} s</source>
-            <translation>{n} с</translation>
         </message>
         <message>
             <source>{words} · {done} of {total}</source>
@@ -2692,10 +2580,6 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <translation>Это сообщение больше нельзя отправить повторно.</translation>
         </message>
         <message>
-            <source>This plugin build cannot show that card.</source>
-            <translation>Эта сборка плагина не может показать такую карточку.</translation>
-        </message>
-        <message>
             <source>This point belongs to an unsaved project that was closed, so it cannot be restored here.</source>
             <translation>Эта точка относится к несохранённому проекту, который был закрыт, поэтому восстановить её здесь нельзя.</translation>
         </message>
@@ -2780,10 +2664,6 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <translation>временный слой</translation>
         </message>
         <message>
-            <source>Not handled, the AI agent is offline: {0}</source>
-            <translation>Не обработано, AI-агент не в сети: {0}</translation>
-        </message>
-        <message>
             <source>Nothing is kept about this project yet.</source>
             <translation>О проекте пока ничего не сохранено.</translation>
         </message>
@@ -2796,14 +2676,6 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <translation>Память проекта очищена.</translation>
         </message>
         <message>
-            <source>Watched folder: not handled, no answer from the server: {0}</source>
-            <translation>Отслеживаемая папка: не обработано, нет ответа от сервера: {0}</translation>
-        </message>
-        <message>
-            <source>Watched folder: not handled, the AI agent is offline: {0}</source>
-            <translation>Отслеживаемая папка: не обработано, AI-агент не в сети: {0}</translation>
-        </message>
-        <message>
             <source>Clear what the AI agent remembers about this project?</source>
             <translation>Очистить то, что AI Agent помнит об этом проекте?</translation>
         </message>
@@ -2814,6 +2686,30 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <source>The AI agent is not connected. Try again in a moment.</source>
             <translation>AI Agent не подключён. Повторите попытку через минуту.</translation>
+        </message>
+        <message>
+            <source>Nothing was changed: the file of {layer} is read-only. Make it writable, then go back again.</source>
+            <translation>Ничего не изменено: файл слоя {layer} доступен только для чтения. Сделайте его доступным для записи и вернитесь назад ещё раз.</translation>
+        </message>
+        <message>
+            <source>Nothing was changed: {layer} is in use by another program. Close it there, then go back again.</source>
+            <translation>Ничего не изменено: слой {layer} используется другой программой. Закройте его там и вернитесь назад ещё раз.</translation>
+        </message>
+        <message>
+            <source>Nothing was changed: {layer} is open in {program}. Close it there, then go back again.</source>
+            <translation>Ничего не изменено: слой {layer} открыт в {program}. Закройте его там и вернитесь назад ещё раз.</translation>
+        </message>
+        <message>
+            <source>QGIS closed while going back to an earlier step: some files are at that step and others are not. Open Map history and go back to that step again to finish. It may list those files as your own changes: they are the unfinished step.</source>
+            <translation>QGIS закрылся во время возврата к предыдущему шагу: часть файлов находится на этом шаге, а часть нет. Откройте «История карты» и вернитесь к этому шагу ещё раз, чтобы завершить. Эти файлы могут быть показаны как ваши собственные изменения: на самом деле это незавершённый шаг.</translation>
+        </message>
+        <message>
+            <source>{n} more files are in the same case.</source>
+            <translation>Других файлов в таком же состоянии: {n}.</translation>
+        </message>
+        <message>
+            <source>Stopped: AI Agent was updated or turned off during this run.</source>
+            <translation>Остановлено: во время этого запуска AI Agent был обновлён или отключён.</translation>
         </message>
     </context>
     <context>
@@ -2962,7 +2858,7 @@ The erasure is final once the grace period ends. Until then you can cancel it by
     <context>
         <name>ChatPanel</name>
         <message>
-            <source>Add a few words: what should the agent do with it?</source>
+            <source>Add a few words: what should the AI agent do with it?</source>
             <translation>Добавьте пару слов: что ассистент должен с этим сделать?</translation>
         </message>
         <message>
@@ -2976,14 +2872,6 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <source>Back to the project as this chat found it.</source>
             <translation>Вернуться к проекту в том виде, в каком его застал этот чат.</translation>
-        </message>
-        <message>
-            <source>Brings back: {layers}</source>
-            <translation>Вернёт: {layers}</translation>
-        </message>
-        <message>
-            <source>Brings this request's changes back</source>
-            <translation>Возвращает изменения этого запроса</translation>
         </message>
         <message>
             <source>Changed {0} to {1}</source>
@@ -3054,14 +2942,6 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <translation>Удалено из памяти</translation>
         </message>
         <message>
-            <source>Removes this request's changes from the map</source>
-            <translation>Убирает изменения этого запроса с карты</translation>
-        </message>
-        <message>
-            <source>Removes: {layers}</source>
-            <translation>Уберёт: {layers}</translation>
-        </message>
-        <message>
             <source>Reply to the question...</source>
             <translation>Ответьте на вопрос...</translation>
         </message>
@@ -3086,7 +2966,7 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <translation>Остановлено</translation>
         </message>
         <message>
-            <source>The agent now reads the earlier exchanges as a shorter record that keeps your requests and what it made.</source>
+            <source>The AI agent now reads the earlier exchanges as a shorter record that keeps your requests and what it made.</source>
             <translation>Теперь ассистент читает прежнюю переписку в сокращённом виде: в ней сохранены ваши запросы и то, что он сделал.</translation>
         </message>
         <message>
@@ -3150,11 +3030,11 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <translation>{layer}: {reason}</translation>
         </message>
         <message>
-            <source>{lead} · sent when the agent finishes</source>
+            <source>{lead} · sent when the AI agent finishes</source>
             <translation>{lead} · будет отправлено, когда ассистент закончит</translation>
         </message>
         <message>
-            <source>{lead} · the agent reads it at its next step</source>
+            <source>{lead} · the AI agent reads it at its next step</source>
             <translation>{lead} · ассистент прочитает это на следующем шаге</translation>
         </message>
         <message>
@@ -3216,6 +3096,10 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <source>Task ended</source>
             <translation>Задача завершена</translation>
+        </message>
+        <message>
+            <source>Removed from the queue</source>
+            <translation>Удалено из очереди</translation>
         </message>
     </context>
     <context>
@@ -3413,7 +3297,7 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <translation>В очередь</translation>
         </message>
         <message>
-            <source>Queue it: the agent reads it at its next step (Enter)</source>
+            <source>Queue it: the AI agent reads it at its next step (Enter)</source>
             <translation>Поставить в очередь: ассистент прочитает это на следующем шаге (Enter)</translation>
         </message>
         <message>
@@ -3579,10 +3463,6 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <translation>Повторить</translation>
         </message>
         <message>
-            <source>See all %n examples</source>
-            <translation>Показать все примеры (%n)</translation>
-        </message>
-        <message>
             <source>The datasets could not be loaded.</source>
             <translation>Не удалось загрузить наборы данных.</translation>
         </message>
@@ -3658,10 +3538,6 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <translation>Ни один источник данных не подходит под эти слова. ИИ-помощник всё равно может найти данные.</translation>
         </message>
         <message>
-            <source>Search data sources</source>
-            <translation>Поиск по источникам данных</translation>
-        </message>
-        <message>
             <source>See all</source>
             <translation>Показать все</translation>
         </message>
@@ -3670,28 +3546,12 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <translation>Источники</translation>
         </message>
         <message>
-            <source>The library of data the AI agent can use. It finds and loads what it needs by itself.</source>
-            <translation>Библиотека данных, которые может использовать ИИ-помощник. Он сам находит и загружает нужное.</translation>
-        </message>
-        <message>
             <source>The list arrives when the panel connects.</source>
             <translation>Список появится, когда панель подключится.</translation>
         </message>
         <message>
             <source>Try in chat</source>
             <translation>Попробовать в чате</translation>
-        </message>
-        <message>
-            <source>countries</source>
-            <translation>страны</translation>
-        </message>
-        <message>
-            <source>datasets</source>
-            <translation>наборы данных</translation>
-        </message>
-        <message>
-            <source>sources</source>
-            <translation>источники</translation>
         </message>
         <message>
             <source>Search sources, datasets or a country</source>
@@ -3795,7 +3655,7 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <translation>Получить Pro</translation>
         </message>
         <message>
-            <source>How hard the agent works on the next message</source>
+            <source>How hard the AI agent works on the next message</source>
             <translation>Насколько усердно помощник работает над следующим сообщением</translation>
         </message>
         <message>
@@ -4182,14 +4042,6 @@ Click to show it in the Layers panel.</source>
             <translation>Обучающие материалы появятся, когда панель подключится.</translation>
         </message>
         <message>
-            <source>Tutorials</source>
-            <translation>Обучение</translation>
-        </message>
-        <message>
-            <source>Videos and guides to get started. They open in your browser.</source>
-            <translation>Видео и руководства для начала работы. Они открываются в браузере.</translation>
-        </message>
-        <message>
             <source>Learn</source>
             <translation>Обучение</translation>
         </message>
@@ -4430,28 +4282,16 @@ Click to show it in the Layers panel.</source>
             <translation>Показать ещё {n}</translation>
         </message>
         <message>
-            <source>The page links to sites the agent does not know: {hosts}.</source>
+            <source>The page links to sites the AI agent does not know: {hosts}.</source>
             <translation>Страница ссылается на сайты, которых помощник не знает: {hosts}.</translation>
         </message>
         <message>
-            <source>The page links to {hosts}, a site the agent does not know.</source>
+            <source>The page links to {hosts}, a site the AI agent does not know.</source>
             <translation>Страница ссылается на {hosts}, сайт, которого помощник не знает.</translation>
-        </message>
-        <message>
-            <source>This data comes from a site outside the sources the agent knows.</source>
-            <translation>Эти данные пришли с сайта, которого нет среди известных помощнику источников.</translation>
-        </message>
-        <message>
-            <source>This data comes from sites outside the sources the agent knows.</source>
-            <translation>Эти данные пришли с сайтов, которых нет среди известных помощнику источников.</translation>
         </message>
         <message>
             <source>View the code ({n} lines)</source>
             <translation>Показать код (строк: {n})</translation>
-        </message>
-        <message>
-            <source>Your answer also counts for the next calls of this kind in this answer.</source>
-            <translation>Ваш ответ также действует для следующих вызовов такого рода в этом ответе.</translation>
         </message>
         <message>
             <source>expression</source>
@@ -4618,10 +4458,6 @@ Click to show it in the Layers panel.</source>
             <source>Get Pro</source>
             <translation>Получить Pro</translation>
         </message>
-        <message>
-            <source>What Pro adds</source>
-            <translation>Что добавляет Pro</translation>
-        </message>
     </context>
     <context>
         <name>QuestionCard</name>
@@ -4656,6 +4492,10 @@ Click to show it in the Layers panel.</source>
         <message>
             <source>skipped</source>
             <translation>пропущено</translation>
+        </message>
+        <message>
+            <source>Question {n} of {count}</source>
+            <translation>Вопрос {n} из {count}</translation>
         </message>
     </context>
     <context>
@@ -4853,6 +4693,18 @@ Click to show it in the Layers panel.</source>
             <source>Your payment of {amount} failed</source>
             <translation>Платёж на {amount} не прошёл</translation>
         </message>
+        <message>
+            <source>Free for 7 days, nothing to pay today, then monthly at your student price. Cancel in one click.</source>
+            <translation>Бесплатно 7 дней, сегодня платить ничего не нужно, затем ежемесячно по студенческой цене. Отмена в один клик.</translation>
+        </message>
+        <message>
+            <source>Free for 7 days, nothing to pay today, then {price}/month excl. VAT. Cancel in one click.</source>
+            <translation>Бесплатно 7 дней, сегодня платить не нужно, затем {price} в месяц без НДС. Отмена в один клик.</translation>
+        </message>
+        <message>
+            <source>Medium effort now, High after the trial</source>
+            <translation>Сейчас уровень Medium, после пробного периода High</translation>
+        </message>
     </context>
     <context>
         <name>QuotaPauseCard</name>
@@ -5002,6 +4854,10 @@ Click to show it in the Layers panel.</source>
             <source>{n} days</source>
             <translation>{n} дн.</translation>
         </message>
+        <message>
+            <source>1 day</source>
+            <translation>1 день</translation>
+        </message>
     </context>
     <context>
         <name>RunSummaryCard</name>
@@ -5041,10 +4897,6 @@ Click to show it in the Layers panel.</source>
             <translation>Ошибка</translation>
         </message>
         <message>
-            <source>Failed after {time}</source>
-            <translation>Ошибка через {time}</translation>
-        </message>
-        <message>
             <source>QGIS closed before this finished</source>
             <translation>QGIS закрылся до завершения</translation>
         </message>
@@ -5053,24 +4905,12 @@ Click to show it in the Layers panel.</source>
             <translation>Остановлено</translation>
         </message>
         <message>
-            <source>Stopped after {time}</source>
-            <translation>Остановлено через {time}</translation>
-        </message>
-        <message>
             <source>Thinking</source>
             <translation>Думаю</translation>
         </message>
         <message>
-            <source>Thought for {time}</source>
-            <translation>Думал {time}</translation>
-        </message>
-        <message>
             <source>Waiting for you</source>
             <translation>Ждёт вас</translation>
-        </message>
-        <message>
-            <source>Worked for {time}</source>
-            <translation>Работал {time}</translation>
         </message>
         <message>
             <source>blocked</source>
@@ -5115,10 +4955,6 @@ Click to show it in the Layers panel.</source>
             <translation>+ Добавить заметку</translation>
         </message>
         <message>
-            <source>A short summary of the changes once a task is done.</source>
-            <translation>Краткое описание изменений после завершения задачи.</translation>
-        </message>
-        <message>
             <source>AI Agent</source>
             <translation>AI Agent</translation>
         </message>
@@ -5147,10 +4983,6 @@ Click to show it in the Layers panel.</source>
             <translation>Добавлено вами</translation>
         </message>
         <message>
-            <source>Advanced</source>
-            <translation>Расширенный</translation>
-        </message>
-        <message>
             <source>Another project</source>
             <translation>Другой проект</translation>
         </message>
@@ -5161,10 +4993,6 @@ Click to show it in the Layers panel.</source>
         <message>
             <source>Auto</source>
             <translation>Авто</translation>
-        </message>
-        <message>
-            <source>Back to defaults, memory notes included. You stay signed in.</source>
-            <translation>Возврат к значениям по умолчанию, включая заметки памяти. Вы остаётесь в аккаунте.</translation>
         </message>
         <message>
             <source>Balanced</source>
@@ -5183,14 +5011,6 @@ Click to show it in the Layers panel.</source>
             <translation>Проверьте подключение к интернету и повторите попытку.</translation>
         </message>
         <message>
-            <source>Commercial use and more tasks with Pro</source>
-            <translation>Коммерческое использование и больше задач с Pro</translation>
-        </message>
-        <message>
-            <source>Computer-style names</source>
-            <translation>Технические имена</translation>
-        </message>
-        <message>
             <source>Concise</source>
             <translation>Краткий</translation>
         </message>
@@ -5199,20 +5019,12 @@ Click to show it in the Layers panel.</source>
             <translation>Связаться с нами</translation>
         </message>
         <message>
-            <source>Context the AI reads at the start of every conversation, and the notes it keeps between them.</source>
-            <translation>Контекст, который ассистент читает в начале каждого разговора, и заметки, которые он хранит между разговорами.</translation>
-        </message>
-        <message>
             <source>Could not load your account</source>
             <translation>Не удалось загрузить ваш аккаунт</translation>
         </message>
         <message>
             <source>Could not reach TerraLab</source>
             <translation>Не удалось связаться с TerraLab</translation>
-        </message>
-        <message>
-            <source>Danger zone</source>
-            <translation>Опасная зона</translation>
         </message>
         <message>
             <source>Data sources</source>
@@ -5255,10 +5067,6 @@ Click to show it in the Layers panel.</source>
             <translation>Эксперт</translation>
         </message>
         <message>
-            <source>Explain what it did after each run</source>
-            <translation>Объяснять сделанное после каждого запуска</translation>
-        </message>
-        <message>
             <source>Free plan</source>
             <translation>Тариф Free</translation>
         </message>
@@ -5279,10 +5087,6 @@ Click to show it in the Layers panel.</source>
             <translation>Разрешить просмотр чата</translation>
         </message>
         <message>
-            <source>How it should work. Example: always answer in French, name new layers in snake_case, never delete a layer without asking.</source>
-            <translation>Как ассистент должен работать. Пример: всегда отвечать по-французски, называть новые слои в snake_case, никогда не удалять слой без вопроса.</translation>
-        </message>
-        <message>
             <source>How much the AI explains.</source>
             <translation>Насколько подробно ассистент объясняет.</translation>
         </message>
@@ -5291,20 +5095,8 @@ Click to show it in the Layers panel.</source>
             <translation>Как часто ассистент спрашивает перед действием.</translation>
         </message>
         <message>
-            <source>How the AI names the layers it creates.</source>
-            <translation>Как ассистент называет создаваемые слои.</translation>
-        </message>
-        <message>
-            <source>How you work</source>
-            <translation>Как вы работаете</translation>
-        </message>
-        <message>
             <source>Imperial</source>
             <translation>Британская</translation>
-        </message>
-        <message>
-            <source>Instructions for the AI</source>
-            <translation>Инструкции для ассистента</translation>
         </message>
         <message>
             <source>Keyboard shortcuts</source>
@@ -5317,10 +5109,6 @@ Click to show it in the Layers panel.</source>
         <message>
             <source>Language, style, permissions, your profile and your memory notes go back to their defaults. You stay signed in.</source>
             <translation>Язык, стиль, разрешения, ваш профиль и заметки памяти вернутся к значениям по умолчанию. Вы остаётесь в аккаунте.</translation>
-        </message>
-        <message>
-            <source>Layer names</source>
-            <translation>Имена слоёв</translation>
         </message>
         <message>
             <source>We may read a chat only to fix a bug, never to train AI. Chats are kept 30 days.</source>
@@ -5347,24 +5135,12 @@ Click to show it in the Layers panel.</source>
             <translation>Память</translation>
         </message>
         <message>
-            <source>Memory between conversations</source>
-            <translation>Память между разговорами</translation>
-        </message>
-        <message>
-            <source>Metres and hectares, or feet, miles and acres.</source>
-            <translation>Метры и гектары или футы, мили и акры.</translation>
-        </message>
-        <message>
             <source>Metric</source>
             <translation>Метрическая</translation>
         </message>
         <message>
             <source>More</source>
             <translation>Ещё</translation>
-        </message>
-        <message>
-            <source>More plugins</source>
-            <translation>Другие плагины</translation>
         </message>
         <message>
             <source>Move the map to what it changes</source>
@@ -5391,10 +5167,6 @@ Click to show it in the Layers panel.</source>
             <translation>Открыть</translation>
         </message>
         <message>
-            <source>Open terra-lab.ai</source>
-            <translation>Открыть terra-lab.ai</translation>
-        </message>
-        <message>
             <source>Open the AI Agent page</source>
             <translation>Открыть страницу AI Agent</translation>
         </message>
@@ -5407,24 +5179,12 @@ Click to show it in the Layers panel.</source>
             <translation>Персонализация</translation>
         </message>
         <message>
-            <source>Plain words</source>
-            <translation>Простые слова</translation>
-        </message>
-        <message>
-            <source>Plus memory, your instructions and higher effort.</source>
-            <translation>Плюс память, ваши инструкции и более высокий уровень усилий.</translation>
-        </message>
-        <message>
             <source>Privacy</source>
             <translation>Конфиденциальность</translation>
         </message>
         <message>
             <source>Pro plan</source>
             <translation>Тариф Pro</translation>
-        </message>
-        <message>
-            <source>Pro reads who you are and your standing rules before every run: your job, your city, your usual CRS, the language it answers in, how it names layers and what it must never do without asking.</source>
-            <translation>Pro читает, кто вы и каковы ваши постоянные правила, перед каждым запуском: ваша работа, ваш город, привычная CRS, язык ответов, как называть слои и что нельзя делать без вопроса.</translation>
         </message>
         <message>
             <source>Pro reads your notes at the start of every conversation.</source>
@@ -5441,10 +5201,6 @@ Click to show it in the Layers panel.</source>
         <message>
             <source>Regular</source>
             <translation>Обычный</translation>
-        </message>
-        <message>
-            <source>Report a problem</source>
-            <translation>Сообщить о проблеме</translation>
         </message>
         <message>
             <source>Reset</source>
@@ -5475,10 +5231,6 @@ Click to show it in the Layers panel.</source>
             <translation>Повторить</translation>
         </message>
         <message>
-            <source>SAVED NOTES · {n}</source>
-            <translation>СОХРАНЁННЫЕ ЗАМЕТКИ · {n}</translation>
-        </message>
-        <message>
             <source>Same as QGIS</source>
             <translation>Как в QGIS</translation>
         </message>
@@ -5489,14 +5241,6 @@ Click to show it in the Layers panel.</source>
         <message>
             <source>Share usage statistics</source>
             <translation>Делиться статистикой использования</translation>
-        </message>
-        <message>
-            <source>Short answers, a balance, or the full reasoning.</source>
-            <translation>Короткие ответы, баланс или полные рассуждения.</translation>
-        </message>
-        <message>
-            <source>Show the steps it takes</source>
-            <translation>Показывать выполняемые шаги</translation>
         </message>
         <message>
             <source>Sign in</source>
@@ -5529,14 +5273,6 @@ Click to show it in the Layers panel.</source>
         <message>
             <source>The AI saves notes on its own</source>
             <translation>Ассистент сам сохраняет заметки</translation>
-        </message>
-        <message>
-            <source>The language the AI writes its answers in.</source>
-            <translation>Язык, на котором ассистент пишет ответы.</translation>
-        </message>
-        <message>
-            <source>The list of steps above each answer.</source>
-            <translation>Список шагов над каждым ответом.</translation>
         </message>
         <message>
             <source>The shortcuts could not be listed.</source>
@@ -5575,10 +5311,6 @@ Click to show it in the Layers panel.</source>
             <translation>Можно выключить в любой момент, больше ничего не изменится.</translation>
         </message>
         <message>
-            <source>Tutorials</source>
-            <translation>Руководства</translation>
-        </message>
-        <message>
             <source>Units</source>
             <translation>Единицы</translation>
         </message>
@@ -5595,36 +5327,8 @@ Click to show it in the Layers panel.</source>
             <translation>Градостроитель</translation>
         </message>
         <message>
-            <source>Used in its answers. Empty: it uses no name.</source>
-            <translation>Используется в ответах. Если пусто, ассистент не обращается по имени.</translation>
-        </message>
-        <message>
-            <source>What Pro unlocks, on the TerraLab website.</source>
-            <translation>Что открывает Pro, на сайте TerraLab.</translation>
-        </message>
-        <message>
-            <source>What the AI should call you</source>
-            <translation>Как ассистент должен к вам обращаться</translation>
-        </message>
-        <message>
-            <source>What you do</source>
-            <translation>Чем вы занимаетесь</translation>
-        </message>
-        <message>
             <source>When needed</source>
             <translation>При необходимости</translation>
-        </message>
-        <message>
-            <source>Who you are</source>
-            <translation>Кто вы</translation>
-        </message>
-        <message>
-            <source>Who you are and what you work on. Example: urban planner at the city of Lyon, I mostly work with cadastre and PLU layers in EPSG:2154.</source>
-            <translation>Кто вы и над чем работаете. Пример: градостроитель в городе Лион, чаще всего работаю со слоями кадастра и PLU в EPSG:2154.</translation>
-        </message>
-        <message>
-            <source>You can review or remove them here.</source>
-            <translation>Вы можете просмотреть или удалить их здесь.</translation>
         </message>
         <message>
             <source>You can sign back in anytime from QGIS.</source>
@@ -5639,10 +5343,6 @@ Click to show it in the Layers panel.</source>
             <translation>Ваше имя</translation>
         </message>
         <message>
-            <source>Your job in a few words. It changes which data and which method it reaches for first.</source>
-            <translation>Ваша работа в нескольких словах. От неё зависит, какие данные и какой метод ассистент выбирает первыми.</translation>
-        </message>
-        <message>
             <source>Your last payment may have failed</source>
             <translation>Возможно, последний платёж не прошёл</translation>
         </message>
@@ -5653,10 +5353,6 @@ Click to show it in the Layers panel.</source>
         <message>
             <source>Your plan, tasks and settings appear here once you sign in.</source>
             <translation>Ваш тариф, задачи и настройки появятся здесь после входа.</translation>
-        </message>
-        <message>
-            <source>Your profile and instructions, read before every run</source>
-            <translation>Ваш профиль и инструкции, читаются перед каждым запуском</translation>
         </message>
         <message>
             <source>Your sign-in, your plan and your privacy.</source>
@@ -5704,20 +5400,12 @@ Click to show it in the Layers panel.</source>
             <translation>Всегда отвечай по-французски, никогда не удаляй слой без вопроса</translation>
         </message>
         <message>
-            <source>Choose folder...</source>
-            <translation>Выбрать папку...</translation>
-        </message>
-        <message>
             <source>Clear project memory</source>
             <translation>Очистить память проекта</translation>
         </message>
         <message>
             <source>Connected accounts</source>
             <translation>Подключённые аккаунты</translation>
-        </message>
-        <message>
-            <source>Folder to watch</source>
-            <translation>Папка для отслеживания</translation>
         </message>
         <message>
             <source>Instructions</source>
@@ -5736,16 +5424,8 @@ Click to show it in the Layers panel.</source>
             <translation>Имя</translation>
         </message>
         <message>
-            <source>No folder chosen</source>
-            <translation>Папка не выбрана</translation>
-        </message>
-        <message>
             <source>Pro reads both before every run.</source>
             <translation>Pro читает оба перед каждым запуском.</translation>
-        </message>
-        <message>
-            <source>Proactive triggers</source>
-            <translation>Проактивные триггеры</translation>
         </message>
         <message>
             <source>Project memory</source>
@@ -5764,16 +5444,8 @@ Click to show it in the Layers panel.</source>
             <translation>Показать память проекта</translation>
         </message>
         <message>
-            <source>The AI agent looks at new data files in this folder and at the schedules you ask for, only while QGIS is open. Nothing runs when QGIS is closed.</source>
-            <translation>AI-агент проверяет новые файлы данных в этой папке и расписания, которые ты просишь, только пока QGIS открыт. Когда QGIS закрыт, ничего не запускается.</translation>
-        </message>
-        <message>
             <source>Urban planner at the city of Lyon, cadastre and PLU layers in EPSG:2154</source>
             <translation>Градостроитель в городе Лион, слои кадастра и PLU в EPSG:2154</translation>
-        </message>
-        <message>
-            <source>Watch a folder and run my schedules while QGIS is open</source>
-            <translation>Следить за папкой и выполнять мои расписания, пока QGIS открыт</translation>
         </message>
         <message>
             <source>What Pro adds: {points}</source>
@@ -5783,36 +5455,24 @@ Click to show it in the Layers panel.</source>
             <source>commercial use, more tasks, memory, your instructions and higher effort</source>
             <translation>коммерческое использование, больше задач, память, твои инструкции и более высокий уровень усилий</translation>
         </message>
+        <message>
+            <source>Delete this note? The AI will not add it back.</source>
+            <translation>Удалить эту заметку? ИИ не добавит её снова.</translation>
+        </message>
     </context>
     <context>
         <name>SiblingCard</name>
         <message>
-            <source>Install in QGIS</source>
-            <translation>Установить в QGIS</translation>
-        </message>
-        <message>
             <source>Installed</source>
             <translation>Установлено</translation>
-        </message>
-        <message>
-            <source>Open in QGIS</source>
-            <translation>Открыть в QGIS</translation>
         </message>
         <message>
             <source>Opens the QGIS plugin manager on this plugin.</source>
             <translation>Открывает менеджер плагинов QGIS на этом плагине.</translation>
         </message>
         <message>
-            <source>Read the guide</source>
-            <translation>Читать руководство</translation>
-        </message>
-        <message>
             <source>Show the plugin's panel.</source>
             <translation>Показать панель плагина.</translation>
-        </message>
-        <message>
-            <source>The written tutorial, on the TerraLab blog.</source>
-            <translation>Письменное руководство в блоге TerraLab.</translation>
         </message>
     </context>
     <context>
@@ -5820,14 +5480,6 @@ Click to show it in the Layers panel.</source>
         <message>
             <source>Edit your imagery with a single sentence.</source>
             <translation>Редактируйте снимки одной фразой.</translation>
-        </message>
-        <message>
-            <source>More plugins</source>
-            <translation>Другие плагины</translation>
-        </message>
-        <message>
-            <source>The two other TerraLab plugins for QGIS. They install from here.</source>
-            <translation>Два других плагина TerraLab для QGIS. Их можно установить отсюда.</translation>
         </message>
         <message>
             <source>Turn buildings, trees or water into polygons.</source>
@@ -5969,7 +5621,7 @@ Click to show it in the Layers panel.</source>
     <context>
         <name>Toast</name>
         <message>
-            <source>Available when the agent finishes</source>
+            <source>Available when the AI agent finishes</source>
             <translation>Будет доступно, когда помощник закончит</translation>
         </message>
     </context>
@@ -6182,6 +5834,10 @@ Click to show it in the Layers panel.</source>
             <source>Signed in</source>
             <translation>Вход выполнен</translation>
         </message>
+        <message>
+            <source>could not be put back, so what it changed is still in the project</source>
+            <translation>не удалось вернуть обратно, поэтому внесённые им изменения всё ещё остаются в проекте</translation>
+        </message>
     </context>
     <context>
         <name>UpdateBanner</name>
@@ -6288,10 +5944,6 @@ Click to show it in the Layers panel.</source>
             <translation>СК</translation>
         </message>
         <message>
-            <source>Click to open it in QGIS.</source>
-            <translation>Нажмите, чтобы открыть в QGIS.</translation>
-        </message>
-        <message>
             <source>Click to select it in the Layers panel.</source>
             <translation>Нажмите, чтобы выбрать его на панели слоёв.</translation>
         </message>
@@ -6308,16 +5960,8 @@ Click to show it in the Layers panel.</source>
             <translation>Получено из: {value}</translation>
         </message>
         <message>
-            <source>Its CRS changed. Click to open it in QGIS.</source>
-            <translation>Его СК изменилась. Нажмите, чтобы открыть в QGIS.</translation>
-        </message>
-        <message>
             <source>Its CRS changed. Click to select it in the Layers panel.</source>
             <translation>Его СК изменилась. Нажмите, чтобы выбрать его на панели слоёв.</translation>
-        </message>
-        <message>
-            <source>Its file was written on disk. Click to open it in QGIS.</source>
-            <translation>Его файл записан на диск. Нажмите, чтобы открыть в QGIS.</translation>
         </message>
         <message>
             <source>Its file was written on disk. Click to select it in the Layers panel.</source>
@@ -6338,10 +5982,6 @@ Click to show it in the Layers panel.</source>
         <message>
             <source>New layer, 1 feature. Click to select it in the Layers panel.</source>
             <translation>Новый слой, объектов: 1. Нажмите, чтобы выбрать его на панели слоёв.</translation>
-        </message>
-        <message>
-            <source>New layer. Click to open it in QGIS.</source>
-            <translation>Новый слой. Нажмите, чтобы открыть в QGIS.</translation>
         </message>
         <message>
             <source>New layer. Click to select it in the Layers panel.</source>
@@ -6400,16 +6040,8 @@ Click to show it in the Layers panel.</source>
             <translation>оформлен</translation>
         </message>
         <message>
-            <source>{n:+d} feature. Click to open it in QGIS.</source>
-            <translation>Объектов: {n:+d}. Нажмите, чтобы открыть в QGIS.</translation>
-        </message>
-        <message>
             <source>{n:+d} feature. Click to select it in the Layers panel.</source>
             <translation>Объектов: {n:+d}. Нажмите, чтобы выбрать его на панели слоёв.</translation>
-        </message>
-        <message>
-            <source>{n:+d} features. Click to open it in QGIS.</source>
-            <translation>Объектов: {n:+d}. Нажмите, чтобы открыть в QGIS.</translation>
         </message>
         <message>
             <source>{n:+d} features. Click to select it in the Layers panel.</source>
@@ -6425,14 +6057,6 @@ Click to show it in the Layers panel.</source>
         <message>
             <source>Layers affected</source>
             <translation>Затронутые слои</translation>
-        </message>
-        <message>
-            <source>Removed</source>
-            <translation>Удалено</translation>
-        </message>
-        <message>
-            <source>Restored</source>
-            <translation>Восстановлено</translation>
         </message>
         <message>
             <source>Put back as before</source>
@@ -6609,14 +6233,6 @@ Click to show it in the Layers panel.</source>
             <translation>Отправить</translation>
         </message>
         <message>
-            <source>Sent with this conversation and your recent logs, to fix issues and improve AI Agent.</source>
-            <translation>Отправляется вместе с этой беседой и вашими последними журналами, чтобы исправлять проблемы и улучшать AI Agent.</translation>
-        </message>
-        <message>
-            <source>Tell us more</source>
-            <translation>Расскажите подробнее</translation>
-        </message>
-        <message>
             <source>Thanks for the feedback</source>
             <translation>Спасибо за отзыв</translation>
         </message>
@@ -6658,6 +6274,18 @@ Click to show it in the Layers panel.</source>
         <message>
             <source>{n} more</source>
             <translation>Ещё {n}</translation>
+        </message>
+        <message>
+            <source>No</source>
+            <translation>Нет</translation>
+        </message>
+        <message>
+            <source>The algorithm's id, to find it in the Processing toolbox</source>
+            <translation>Идентификатор алгоритма, чтобы найти его на панели инструментов анализа</translation>
+        </message>
+        <message>
+            <source>Yes</source>
+            <translation>Да</translation>
         </message>
     </context>
     <context>
@@ -6898,10 +6526,6 @@ Click to show it in the Layers panel.</source>
             <translation>Удалить</translation>
         </message>
         <message>
-            <source>Remove the access to {host}</source>
-            <translation>Удалить доступ к {host}</translation>
-        </message>
-        <message>
             <source>S3 keys</source>
             <translation>Ключи S3</translation>
         </message>
@@ -6932,10 +6556,6 @@ Click to show it in the Layers panel.</source>
         <message>
             <source>Change project…</source>
             <translation>Сменить проект…</translation>
-        </message>
-        <message>
-            <source>Google sign-in</source>
-            <translation>Вход через Google</translation>
         </message>
         <message>
             <source>Signed in with the browser</source>
@@ -7933,6 +7553,17 @@ Click to show it in the Layers panel.</source>
         <message>
             <source>Your words are sent with this chat and recent logs.</source>
             <translation>Ваш текст отправляется вместе с этим чатом и последними журналами.</translation>
+        </message>
+    </context>
+    <context>
+        <name>NoteRow</name>
+        <message>
+            <source>Delete this note</source>
+            <translation>Удалить эту заметку</translation>
+        </message>
+        <message>
+            <source>Edit this note</source>
+            <translation>Изменить эту заметку</translation>
         </message>
     </context>
 </TS>

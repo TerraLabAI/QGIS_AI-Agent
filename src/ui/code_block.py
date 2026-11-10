@@ -79,6 +79,7 @@ from .style import (
     RADIUS_CHIP,
     RED,
     RED_TINT,
+    WEIGHT_MEDIUM,
     qcolor,
 )
 from .transcript import fence
@@ -108,7 +109,7 @@ _BLOCK_QSS = scale_qss_font_px(
     f" color: {INK_2}; background: transparent; border: none; }}"
     "QToolButton#codeCopy, QToolButton#codeFold { background: transparent; border: none;"
     f" border-radius: {RADIUS_CHIP}px; padding: 0 6px; font-size: {FONT_BODY}px;"
-    f" font-weight: 500; color: {INK_2}; }}"
+    f" font-weight: {WEIGHT_MEDIUM}; color: {INK_2}; }}"
     f"QToolButton#codeCopy:hover, QToolButton#codeFold:hover {{ color: {INK}; }}"
     "QPlainTextEdit#codeBody { background: transparent; border: none;"
     f" color: {INK_2}; selection-background-color: {LINE_STRONG}; }}"

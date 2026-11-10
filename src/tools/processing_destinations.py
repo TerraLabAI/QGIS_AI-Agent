@@ -376,11 +376,20 @@ def _ensure_proj_env() -> None:
 
 
 
+
+
+
+
+
+
+
+
     try:
         from osgeo import osr
-        paths = [p for p in osr.GetPROJSearchPaths() if _has_proj_db(p)]
+        searched = list(osr.GetPROJSearchPaths())
+        paths = [p for p in searched if _has_proj_db(p)]
     except Exception:  # nosec B110
-        paths = []
+        searched, paths = [], []
 
 
     layouts = [(_layout_minor(p), p) for p in paths]
@@ -397,6 +406,10 @@ def _ensure_proj_env() -> None:
                     f"reads {own} (layout minor {own_minor}). GDAL steps use {own}.")
         os.environ["PROJ_LIB"] = own
         os.environ["PROJ_DATA"] = own
+        try:
+            osr.SetPROJSearchPaths([own] + [p for p in searched if p not in (own, folder)])
+        except Exception as exc:  # noqa: BLE001
+            log_warning(f"GDAL's PROJ search path not set: {exc}")
         return
     if own:
         os.environ["PROJ_LIB"] = own

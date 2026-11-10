@@ -20,7 +20,7 @@ from qgis.core import (
 from qgis.PyQt.QtCore import QT_TRANSLATE_NOOP
 from qgis.utils import iface
 
-from ..core import canvas_glide, ground, layer_order, output_paths
+from ..core import canvas_glide, designer_guard, ground, layer_order, output_paths
 from ..core.context_layers import layer_kind, view_area_km2
 from ..core.follow import hold_view
 from ..core.host_platform import remove_quietly
@@ -1295,6 +1295,7 @@ def _load_project(args: dict) -> dict:
     try:
         for key, value in overrides.items():
             settings.setValue(key, value)
+        designer_guard.before_own_read()
         ok = project.read(path)
     finally:
         for key, (existed, value) in previous.items():

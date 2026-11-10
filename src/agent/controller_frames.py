@@ -9,10 +9,10 @@ from __future__ import annotations
 import json
 import time
 
-from qgis.PyQt.QtCore import QCoreApplication, QTimer
+from qgis.PyQt.QtCore import QTimer
 
-from ..api.account import site_url, usage_to_runs
-from ..core import telemetry
+from ..api.account import Account, site_url, usage_to_runs
+from ..core import crash_note, telemetry
 from ..core import telemetry_events as ev
 from ..core.logger import log, log_warning
 from ..core.plan import set_plan_features
@@ -21,7 +21,8 @@ from ..core.protocol import Decision, RunStatus, ServerErrorCode
 from ..core.run_state import AWAIT_OUTCOME, AWAIT_RESUME, RESEND
 from ..core.security_urls import vouch_for_urls
 from ..core.served_state import set_payment_failed, set_student_offer
-from ..core.settings import account_tag
+from ..core.session import HELD_KEY_REFUSED
+from ..core.settings import PANEL_RETURN_DAYS, account_tag
 from ..core.snapshot import changed_layer_items, describe_diff
 from ..core.snapshot_report import run_change_items
 from ..core.telemetry_errors import report_exception, track_plugin_error
@@ -38,12 +39,9 @@ from .controller_shared import (
     RUN_PROJECTS_KEPT,
     RUN_SILENCE_S,
     strip_followups,
+    tr,
 )
 from .run_report import VERIFY_RUN
-
-
-def tr(text: str) -> str:
-    return QCoreApplication.translate("AgentController", text)
 
 
 class _ControllerFrames:
@@ -81,7 +79,10 @@ class _ControllerFrames:
 
     def _on_state_changed(self, state: str, detail: str) -> None:
         self._panel_call("set_connection_state", state, detail)
+        if state == "online":
+            self._refusal_retried = False
         if state == "signed_out" and self._account.has_activation_key:
+
 
             self._account.refresh_activation_async(force=True)
         elif state == "offline" and self._account.has_activation_key and not self._session.closed_on_purpose:
@@ -99,6 +100,22 @@ class _ControllerFrames:
                 self._link_notice = ""
                 if self._run is not None:
                     self._panel_call("set_link_notice", self._run["run_id"], "")
+
+    def _on_key_confirmed(self, usage: object) -> None:
+
+
+
+
+
+
+        if (self._refusal_retried or getattr(self._session, "held", "") != HELD_KEY_REFUSED
+                or not isinstance(usage, dict) or "error" in usage
+                or self._account.state != Account.ACTIVATED):
+            return
+        self._refusal_retried = True
+        log("Key confirmed by the website after a refused hello: connecting once more")
+        self._panel_call("set_connection_state", "connecting", "")
+        self._session.connect_to_server()
 
     def _say_connection_lost(self) -> None:
 
@@ -297,7 +314,7 @@ class _ControllerFrames:
             self._resync_sibling_tools_when_idle()
 
     def _on_token(self, run_id: str, text: str) -> None:
-        if run_id not in self._agent_text:
+        if not self._runs.owns(run_id):
 
             return
         if self._replay_run == run_id:
@@ -311,15 +328,15 @@ class _ControllerFrames:
         self._heard(run_id)
         self._touch_watchdog()
         self._panel_call("append_token", run_id, text)
-        stored = self._agent_text[run_id]
+        stored = self._agent_text.get(run_id, "")
         if len(stored) < MAX_AGENT_TEXT:
 
             if self._text_break.pop(run_id, False) and stored and not stored.endswith("\n"):
                 text = "\n\n" + text.lstrip()
-            self._agent_text[run_id] += text
+            self._agent_text[run_id] = stored + text
 
     def _on_plan(self, run_id: str, steps: list) -> None:
-        if run_id not in self._agent_text:
+        if not self._runs.owns(run_id):
             return
         self._heard(run_id)
         self._touch_watchdog()
@@ -329,7 +346,7 @@ class _ControllerFrames:
             self._store.update_agent_message(self._thread_id, run_id, {"plan": steps})
 
     def _on_plan_update(self, run_id: str, step_id: str, state: str) -> None:
-        if run_id not in self._agent_text:
+        if not self._runs.owns(run_id):
             return
         self._heard(run_id)
         self._touch_watchdog()
@@ -338,7 +355,7 @@ class _ControllerFrames:
     def _on_status_line(self, run_id: str, text: str, progress=None) -> None:
 
 
-        if run_id not in self._agent_text:
+        if not self._runs.owns(run_id):
             return
         self._heard(run_id)
         self._touch_watchdog()
@@ -347,7 +364,7 @@ class _ControllerFrames:
     def _on_tool_call(self, call: dict) -> None:
         tool_call_id = str(call.get("tool_call_id") or "")
         run_id = str(call.get("run_id") or "")
-        if run_id and run_id not in self._agent_text:
+        if run_id and not self._runs.owns(run_id):
 
 
             log(f"Run {run_id[:8]} tool_call {tool_call_id[:8]} after the run ended, no card")
@@ -409,7 +426,7 @@ class _ControllerFrames:
 
 
         run_id = str(frame.get("run_id") or "")
-        if run_id not in self._agent_text:
+        if not self._runs.owns(run_id):
             return
         tool_call_id = str(frame.get("tool_call_id") or "")[:256]
         if self._panel_queue:
@@ -677,10 +694,12 @@ class _ControllerFrames:
             self._panel_call("resolve_permission", tool_call_id, decision)
 
     def _on_run_end(self, run_id: str, status: str, summary: str, usage: dict, verification) -> None:
-        if run_id not in self._agent_text:
+        if not self._runs.owns(run_id):
 
 
-            log(f"Run {run_id[:8]} run_end ignored: already finished")
+            ended = getattr(self, "_ends", {}).get(run_id)
+            where = f" here ({ended[1]})" if ended and ended[1] else ""
+            log(f"Run {run_id[:8]} run_end ignored: already finished{where}")
             return
         self._finish_run(run_id, status, summary, usage, verification)
 
@@ -700,7 +719,6 @@ class _ControllerFrames:
         closing = self._runs.owns(run_id)
         ended: list = []
         try:
-            self._session.set_run_open(False)
             self._wind_up_run(run_id, status, summary, usage, verification, ended)
         except Exception as exc:  # noqa: BLE001
             report_exception(exc, "finish_run", module=__name__, run_id=run_id)
@@ -720,11 +738,12 @@ class _ControllerFrames:
                     self._call_names.pop(tool_call_id, None)
                     self._question_args.pop(tool_call_id, None)
                     self._poll_calls.discard(tool_call_id)
+                self._session.refresh_heartbeat()
                 self._release_composer()
 
 
-        QTimer.singleShot(0, self._record_after_point)
-        QTimer.singleShot(0, self._save_run_layers)
+
+        QTimer.singleShot(0, lambda: self._save_run_layers(run_id))
         QTimer.singleShot(0, lambda: self._send_project_state(run_id))
 
         QTimer.singleShot(0, self._resync_sibling_tools_when_idle)
@@ -738,10 +757,10 @@ class _ControllerFrames:
 
             self._flush_steers(run_id)
 
-    def _record_after_point(self) -> None:
+    def _record_after_point(self, run_id: str = "") -> None:
 
         try:
-            if self._executor.record_pending_after():
+            if self._executor.record_pending_after(run_id):
                 self._send_history()
         except Exception as exc:  # noqa: BLE001
             report_exception(exc, "record_after_point", module=__name__)
@@ -773,18 +792,26 @@ class _ControllerFrames:
         except Exception as exc:  # noqa: BLE001
             report_exception(exc, "project_after", module=__name__, run_id=run_id)
 
-    def _save_run_layers(self) -> None:
+    def _save_run_layers(self, run_id: str = "") -> None:
+
+
+
 
 
         layer_ids, self._run_new_layers = getattr(self, "_run_new_layers", None) or [], []
-        if not layer_ids:
-            return
-        try:
-            from ..tools.persist_tools import save_run_layers
+        sent = 0
+        if layer_ids:
+            try:
+                from ..tools.persist_tools import save_run_layers
 
-            save_run_layers(layer_ids, busy=self._runs.busy)
-        except Exception as exc:  # noqa: BLE001
-            report_exception(exc, "save_run_layers", module=__name__)
+                history, thread_id = self._executor.history, self._thread_id or ""
+                sent = save_run_layers(layer_ids, busy=self._runs.busy,
+                                       then=lambda: self._record_after_point(run_id),
+                                       before_save=lambda path: history.before_own_save(thread_id, run_id, path))
+            except Exception as exc:  # noqa: BLE001
+                report_exception(exc, "save_run_layers", module=__name__)
+        if not sent:
+            self._record_after_point(run_id)
 
     def _release_composer(self) -> None:
 
@@ -871,13 +898,21 @@ class _ControllerFrames:
         open_run = self._run if self._run and self._run["run_id"] == run_id else {}
         first_event_ms = open_run.get("first_event_ms")
 
+        drawn = getattr(self._panel, "take_stream_stats", lambda _run: None)(run_id) or None
+        sent_at = open_run.get("sent_at")
+
 
         stop_code = "" if status == RunStatus.DONE else str(open_run.get("stop_code") or "")
         self._remember_end(run_id, status, stop_code)
+        crash_note.record_run_end(run_id, status)
         telemetry.track(ev.AGENT_RUN_ENDED, {
             "run_id": run_id, "status": status, "steps": usage.get("steps"),
             "duration_ms": int((time.monotonic() - started) * 1000) if started else None,
             "first_event_ms": first_event_ms, "had_first_event": first_event_ms is not None,
+            "first_text_ms": int((drawn[3] - sent_at) * 1000) if drawn and sent_at is not None else None,
+            "stream_renders": drawn[0] if drawn else None,
+            "stream_slow_renders": drawn[1] if drawn else None,
+            "stream_longest_ms": int(drawn[2]) if drawn else None,
             "resends": open_run.get("resends"), "stop_code": stop_code or None,
             "layers_changed": changed, "input_tokens": usage.get("input_tokens"),
             "output_tokens": usage.get("output_tokens"), "cached_tokens": usage.get("cached_tokens"),
@@ -887,6 +922,7 @@ class _ControllerFrames:
 
         if status == RunStatus.DONE and telemetry.first_run_recorded():
             telemetry.track(ev.FIRST_RUN_MILESTONE, {"run_id": run_id})
+            self._settings.panel_return_until = time.time() + PANEL_RETURN_DAYS * 86_400
         if status == RunStatus.DONE and self._settings.last_paid and telemetry.first_paid_run_recorded():
             telemetry.track(ev.FIRST_RUN_MILESTONE, {"run_id": run_id, "kind": "first_paid_run",
                                                      **telemetry.upsell_context()})
@@ -944,7 +980,11 @@ class _ControllerFrames:
 
         retryable = retryable and self._retry_input(run_id if isinstance(run_id, str) else "") is not None
 
-        if code != ServerErrorCode.QUOTA_EXHAUSTED or not self._run:
+
+        on_sign_in_card = (code == ServerErrorCode.AUTH_FAILED and error.get("retryable") is not True
+                           and not (isinstance(run_id, str) and run_id))
+
+        if (code != ServerErrorCode.QUOTA_EXHAUSTED or not self._run) and not on_sign_in_card:
             self._panel_call("show_error", run_id if isinstance(run_id, str) else None, code, message, retryable, "",
                              "", str(error.get("reason") or "")[:64])
         track_plugin_error("server", code, run_id if isinstance(run_id, str) else "",
@@ -1034,7 +1074,7 @@ class _ControllerFrames:
                     log_warning(f"Run {run_id[:8]}: its sources were not stored: {exc}")
 
     def _on_counts(self, run_id: str, tool_calls: int, messages: int) -> None:
-        if run_id not in self._agent_text:
+        if not self._runs.owns(run_id):
             return
         self._heard(run_id)
         self._touch_watchdog()

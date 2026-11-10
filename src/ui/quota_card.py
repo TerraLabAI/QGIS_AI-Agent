@@ -41,6 +41,7 @@ from qgis.PyQt.QtWidgets import (
 )
 
 from ..core.qt_compat import disconnect_quietly, one_shot
+from ..core.quota_view import WARN_AT_RUNS_LEFT
 from ..core.served_state import (
     get_pro_price,
     get_pro_price_excludes_tax,
@@ -68,18 +69,21 @@ from .style import (
     MUTED,
     RADIUS_PANEL,
     SPACE_TIGHT,
+    WEIGHT_MEDIUM,
+    keyboard_ring,
 )
+from .styles import PANEL_BASE, PANEL_TEXT
 
 _CARD_QSS = (
-    f"QWidget#quotaCard {{ background: palette(base); border: 1px solid {HAIRLINE};"
+    f"QWidget#quotaCard {{ background: {PANEL_BASE}; border: 1px solid {HAIRLINE};"
     f" border-radius: {RADIUS_PANEL}px; }}"
     "QLabel { background: transparent; border: none; }"
 )
-_TITLE_QSS = f"font-size: {FONT_BASE}px; font-weight: 600; color: palette(text);"
-_BODY_QSS = f"font-size: {FONT_BODY}px; color: palette(text);"
+_TITLE_QSS = f"font-size: {FONT_BASE}px; font-weight: 600; color: {PANEL_TEXT};"
+_BODY_QSS = f"font-size: {FONT_BODY}px; color: {PANEL_TEXT};"
 _MUTED_QSS = f"font-size: {FONT_HINT}px; color: {MUTED};"
-_HEAD_QSS = f"font-size: {FONT_BODY}px; font-weight: 600; color: palette(text);"
-_PRICE_QSS = f"font-size: {FONT_BODY}px; font-weight: 500; color: palette(text);"
+_HEAD_QSS = f"font-size: {FONT_BODY}px; font-weight: 600; color: {PANEL_TEXT};"
+_PRICE_QSS = f"font-size: {FONT_BODY}px; font-weight: {WEIGHT_MEDIUM}; color: {PANEL_TEXT};"
 
 
 _INVOICE_QSS = (
@@ -89,17 +93,14 @@ _INVOICE_QSS = (
 )
 _STUDENT_QSS = (
     "QPushButton { background: transparent; border: none; padding: 2px 4px;"
-    f" color: {ACCENT_INK}; font-size: {FONT_HINT}px; font-weight: 500; }}"
+    f" color: {ACCENT_INK}; font-size: {FONT_HINT}px; font-weight: {WEIGHT_MEDIUM}; }}"
     "QPushButton:hover { text-decoration: underline; }"
 )
 _CHECK_PX = 12
 _CHEVRON_PX = 16
 _CARD_MARGINS = (16, 14, 16, 14)
 _COPIED_MS = 2000
-_WARNING_QSS = f"font-size: {FONT_HINT}px; color: {INK}; font-weight: 500; background: transparent;"
-
-
-WARN_AT_RUNS_LEFT = 3
+_WARNING_QSS = f"font-size: {FONT_HINT}px; color: {INK}; font-weight: {WEIGHT_MEDIUM}; background: transparent;"
 
 
 _STUDENT_SEEN: set = set()
@@ -281,11 +282,21 @@ def trial_cta(_days: int = 7) -> str:
 def trial_reassurance() -> str:
 
 
+    student = get_student_offer()
+    if student and student.get("applied"):
+        return QCoreApplication.translate(
+            "QuotaCard",
+            "Free for 7 days, nothing to pay today, then monthly at your student price. Cancel in one click.")
     price = get_pro_price()
     if not price:
         return QCoreApplication.translate(
             "QuotaCard",
             "Free for 7 days, nothing to pay today, then monthly at your local price. Cancel in one click.")
+    if get_pro_price_excludes_tax():
+        return QCoreApplication.translate(
+            "QuotaCard",
+            "Free for 7 days, nothing to pay today, then {price}/month excl. VAT. Cancel in one click.").format(
+            price=price)
     return QCoreApplication.translate(
         "QuotaCard", "Free for 7 days, nothing to pay today, then {price}/month. Cancel in one click.").format(
         price=price)
@@ -359,6 +370,7 @@ class QuotaCard(QWidget):
 
         self._button = QPushButton(self._plan)
         self._button.setStyleSheet(_BTN_PRIMARY_WIDE)
+        keyboard_ring(self._button)
         self._button.setFixedHeight(scale_px_length(BTN_PRIMARY_WIDE_PX))
         self._button.setCursor(Qt.CursorShape.PointingHandCursor)
         self._button.setAutoDefault(False)
@@ -433,6 +445,7 @@ class QuotaCard(QWidget):
         col.addWidget(self._body)
         self._ghost = QPushButton(self._card)
         self._ghost.setStyleSheet(_BTN_GHOST)
+        keyboard_ring(self._ghost)
         self._ghost.setFixedHeight(scale_px_length(BTN_PILL_PX))
         self._ghost.setCursor(Qt.CursorShape.PointingHandCursor)
         self._ghost.setAutoDefault(False)
@@ -538,7 +551,8 @@ class QuotaCard(QWidget):
         self._pitch.setText(self.tr("Pro: {n} tasks a month and harder tasks").format(n=get_pro_runs_per_month()))
         lines = (
             self.tr("{n} tasks a month").format(n=get_pro_runs_per_month()),
-            self.tr("Medium and High effort for harder tasks"),
+            self.tr("Medium effort now, High after the trial") if trial
+            else self.tr("Medium and High effort for harder tasks"),
             self.tr("Autopilot"),
             self.tr("Memory and your instructions"),
         )
@@ -645,5 +659,7 @@ class QuotaCard(QWidget):
         except (RuntimeError, AttributeError):
             return
         self._ghost.setText(self.tr("Copied"))
-        timer = one_shot(self, lambda: self._ghost.setText(self.tr("Copy email")))
-        timer.start(_COPIED_MS)
+
+        if getattr(self, "_copied_timer", None) is None:
+            self._copied_timer = one_shot(self, lambda: self._ghost.setText(self.tr("Copy email")))
+        self._copied_timer.start(_COPIED_MS)

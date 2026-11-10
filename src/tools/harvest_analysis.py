@@ -238,11 +238,6 @@ def register_harvest_analysis_tools(registry: ToolRegistry):
     ))
 
 
-def _field_error(layer, field_name: str) -> dict:
-
-    return _field_not_found_error(layer, field_name)
-
-
 def _expand(path: str) -> str:
     return os.path.normpath(os.path.abspath(os.path.expanduser(os.path.expandvars(path))))
 
@@ -848,7 +843,7 @@ def _unique_values_plan(args: dict) -> dict:
     field = args["field"]
     idx = layer.fields().indexOf(field)
     if idx < 0:
-        return _field_error(layer, field)
+        return _field_not_found_error(layer, field)
     limit, error = _unique_limit(args)
     if error:
         return error
@@ -959,7 +954,7 @@ def _get_unique_values(args: dict) -> dict:
     field = args["field"]
     idx = layer.fields().indexOf(field)
     if idx < 0:
-        return _field_error(layer, field)
+        return _field_not_found_error(layer, field)
     limit, error = _unique_limit(args)
     if error:
         return error
@@ -1481,6 +1476,10 @@ def _try_on_first_feature(parsed, layer, report: dict) -> None:
         report["eval_error"] = parsed.evalErrorString()
         report["valid"] = False
         return
+    if is_remote_vector(layer):
+
+        report["sample_skipped"] = "the layer is read from a server; the expression was checked without a row"
+        return
     first = next(iter(layer.getFeatures(QgsFeatureRequest().setLimit(1))), None)
     if first is None:
         return
@@ -1498,6 +1497,10 @@ def _get_layer_extent(args: dict) -> dict:
     layer = resolve_layer(args["layer_name"])
     if layer is None:
         return layer_not_found(args["layer_name"])
+    if is_vector(layer) and (layer.dataProvider() is None or not layer.dataProvider().isValid()):
+
+        return tool_error(f"{layer.name()} cannot be read any more: its source no longer answers.",
+                          "EXECUTION_FAILED", hint="layer_source_gone")
     box, crs = layer.extent(), layer.crs()
     corners = {"xmin": box.xMinimum(), "ymin": box.yMinimum(), "xmax": box.xMaximum(), "ymax": box.yMaximum()}
     out = {"layer_id": layer.id(), "name": layer.name()}

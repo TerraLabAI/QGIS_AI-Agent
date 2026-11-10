@@ -495,8 +495,9 @@ def watch_layer_removals() -> None:
 
         project = QgsProject.instance()
         project.layersWillBeRemoved.connect(_release_leaving)
-        project.aboutToBeCleared.connect(_CLEAR_START)
-        project.cleared.connect(_CLEAR_END)
+        if hasattr(project, "aboutToBeCleared"):
+            project.aboutToBeCleared.connect(_CLEAR_START)
+            project.cleared.connect(_CLEAR_END)
         _POOL_WATCHING = True
     except Exception:  # nosec B110
         pass
@@ -512,8 +513,9 @@ def stop_watching_layer_removals() -> None:
 
         project = QgsProject.instance()
         project.layersWillBeRemoved.disconnect(_release_leaving)
-        project.aboutToBeCleared.disconnect(_CLEAR_START)
-        project.cleared.disconnect(_CLEAR_END)
+        if hasattr(project, "aboutToBeCleared"):
+            project.aboutToBeCleared.disconnect(_CLEAR_START)
+            project.cleared.disconnect(_CLEAR_END)
     except Exception:  # nosec B110
         pass
     _POOL_WATCHING = False

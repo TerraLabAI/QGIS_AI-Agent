@@ -16,7 +16,12 @@
 
 from __future__ import annotations
 
+import sys
+import threading
+
 from .shared import exec_dialog, tr
+
+_SHELL_WAIT_S = 2.0
 
 URL = "url"
 EMAIL = "email"
@@ -81,10 +86,33 @@ def _try_open(url_object) -> bool:
 
     try:
         from qgis.PyQt.QtGui import QDesktopServices
-
-        return bool(QDesktopServices.openUrl(url_object))
-    except (RuntimeError, AttributeError, ImportError):
+    except ImportError:
         return False
+    if sys.platform != "win32":
+        try:
+            return bool(QDesktopServices.openUrl(url_object))
+        except (RuntimeError, AttributeError):
+            return False
+
+
+
+
+
+
+
+
+    answer: list[bool] = []
+
+    def _open() -> None:
+        try:
+            answer.append(bool(QDesktopServices.openUrl(url_object)))
+        except (RuntimeError, AttributeError):
+            answer.append(False)
+
+    opener = threading.Thread(target=_open, name="ai-agent-open-url", daemon=True)
+    opener.start()
+    opener.join(_SHELL_WAIT_S)
+    return answer[0] if answer else True
 
 
 def _show_refusal(url: str, parent=None) -> None:

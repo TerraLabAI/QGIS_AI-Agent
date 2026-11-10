@@ -26,6 +26,7 @@
 from __future__ import annotations
 
 import math
+import re
 import sys
 import threading
 import time
@@ -39,6 +40,7 @@ from . import telemetry_events as ev
 from .host_platform import os_info, plugin_version, qgis_version
 from .log_scrub import is_secret_key, scrub_secrets
 from .privacy_notice import has_accepted_privacy_notice
+from .qt_compat import task_flags
 from .settings import profile_settings
 
 PRODUCT_ID = "ai-agent"
@@ -201,6 +203,10 @@ def upsell_context() -> dict:
     return {"where": where, "seconds_since_click": int(time.monotonic() - at)}
 
 
+
+_ROUTE = re.compile(r"/[A-Za-z0-9_{}.\-/]{0,119}")
+
+
 def clean(properties: dict | None) -> dict:
 
 
@@ -220,9 +226,9 @@ def clean(properties: dict | None) -> dict:
             out[key] = value
         elif isinstance(value, str):
             text = value.strip()
-            if (len(text) <= STRING_MAX and "/" not in text and "\\" not in text and "," not in text
-                    and "@" not in text and scrub_secrets(text) == text
-                    and not any(ord(c) < 32 for c in text)):
+            plain = (len(text) <= STRING_MAX and "/" not in text and "\\" not in text and "," not in text
+                     and "@" not in text and not any(ord(c) < 32 for c in text))
+            if ((key == "route" and _ROUTE.fullmatch(text)) or plain) and scrub_secrets(text) == text:
                 out[key] = text
     return out
 
@@ -382,13 +388,7 @@ class _TelemetryFlushTask(QgsTask):
 
 
     def __init__(self, events: list, auth: dict, final: bool = False):
-        holder = getattr(QgsTask, "Flag", QgsTask)
-        flags = holder.CanCancel
-        for name in ("Hidden", "Silent"):
-            extra = getattr(holder, name, None)
-            if extra is not None:
-                flags = flags | extra
-        super().__init__("AI Agent telemetry", flags)
+        super().__init__("AI Agent telemetry", task_flags(QgsTask, hidden=True))
         self._events = list(events)
 
 

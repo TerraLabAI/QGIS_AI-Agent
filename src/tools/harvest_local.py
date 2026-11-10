@@ -607,7 +607,7 @@ def _search(db_path: str, words: list, canvas_bbox, limit: int) -> list:
     clauses = []
     params: list = []
     for word in words:
-        clauses.append("instr(lower(path), ?) > 0")
+        clauses.append("instr(pylower(path), ?) > 0")
         params.append(word)
     if canvas_bbox is not None:
         west, south, east, north = canvas_bbox
@@ -617,6 +617,8 @@ def _search(db_path: str, words: list, canvas_bbox, limit: int) -> list:
     sql = f"SELECT {_COLUMNS} FROM files {where} ORDER BY atime DESC, mtime DESC LIMIT ?"  # nosec B608
     params.append(limit)
     conn = sqlite3.connect(db_path, timeout=5)
+
+    conn.create_function("pylower", 1, lambda text: str(text or "").lower())
     try:
         rows = conn.execute(sql, params).fetchall()
     finally:
@@ -633,17 +635,19 @@ def _scope_folders() -> list:
     profile = security.qgis_profile_dir()
     if profile:
         skip.append(os.path.join(profile, "python", "plugins"))
-    folders = []
+
+
+    folders = {}
     for root in security.read_roots():
-        if not os.path.isdir(root) or any(security.path_is_under(root, s) for s in skip):
+        real = os.path.realpath(root)
+        if not os.path.isdir(root) or any(security.path_is_under(real, os.path.realpath(s)) for s in skip):
             continue
-        folders.append(os.path.normpath(root))
-    folders = sorted(dict.fromkeys(folders), key=len)
-    out: list = []
-    for folder in folders:
-        if not any(security.path_is_under(folder, kept) for kept in out):
-            out.append(folder)
-    return out
+        folders.setdefault(real, os.path.normpath(root))
+    out: dict = {}
+    for real in sorted(folders, key=len):
+        if not any(security.path_is_under(real, kept) for kept in out):
+            out[real] = folders[real]
+    return list(out.values())
 
 
 def _roots_key(roots: list) -> str:

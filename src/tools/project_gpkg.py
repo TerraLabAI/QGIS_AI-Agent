@@ -387,21 +387,25 @@ def finish(snap: dict, written: dict) -> dict:
     output = snap["output"]
     package = QgsProject()
     added = []
+    left_out = []
     try:
         _copy_project_settings(live, package)
         styles = 0
         for entry in snap["plan"]:
             layer = live.mapLayer(entry["id"])
             if layer is None:
+                left_out.append(f"layer {entry['name']} (no longer in the project)")
                 continue
             if entry["kind"] != "kept" and entry["id"] not in written:
                 entry.update(kind="kept", why="not written")
             _doc, element = _layer_element(layer, entry, output)
             if not package.readLayer(element):
                 log_warning(f"package_project: {layer.name()} could not be read back into the package")
+                left_out.append(f"layer {layer.name()} (not read into the stored project)")
                 continue
             copied = package.mapLayer(entry["id"])
             if copied is None:
+                left_out.append(f"layer {layer.name()} (not read into the stored project)")
                 continue
             added.append(copied)
             if entry["kind"] == "table" and isinstance(copied, QgsVectorLayer) and copied.isValid():
@@ -414,7 +418,8 @@ def finish(snap: dict, written: dict) -> dict:
         for copied in added:
             copied.resolveReferences(package)
         _copy_tree(live, package)
-        missed = _copy_extras(live, package)
+
+        missed = left_out + _copy_extras(live, package)
         package.setPresetHomePath("")
         uri = f"geopackage:{output}?projectName={quote(snap['name'])}"
         if not package.write(uri):

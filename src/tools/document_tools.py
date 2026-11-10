@@ -22,6 +22,7 @@ from ..core import output_paths, security
 from ..core.background import run_on_main_thread
 from ..core.feature_requests import feature_request
 from ..core.host_platform import retry_file_op
+from ..core.layer_order import feature_count_of
 from ..core.provider_uri import scrub_uri_secrets
 from ..core.tool_registry import Tool, ToolRegistry, tool_error
 from ._layers import layer_not_found, resolve_layer
@@ -30,6 +31,9 @@ from .layer_lookup import _field_not_found_error
 MAX_ROWS = 1000
 MAX_FIELDS = 50
 MAX_CELL_CHARS = 500
+
+
+_NOT_XML = dict.fromkeys([*(c for c in range(32) if c not in (9, 10, 13)), *range(0xD800, 0xE000), 0xFFFE, 0xFFFF])
 
 
 def register_document_tools(registry: ToolRegistry):
@@ -86,12 +90,12 @@ def _output_target(args: dict, layer_name: str):
 
 
 def _clean(value) -> str:
-    text = "" if value is None else str(value)
+    text = "" if value is None else str(value).translate(_NOT_XML)
     return text[:MAX_CELL_CHARS] + ("..." if len(text) > MAX_CELL_CHARS else "")
 
 
 def _prepare(args: dict) -> dict:
-    from qgis.core import QgsVectorLayer
+    from qgis.core import QgsVectorLayer, QgsWkbTypes
 
     ref = str(args.get("layer") or "").strip()
     layer = resolve_layer(ref)
@@ -128,16 +132,17 @@ def _prepare(args: dict) -> dict:
     metadata = {
         "Layer": layer.name(),
         "Provider": layer.providerType(),
-        "Geometry": str(layer.geometryType()),
+        "Geometry": QgsWkbTypes.geometryDisplayString(layer.geometryType()),
         "CRS": layer.crs().authid() or layer.crs().description() or "unknown",
 
         "Source": scrub_uri_secrets(layer.source()),
     }
+    count = feature_count_of(layer)
     return {"layer": layer.name(), "fields": [name for name, _index in selected],
-            "rows": rows, "row_count": layer.featureCount(), "shown_rows": len(rows),
+            "rows": rows, "row_count": count, "shown_rows": len(rows),
             "title": _clean(args.get("title") or f"Attribute report: {layer.name()}"),
             "summary": _clean(args.get("summary") or ""), "metadata": metadata,
-            "target": target, "cut": layer.featureCount() > len(rows)}
+            "target": target, "cut": len(rows) >= max_rows if count is None else count > len(rows)}
 
 
 def _p(text: str, bold: bool = False) -> str:
@@ -146,11 +151,12 @@ def _p(text: str, bold: bool = False) -> str:
 
 
 def _build_docx(*, title: str, summary: str, fields: list[str], rows: list[list[str]], metadata: dict,
-                row_count: int, cut: bool = False) -> bytes:
+                row_count: int | None, cut: bool = False) -> bytes:
     body = [_p(title, True)]
     if summary:
         body.append(_p(summary))
-    body.append(_p(f"Rows: {row_count:,}" + (f" (showing {len(rows):,}; limit {MAX_ROWS:,})" if cut else "")))
+    total = f"at least {len(rows):,}" if row_count is None else f"{row_count:,}"
+    body.append(_p(f"Rows: {total}" + (f" (showing {len(rows):,}; limit {MAX_ROWS:,})" if cut else "")))
     for key, value in metadata.items():
         body.append(_p(f"{key}: {value}"))
     body.append("<w:tbl><w:tr>" + "".join(f"<w:tc>{_p(field, True)}</w:tc>" for field in fields) + "</w:tr>")

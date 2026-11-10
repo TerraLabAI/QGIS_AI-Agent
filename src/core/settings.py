@@ -22,7 +22,6 @@ import uuid
 from qgis.core import QgsApplication, QgsAuthMethodConfig, QgsSettings
 from qgis.PyQt.QtCore import QLocale, QSysInfo
 
-from .dev_env import dev_env
 from .host_platform import IS_WINDOWS, retry_file_op
 from .i18n import current_locale, qgis_locale_names
 from .net_state import clear_cache
@@ -125,7 +124,6 @@ def use_server_url(url: str) -> None:
     _alternates["active"] = url if url in _alternates["served"] else ""
 
 
-DEFAULT_WEBSITE_URL = "https://terra-lab.ai"
 PRODUCT_ID = "ai-agent"
 KEY_RE = re.compile(r"^tl_[0-9a-f]{32}$")
 
@@ -306,6 +304,10 @@ def _cache_path(name: str) -> str:
     return os.path.join(state_dir(), "server-cache", f"{profile}-{name}.json")
 
 
+
+PANEL_RETURN_DAYS = 7
+
+
 class Settings:
     def __init__(self, settings=None):
 
@@ -418,6 +420,19 @@ class Settings:
         self._set("dock_visible", "1" if value else "0")
 
     @property
+    def panel_return_until(self) -> float:
+
+
+        try:
+            return float(self._get("panel_return_until", "0") or 0)
+        except ValueError:
+            return 0.0
+
+    @panel_return_until.setter
+    def panel_return_until(self, value: float) -> None:
+        self._set("panel_return_until", str(int(value)))
+
+    @property
     def onboarded(self) -> bool:
 
         return self._get("onboarded", "0") == "1"
@@ -453,17 +468,6 @@ class Settings:
 
         stored = self._get("server_url", DEFAULT_SERVER_URL) or DEFAULT_SERVER_URL
         return stored if server_url_problem(stored) is None else DEFAULT_SERVER_URL
-
-    @property
-    def website_url(self) -> str:
-        env = dev_env("TERRALAB_BASE_URL")
-        if env:
-            return env.rstrip("/")
-        return (self._get("website_url", DEFAULT_WEBSITE_URL) or DEFAULT_WEBSITE_URL).rstrip("/")
-
-    @website_url.setter
-    def website_url(self, value: str) -> None:
-        self._set("website_url", (value or "").strip().rstrip("/") or DEFAULT_WEBSITE_URL)
 
 
 
@@ -597,17 +601,6 @@ class Settings:
     def hidden_plugins(self, folders) -> None:
         clean = sorted({str(f).strip() for f in (folders or []) if str(f or "").strip()})
         self._cache_set("hidden_plugins", ",".join(clean))
-
-    @property
-    def known_tool_names(self) -> list:
-
-        raw = self._cache_get("known_tool_names")
-        return [part for part in (piece.strip() for piece in raw.split(",")) if part]
-
-    @known_tool_names.setter
-    def known_tool_names(self, names) -> None:
-        clean = sorted({str(n).strip() for n in (names or []) if str(n or "").strip()})
-        self._cache_set("known_tool_names", ",".join(clean))
 
 
 
@@ -1142,6 +1135,13 @@ class Settings:
                     if am.loadAuthenticationConfig(authcfg_id, cfg, True):
                         key = cfg.config("password", "") or ""
                         if key:
+
+
+                            sealed = _protect(key)
+                            if sealed:
+                                self._set(_PROTECTED_KEY, sealed)
+                                self._set(_AUTHCFG_KEY, "")
+                                self._remove_auth_config(authcfg_id)
                             return key
                 except Exception:  # nosec B110
                     pass
@@ -1170,7 +1170,11 @@ class Settings:
             self.clear_activation_key()
             return
         previous = self._get(_AUTHCFG_KEY, "")
-        am = self._auth_manager()
+
+
+
+
+        am = None if _protect(key) else self._auth_manager()
         if am is not None:
             try:
                 cfg = QgsAuthMethodConfig()

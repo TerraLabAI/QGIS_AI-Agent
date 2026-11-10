@@ -16,6 +16,17 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
 from __future__ import annotations
 
 import json
@@ -26,7 +37,8 @@ import uuid
 from qgis.core import QgsProject
 
 from . import limits
-from .host_platform import resolved, retry_file_op
+from .crash_note import pid_alive
+from .host_platform import remove_quietly, resolved, retry_file_op
 from .logger import log_warning
 from .numbers import as_float, as_int
 from .snapshot import (
@@ -161,11 +173,7 @@ def _clean_log(value) -> list:
 
     from .journal import MAX_FIELDS, MAX_ITEMS, MAX_TEXT
 
-    try:
-        cap = max(1, int(limits.current("CHECKPOINT_LOG_CALLS")))
-    except Exception as exc:  # noqa: BLE001
-        log_warning(f"Run log cap not read: {exc}")
-        cap = 200
+    cap = max(1, int(limits.current("CHECKPOINT_LOG_CALLS")))
     calls = []
     for call in value[:cap] if isinstance(value, list) else []:
         if not isinstance(call, dict):
@@ -617,6 +625,8 @@ class CheckpointHistory:
 
         self._lineage: list[str] = []
         self._remember(_open_project_file())
+        self._restore_running = False
+        self._restore_noted = False
 
 
     def _index_path(self, thread_id: str) -> str:
@@ -854,12 +864,8 @@ class CheckpointHistory:
         entries = self._entries.get(thread_id, [])
         if not entries:
             return
-        try:
-            cap = max(2, int(limits.current("CHECKPOINTS_PER_CHAT")))
-            budget = float(limits.current("CHECKPOINT_CHAT_MB")) * 1024 * 1024
-        except Exception as exc:  # noqa: BLE001
-            log_warning(f"Checkpoint caps not read: {exc}")
-            return
+        cap = max(2, int(limits.current("CHECKPOINTS_PER_CHAT")))
+        budget = float(limits.current("CHECKPOINT_CHAT_MB")) * 1024 * 1024
         protected = self._protected_ids(thread_id, keep_id)
 
 
@@ -1176,6 +1182,34 @@ class CheckpointHistory:
         self._save(thread_id)
 
 
+    def own_saves_after(self, thread_id: str, entry: Checkpoint) -> list[dict]:
+
+
+        self._ensure(thread_id)
+        entries = self._entries.get(thread_id, [])
+        target = next((i for i, e in enumerate(entries) if e.id == entry.id), None)
+        if target is None:
+            return []
+        return [own for own in (getattr(e.snapshot, "own_save", None) for e in entries[target + 1:]) if own]
+
+    def before_own_save(self, thread_id: str, run_id: str, path: str):
+
+
+        self._ensure(thread_id)
+        entry = next((e for e in self._entries.get(thread_id, [])
+                      if e.kind == "before" and e.run_id == run_id and e.snapshot is not None), None)
+        if entry is None or not hasattr(entry.snapshot, "keep_before_own_save"):
+            return None
+        written = entry.snapshot.keep_before_own_save(path)
+        if written is None:
+            return None
+
+        def done() -> None:
+            written()
+            self._save(thread_id)
+
+        return done
+
     def file_versions(self, thread_id: str, entry: Checkpoint) -> list[tuple[str, str]]:
 
 
@@ -1225,6 +1259,55 @@ class CheckpointHistory:
     def entries(self, thread_id: str) -> list[Checkpoint]:
         self._ensure(thread_id)
         return list(self._entries.get(thread_id, []))
+
+    def _pending_path(self) -> str:
+        return os.path.join(self._folder or checkpoints_dir(), "restore-pending.json")
+
+    def restore_begins(self, entry: Checkpoint) -> None:
+
+
+
+
+        project = _open_project_file()
+        self._restore_running = True
+        if not project or _in_snapshots(project):
+            return
+        try:
+            write_atomic(self._pending_path(), json.dumps({
+                "checkpoint": entry.id, "thread": entry.thread_id, "project": _resolved(project),
+                "started": time.time(), "pid": os.getpid()}))
+            self._restore_noted = True
+        except OSError as exc:
+            log_warning(f"Restore not noted on disk: {exc}")
+
+    def restore_ended(self) -> None:
+        self._restore_running = False
+        if self._restore_noted:
+            self._restore_noted = False
+            remove_quietly(self._pending_path())
+
+    def interrupted_restore(self) -> Checkpoint | None:
+
+
+        if self._restore_running:
+            return None
+        path = self._pending_path()
+        try:
+            with open(path, encoding="utf-8") as handle:
+                note = json.load(handle)
+        except (OSError, ValueError):
+            return None
+        project = _open_project_file()
+        if not isinstance(note, dict) or not project or not _same_file(str(note.get("project") or ""), project):
+            return None
+        if pid_alive(as_int(note.get("pid"), 0)):
+            return None
+        self._ensure(str(note.get("thread") or ""))
+        entry = self.find(str(note.get("checkpoint") or ""))
+        if entry is None or not entry.available:
+            remove_quietly(path)
+            return None
+        return entry
 
     def find(self, checkpoint_id: str) -> Checkpoint | None:
         for entries in self._entries.values():

@@ -373,9 +373,17 @@ def _divisions_payloads(box, subtypes) -> dict:
     if len(subtypes) == 1:
         subtype = subtypes[0]
         return {subtype: _overture_call("divisions", box, subtype=subtype)}
+    cancel = net.current_cancel_check()
+
+    def ask(subtype: str):
+        net.set_cancel_check(cancel)
+        try:
+            return _overture_call("divisions", box, subtype=subtype)
+        finally:
+            net.set_cancel_check(None)
+
     with concurrent.futures.ThreadPoolExecutor(max_workers=len(subtypes)) as pool:
-        futures = {subtype: pool.submit(_overture_call, "divisions", box, subtype=subtype)
-                   for subtype in subtypes}
+        futures = {subtype: pool.submit(ask, subtype) for subtype in subtypes}
         return {subtype: future.result() for subtype, future in futures.items()}
 
 

@@ -23,6 +23,7 @@ from .font_scale import scale_qss_font_px
 from .settings_pages import DANGER_GHOST_BTN_QSS, GHOST_BTN_QSS, INPUT_QSS, MUTED
 from .shared import exec_dialog, tr
 from .style import with_platform_font
+from .widgets import placeholder_ink
 
 
 class DeleteAccountDialog(QDialog):
@@ -67,6 +68,7 @@ class DeleteAccountDialog(QDialog):
         self._line = QLineEdit(self)
         self._line.setStyleSheet(INPUT_QSS)
         self._line.setPlaceholderText(self._email)
+        placeholder_ink(self._line)
         self._line.textChanged.connect(self._on_typed)
         layout.addWidget(self._line)
 

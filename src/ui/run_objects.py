@@ -16,7 +16,7 @@ from __future__ import annotations
 
 from qgis.core import QgsProject
 
-from ..core import layout_show
+from ..core import layout_show, view3d_windows
 from ..core.logger import log_warning
 from ..core.qt_compat import qgis_iface
 from ..core.result_objects import text_of
@@ -117,12 +117,11 @@ def bring_back(entry: dict) -> bool:
         if kind == "view3d":
             holder = _view_window(name)
             if holder is not None:
-                if hasattr(holder, "showNormal") and not hasattr(holder, "setFloating"):
-                    holder.showNormal()
-                holder.raise_()
-                activate = getattr(holder, "requestActivate", None) or getattr(holder, "activateWindow", None)
-                if callable(activate):
-                    activate()
+                if hasattr(holder, "setFloating"):
+                    holder.raise_()
+                    holder.activateWindow()
+                else:
+                    view3d_windows.bring_front(holder)
                 return True
             action = _reopen_action(name)
             if action is None:

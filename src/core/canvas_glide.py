@@ -354,8 +354,11 @@ class Glide:
         if not image.isNull() and image.width() > 0:
             pixmap = QPixmap.fromImage(image)
             pixmap.setDevicePixelRatio(image.width() / self.width)
+            scene = self.canvas.scene()
+            if scene is None:
+                return
             layer["item"] = item = _smooth(self._pixmap_item(pixmap), layer["z"])
-            self.canvas.scene().addItem(item)
+            scene.addItem(item)
             if self.clock is None:
                 item.setVisible(False)
             else:

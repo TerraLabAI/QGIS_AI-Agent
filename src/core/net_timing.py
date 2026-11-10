@@ -65,6 +65,7 @@ def _route(path: str) -> str:
 
     path = re.sub(r"/\d+(?=/|$)", "/{n}", path or "/")
     path = re.sub(r"/[0-9a-f]{16,}(?=/|$)", "/{id}", path)
+    path = re.sub(r"/[0-9a-fA-F]{8}-[0-9a-fA-F-]{27}(?=/|$)", "/{id}", path)
     return re.sub(r"/[^/]+\.(fgb|pmtiles|parquet|tif|json|geojson|png|jpg|pbf|mvt)$", r"/{file}.\1", path)[:120]
 
 

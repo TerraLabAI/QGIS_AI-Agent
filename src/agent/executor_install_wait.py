@@ -14,14 +14,11 @@
 
 from __future__ import annotations
 
-from qgis.PyQt.QtCore import QCoreApplication, QTimer
+from qgis.PyQt.QtCore import QTimer
 
 from ..core.logger import log
 from ..core.protocol import Decision
-
-
-def tr(text: str) -> str:
-    return QCoreApplication.translate("ToolExecutor", text)
+from .executor_code import tr
 
 
 def _loaded(keys) -> bool:

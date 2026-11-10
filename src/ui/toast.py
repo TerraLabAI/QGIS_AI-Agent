@@ -19,10 +19,13 @@ from ..core.qt_compat import disconnect_quietly, one_shot
 from .font_scale import scale_qss_font_px
 from .icons import pixmap_for
 from .style import FONT_BODY, ORANGE, RADIUS_CARD, TOOLTIP_BG, TOOLTIP_BORDER, TOOLTIP_FG, TOOLTIP_MUTED
+from .widgets import ElidedLabel
 
 TOAST_MS = 3000
 WARN_MS = 6000
-_FADE_MS = 180
+
+_FADE_IN_MS = 180
+_FADE_OUT_MS = 120
 _BOTTOM_GAP = 12
 
 _QSS = scale_qss_font_px(
@@ -51,10 +54,11 @@ class Toast(QFrame):
         self._glyph = QLabel(self)
         self._glyph.setFixedSize(14, 14)
         row.addWidget(self._glyph, 0, Qt.AlignmentFlag.AlignVCenter)
-        self._text = QLabel(self)
+
+
+        self._text = ElidedLabel("", self)
         self._text.setObjectName("toastText")
-        self._text.setTextFormat(Qt.TextFormat.PlainText)
-        row.addWidget(self._text, 0, Qt.AlignmentFlag.AlignVCenter)
+        row.addWidget(self._text, 1, Qt.AlignmentFlag.AlignVCenter)
         self._dot = QLabel("·", self)
         self._dot.setObjectName("toastDot")
         row.addWidget(self._dot, 0, Qt.AlignmentFlag.AlignVCenter)
@@ -65,6 +69,7 @@ class Toast(QFrame):
         self._link.clicked.connect(self._on_link)
         row.addWidget(self._link, 0, Qt.AlignmentFlag.AlignVCenter)
         self._on_link_cb = None
+        self._idle_only = False
         self._ms = TOAST_MS
 
 
@@ -76,7 +81,14 @@ class Toast(QFrame):
         self.hide()
 
     def show_message(self, text: str, *, link: str = "", on_link=None, warn: bool = False,
-                     tooltip: str = "") -> None:
+                     tooltip: str = "", idle_only: bool = False, ms: int = 0) -> None:
+
+
+
+        self._idle_only = bool(idle_only)
+        if not idle_only:
+            self._link.setEnabled(True)
+            self._link.setToolTip("")
         self._text.setText(str(text or ""))
         self._link.setText(str(link or ""))
         self._link.setVisible(bool(link))
@@ -86,14 +98,16 @@ class Toast(QFrame):
         if warn:
             self._glyph.setPixmap(pixmap_for(self, "warning", 14, QColor(ORANGE)))
         self.setToolTip(str(tooltip or ""))
-        self._ms = WARN_MS if warn else TOAST_MS
+        self._ms = int(ms) or (WARN_MS if warn else TOAST_MS)
         self.adjustSize()
         self._place()
         was_shown = self.isVisible() and not self._fading_out
+
+        start = self._opacity() if self.isVisible() else 0.0
         self.show()
         self.raise_()
         if not was_shown:
-            self._start_fade(0.0, 1.0)
+            self._start_fade(start, 1.0)
         self._timer.start(self._ms)
 
     def text(self) -> str:
@@ -101,13 +115,19 @@ class Toast(QFrame):
 
     def set_link_enabled(self, enabled: bool) -> None:
 
+        if not self._idle_only:
+            return
         self._link.setEnabled(bool(enabled))
-        self._link.setToolTip("" if enabled else self.tr("Available when the agent finishes"))
+        self._link.setToolTip("" if enabled else self.tr("Available when the AI agent finishes"))
 
     def dismiss(self) -> None:
         if self.isHidden() or self._fading_out:
             return
         self._start_fade(1.0, 0.0)
+
+    def _opacity(self) -> float:
+        effect = self.graphicsEffect()
+        return float(effect.opacity()) if isinstance(effect, QGraphicsOpacityEffect) else 1.0
 
     def _start_fade(self, start: float, end: float) -> None:
         self._stop_fade()
@@ -116,8 +136,8 @@ class Toast(QFrame):
         effect.setOpacity(start)
         self.setGraphicsEffect(effect)
         fade = QPropertyAnimation(effect, b"opacity", self)
-        fade.setDuration(_FADE_MS)
-        fade.setEasingCurve(QEasingCurve.Type.OutCubic)
+        fade.setDuration(_FADE_OUT_MS if self._fading_out else _FADE_IN_MS)
+        fade.setEasingCurve(QEasingCurve.Type.OutQuint)
         fade.setStartValue(start)
         fade.setEndValue(end)
         fade.finished.connect(self._fade_done)
@@ -159,7 +179,7 @@ class Toast(QFrame):
     def enterEvent(self, event):  # noqa: N802
         self._timer.stop()
         if self._fading_out:
-            self._start_fade(1.0, 1.0)
+            self._start_fade(self._opacity(), 1.0)
             self._fading_out = False
         super().enterEvent(event)
 

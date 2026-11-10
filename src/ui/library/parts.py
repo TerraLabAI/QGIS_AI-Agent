@@ -34,6 +34,7 @@ from qgis.PyQt.QtWidgets import (
 
 from ..icons import pixmap_for
 from ..shared import tr
+from ..widgets import placeholder_ink
 from . import common as C
 from .pressable import Pressable, labels_through, mouse_through
 
@@ -47,6 +48,7 @@ def search_pill(parent: QWidget, name: str, placeholder: str) -> QLineEdit:
     field = QLineEdit(parent)
     field.setObjectName(name)
     field.setPlaceholderText(placeholder)
+    placeholder_ink(field, C.T.text_2)
     field.setClearButtonEnabled(True)
     glyph = QLabel(field)
     glyph.setObjectName("searchGlyph")
@@ -58,14 +60,18 @@ def search_pill(parent: QWidget, name: str, placeholder: str) -> QLineEdit:
     return field
 
 
-def set_pill_wide(field: QLineEdit, wide: bool, room: int = 0) -> None:
+def set_pill_wide(field: QLineEdit, wide: bool) -> None:
+
+
+
+
 
 
     height = C.px(44 if wide else 36)
     field.setStyleSheet(C.search_qss(field.objectName(), 44 if wide else 36, filled=wide))
     field.setFixedHeight(height)
-    width = room if wide and room > 0 else C.px(_SEARCH_W)
-    field.setFixedWidth(max(C.px(_SEARCH_W), width))
+    field.setMinimumWidth(C.px(_SEARCH_W))
+    field.setMaximumWidth(16777215 if wide else C.px(_SEARCH_W))
     glyph = field.findChild(QLabel, "searchGlyph")
     if glyph is not None:
         glyph.move(C.px(16), max(0, (height - 16) // 2))
@@ -166,7 +172,7 @@ class PageHeader(QWidget):
             if hero:
                 self._row.removeWidget(self.right)
                 self._words.addSpacing(C.px(C.SPACE_4))
-                self._words.addWidget(self.right, 0, Qt.AlignmentFlag.AlignLeft)
+                self._words.addWidget(self.right)
             else:
                 self._words.removeWidget(self.right)
                 last = self._words.itemAt(self._words.count() - 1)
@@ -174,14 +180,12 @@ class PageHeader(QWidget):
                     self._words.removeItem(last)
                 self._row.addWidget(self.right, 0, Qt.AlignmentFlag.AlignVCenter)
             if isinstance(self.right, QLineEdit):
-                set_pill_wide(self.right, hero, self.width() - 2 * C.px(C.EDGE))
+                set_pill_wide(self.right, hero)
         self.updateGeometry()
 
     def resizeEvent(self, event):  # noqa: N802
         super().resizeEvent(event)
         if self._hero:
-            if isinstance(self.right, QLineEdit):
-                set_pill_wide(self.right, True, self.width() - 2 * C.px(C.EDGE))
             return
         if self.right is None:
             return

@@ -34,7 +34,6 @@ from qgis.PyQt.QtWidgets import (
     QBoxLayout,
     QFrame,
     QGridLayout,
-    QHBoxLayout,
     QLabel,
     QScrollArea,
     QVBoxLayout,
@@ -45,7 +44,7 @@ from ..shared import tr
 from ..use_cases import match_cases
 from . import common as C
 from . import keys
-from .cards import ExampleRow, ExampleTile, tile_height
+from .cards import ExampleRow, ExampleTile
 from .parts import (
     Breadcrumb,
     EmptyState,
@@ -61,15 +60,11 @@ from .pictures import watch_scroll
 _SEARCH_DEBOUNCE_MS = 120
 
 
-class _SideScroll(QScrollArea):
 
 
-    def wheelEvent(self, event):  # noqa: N802
-        delta = event.angleDelta()
-        if abs(delta.x()) > abs(delta.y()):
-            super().wheelEvent(event)
-            return
-        event.ignore()
+
+COLUMNS = 2
+_SHELF_TILES = 4
 
 
 class Carousel(QWidget):
@@ -85,32 +80,19 @@ class Carousel(QWidget):
         head = SectionHead(title, self)
         head.clicked.connect(see_all)
         col.addWidget(head)
-        self._scroll = _SideScroll(self)
-        self._scroll.setFrameShape(QFrame.Shape.NoFrame)
-        self._scroll.setWidgetResizable(False)
-        self._scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        self._scroll.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        self._scroll.setStyleSheet("QScrollArea { background: transparent; border: none; }")
-        self._strip = QWidget()
-        self._strip.setStyleSheet("background: transparent;")
-        row = QHBoxLayout(self._strip)
-        row.setContentsMargins(0, 0, 0, 0)
-        row.setSpacing(C.px(C.TILE_GAP))
-
-        for case in cases[:3]:
-            tile = ExampleTile(case, self._strip)
-            tile.clicked.connect(lambda c=case: opener(c))
-            row.addWidget(tile)
-            self.tiles.append(tile)
-        self._scroll.setWidget(self._strip)
-        self._scroll.viewport().setStyleSheet("background: transparent;")
         holder = QWidget(self)
-        lay = QVBoxLayout(holder)
-        lay.setContentsMargins(C.px(C.EDGE), 0, C.px(C.EDGE), 0)
-        lay.addWidget(self._scroll)
+        grid = QGridLayout(holder)
+        grid.setContentsMargins(C.px(C.EDGE), 0, C.px(C.EDGE), 0)
+        grid.setHorizontalSpacing(C.px(C.TILE_GAP))
+
+        grid.setVerticalSpacing(0)
+        grid.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
+        for index, case in enumerate(cases[:_SHELF_TILES]):
+            tile = ExampleTile(case, holder)
+            tile.clicked.connect(lambda c=case: opener(c))
+            grid.addWidget(tile, index // COLUMNS, index % COLUMNS)
+            self.tiles.append(tile)
         col.addWidget(holder)
-        bar = self._scroll.horizontalScrollBar()
-        watch_scroll(self, bar)
 
     def set_width(self, width: int) -> None:
 
@@ -118,12 +100,9 @@ class Carousel(QWidget):
             return
         self._width = width
         gap = C.px(C.TILE_GAP)
-        tile_w = max(1, (width - 2 * gap) // 3)
+        tile_w = max(1, (width - (COLUMNS - 1) * gap) // COLUMNS)
         for tile in self.tiles:
             tile.set_tile_width(tile_w)
-        count = len(self.tiles)
-        self._strip.setFixedSize(count * tile_w + max(0, count - 1) * gap, tile_height(tile_w))
-        self._scroll.setFixedHeight(tile_height(tile_w))
 
 
 
@@ -196,7 +175,7 @@ class ExamplesHome(QWidget):
         self._group = ""
         self._carousels: list = []
         self._grid_tiles: list = []
-        self._columns = 3
+        self._columns = COLUMNS
 
         outer = QVBoxLayout(self)
         outer.setContentsMargins(0, 0, 0, 0)
@@ -349,7 +328,7 @@ class ExamplesHome(QWidget):
         grid = QGridLayout(host)
         grid.setContentsMargins(0, 0, 0, 0)
         grid.setHorizontalSpacing(C.px(C.TILE_GAP))
-        grid.setVerticalSpacing(C.px(C.SPACE_3))
+        grid.setVerticalSpacing(0)
         grid.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
         for index, case in enumerate(cases):
             tile = ExampleTile(case, host)

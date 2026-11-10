@@ -117,6 +117,15 @@ def _serialise(thread: dict) -> str:
     return text
 
 
+def _message_key(message: dict) -> tuple:
+
+
+    run_id = message.get("run_id")
+    if run_id:
+        return (message.get("role"), run_id, "")
+    return (message.get("role"), message.get("ts"), str(message.get("text"))[:200])
+
+
 SIGNED_OUT = "signed-out"
 
 
@@ -188,6 +197,14 @@ class ThreadStore:
         self._writer = writer or WriteBehind(name="ai-agent-threads")
 
 
+
+        self._seen: dict[str, tuple] = {}
+        self._own_runs: set = set()
+        self._dropped_runs: set = set()
+        if self._writer.on_write is None:
+            self._writer.on_write = self._seen.__setitem__
+
+
         self._cache: dict[str, dict] = {}
         self._index: dict[str, dict] = {}
         self._index_lock = threading.RLock()
@@ -226,7 +243,44 @@ class ThreadStore:
             return
         self._cache[thread_id] = thread
         self._index_row(thread)
-        self._writer.schedule(path, lambda: _serialise(thread))
+        self._writer.schedule(path, lambda: self._file_text(path, thread))
+
+    def _file_text(self, path: str, thread: dict) -> str:
+        self._catch_up(path, thread)
+        return _serialise(thread)
+
+    def _catch_up(self, path: str, thread: dict) -> None:
+
+
+        try:
+            stat = os.stat(path)
+        except OSError:
+            return
+        seen = (stat.st_mtime_ns, stat.st_size)
+        if self._seen.get(path) == seen:
+            return
+        known = path in self._seen
+        self._seen[path] = seen
+        if not known:
+            return
+        data = self._read(path)
+        if data is None or data["id"] != thread.get("id") or not self._belongs_to_account(data):
+            return
+        ours = {_message_key(m): m for m in thread["messages"]}
+        added = False
+        for theirs in data["messages"]:
+            run_id = theirs.get("run_id")
+            if run_id in self._dropped_runs:
+                continue
+            mine = ours.get(_message_key(theirs))
+            if mine is None:
+                thread["messages"].append(theirs)
+                added = True
+            elif run_id not in self._own_runs and mine != theirs:
+                mine.clear()
+                mine.update(theirs)
+        if added and all(m.get("ts") for m in thread["messages"]):
+            thread["messages"].sort(key=lambda m: str(m["ts"]))
 
     def flush(self, wait: bool = False) -> None:
 
@@ -244,6 +298,7 @@ class ThreadStore:
             return None
         cached = self._cache.get(thread_id)
         if cached is not None:
+            self._catch_up(path, cached)
             return cached
         if thread_id in self._deleted:
             return None
@@ -251,11 +306,16 @@ class ThreadStore:
             path = self._path(thread_id)
         except ValueError:
             return None
+        try:
+            stat = os.stat(path)
+        except OSError:
+            return None
         data = self._read(path)
         if data is None:
             return None
         if data["id"] != thread_id or not self._belongs_to_account(data):
             return None
+        self._seen[path] = (stat.st_mtime_ns, stat.st_size)
         self._cache[thread_id] = data
         return data
 
@@ -469,6 +529,7 @@ class ThreadStore:
                 thread["account"] = owner
         message = dict(message)
         message.setdefault("ts", now_iso())
+        self._own_runs.add(message.get("run_id"))
         if message.get("role") == "user" and not thread.get("driven") and _driven():
             thread["driven"] = True
         thread["messages"].append(message)
@@ -480,6 +541,7 @@ class ThreadStore:
         thread = self.load(thread_id)
         if thread is None:
             return
+        self._own_runs.add(run_id)
         for msg in reversed(thread["messages"]):
             if msg.get("role") == "agent" and msg.get("run_id") == run_id:
                 if all(key in msg and msg[key] == value for key, value in patch.items()):
@@ -501,6 +563,7 @@ class ThreadStore:
         thread = self.load(thread_id)
         if thread is None:
             return
+        self._own_runs.add(run_id)
         for msg in reversed(thread["messages"]):
             if msg.get("role") == "agent" and msg.get("run_id") == run_id:
                 calls = msg.setdefault("tool_calls", [])
@@ -537,6 +600,7 @@ class ThreadStore:
         kept = [m for m in thread["messages"] if not (isinstance(m, dict) and m.get("run_id") == run_id)]
         if len(kept) == len(thread["messages"]):
             return
+        self._dropped_runs.add(run_id)
         thread["messages"] = kept
         thread["updated_at"] = now_iso()
         self._save(thread)

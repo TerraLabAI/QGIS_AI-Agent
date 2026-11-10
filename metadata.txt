@@ -3,17 +3,17 @@ name=AI Agent by TerraLab
 qgisMinimumVersion=3.28
 supportsQt6=True
 qgisMaximumVersion=4.99
-description=An AI agent for QGIS: describe the task in plain words and it finds the data, runs the analysis, styles the map and builds the layout in your open project. Free tier, 7-day Pro trial. 227 tools and 89 open data connectors, for QGIS 3.28 to 4 on Windows, macOS and Linux. Highest score of the AI agents we tested in QGIS on Google Research's geospatial benchmarks.
+description=An AI agent for QGIS: describe the task in plain words and it finds the data, runs the analysis, styles the map and builds the layout in your open project. Free tier, 7-day Pro trial. 226 tools and 190 open data connectors, for QGIS 3.28 to 4 on Windows, macOS and Linux. Highest score of the AI agents we tested in QGIS on Google Research's geospatial benchmarks.
 about=
     AI Agent by TerraLab is an AI agent for QGIS. Describe what you need in plain words: it loads the data, runs the analysis, styles the map and builds the layout, in the project you already have open, and shows each step as it goes.
 
     • Free tier with no card. Pro starts with a 7-day free trial. Plans and limits: https://terra-lab.ai/pricing
 
-    • 227 tools: load and inspect data, style and label maps, run Processing algorithms, edit geometry, build print layouts
+    • 226 tools: load and inspect data, style and label maps, run Processing algorithms, edit geometry, build print layouts
 
-    • 89 open data connectors: OpenStreetMap, Copernicus, NASA, USGS, IGN, Overture, Planetary Computer and 82 more
+    • 190 open data connectors: OpenStreetMap, Copernicus, NASA, USGS, IGN, Overture, Planetary Computer and 183 more
 
-    • A catalog of 2,838 ready datasets, from national sources in 183 countries and from EU-wide and global ones, each with its licence
+    • A catalog of 9,818 ready datasets, from national sources in 191 countries and from EU-wide and global ones, each with its licence
 
     • You stay in control: you see every step before it runs, changes wait for your approval, and one click undoes anything it changed
 
@@ -23,7 +23,7 @@ about=
 
     • QGIS 3.28 to QGIS 4, on Windows, macOS and Linux
 
-    • 12 languages: English, French, Spanish, Portuguese, German, Italian, Dutch, Polish, Indonesian, Japanese, Chinese (simplified and traditional)
+    • 18 languages: English, French, Spanish, Portuguese, German, Italian, Dutch, Polish, Indonesian, Japanese, Chinese (simplified and traditional), Vietnamese, Arabic, Russian, Ukrainian, Turkish, Korean
 
     • Answers come from an AI model. It can be wrong; review what it changes
 
@@ -35,7 +35,7 @@ about=
 
     By TerraLab, terra-lab.ai
 
-version=1.9.4
+version=1.9.5
 author=TerraLab
 email=lilien.auger@terra-lab.ai
 homepage=https://terra-lab.ai/ai-agent?utm_source=plugins.qgis.org&utm_medium=referral
@@ -43,6 +43,12 @@ repository=https://github.com/TerraLabAI/QGIS_AI-Agent
 tracker=https://github.com/TerraLabAI/QGIS_AI-Agent/issues
 license=GPL-2.0-or-later
 changelog=
+    1.9.5
+    - Question cards show their choices as tiles, with the recommended one marked on its label
+    - An opened step shows what came back first, with layer icons, colour swatches and a link into QGIS
+    - Data sources sort by continent, country and publisher; examples bring their files into the chat
+    - Safer Undo, two QGIS open side by side, a sign-in key sealed for your Windows user, fewer freezes
+
     1.9.4
     - Click a thumb again to take it back; a thumbs down asks what went wrong, with quick choices
     - Each kind of step has its own colour, and no hover boxes pop up over the chat any more
@@ -66,12 +72,6 @@ changelog=
     - Start the 7-day free trial straight from Settings or the plan wall, through a secure checkout
     - Fewer freezes: field statistics, GeoPackage files, styles and code runs leave QGIS responsive
     - Place searches find more places, in any script; a basemap keeps the CRS you chose
-
-    1.9.0
-    - Speaks six more languages: Vietnamese, Arabic, Russian, Ukrainian, Turkish and Korean
-    - Examples and Data sources open in their own windows, with search, countries and dataset lists
-    - Undo keeps your project and hand edits safe, and the history says what each request changed
-    - No freeze on the first Send in a large project or a network share; more data loads on Windows
 
 
 tags=ai,ai agent,artificial intelligence,agent,assistant,ai assistant,chatgpt,copilot,chat,llm,large language model,automation,natural language,geoai,ai gis,gis ai,ai for gis,agentic ai,geospatial,gis,spatial analysis,geoprocessing,processing,data loading,open data,styling,symbology,labeling,layout,print layout,map making,feature editing,attribute,vector,raster,basemap,openstreetmap,productivity,pyqgis,terralab,terra lab,ai edit,ai segmentation

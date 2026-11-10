@@ -385,10 +385,7 @@ def _refusal_delay(error, attempt: int) -> float:
     headers = getattr(error, "headers", None)
     asked = None
     if headers is not None:
-        try:
-            asked = retry_after_seconds(headers.get("Retry-After") or headers.get("retry-after"))
-        except Exception:  # noqa: BLE001
-            asked = None
+        asked = retry_after_seconds(headers.get("Retry-After") or headers.get("retry-after"))
     if asked is not None:
         return asked
 # nosec B311

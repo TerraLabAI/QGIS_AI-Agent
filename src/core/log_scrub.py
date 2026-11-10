@@ -29,7 +29,7 @@ _ONEDRIVE_RE = re.compile(r"(?i)(\bOneDrive - )[^/\\\"'\r\n]+")
 
 
 _UNC_RE = re.compile(
-    r"(?im)(\\{1,2}[?.]\\{1,2}UNC\\{1,2}|(?:^|(?<=[\s\"'=(\[,;<>|]))(?:\\{2,4}|//)(?![?.][\\/]))"
+    r"(?im)(\\{1,2}[?.]\\{1,2}UNC\\{1,2}|(?:^|(?<=[\s\"'=(\[,;<>|]))(?:file:)?(?:\\{2,4}|//)(?![?.][\\/]))"
     r"([^\\/\s\"'|<>?]+)")
 
 _ACTIVATION_KEY_RE = re.compile(r"(?i)\btl_[0-9a-f]{32}\b")
@@ -148,9 +148,12 @@ def scrub_sensitive(text: str) -> str:
 _SEG = r"(?:[^\\/\r\n\"'<>|:*?]*\\|[^\\/\r\n\t\"'<>|:*?]*/)"
 _LAST = r"[^\s\\/\"'<>|,;()\[\]]*"
 _URL_RE = re.compile(r"(?i)\b([a-z][a-z0-9+.-]{1,15})://([^\s/\"'<>|\\]*)([^\s\"'<>|]*)")
+_FILE_DRIVE_RE = re.compile(r"(?i)\bfile:///(?=[A-Za-z]:)")
 _QUOTED_PATH_RE = re.compile(r"([\"'])((?:[A-Za-z]:[\\/]|\\\\|~[\\/]|/[^\s/\"']+/)[^\"'\r\n]*)\1")
 _DRIVE_RE = re.compile(r"(?<![A-Za-z0-9])[A-Za-z]:[\\/]+" + _SEG + "*" + _LAST)
-_UNC_PATH_RE = re.compile(r"(?<![\w\\])\\{2,4}[^\s\\/\"'<>|]+[\\/]+" + _SEG + "*" + _LAST)
+_UNC_PATH_RE = re.compile(
+    r"(?:(?<![\w\\])\\{2,4}|(?:^|(?<=[\s\"'=(\[,;<>|]))//)[^\s\\/\"'<>|]+[\\/]+" + _SEG + "*" + _LAST,
+    re.MULTILINE)
 _TILDE_RE = re.compile(r"(?<![\w~])~[\\/]+" + _SEG + "*" + _LAST)
 _UNIX_RE = re.compile(r"(?<![\w.:/\\~<>-])/(?:[^\s/\"'<>|]+/)+[^\s/\"'<>|,;()\[\]]*")
 _EXT_RE = re.compile(r"\.([A-Za-z0-9]{1,8})$")
@@ -185,7 +188,9 @@ def strip_paths(text: str, limit: int = 0) -> str:
 
     if not text:
         return ""
-    text = _URL_RE.sub(_url_placeholder, str(text))
+
+    text = _FILE_DRIVE_RE.sub("", str(text))
+    text = _URL_RE.sub(_url_placeholder, text)
     text = _QUOTED_PATH_RE.sub(lambda m: m.group(1) + _path_placeholder(m.group(2)) + m.group(1), text)
     for pattern in (_DRIVE_RE, _UNC_PATH_RE, _TILDE_RE, _UNIX_RE):
         text = pattern.sub(lambda m: _path_placeholder(m.group(0)), text)

@@ -19,6 +19,7 @@ from qgis.PyQt.QtCore import QCoreApplication, Qt
 from qgis.PyQt.QtGui import QColor
 from qgis.PyQt.QtWidgets import QHBoxLayout, QLabel, QPushButton, QVBoxLayout, QWidget
 
+from ..core.host_platform import prefers_reduced_motion
 from ..core.numbers import as_float
 from .font_scale import scale_point_size, scale_qss_font_px
 from .icons import ink_of, pixmap_for
@@ -26,9 +27,10 @@ from .style import (
     FONT_HINT,
     INK_2,
     MONO_FAMILY,
-    MOTION_FADE_UP_MS,
+    MOTION_FADE_MS,
     MUTED,
     SPACE_CARD,
+    keyboard_ring,
 )
 from .styles import (
     _CARD_CHILD_BTN_RESET_QSS,
@@ -248,6 +250,7 @@ class _Card(QWidget):
         button.setStyleSheet(qss)
         button.setCursor(Qt.CursorShape.PointingHandCursor)
         button.setAutoDefault(False)
+        keyboard_ring(button)
         button.clicked.connect(slot)
         return button
 
@@ -256,7 +259,6 @@ class _Card(QWidget):
 
 
 _FADE_UP_WINDOW_S = 1.5
-_FADE_UP_RISE_PX = 8
 
 
 @functools.lru_cache(maxsize=32)
@@ -289,6 +291,16 @@ def mono_font(px: int, weight: int = 400):
     return font
 
 
+def on_screen(widget) -> bool:
+    try:
+        if not widget.isVisible():
+            return False
+        window = widget.window()
+        return window is not None and window.isVisible()
+    except (RuntimeError, AttributeError):
+        return False
+
+
 def reduced_motion(widget) -> bool:
 
 
@@ -300,16 +312,10 @@ def reduced_motion(widget) -> bool:
 
 
 
-    try:
-        if not widget.isVisible():
-            return True
-        window = widget.window()
-        return window is None or not window.isVisible()
-    except (RuntimeError, AttributeError):
-        return True
+    return prefers_reduced_motion() or not on_screen(widget)
 
 
-def fade_up(widget, layout=None) -> None:
+def fade_up(widget) -> None:
 
 
 
@@ -318,20 +324,20 @@ def fade_up(widget, layout=None) -> None:
 
 
 
-    if reduced_motion(widget):
+
+    if not on_screen(widget):
         return
     try:
         from qgis.PyQt.QtCore import QEasingCurve, QVariantAnimation
         from qgis.PyQt.QtWidgets import QGraphicsOpacityEffect
     except Exception:  # noqa: BLE001
         return
-    layout = layout or widget.layout()
-    margins = layout.contentsMargins() if layout is not None else None
+    stop_fade_up(widget)
     effect = QGraphicsOpacityEffect(widget)
     effect.setOpacity(0.0)
     widget.setGraphicsEffect(effect)
     anim = QVariantAnimation()
-    anim.setDuration(MOTION_FADE_UP_MS)
+    anim.setDuration(MOTION_FADE_MS)
     anim.setStartValue(0.0)
     anim.setEndValue(1.0)
     anim.setEasingCurve(QEasingCurve.Type.OutQuint)
@@ -339,39 +345,37 @@ def fade_up(widget, layout=None) -> None:
     def step(value) -> None:
         try:
             effect.setOpacity(float(value))
-            if margins is not None:
-                rise = int(round(_FADE_UP_RISE_PX * (1.0 - float(value))))
-                layout.setContentsMargins(margins.left(), margins.top() + rise,
-                                          margins.right(), margins.bottom())
         except RuntimeError:
             anim.stop()
 
-    def done() -> None:
-        try:
-            if margins is not None:
-                layout.setContentsMargins(margins)
-            widget.setGraphicsEffect(None)
-            widget._fade_up_anim = None
-        except RuntimeError:
-            pass
-
     anim.valueChanged.connect(step)
-    anim.finished.connect(done)
+    anim.finished.connect(lambda: stop_fade_up(widget))
     widget._fade_up_anim = anim
+    widget._fade_up_effect = effect
     anim.start()
 
 
 def stop_fade_up(widget) -> None:
 
+
+
+
     anim = getattr(widget, "_fade_up_anim", None)
     if anim is None:
         return
+    effect = getattr(widget, "_fade_up_effect", None)
+    try:
+        widget._fade_up_anim = None
+        widget._fade_up_effect = None
+    except (RuntimeError, AttributeError):
+        pass
     try:
         anim.stop()
     except (RuntimeError, AttributeError):
         pass
     try:
-        widget._fade_up_anim = None
+        if effect is not None and widget.graphicsEffect() is effect:
+            widget.setGraphicsEffect(None)
     except (RuntimeError, AttributeError):
         pass
 
@@ -390,6 +394,7 @@ __all__ = [
     "msg_kind_colour",
     "msg_kind_icon",
     "plain_label",
+    "on_screen",
     "reduced_motion",
     "stop_fade_up",
 ]

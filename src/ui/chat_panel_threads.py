@@ -22,6 +22,7 @@ from qgis.PyQt.QtWidgets import (
     QWidget,
 )
 
+from ..core import trace
 from ..core.background import gc_paused, run_sliced
 from .bubbles import UserBubble
 from .chat_panel_shared import RestoreDivider
@@ -437,7 +438,7 @@ class _ChatPanelThreads:
             tip = ""
         link = (self.tr("Redo") if back else self.tr("Undo")) if revert_id else ""
         self.toast.show_message(text, link=link, on_link=lambda: self._on_toast_revert(revert_id),
-                                warn=bool(items), tooltip=tip)
+                                warn=bool(items), tooltip=tip, idle_only=True)
         self.toast.set_link_enabled(self._current_run is None)
 
     def _on_toast_revert(self, checkpoint_id: str) -> None:
@@ -568,3 +569,4 @@ class _ChatPanelThreads:
         self._show_thread_surface()
         self._sync_answer_restores()
         self.message_list.scroll_to_bottom()
+        trace.mark("thread.replayed")

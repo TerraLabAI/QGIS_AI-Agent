@@ -33,7 +33,6 @@ from ..core.tool_registry import spec
 from .danger import _DRIVE_RE, _OGR_DBNAME_RE, looks_like_disk_path, paid_algorithms, processing_output_params
 
 OVERWRITE_KEYS = ("overwrite", "OVERWRITE", "allow_overwrite", "replace_existing")
-_OVERWRITE_KEYS = OVERWRITE_KEYS
 _LIMIT_KEYS = ("limit", "max_features", "max_results", "sample_size", "max_rows", "max_items", "page_size")
 _DENIED_SCHEMES = ("file", "ftp", "gopher", "data", "javascript", "dict", "ldap", "jar", "smb", "afp", "nfs", "tftp")
 
@@ -98,7 +97,7 @@ def _truthy(value) -> bool:
 
 def _overwrite_requested(args: dict) -> bool:
     params = args.get("parameters") if isinstance(args.get("parameters"), dict) else {}
-    return any(_truthy(args.get(k)) for k in _OVERWRITE_KEYS) or any(_truthy(params.get(k)) for k in _OVERWRITE_KEYS)
+    return any(_truthy(args.get(k)) for k in OVERWRITE_KEYS) or any(_truthy(params.get(k)) for k in OVERWRITE_KEYS)
 
 
 def _string_leaves(value, depth: int = 0):
@@ -469,10 +468,7 @@ def _host_vouched(host: str, url: str, catalog_hosts: set[str]) -> bool:
 
 
         return True
-    try:
-        return tuning.host_policy(host) is not None
-    except Exception:  # noqa: BLE001
-        return False
+    return tuning.host_policy(host) is not None
 
 
 def unvouched_urls(name: str, args, listed=()) -> list[str]:
@@ -548,6 +544,16 @@ def unvouched_code_urls(code) -> list[str]:
     found: list[str] = []
     catalog_hosts: set[str] | None = None
     for text in remote_literals(code):
+        share = security.local_part(text.strip()) if text.strip().lower().startswith("file:") else text.strip()
+        if share[:2].replace("/", "\\") == "\\\\":
+
+            if security.refused_share(share):
+                if text not in found:
+                    found.append(text)
+                continue
+            in_use = True
+        else:
+            in_use = False
         judged = 0
         opaque = bool(_CLOUD_VSI_RE.search(text))
         for url in _embedded_urls(unquote(text)):
@@ -561,7 +567,7 @@ def unvouched_code_urls(code) -> list[str]:
                 catalog_hosts = _catalog_hosts()
             if not _host_vouched(host, url, catalog_hosts) and url not in found:
                 found.append(url)
-        if (opaque or not judged) and text not in found:
+        if (opaque or not (judged or in_use)) and text not in found:
             found.append(text)
         if len(found) >= _UNVOUCHED_SHOWN:
             return found[:_UNVOUCHED_SHOWN]
@@ -730,6 +736,9 @@ def _check_paths(name: str, args: dict, own_files: frozenset = frozenset()) -> d
     project_file = _current_project_file()
     overwrites: list[str] = []
     creates: list[str] = []
+
+
+    own_replaced: list[str] = []
     for target in writes:
         expanded = security.expand_path(target)
         error = security.validate_path(expanded, write=True)
@@ -739,7 +748,8 @@ def _check_paths(name: str, args: dict, own_files: frozenset = frozenset()) -> d
         if not os.path.exists(expanded):
             creates.append(os.path.realpath(expanded))
             continue
-        own = os.path.realpath(expanded) in own_files
+        real = os.path.realpath(expanded)
+        own = real in own_files
         if os.path.isfile(expanded):
             table = (declared.gpkg_table(args, expanded)
                      if declared is not None and declared.gpkg_table is not None else None)
@@ -754,6 +764,7 @@ def _check_paths(name: str, args: dict, own_files: frozenset = frozenset()) -> d
                     continue
                 if own:
                     args["overwrite"] = True
+                    own_replaced.append(real)
                     continue
                 if not _overwrite_requested(args):
                     return _coded_refusal(
@@ -766,6 +777,7 @@ def _check_paths(name: str, args: dict, own_files: frozenset = frozenset()) -> d
                 continue
             if own:
                 args["overwrite"] = True
+                own_replaced.append(real)
                 continue
             if not _overwrite_requested(args):
                 return _coded_refusal(f"{expanded} already exists.", "output_file_exists", path=expanded)
@@ -823,7 +835,8 @@ def _check_paths(name: str, args: dict, own_files: frozenset = frozenset()) -> d
             error = security.validate_read(source)
             if error:
                 return _refusal(error, "", "PERMISSION_DENIED")
-    return {"overwrites": overwrites, "destructive": bool(overwrites), "creates": creates}
+    return {"overwrites": overwrites, "destructive": bool(overwrites), "creates": creates,
+            "own_replaced": own_replaced}
 
 
 def _subdataset_file(value: str) -> str:

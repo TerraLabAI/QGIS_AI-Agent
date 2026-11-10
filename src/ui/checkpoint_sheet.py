@@ -74,6 +74,7 @@ from .style import (
     RADIUS_CONTROL,
     RADIUS_PANEL,
     SURFACE,
+    WEIGHT_MEDIUM,
     hover_pill,
 )
 
@@ -99,7 +100,7 @@ _SHEET_QSS = _POPOVER_QSS + scale_qss_font_px(
     f"QLabel#versionTitle:disabled {{ color: {INK_3}; }}"
     f"QLabel#versionWhen {{ font-size: {FONT_MICRO}px; color: {INK_3}; background: transparent; }}"
     f"QLabel#versionSummary {{ font-size: {FONT_HINT}px; color: {INK_3}; background: transparent; }}"
-    f"QLabel#versionVerb {{ font-size: {FONT_HINT}px; font-weight: 500; color: {INK_3};"
+    f"QLabel#versionVerb {{ font-size: {FONT_HINT}px; font-weight: {WEIGHT_MEDIUM}; color: {INK_3};"
     " background: transparent; }"
     f'QLabel#versionVerb[hot="true"] {{ color: {INK}; }}'
     f"QLabel#versionCurrent {{ font-size: {FONT_MICRO}px; font-weight: 600; color: {INK};"

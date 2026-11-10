@@ -299,8 +299,8 @@ class PrivacyNoticeDialog(QDialog):
 
 
 
-        terms_link = f'<a href="{get_terms_url()}">{tr("Terms")}</a>'
-        privacy_link = f'<a href="{get_privacy_url()}">{tr("Privacy Policy")}</a>'
+        terms_link = f'<a style="color:{S.accent_ink()};" href="{get_terms_url()}">{tr("Terms")}</a>'
+        privacy_link = f'<a style="color:{S.accent_ink()};" href="{get_privacy_url()}">{tr("Privacy Policy")}</a>'
 
 
 

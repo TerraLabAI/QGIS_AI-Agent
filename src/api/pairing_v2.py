@@ -33,7 +33,7 @@ from qgis.PyQt.QtCore import QCoreApplication, QObject, pyqtSignal
 
 from ..core.logger import log, log_warning
 from ..core.numbers import as_float, as_int
-from ..core.qt_compat import one_shot
+from ..core.qt_compat import one_shot, task_flags
 from ..core.settings import KEY_RE
 from .terralab_client import PRODUCT_ID
 
@@ -137,12 +137,7 @@ class _Task(QgsTask):
     done = pyqtSignal(object)
 
     def __init__(self, description: str, fn: Callable[[Any], dict]):
-        flags = QgsTask.Flag.CanCancel
-        for name in ("Hidden", "Silent"):
-            extra = getattr(QgsTask.Flag, name, None)
-            if extra is not None:
-                flags = flags | extra
-        super().__init__(description, flags)
+        super().__init__(description, task_flags(QgsTask, hidden=True))
         self._fn = fn
         self._result: dict = {}
 

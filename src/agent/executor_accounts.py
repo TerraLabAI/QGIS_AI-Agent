@@ -15,18 +15,13 @@
 
 from __future__ import annotations
 
-from qgis.PyQt.QtCore import QCoreApplication
-
 from ..core import accounts
 from ..core.logger import log
 from ..core.protocol import Decision
+from .executor_code import tr
 
 
 _MAX_CARDS = 3
-
-
-def tr(text: str) -> str:
-    return QCoreApplication.translate("ToolExecutor", text)
 
 
 class _ExecutorAccounts:

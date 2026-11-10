@@ -157,10 +157,6 @@ def _style_hash(layer, override, cache: dict | None = None) -> str:
     return digest
 
 
-def _is_group(layer) -> bool:
-    return isinstance(layer, QgsGroupLayer)
-
-
 def _pictured(layer) -> bool:
 
     if not isinstance(layer, QgsRasterLayer) or not layer.isValid():
@@ -575,7 +571,7 @@ def _eligible_map(item, pages) -> bool:
             return False
 
 
-        return not any(_is_group(layer) for layer in item.layersToRender())
+        return not any(isinstance(layer, QgsGroupLayer) for layer in item.layersToRender())
     except (AttributeError, RuntimeError, TypeError):
         return False
 

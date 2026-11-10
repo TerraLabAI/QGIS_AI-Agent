@@ -28,6 +28,7 @@ import contextlib
 import hashlib
 import os
 import re
+import shutil
 import sqlite3
 import threading
 import time
@@ -36,8 +37,15 @@ import zipfile
 
 from qgis.core import QgsProject, QgsVectorLayer
 
-from . import designer_guard, net, tuning
-from .host_platform import file_error_kind, in_synced_folder, is_transient_refusal, release_pooled_handles, resolved
+from . import designer_guard, net, snapshot_watch, tuning
+from .host_platform import (
+    file_error_kind,
+    in_synced_folder,
+    is_transient_refusal,
+    release_pooled_handles,
+    resolved,
+    retry_file_op,
+)
 from .layer_order import is_remote_vector, is_web_service, read_back
 from .logger import log, log_warning
 from .numbers import as_float, as_int
@@ -71,6 +79,7 @@ from .snapshot_files import (
     prune_snapshots,
     resolve_layers,
     restore_group,
+    write_blockers,
 )
 from .snapshot_paths import (
     _canvas_held,
@@ -493,6 +502,9 @@ class RunSnapshot:
         self.file_backups: dict[str, dict] = {}
 
 
+        self.own_save: dict | None = None
+
+
         self.pending_copies: list[tuple] = []
 
 
@@ -559,6 +571,7 @@ class RunSnapshot:
             "own_paths": self.own_paths,
             "original_file": self.original_file,
             "original_stamp": list(self.original_stamp) if self.original_stamp else None,
+            "own_save": self.own_save,
             "was_dirty": self.was_dirty,
             "layers": self.layers,
             "layer_ids": sorted(self.layer_ids),
@@ -611,6 +624,9 @@ class RunSnapshot:
             snap.original_stamp = tuple(int(x) for x in stamp) if isinstance(stamp, (list, tuple)) else None
         except (TypeError, ValueError):
             snap.original_stamp = None
+        own = record.get("own_save")
+        snap.own_save = own if isinstance(own, dict) and isinstance(own.get("path"), str) and isinstance(
+            own.get("copy"), str) and isinstance(own.get("written"), list) else None
         snap.was_dirty = bool(record.get("was_dirty"))
         layers = record.get("layers")
         if isinstance(layers, dict):
@@ -783,31 +799,8 @@ class RunSnapshot:
             record["size"] = stamp[0] if stamp else None
         return record
 
-    def capture(self, layer_ids=None) -> bool:
+    def _write_copy(self, project) -> bool:
 
-
-
-
-
-
-
-
-        if self.captured:
-            return True
-        scope = None if layer_ids is None else {str(lid) for lid in layer_ids}
-        project = QgsProject.instance()
-        started = time.monotonic()
-        try:
-            os.makedirs(self.dir, exist_ok=True)
-        except OSError as exc:
-            log_warning(f"Snapshot folder not writable: {exc}")
-            return False
-
-
-
-        hold_snapshot(self.dir)
-        self.original_file = project.fileName() or ""
-        self.was_dirty = project.isDirty()
         ok = False
 
 
@@ -847,6 +840,48 @@ class RunSnapshot:
                         fh.write(layer_sections)
             except Exception as exc:  # noqa: BLE001
                 log_warning(f"Snapshot per-layer plugin sections not kept: {exc}")
+        return ok
+
+    def capture(self, layer_ids=None, reuse: bool = False) -> bool:
+
+
+
+
+
+
+
+
+
+
+
+
+        if self.captured:
+            return True
+        scope = None if layer_ids is None else {str(lid) for lid in layer_ids}
+        project = QgsProject.instance()
+        started = time.monotonic()
+        try:
+            os.makedirs(self.dir, exist_ok=True)
+        except OSError as exc:
+            log_warning(f"Snapshot folder not writable: {exc}")
+            return False
+
+
+
+        hold_snapshot(self.dir)
+        self.original_file = project.fileName() or ""
+        self.was_dirty = project.isDirty()
+
+
+
+        source = snapshot_watch.reusable() if reuse else None
+        snapshot_watch.watch(project)
+        reused = source is not None and snapshot_watch.copy_parts(source[0], self.dir, source[5])
+        if reused:
+            _, self.quiet, self.own_paths, source_ids, source_state, _parts = source
+            ok = True
+        else:
+            ok = self._write_copy(project)
         self.layers = {}
         self.layer_ids = set(project.mapLayers().keys())
         self.memory_features = {}
@@ -882,6 +917,14 @@ class RunSnapshot:
             self.unbacked[key] = str(layer.name() or layer.id())
             self.unbacked_reasons[key] = REASON_UNSAVED_EDITS
         self.project_state = _project_state(project)
+        if reused and (self.layer_ids != source_ids or self.project_state != source_state):
+
+            log_warning(f"Snapshot copy of {os.path.basename(source[0])} differs from the project, written instead.")
+            snapshot_watch.remove_parts(self.dir)
+            reused = False
+            ok = self._write_copy(project)
+        if ok:
+            snapshot_watch.remember(self.dir, self.quiet, self.own_paths, self.layer_ids, self.project_state)
         self._pass = _FeaturePass(project, os.path.join(self.dir, "memory"),
                                   {lid: record.get("feature_count") for lid, record in self.layers.items()})
 
@@ -893,7 +936,8 @@ class RunSnapshot:
         self.captured = ok
         self.captured_at = time.time()
         log(f"Snapshot {'captured' if ok else 'FAILED'} for run {self.run_id[:8]} in "
-            f"{time.monotonic() - started:.2f} s ({len(self.layers)} layers, {len(self.layers) - light} in full)")
+            f"{time.monotonic() - started:.2f} s ({len(self.layers)} layers, {len(self.layers) - light} in full"
+            f"{', copy reused' if reused else ''})")
         prune_soon(protect=self.dir)
         return ok
 
@@ -1018,7 +1062,13 @@ class RunSnapshot:
             except OSError:
                 self.unbacked["file:" + path] = os.path.basename(path)
                 continue
-            folder = os.path.join(self.dir, "files", f"{len(self.file_backups):03d}")
+
+
+            number = max(getattr(self, "_file_backup_number", 0), len(self.file_backups))
+            while os.path.lexists(os.path.join(self.dir, "files", f"{number:03d}")):
+                number += 1
+            self._file_backup_number = number + 1
+            folder = os.path.join(self.dir, "files", f"{number:03d}")
             copies = _backup_copies(folder, _sidecars(path))
             self.file_backups[path] = {"copies": copies, "stamp": _stamp(path), "hash": None}
             self._plan_copies(folder, copies, os.path.basename(path))
@@ -1351,6 +1401,11 @@ class RunSnapshot:
             "feature_count_changes": counts,
             "crs_changes": crs_changes,
             "files_changed": files_changed,
+
+
+            "files_replaced": [path for path, kept in self.file_backups.items()
+                               if kept.get("stamp") and not _is_project_file(path)
+                               and _stamp(path) != tuple(kept["stamp"])],
             "style_changes": style_changes,
             "name_changes": renames,
             "visibility_changes": visibility_changes,
@@ -1393,7 +1448,8 @@ class RunSnapshot:
         return visibility, project
 
 
-    def restore(self, file_name: str | None = None, extra_copies=()) -> dict:
+    def restore(self, file_name: str | None = None, extra_copies=(), own_saves=()) -> dict:
+
 
 
 
@@ -1428,7 +1484,7 @@ class RunSnapshot:
                 log_warning(f"Restore of run {self.run_id[:8]} refused: still copying {named}")
                 return {"ok": False, "refused": True, "project_read": False, "still_saving": writing,
                         "message": f"Still saving {named}; it finishes within seconds."}
-            result = self._restore_now(file_name, extra_copies)
+            result = self._restore_now(file_name, extra_copies, own_saves)
         _refresh_canvas()
         return result
 
@@ -1452,6 +1508,56 @@ class RunSnapshot:
     def _path_key(path: str) -> str:
 
         return os.path.normcase(resolved(path))
+
+    def keep_before_own_save(self, path: str):
+
+
+
+
+
+
+
+        if self.own_save is not None or not self.captured or not os.path.isfile(path):
+            return None
+        copy = os.path.join(self.dir, "own_save", os.path.basename(path))
+        try:
+            os.makedirs(os.path.dirname(copy), exist_ok=True)
+            retry_file_op(lambda: shutil.copy2(path, copy))
+        except OSError as exc:
+            log_warning(f"Project file not copied before the plugin's save: {exc}")
+            return None
+
+        def written() -> None:
+            try:
+                self.own_save = {"path": path, "copy": copy, "written": [int(x) for x in _stamp(path)]}
+            except (OSError, TypeError, ValueError) as exc:
+                log_warning(f"Project file's stamp not read after the plugin's save: {exc}")
+
+        return written
+
+    def _undo_own_save(self, kept: str, later=()) -> bool:
+
+
+
+
+
+
+        saves = [own for own in (self.own_save, *later) if own]
+        if not saves or not kept:
+            return False
+        first = saves[0]
+        try:
+            if self._path_key(kept) != self._path_key(first["path"]) or not os.path.isfile(first["copy"]):
+                return False
+            now = [int(x) for x in _stamp(first["path"])]
+            if not any(own.get("written") == now and self._path_key(own["path"]) == self._path_key(kept)
+                       for own in saves):
+                return False
+            restore_group([(first["path"], first["copy"])])
+            return True
+        except Exception as exc:  # noqa: BLE001
+            log_warning(f"Project file not put back as before the plugin's save: {exc}")
+            return False
 
     def _same_as_saved(self, file_name: str) -> bool:
 
@@ -1562,7 +1668,7 @@ class RunSnapshot:
             log_warning(f"Snapshot cannot tell whether the project changed: {exc}")
             return False
 
-    def _restore_now(self, file_name: str | None = None, extra_copies=()) -> dict:
+    def _restore_now(self, file_name: str | None = None, extra_copies=(), own_saves=()) -> dict:
         project = QgsProject.instance()
 
         source = self._source_to_read(project)
@@ -1577,6 +1683,9 @@ class RunSnapshot:
                     "files_restored": [], "files_put_back": [],
                     "file_restore_errors": [], "memory_layers_refilled": 0, "memory_layers_incomplete": [],
                     "message": f"The snapshot's project copy could not be read ({unreadable}); nothing was changed."}
+        blocked = self.files_blocked_now(extra_copies)
+        if blocked:
+            return blocked
         for layer in list(project.mapLayers().values()):
             try:
                 if isinstance(layer, QgsVectorLayer) and layer.isEditable():
@@ -1603,6 +1712,7 @@ class RunSnapshot:
 
 
         designers = designer_guard.open_layouts()
+        designer_guard.before_own_read()
         project.clear()
         files_restored = []
 
@@ -1672,6 +1782,9 @@ class RunSnapshot:
         try:
             if project_ok:
                 _paths_back(project, self.own_paths)
+
+                if self._undo_own_save(kept, own_saves):
+                    saved = self._same_as_saved(kept)
             project.setFileName(kept)
 
             project.setDirty(not (project_ok and saved))
@@ -1736,6 +1849,41 @@ class RunSnapshot:
                 "memory_layers_refilled": refilled,
                 "memory_layers_incomplete": refill_errors, "message": message}
 
+    def files_blocked_now(self, extra_copies=()) -> dict | None:
+
+
+
+
+
+        blockers = write_blockers(self._groups_to_put_back(extra_copies))
+        if not blockers:
+            return None
+        names = {self._path_key(record["path"]): str(record.get("name") or "")
+                 for record in self.layers.values() if isinstance(record, dict) and record.get("path")}
+        files = []
+        for pairs, exc, programs in blockers:
+            main = pairs[0][0]
+            kind, code = file_error_kind(exc, main)
+            files.append({"path": main, "layer": names.get(self._path_key(main)) or os.path.basename(main),
+                          "error": str(exc), "kind": kind, "os_error": code, "synced": in_synced_folder(main),
+                          "programs": programs})
+        said = []
+        for item in files[:3]:
+            if item["programs"]:
+                said.append(f"{item['layer']} is open in {', '.join(item['programs'][:2])}")
+            elif item["kind"] == "read_only":
+                said.append(f"the file of {item['layer']} is read-only")
+            else:
+                said.append(f"{item['layer']} is in use by another program")
+        more = f" and {len(files) - 3} more" if len(files) > 3 else ""
+        log_warning(f"Restore of run {self.run_id[:8]} refused before any change: "
+                    + "; ".join(f"{item['layer']} ({item['kind']})" for item in files))
+        return {"ok": False, "refused": True, "project_read": False, "files_blocked": files, "layers": 0,
+                "files_restored": [], "files_put_back": [], "file_restore_errors": [],
+                "memory_layers_refilled": 0, "memory_layers_incomplete": [],
+                "message": f"Nothing was changed: {'; '.join(said)}{more}. Going back writes that file, "
+                           "so it has to be free first; then the same step goes back whole."}
+
     def _restamp(self, layouts: bool = False) -> None:
 
 
@@ -1766,8 +1914,18 @@ class RunSnapshot:
         for path, record in self.file_backups.items():
             if record.get("stamp"):
                 record["stamp"] = _stamp(path)
-        if layouts and isinstance(self.project_state, dict) and "layouts" in self.project_state:
-            self.project_state["layouts"] = _project_state(QgsProject.instance()).get("layouts", [])
+        if not layouts:
+            return
+        project = QgsProject.instance()
+        if isinstance(self.project_state, dict) and "layouts" in self.project_state:
+            self.project_state["layouts"] = _project_state(project).get("layouts", [])
+
+
+
+        for lid, record in self.layers.items():
+            layer = project.mapLayer(lid) if isinstance(record, dict) and record.get("style") else None
+            if layer is not None:
+                record["style"] = _style_digest(layer) or record["style"]
 
     def file_groups(self) -> dict[str, list[tuple[str, str]]]:
 
@@ -1932,6 +2090,7 @@ class RunSnapshot:
 
 
         forget_copies(self.dir)
+        snapshot_watch.forget(self.dir)
         release_snapshot(self.dir)
         feature_pass = self._pass
         if feature_pass is not None and not feature_pass.done:

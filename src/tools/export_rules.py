@@ -12,10 +12,11 @@ import os
 from qgis.core import QgsLayoutExporter
 
 from ..core import limits, output_paths
+from ..core.invariants import metres_per_map_unit
 from ..core.numbers import as_float
 from ..core.qt_compat import enum_member
 from ..core.tool_registry import tool_error
-from .layout_facts import _map_layers, _metres_per_map_unit, _page_summary
+from .layout_facts import _map_layers, _page_summary
 
 _IMAGE_FORMATS = frozenset({"png", "jpg", "tif"})
 
@@ -33,7 +34,7 @@ def _ground_per_pixel(exporter, reference, dpi: float) -> tuple[float, str]:
 
     a, _b, _c, d, _e, _f = exporter.computeWorldFileParameters(float(dpi))
     size = math.hypot(a, d)
-    per_unit = _metres_per_map_unit(reference.crs())
+    per_unit = metres_per_map_unit(reference.crs())
     return (size * per_unit, "m") if per_unit else (size, "degrees")
 
 
@@ -47,7 +48,7 @@ def _dpi_for_ground(exporter, reference, metres, max_dpi: int, measure=None):
     if not metres > 0 or not math.isfinite(metres):
         return tool_error("meters_per_pixel must be a positive number.", "INVALID_ARGS",
                           hint="layout_ground_size_invalid")
-    if _metres_per_map_unit(reference.crs()) is None:
+    if metres_per_map_unit(reference.crs()) is None:
         return tool_error("The layout's map is in degrees, so a pixel size in metres has no single dpi.",
                           "INVALID_ARGS", hint="layout_pixel_size_geographic")
     at_100 = measure() if measure is not None else _ground_per_pixel(exporter, reference, 100)[0]

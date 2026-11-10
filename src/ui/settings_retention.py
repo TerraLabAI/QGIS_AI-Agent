@@ -74,7 +74,7 @@ class RetentionRow(QObject):
         return QCoreApplication.translate("SettingsDialog", text)
 
     def _label(self, days) -> str:
-        return {0: self.tr("No copies (0 days)"), 30: self.tr("30 days"), 90: self.tr("90 days"),
+        return {0: self.tr("No copies (0 days)"), 1: self.tr("1 day"), 30: self.tr("30 days"), 90: self.tr("90 days"),
                 180: self.tr("6 months"),
                 365: self.tr("1 year"), None: self.tr("Until I delete it")}.get(
             days, self.tr("{n} days").format(n=days))

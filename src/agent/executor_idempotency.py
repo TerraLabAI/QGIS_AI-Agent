@@ -15,6 +15,7 @@ import time
 from collections import OrderedDict
 
 from ..core import tuning
+from ..core.host_platform import retry_file_op
 from ..core.logger import log_warning
 from ..core.settings import account_dir
 from ..core.writeback import WriteBehind
@@ -46,8 +47,18 @@ class IdempotencyTable:
 
 
 
+
+
+
+
+
+
+
     def __init__(self, path: str | None = None, keep: int | None = None, writer=None):
-        self._path = path or os.path.join(account_dir(), "idempotency.json")
+
+        self._folder = "" if path else account_dir()
+        self._path = path or os.path.join(self._folder, f"idempotency-{os.getpid()}.json")
+        self._taken_over: list[str] = []
 
         self._keep_given = None if keep is None else max(1, int(keep))
         self._texts: OrderedDict[str, str] = OrderedDict()
@@ -56,35 +67,68 @@ class IdempotencyTable:
         self._lock = threading.RLock()
         self._loaded = threading.Event()
         self._writer = writer or WriteBehind(name="ai-agent-idempotency")
+        self._set_aside: list[str] = []
+        self._writes_off = False
         try:
             threading.Thread(target=self._load, name="ai-agent-idempotency-load", daemon=True).start()
         except RuntimeError:
             self._load()
 
-    def _load(self) -> None:
-        texts: OrderedDict[str, str] = OrderedDict()
-        data = None
+    def _files(self) -> list[tuple[str, bool]]:
+
+        if not self._folder:
+            return [(self._path, False)]
+        from ..core.crash_note import pid_alive
+
+        files = [(os.path.join(self._folder, "idempotency.json"), False)]
         try:
-            with open(self._path, encoding="utf-8") as fh:
-                data = json.load(fh)
-        except FileNotFoundError:
-            pass
-        except (OSError, ValueError, RecursionError) as exc:
+            names = sorted(os.listdir(self._folder))
+        except OSError:
+            names = []
+        for name in names:
+            pid = name[len("idempotency-"):-len(".json")]
+            if name.startswith("idempotency-") and name.endswith(".json") and pid.isdigit():
+                path = os.path.join(self._folder, name)
+                if path != self._path:
+                    files.append((path, pid_alive(int(pid))))
+        files.append((self._path, False))
+        return files
+
+    def _load(self) -> None:
+        entries: list[dict] = []
+        for path, live in self._files():
+            if live:
+                continue
+            data = None
+            try:
+                with open(path, encoding="utf-8") as fh:
+                    data = json.load(fh)
+            except FileNotFoundError:
+                continue
+            except (OSError, ValueError, RecursionError) as exc:
 
 
 
 
 
-
-            log_warning(f"The saved tool history could not be read ({exc}); it is kept as it is "
-                        "and no earlier call is replayed from it this session.")
-        if isinstance(data, dict) and isinstance(data.get("entries"), list):
-            for entry in data["entries"][-self._keep_now():]:
-                if isinstance(entry, dict) and entry.get("id"):
-                    try:
-                        texts[str(entry["id"])] = json.dumps(entry, default=str, separators=(",", ":"))
-                    except (TypeError, ValueError, RecursionError):
-                        continue
+                self._set_aside.append(path)
+                log_warning(f"The saved tool history could not be read ({exc}); it is set aside as "
+                            f"{os.path.basename(path)}.unreadable at the first write and no earlier call is "
+                            "replayed from it this session.")
+                continue
+            if path != self._path:
+                self._taken_over.append(path)
+            if isinstance(data, dict) and isinstance(data.get("entries"), list):
+                entries.extend(entry for entry in data["entries"] if isinstance(entry, dict) and entry.get("id"))
+        if self._taken_over:
+            entries.sort(key=lambda entry: entry.get("ts") if isinstance(entry.get("ts"), (int, float)) else 0.0)
+        texts: OrderedDict[str, str] = OrderedDict()
+        for entry in entries[-self._keep_now():]:
+            try:
+                texts.pop(str(entry["id"]), None)
+                texts[str(entry["id"])] = json.dumps(entry, default=str, separators=(",", ":"))
+            except (TypeError, ValueError, RecursionError):
+                continue
 
         with self._lock:
             for key, text in self._texts.items():
@@ -107,7 +151,32 @@ class IdempotencyTable:
             self._loaded.wait(timeout=10.0)
 
     def _save(self) -> None:
+        if self._writes_off:
+            return
+        while self._set_aside:
+            path = self._set_aside.pop()
+            try:
+                retry_file_op(os.replace, path, path + ".unreadable")
+            except OSError as exc:
+
+                self._writes_off = True
+                log_warning(f"The unreadable tool history was not set aside ({exc}); it is left as it is "
+                            "and this session's answers are kept in memory only.")
+                return
         self._writer.schedule(self._path, self._text)
+        if self._taken_over:
+
+            taken, self._taken_over = self._taken_over, []
+            self._writer.schedule_job(lambda: self._drop(taken))
+
+    def _drop(self, paths: list[str]) -> None:
+        if not os.path.isfile(self._path):
+            return
+        for path in paths:
+            try:
+                retry_file_op(os.remove, path)
+            except OSError:
+                pass
 
     def _text(self) -> list[str]:
 

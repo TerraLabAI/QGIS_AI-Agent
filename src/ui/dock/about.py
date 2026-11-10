@@ -61,6 +61,8 @@ from ..style import (
     RADIUS_CARD,
     RADIUS_CHIP,
     SURFACE,
+    WEIGHT_MEDIUM,
+    keyboard_ring,
 )
 from ..styles import (
     _UPDATE_CARD_STYLE,
@@ -68,6 +70,7 @@ from ..styles import (
     _UPDATE_NOTE_STYLE,
     _UPDATE_TITLE_STYLE,
     MUTED_TEXT,
+    PANEL_TEXT,
 )
 
 
@@ -81,7 +84,7 @@ _SHORTCUTS_QSS = scale_qss_font_px(
     f" border-radius: {RADIUS_CARD}px; }}"
     f"QFrame#shColumnRule {{ background: {LINE}; border: none;"
     " min-width: 1px; max-width: 1px; }"
-    f"QLabel#shSection {{ font-size: {FONT_HINT}px; font-weight: 500;"
+    f"QLabel#shSection {{ font-size: {FONT_HINT}px; font-weight: {WEIGHT_MEDIUM};"
     f" color: {INK_3}; background: transparent; }}"
     f"QLabel#shAction {{ font-size: {FONT_BASE}px; color: {INK}; background: transparent; }}"
     f"QLabel#shNote {{ font-size: {FONT_HINT}px; color: {INK_3}; background: transparent; }}"
@@ -89,6 +92,9 @@ _SHORTCUTS_QSS = scale_qss_font_px(
     f"QLabel#shKey {{ font-family: {MONO_FAMILY}; font-size: {FONT_HINT}px; color: {INK_2};"
     f" background: {FIELD}; border: 1px solid {LINE}; border-radius: {RADIUS_CHIP}px;"
     " padding: 0 7px; }"
+    f"QLabel#shSymbol {{ font-size: {FONT_BASE + 1}px; color: {INK_2};"
+    f" background: {FIELD}; border: 1px solid {LINE}; border-radius: {RADIUS_CHIP}px;"
+    " padding: 0 4px; }"
     f"QLabel#shWord {{ font-size: {FONT_HINT}px; color: {INK_2}; background: {FIELD};"
     f" border: 1px solid {LINE}; border-radius: {RADIUS_CHIP}px; padding: 0 7px; }}"
 )
@@ -175,6 +181,7 @@ class UpdateBanner(QWidget):
         self._update_btn = QPushButton(self.tr("Update now"), self._card)
         self._update_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         self._update_btn.setStyleSheet(_BTN_PRIMARY_WIDE)
+        keyboard_ring(self._update_btn)
         self._update_btn.setFixedHeight(BTN_PRIMARY_WIDE_PX)
         self._update_btn.setAutoDefault(False)
         self._update_btn.clicked.connect(self._on_update)
@@ -236,7 +243,10 @@ class UpdateBanner(QWidget):
 def _kbd(text: str, parent, mono: bool = True) -> QLabel:
 
     cap = QLabel(text, parent)
-    cap.setObjectName("shKey" if mono else "shWord")
+
+
+    symbol = mono and len(text) == 1 and not text.isascii()
+    cap.setObjectName("shSymbol" if symbol else "shKey" if mono else "shWord")
     cap.setAlignment(Qt.AlignmentFlag.AlignCenter)
     cap.setFixedHeight(scale_px_length(CHIP_PX))
     cap.setMinimumWidth(scale_px_length(CHIP_PX))
@@ -349,7 +359,7 @@ def shortcut_columns() -> tuple:
         (tr("Open or close AI Agent"), "", key(toggle_panel_key_text())),
     )
     history = (
-        (tr("Undo the agent's last request"), tr("In this chat"),
+        (tr("Undo the AI agent's last request"), tr("In this chat"),
          key(native(STEP_BACK_KEYS))),
         (tr("Put it back"), "", key(native(STEP_FORWARD_KEYS))),
 
@@ -362,7 +372,7 @@ def shortcut_columns() -> tuple:
 
     during = (
         (tr("Stop the run"), "", key(esc_key)),
-        (tr("Queue a message"), tr("The agent reads it at its next step"), key(enter_key)),
+        (tr("Queue a message"), tr("The AI agent reads it at its next step"), key(enter_key)),
         (tr("Edit the last queued message"), tr("In an empty box"), key(native("Up"))),
     )
 
@@ -430,6 +440,7 @@ def show_shortcuts_dialog(parent=None) -> None:
     foot.addStretch(1)
     ok_btn = QPushButton(tr("Done"), dlg)
     ok_btn.setStyleSheet(_BTN_PRIMARY)
+    keyboard_ring(ok_btn)
     ok_btn.setFixedHeight(BTN_PX)
     ok_btn.setMinimumWidth(scale_px_length(96))
     ok_btn.setCursor(Qt.CursorShape.PointingHandCursor)
@@ -458,12 +469,12 @@ def show_contact_dialog(parent=None, support_email: str = SUPPORT_EMAIL,
 
     msg = QLabel(tr("Bug, question, feature request?") + "\n" + tr("We read every message."), dlg)
     msg.setWordWrap(True)
-    msg.setStyleSheet("font-size: 12px; color: palette(text);")
+    msg.setStyleSheet("font-size: 12px; color: " + PANEL_TEXT + ";")
     lay.addWidget(msg)
 
     email_label = QLabel(f"<b>{support_email}</b>", dlg)
     email_label.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
-    email_label.setStyleSheet("font-size: 12px; color: palette(text);")
+    email_label.setStyleSheet("font-size: 12px; color: " + PANEL_TEXT + ";")
     lay.addWidget(email_label)
 
     version = plugin_version()
@@ -475,6 +486,7 @@ def show_contact_dialog(parent=None, support_email: str = SUPPORT_EMAIL,
 
     copy_btn = QPushButton(tr("Copy email address"), dlg)
     copy_btn.setStyleSheet(_BTN_PRIMARY)
+    keyboard_ring(copy_btn)
     copy_btn.setFixedHeight(BTN_PILL_PX)
     copy_btn.setCursor(Qt.CursorShape.PointingHandCursor)
 
@@ -488,10 +500,11 @@ def show_contact_dialog(parent=None, support_email: str = SUPPORT_EMAIL,
     if call_url:
         or_label = QLabel(tr("or"), dlg)
         or_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        or_label.setStyleSheet("color: palette(text); font-size: 11px;")
+        or_label.setStyleSheet("color: " + PANEL_TEXT + "; font-size: 11px;")
         lay.addWidget(or_label)
         call_btn = QPushButton(tr("Book a video call"), dlg)
         call_btn.setStyleSheet(_BTN_GHOST)
+        keyboard_ring(call_btn)
         call_btn.setFixedHeight(BTN_PILL_PX)
         call_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         call_btn.clicked.connect(lambda: open_external_url(call_url, parent=dlg))

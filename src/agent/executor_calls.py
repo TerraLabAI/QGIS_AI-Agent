@@ -16,7 +16,7 @@ from collections import deque
 from qgis.core import QgsProject
 from qgis.PyQt.QtCore import QCoreApplication, QTimer
 
-from ..core import accounts, background, link_vault, same_page, security, security_urls, stalls
+from ..core import accounts, background, link_vault, project_read, same_page, security, security_urls, stalls
 from ..core.log_scrub import DETAIL_CHARS, scrub_result, scrub_secrets, strip_paths
 from ..core.logger import log, log_warning
 from ..core.plan import autopilot_allowed
@@ -26,7 +26,7 @@ from ..core.serialization import DETAILS_MARKER, CodedText, cut_string, dump_jso
 from ..core.tool_registry import coded_fact, spec
 from ..tools import code_guard, cost_guard, guards
 from ..tools._layers import pin_layer_names
-from .executor_code import CODE_TOOL
+from .executor_code import CODE_TOOL, tr
 from .run_report import VERIFY_RUN, build_report
 
 
@@ -45,8 +45,8 @@ CHAT_FILES_MAX = 2000
 
 
 
-_NOT_FACTS = frozenset({"error", "suggestion", "code", "isError", "destructive", "overwrites", "creates",
-                        "sentence", "slow_only", "inputs"})
+_NOT_FACTS = frozenset({"error", "suggestion", "code", "isError", "destructive", "overwrites", "own_replaced",
+                        "creates", "sentence", "slow_only", "inputs"})
 
 
 def _refusal_facts(refusal: dict) -> dict:
@@ -63,10 +63,6 @@ def _coded(refusal: dict) -> str:
 
 
     return error_details(_refusal_facts(refusal))
-
-
-def tr(text: str) -> str:
-    return QCoreApplication.translate("ToolExecutor", text)
 
 
 def _shown_value(value):
@@ -202,6 +198,7 @@ class _ExecutorCalls:
             danger = Danger.DESTRUCTIVE
         call["danger"] = danger
         call["overwrites"] = verdict.get("overwrites") or []
+        call["own_backups"] = self._own_backups(str(call.get("run_id") or ""), verdict)
         call["creates"] = verdict.get("creates") or []
         self._drop_unknown_flags(name, args)
 
@@ -338,12 +335,46 @@ class _ExecutorCalls:
 
 
 
+
         run_id = str(call.get("run_id") or "")
-        if call.get("poll") is True or not (self._queued.get(run_id) or self._behind_changes(call, name, args)):
+        if call.get("poll") is True:
+            return False
+        queue = self._queued.get(run_id)
+        if self._adds_past_reads(call, name, args, queue) if queue else not self._behind_changes(call, name, args):
             return False
         tool_call_id = str(call.get("tool_call_id"))
         self._queued.setdefault(run_id, {})[tool_call_id] = (call, time.monotonic())
         log(f"WAIT {name} until the run's earlier calls have changed the project")
+        return True
+
+    def _adds_past_reads(self, call: dict, name: str, args: dict, queue: dict) -> bool:
+
+
+
+
+
+
+
+
+
+
+        if call.get("danger", Danger.READ) != Danger.WRITE or not self._background_ok(name, args):
+            return False
+        if any(held.get("danger", Danger.READ) != Danger.READ for held, _arrived in queue.values()):
+            return False
+        known = set()
+        for layer in QgsProject.instance().mapLayers().values():
+            known.update((layer.id().casefold(), layer.name().casefold()))
+        pending = [args]
+        while pending:
+            value = pending.pop()
+            if isinstance(value, str):
+                if value.casefold() in known:
+                    return False
+            elif isinstance(value, dict):
+                pending.extend(value.values())
+            elif isinstance(value, (list, tuple)):
+                pending.extend(value)
         return True
 
     def _behind_changes(self, call: dict, name: str, args: dict) -> bool:
@@ -422,6 +453,9 @@ class _ExecutorCalls:
 
 
 
+
+
+
         self._main_depth += 1
         try:
             yield
@@ -450,7 +484,7 @@ class _ExecutorCalls:
 
 
 
-        if not (self._main_depth or self._main_line):
+        if not (self._main_depth or self._main_line or project_read.reading()):
             return False
         tool_call_id = str((call or {}).get("tool_call_id") or "")
         for waiting_kind, waiting_call, _start in self._main_line:
@@ -459,12 +493,16 @@ class _ExecutorCalls:
                 return True
         self._main_line.append((kind, call, start))
         if kind == "call":
-            log(f"WAIT {call.get('name')} until the call running on the main thread has returned")
+            log(f"WAIT {call.get('name')} until the main thread is free (a call of ours, or QGIS reading a project)")
         self._resume_main_line()
         return True
 
     def _resume_main_line(self) -> None:
 
+
+        if project_read.reading():
+            project_read.when_done(self._resume_main_line)
+            return
         if self._main_line and not (self._main_depth or self._main_line_due or self._closed):
             self._main_line_due = True
             QTimer.singleShot(0, self._next_in_line)
@@ -472,6 +510,9 @@ class _ExecutorCalls:
     def _next_in_line(self) -> None:
 
         self._main_line_due = False
+        if project_read.reading():
+            self._resume_main_line()
+            return
         if self._closed or self._main_depth or not self._main_line:
             return
         kind, call, start = self._main_line.popleft()
@@ -833,6 +874,13 @@ class _ExecutorCalls:
             log(f"PAGE_KEPT {run_id[:8]}: {len(folded)} page(s) moved over the earlier page of the same title")
         return folded
 
+    def _own_backups(self, run_id: str, verdict: dict) -> list:
+
+
+
+        mine = self._own_files.get(run_id, ())
+        return [path for path in verdict.get("own_replaced") or () if path not in mine]
+
     def _note_own_files(self, run_id: str, paths) -> None:
 
         paths = [path for path in paths or () if path]
@@ -1067,6 +1115,7 @@ class _ExecutorCalls:
 
 
         call["overwrites"] = verdict.get("overwrites") or []
+        call["own_backups"] = self._own_backups(str(call.get("run_id") or ""), verdict)
         call["creates"] = verdict.get("creates") or []
         if verdict.get("destructive"):
             call["danger"] = Danger.DESTRUCTIVE

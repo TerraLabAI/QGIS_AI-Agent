@@ -2184,10 +2184,6 @@ def _expression_error(layer, text: str, argument: str = "Label expression") -> d
     return None
 
 
-def _label_expression_error(layer, field: str) -> dict | None:
-    return _expression_error(layer, field, "Label expression")
-
-
 def _label_sample(layer, settings) -> str | None:
 
 
@@ -2375,7 +2371,7 @@ def _set_layer_labels_2d(args: dict) -> dict:
             settings.fieldName = label_value
             is_expression = layer.fields().indexOf(label_value) < 0
             if is_expression:
-                error = _label_expression_error(layer, label_value)
+                error = _expression_error(layer, label_value, "Label expression")
                 if error:
                     return error
             settings.isExpression = is_expression
@@ -2717,9 +2713,6 @@ def _label_polygon_edges(layer, args: dict) -> dict:
     if layer.geometryType() != 2:
         return tool_error("segment_lengths requires a polygon layer.", "INVALID_ARGS")
     old_id = str(layer.customProperty("terralab/segment_lengths_layer", ""))
-    if old_id:
-
-        remove_layers([old_id])
     name = str(args.get("output_name") or f"{layer.name()} boundary dimensions")
     out_layer = QgsVectorLayer(f"LineString?crs={layer.crs().authid()}", name, "memory")
     if not out_layer.isValid():
@@ -2732,6 +2725,7 @@ def _label_polygon_edges(layer, args: dict) -> dict:
     distance.setSourceCrs(layer.crs(), QgsProject.instance().transformContext())
     distance.setEllipsoid(str(args.get("ellipsoid") or QgsProject.instance().ellipsoid() or "WGS84"))
     decimals = max(0, min(6, int(args.get("decimals", 2))))
+    ceiling = limits.current("MAX_FEATURES_MATERIALISED")
     features = []
 
 
@@ -2754,6 +2748,15 @@ def _label_polygon_edges(layer, args: dict) -> dict:
                     feature.setAttributes([int(source_feature.id()), index, length,
                                            f"{length:,.{decimals}f} {unit}"])
                     features.append(feature)
+                    if len(features) > ceiling:
+
+                        return limits.refusal(f"Layer '{layer.name()}'", f"more than {ceiling:,} boundary segments",
+                                              f"{ceiling:,} for segment_lengths",
+                                              "Label fewer polygons: a filtered layer, "
+                                              "or a selection saved as its own layer.")
+    if old_id:
+
+        remove_layers([old_id])
     out_layer.dataProvider().addFeatures(features)
     QgsProject.instance().addMapLayer(out_layer)
     layer.setCustomProperty("terralab/segment_lengths_layer", out_layer.id())

@@ -40,54 +40,14 @@
             <translation>%n 個範例</translation>
         </message>
         <message>
-            <location filename="src/ui/checkpoint_sheet.py" />
-            <source>%n layers changed</source>
-            <translation>%n 個圖層已變更</translation>
-        </message>
-        <message>
-            <location filename="src/ui/connectors_page.py" />
-            <source>%n ready sources</source>
-            <translation>%n 個可用來源</translation>
-        </message>
-        <message>
             <location filename="src/ui/library/dialog.py" />
             <source>1 example</source>
             <translation>1 個範例</translation>
         </message>
         <message>
-            <location filename="src/ui/checkpoint_sheet.py" />
-            <source>1 layer changed</source>
-            <translation>1 個圖層已變更</translation>
-        </message>
-        <message>
-            <location filename="src/ui/connectors_page.py" />
-            <source>1 ready source</source>
-            <translation>1 個就緒來源</translation>
-        </message>
-        <message>
-            <location filename="src/ui/error_report_dialog.py" />
-            <source>1. Copy diagnostics</source>
-            <translation>1. 複製診斷資訊</translation>
-        </message>
-        <message>
             <location filename="src/ui/privacy_notice_dialog.py" />
             <source>AI Agent and your data</source>
             <translation>AI Agent 與您的資料</translation>
-        </message>
-        <message>
-            <location filename="src/ui/dock/about.py" />
-            <source>Allow / Skip</source>
-            <translation>允許／略過</translation>
-        </message>
-        <message>
-            <location filename="src/ui/use_cases.py" />
-            <source>Analyse</source>
-            <translation>分析</translation>
-        </message>
-        <message>
-            <location filename="src/ui/dock/about.py" />
-            <source>Answer a permission card</source>
-            <translation>回應權限卡片</translation>
         </message>
         <message>
             <location filename="src/ui/tool_describe.py" />
@@ -131,11 +91,6 @@
         </message>
         <message>
             <location filename="src/ui/dock/about.py" />
-            <source>Chats</source>
-            <translation>對話</translation>
-        </message>
-        <message>
-            <location filename="src/ui/dock/about.py" />
             <source>Close the list, or stop the run</source>
             <translation>關閉清單，或停止執行</translation>
         </message>
@@ -173,11 +128,6 @@
             <location filename="src/ui/external_links.py" />
             <source>Copy the address below and paste it into a browser.</source>
             <translation>複製下方網址並貼到瀏覽器。</translation>
-        </message>
-        <message>
-            <location filename="src/ui/error_report_dialog.py" />
-            <source>Copy the diagnostics, then send them to support.</source>
-            <translation>複製診斷資訊，然後傳送給支援團隊。</translation>
         </message>
         <message>
             <location filename="src/ui/external_links.py" />
@@ -220,29 +170,9 @@
             <translation>範例</translation>
         </message>
         <message>
-            <location filename="src/ui/use_cases.py" />
-            <source>Explore</source>
-            <translation>探索</translation>
-        </message>
-        <message>
-            <location filename="src/ui/dock/about.py" />
-            <source>Go back to an earlier state of your project</source>
-            <translation>回到專案的先前狀態</translation>
-        </message>
-        <message>
-            <location filename="src/ui/dock/about.py" />
-            <source>Go forward one step</source>
-            <translation>向前一步</translation>
-        </message>
-        <message>
             <location filename="src/ui/dock/about.py" />
             <source>History</source>
             <translation>歷史紀錄</translation>
-        </message>
-        <message>
-            <location filename="src/ui/dock/about.py" />
-            <source>History button</source>
-            <translation>歷史按鈕</translation>
         </message>
         <message>
             <location filename="src/ui/dock/about.py" />
@@ -255,39 +185,14 @@
             <translation>鍵盤快速鍵</translation>
         </message>
         <message>
-            <location filename="src/ui/use_cases.py" />
-            <source>Map</source>
-            <translation>製圖</translation>
-        </message>
-        <message>
             <location filename="src/ui/terralab_menu.py" />
             <source>More from TerraLab...</source>
             <translation>更多來自 TerraLab 的內容…</translation>
         </message>
         <message>
             <location filename="src/ui/dock/about.py" />
-            <source>New chat, history, settings</source>
-            <translation>新聊天、歷史、設定</translation>
-        </message>
-        <message>
-            <location filename="src/ui/dock/about.py" />
             <source>New line</source>
             <translation>換行</translation>
-        </message>
-        <message>
-            <location filename="src/ui/library/dialog.py" />
-            <source>No example matches that.</source>
-            <translation>沒有符合的範例。</translation>
-        </message>
-        <message>
-            <location filename="src/ui/checkpoint_sheet.py" />
-            <source>No longer available</source>
-            <translation>已不再可用</translation>
-        </message>
-        <message>
-            <location filename="src/ui/dock/about.py" />
-            <source>Open a recent chat</source>
-            <translation>開啟最近的對話</translation>
         </message>
         <message>
             <location filename="src/ui/external_links.py" />
@@ -301,11 +206,6 @@
         </message>
         <message>
             <location filename="src/ui/dock/about.py" />
-            <source>Open the command list</source>
-            <translation>開啟命令清單</translation>
-        </message>
-        <message>
-            <location filename="src/ui/dock/about.py" />
             <source>Or drag it from the Layers panel</source>
             <translation>或從圖層面板拖入</translation>
         </message>
@@ -313,11 +213,6 @@
             <location filename="src/ui/dock/about.py" />
             <source>Panel</source>
             <translation>面板</translation>
-        </message>
-        <message>
-            <location filename="src/ui/dock/about.py" />
-            <source>Pencil button</source>
-            <translation>鉛筆按鈕</translation>
         </message>
         <message>
             <location filename="src/ui/privacy_notice_dialog.py" />
@@ -328,11 +223,6 @@
             <location filename="src/ui/privacy_notice_dialog.py" />
             <source>Pro</source>
             <translation>Pro</translation>
-        </message>
-        <message>
-            <location filename="src/ui/checkpoint_sheet.py" />
-            <source>Project changed</source>
-            <translation>專案已更改</translation>
         </message>
         <message>
             <location filename="src/ui/external_links.py" />
@@ -355,39 +245,9 @@
             <translation>已執行 {count} 行 Python 指令碼</translation>
         </message>
         <message>
-            <location filename="src/ui/tool_describe.py" />
-            <source>Ran a processing algorithm</source>
-            <translation>已執行空間運算演算法</translation>
-        </message>
-        <message>
-            <location filename="src/ui/tool_describe.py" />
-            <source>Ran the {algorithm} algorithm</source>
-            <translation>已執行演算法 {algorithm}</translation>
-        </message>
-        <message>
-            <location filename="src/ui/tool_describe.py" />
-            <source>Ran the {algorithm} algorithm on {layer}</source>
-            <translation>已對 {layer} 執行演算法 {algorithm}</translation>
-        </message>
-        <message>
-            <location filename="src/ui/error_report_dialog.py" />
-            <source>Report a problem</source>
-            <translation>回報問題</translation>
-        </message>
-        <message>
-            <location filename="src/ui/use_cases.py" />
-            <source>Report and share</source>
-            <translation>報告與分享</translation>
-        </message>
-        <message>
             <location filename="src/ui/privacy_notice_dialog.py" />
             <source>Runs in Europe, stored in France.</source>
             <translation>在歐洲執行，儲存於法國。</translation>
-        </message>
-        <message>
-            <location filename="src/ui/library/dialog.py" />
-            <source>Search examples…</source>
-            <translation>搜尋範例…</translation>
         </message>
         <message>
             <location filename="src/ui/dock/about.py" />
@@ -401,16 +261,6 @@
         </message>
         <message>
             <location filename="src/ui/dock/about.py" />
-            <source>Start a new chat</source>
-            <translation>開始新對話</translation>
-        </message>
-        <message>
-            <location filename="src/ui/dock/about.py" />
-            <source>Stop button</source>
-            <translation>停止按鈕</translation>
-        </message>
-        <message>
-            <location filename="src/ui/dock/about.py" />
             <source>Stop the run</source>
             <translation>停止執行</translation>
         </message>
@@ -420,29 +270,19 @@
             <translation>服務條款</translation>
         </message>
         <message>
-            <location filename="src/ui/use_cases.py" />
-            <source>Terrain and imagery</source>
-            <translation>地形與影像</translation>
-        </message>
-        <message>
             <location filename="src/ui/external_links.py" />
             <source>The address is copied to your clipboard: paste it into a browser to continue.</source>
             <translation>網址已複製到剪貼簿：貼到瀏覽器以繼續。</translation>
         </message>
         <message>
             <location filename="src/ui/cards_run.py" />
-            <source>The agent wants to run this action.</source>
+            <source>The AI agent wants to run this action.</source>
             <translation>AI Agent 想要執行此動作。</translation>
         </message>
         <message>
             <location filename="src/ui/external_links.py" />
             <source>The folder is copied to your clipboard: paste it into your file manager.</source>
             <translation>資料夾已複製到剪貼簿：貼到檔案管理員。</translation>
-        </message>
-        <message>
-            <location filename="src/ui/library/detail.py" />
-            <source>The prompt</source>
-            <translation>該 prompt</translation>
         </message>
         <message>
             <location filename="src/ui/external_links.py" />
@@ -465,19 +305,9 @@
             <translation>使用統計已開啟。</translation>
         </message>
         <message>
-            <location filename="src/ui/library/detail.py" />
-            <source>Use this prompt</source>
-            <translation>使用此 prompt</translation>
-        </message>
-        <message>
             <location filename="src/ui/dock/about.py" />
             <source>We read every message.</source>
             <translation>我們會閱讀每則訊息。</translation>
-        </message>
-        <message>
-            <location filename="src/ui/library/detail.py" />
-            <source>Where the data comes from</source>
-            <translation>資料來源</translation>
         </message>
         <message>
             <location filename="src/ui/privacy_notice_dialog.py" />
@@ -538,44 +368,12 @@ The erasure is final once the grace period ends. Until then you can cancel it by
 寬限期結束後，清除作業將無法復原。在此之前，您可以登入 terra-lab.ai 來取消清除。</translation>
         </message>
         <message>
-            <source>%n layers keep the data they have now</source>
-            <translation>%n 個圖層維持現有資料</translation>
-        </message>
-        <message>
             <source>Add a layer from the project</source>
             <translation>從專案加入圖層</translation>
         </message>
         <message>
-            <source>Back to examples</source>
-            <translation>返回範例</translation>
-        </message>
-        <message>
             <source>Check for updates</source>
             <translation>檢查更新</translation>
-        </message>
-        <message>
-            <source>Go back one step in the agent's work</source>
-            <translation>回到上一步</translation>
-        </message>
-        <message>
-            <source>Restoring brings the project and every backed-up layer back.</source>
-            <translation>還原將恢復專案及所有已備份圖層。</translation>
-        </message>
-        <message>
-            <source>Run a panel command</source>
-            <translation>執行面板指令</translation>
-        </message>
-        <message>
-            <source>Start of this chat</source>
-            <translation>此對話開頭</translation>
-        </message>
-        <message>
-            <source>These layers keep the data they have now:</source>
-            <translation>以下圖層維持現有資料：</translation>
-        </message>
-        <message>
-            <source>backup failed</source>
-            <translation>備份失敗</translation>
         </message>
         <message>
             <source>it lives in a database or a service, not in a file</source>
@@ -602,42 +400,6 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <translation>檔案過大</translation>
         </message>
         <message>
-            <source>{layer} keeps the data it has now</source>
-            <translation>{layer} 維持現有資料</translation>
-        </message>
-        <message>
-            <source>1. Copy the whole session</source>
-            <translation>1. 複製整個工作階段</translation>
-        </message>
-        <message>
-            <source>2. Save it as a file</source>
-            <translation>2. 儲存為檔案</translation>
-        </message>
-        <message>
-            <source>Copied: {runs} runs, {calls} tool calls</source>
-            <translation>已複製：{runs} 次執行，{calls} 次工具呼叫</translation>
-        </message>
-        <message>
-            <source>Could not copy</source>
-            <translation>無法複製</translation>
-        </message>
-        <message>
-            <source>Saved. Open {name}</source>
-            <translation>已儲存。開啟 {name}</translation>
-        </message>
-        <message>
-            <source>The file could not be written</source>
-            <translation>無法寫入檔案</translation>
-        </message>
-        <message>
-            <source>The report holds this whole session: your messages, every tool the agent ran with its arguments and what came back, the plan it followed and the recent log lines. Your activation key, your passwords and the contents of your files are never in it.</source>
-            <translation>報告包含整個工作階段：您的訊息、AI Agent 執行的每個工具（含參數與回傳結果）、其所遵循的計畫，以及最近的記錄行。啟用金鑰、密碼與檔案內容絕不會包含在內。</translation>
-        </message>
-        <message>
-            <source>There is no session to save</source>
-            <translation>沒有可儲存的工作階段</translation>
-        </message>
-        <message>
             <source>This link does not point to a web page, so it was not opened.</source>
             <translation>此連結並非網頁，因此未開啟。</translation>
         </message>
@@ -646,96 +408,17 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <translation>未開啟此連結</translation>
         </message>
         <message>
-            <source>{step}. Open an email to {email}</source>
-            <translation>{step}. 開啟寄給 {email} 的電子郵件</translation>
-        </message>
-        <message>
             <source>The message you send is the part that reaches us: we keep it 90 days to make AI Agent better. On {pro}, no copy at all.</source>
             <translation>您傳送的訊息是我們會收到的部分：我們保留 90 天，用來改進 AI Agent。在 {pro} 上，完全不保留副本。</translation>
-        </message>
-        <message>
-            <source>After this run</source>
-            <translation>這次執行之後</translation>
-        </message>
-        <message>
-            <source>Before this run</source>
-            <translation>這次執行之前</translation>
-        </message>
-        <message>
-            <source>Before you continued</source>
-            <translation>你繼續之前</translation>
-        </message>
-        <message>
-            <source>Made in QGIS, outside the agent</source>
-            <translation>在 QGIS 中完成，於代理之外</translation>
-        </message>
-        <message>
-            <source>Nothing had been changed yet</source>
-            <translation>尚未有任何變更</translation>
         </message>
         <message>
             <source>Restore</source>
             <translation>還原</translation>
         </message>
         <message>
-            <source>Run {n}</source>
-            <translation>執行 {n}</translation>
-        </message>
-        <message>
-            <source>The first thing this chat did</source>
-            <translation>此對話所做的第一件事</translation>
-        </message>
-        <message>
-            <source>You are here</source>
-            <translation>你在這裡</translation>
-        </message>
-        <message>
-            <source>Your own changes</source>
-            <translation>你自己的變更</translation>
-        </message>
-        <message>
-            <source>Your own edits</source>
-            <translation>你自己的編輯</translation>
-        </message>
-        <message>
             <location filename="src/ui/checkpoint_sheet.py" />
             <source>Belongs to a closed project</source>
             <translation>屬於已關閉的專案</translation>
-        </message>
-        <message>
-            <location filename="src/ui/checkpoint_sheet.py" />
-            <source>Belongs to {name}</source>
-            <translation>屬於 {name}</translation>
-        </message>
-        <message>
-            <location filename="src/ui/checkpoint_sheet.py" />
-            <source>Undo puts back: {changes}</source>
-            <translation>復原將還原：{changes}</translation>
-        </message>
-        <message>
-            <location filename="src/ui/checkpoint_sheet.py" />
-            <source>What this run changed:</source>
-            <translation>本次執行變更的內容：</translation>
-        </message>
-        <message>
-            <location filename="src/ui/checkpoint_sheet.py" />
-            <source>another project</source>
-            <translation>另一個專案</translation>
-        </message>
-        <message>
-            <location filename="src/ui/checkpoint_sheet.py" />
-            <source>changed without a backup</source>
-            <translation>未建立備份即遭變更</translation>
-        </message>
-        <message>
-            <location filename="src/ui/checkpoint_sheet.py" />
-            <source>earlier project file</source>
-            <translation>較舊的專案檔案</translation>
-        </message>
-        <message>
-            <location filename="src/ui/checkpoint_sheet.py" />
-            <source>emptied by a restart</source>
-            <translation>因重新啟動而清空</translation>
         </message>
         <message>
             <location filename="src/ui/checkpoint_sheet.py" />
@@ -754,11 +437,6 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         </message>
         <message>
             <location filename="src/ui/checkpoint_sheet.py" />
-            <source>new file</source>
-            <translation>新檔案</translation>
-        </message>
-        <message>
-            <location filename="src/ui/checkpoint_sheet.py" />
             <source>the project is saved under another file now, and a restore writes only that one</source>
             <translation>專案現已儲存為另一個檔案，還原僅會寫入那一個檔案</translation>
         </message>
@@ -768,115 +446,16 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <translation>此次執行寫入了該檔案，還原不會刪除任何檔案</translation>
         </message>
         <message>
-            <location filename="src/ui/checkpoint_sheet.py" />
-            <source>{change}, not put back: {why}</source>
-            <translation>{change}，未還原：{why}</translation>
-        </message>
-        <message>
-            <location filename="src/ui/checkpoint_sheet.py" />
-            <source>{name} added</source>
-            <translation>{name} 已新增</translation>
-        </message>
-        <message>
-            <location filename="src/ui/checkpoint_sheet.py" />
-            <source>{name} changed</source>
-            <translation>{name} 已變更</translation>
-        </message>
-        <message>
-            <location filename="src/ui/checkpoint_sheet.py" />
-            <source>{name} removed</source>
-            <translation>{name} 已移除</translation>
-        </message>
-        <message>
-            <location filename="src/ui/checkpoint_sheet.py" />
-            <source>{name} written</source>
-            <translation>{name} 已寫入</translation>
-        </message>
-        <message>
-            <location filename="src/ui/checkpoint_sheet.py" />
-            <source>{name}: {before} to {after} features</source>
-            <translation>{name}：{before} 到 {after} 個圖徵</translation>
-        </message>
-        <message>
-            <location filename="src/ui/checkpoint_sheet.py" />
-            <source>{name}: {fields}</source>
-            <translation>{name}：{fields}</translation>
-        </message>
-        <message>
-            <source>Allow / Deny</source>
-            <translation>允許／拒絕</translation>
-        </message>
-        <message>
-            <source>Before: {request}</source>
-            <translation>之前：{request}</translation>
-        </message>
-        <message>
-            <source>Changed: {changes}</source>
-            <translation>已變更：{changes}</translation>
-        </message>
-        <message>
-            <source>Chat history button</source>
-            <translation>對話紀錄按鈕</translation>
-        </message>
-        <message>
-            <source>New chat button</source>
-            <translation>新對話按鈕</translation>
-        </message>
-        <message>
             <source>No examples match</source>
             <translation>沒有符合的範例</translation>
-        </message>
-        <message>
-            <source>Now</source>
-            <translation>現在</translation>
         </message>
         <message>
             <source>Request {n}</source>
             <translation>請求 {n}</translation>
         </message>
         <message>
-            <source>The project after this request</source>
-            <translation>此請求之後的專案</translation>
-        </message>
-        <message>
-            <source>The project before the first request</source>
-            <translation>第一個請求之前的專案</translation>
-        </message>
-        <message>
-            <source>The project before this request</source>
-            <translation>此請求之前的專案</translation>
-        </message>
-        <message>
             <source>This layer is no longer in the project.</source>
             <translation>此圖層已不在專案中。</translation>
-        </message>
-        <message>
-            <source>after request {n}</source>
-            <translation>請求 {n} 之後</translation>
-        </message>
-        <message>
-            <source>after “{request}”</source>
-            <translation>「{request}」之後</translation>
-        </message>
-        <message>
-            <source>before request {n}</source>
-            <translation>請求 {n} 之前</translation>
-        </message>
-        <message>
-            <source>before “{request}”</source>
-            <translation>「{request}」之前</translation>
-        </message>
-        <message>
-            <source>request {n}</source>
-            <translation>請求 {n}</translation>
-        </message>
-        <message>
-            <source>the start of this chat</source>
-            <translation>此聊天的開始</translation>
-        </message>
-        <message>
-            <source>your own changes</source>
-            <translation>您自己的變更</translation>
         </message>
         <message>
             <source>AI Edit: {action}</source>
@@ -911,10 +490,6 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <translation>在圖面配置中加入比例尺</translation>
         </message>
         <message>
-            <source>Add an elevation profile to the layout</source>
-            <translation>在圖面配置中加入高程剖面</translation>
-        </message>
-        <message>
             <source>Add features to {layer_name}</source>
             <translation>新增圖徵至 {layer_name}</translation>
         </message>
@@ -943,10 +518,6 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <translation>新增底圖[ {name}]</translation>
         </message>
         <message>
-            <source>Add the bookmark {name}</source>
-            <translation>新增空間書籤 {name}</translation>
-        </message>
-        <message>
             <source>Add the field {field_name} to {layer_name}</source>
             <translation>新增欄位 {field_name} 至 {layer_name}</translation>
         </message>
@@ -959,16 +530,8 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <translation>新增衛星影像[ {name}]</translation>
         </message>
         <message>
-            <source>Add the tiles[ {name}]</source>
-            <translation>新增圖磚[ {name}]</translation>
-        </message>
-        <message>
             <source>Add {path}[ as {name}]</source>
             <translation>新增 {path}[ 為 {name}]</translation>
-        </message>
-        <message>
-            <source>Add {source}[ as {name}]</source>
-            <translation>新增 {source}[ 為 {name}]</translation>
         </message>
         <message>
             <source>Add {table} from {connection}</source>
@@ -1045,10 +608,6 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <source>Compute the wetness index[ of {area}]</source>
             <translation>計算濕度指數[ {area}]</translation>
-        </message>
-        <message>
-            <source>Configure temporal layers and playback</source>
-            <translation>設定時間性圖層與播放</translation>
         </message>
         <message>
             <source>Configure the attribute form of {layer_name}</source>
@@ -1135,16 +694,8 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <translation>取得建築物輪廓[ 為 {layer_name}]</translation>
         </message>
         <message>
-            <source>Filter the map by elevation</source>
-            <translation>依高程篩選地圖</translation>
-        </message>
-        <message>
             <source>Filter {layer_name}[: {filter}]</source>
             <translation>篩選 {layer_name}[：{filter}]</translation>
-        </message>
-        <message>
-            <source>Find duplicate project layers</source>
-            <translation>尋找重複的專案圖層</translation>
         </message>
         <message>
             <source>Find the address at a point</source>
@@ -1167,10 +718,6 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <translation>Hans van der Kwast 的評測，在 QGIS 中錄製。</translation>
         </message>
         <message>
-            <source>Identify a CRS from WKT or a .prj file</source>
-            <translation>從 WKT 或 .prj 檔判斷 CRS</translation>
-        </message>
-        <message>
             <source>Identify features at a point</source>
             <translation>識別某點的圖徵</translation>
         </message>
@@ -1183,20 +730,12 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <translation>匯入 PostGIS[ 資料表 {table}]，來自 {layer_name}</translation>
         </message>
         <message>
-            <source>Inspect or configure a mesh layer</source>
-            <translation>檢查或設定網孔圖層</translation>
-        </message>
-        <message>
             <source>Inspect {layer_name}</source>
             <translation>檢查 {layer_name}</translation>
         </message>
         <message>
             <source>Inspect {url}</source>
             <translation>檢查 {url}</translation>
-        </message>
-        <message>
-            <source>Install {name}</source>
-            <translation>安裝 {name}</translation>
         </message>
         <message>
             <source>Join a table to {layer_name}</source>
@@ -1237,10 +776,6 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <source>Look at the QGIS window</source>
             <translation>查看 QGIS 視窗</translation>
-        </message>
-        <message>
-            <source>Look at the interface</source>
-            <translation>查看介面</translation>
         </message>
         <message>
             <source>Look for data on this computer</source>
@@ -1307,10 +842,6 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <translation>網格計算[ 為 {name}]</translation>
         </message>
         <message>
-            <source>Read a coordinate from the map</source>
-            <translation>從地圖讀取坐標</translation>
-        </message>
-        <message>
             <source>Read features of {layer_name}</source>
             <translation>讀取圖徵 {layer_name}</translation>
         </message>
@@ -1319,20 +850,12 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <translation>讀取 CRS {layer_name}</translation>
         </message>
         <message>
-            <source>Read the Python errors</source>
-            <translation>讀取 Python 錯誤</translation>
-        </message>
-        <message>
             <source>Read the extent of {layer_name}</source>
             <translation>讀取範圍 {layer_name}</translation>
         </message>
         <message>
             <source>Read the help of {algorithm_id}</source>
             <translation>讀取說明 {algorithm_id}</translation>
-        </message>
-        <message>
-            <source>Read the interface</source>
-            <translation>讀取介面</translation>
         </message>
         <message>
             <source>Read the labels of {layer_name}</source>
@@ -1349,10 +872,6 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <source>Read the map view</source>
             <translation>讀取地圖檢視</translation>
-        </message>
-        <message>
-            <source>Read the network log</source>
-            <translation>讀取網路日誌</translation>
         </message>
         <message>
             <source>Read the project</source>
@@ -1379,10 +898,6 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <translation>將 {old_name} 重新命名為 {new_name}，於 {layer_name}</translation>
         </message>
         <message>
-            <source>Render the map</source>
-            <translation>繪製地圖影像</translation>
-        </message>
-        <message>
             <source>Reorder the layers</source>
             <translation>重新排序圖層</translation>
         </message>
@@ -1399,20 +914,12 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <translation>執行 SQL 查詢</translation>
         </message>
         <message>
-            <source>Run several commands</source>
-            <translation>執行多個命令</translation>
-        </message>
-        <message>
             <source>Sample several rasters at points</source>
             <translation>在多個點對多個網格取樣</translation>
         </message>
         <message>
             <source>Sample {layer_name} at a point</source>
             <translation>在某點取樣 {layer_name}</translation>
-        </message>
-        <message>
-            <source>Save the Processing script {name}</source>
-            <translation>儲存 Processing 程序檔 {name}</translation>
         </message>
         <message>
             <source>Save the custom CRS {name}</source>
@@ -1463,10 +970,6 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <translation>選取 {field_name} {operator} {value} 的圖徵，來自 {layer_name}</translation>
         </message>
         <message>
-            <source>Select {layer_name} in the layer panel</source>
-            <translation>在圖層面板中選取 {layer_name}</translation>
-        </message>
-        <message>
             <source>Set NoData on {layer_name}</source>
             <translation>設定 NoData 於 {layer_name}</translation>
         </message>
@@ -1489,10 +992,6 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <source>Set the project CRS to {crs}</source>
             <translation>將專案 CRS 設定為 {crs}</translation>
-        </message>
-        <message>
-            <source>Set the raster attribute table on {layer_name}</source>
-            <translation>設定網格屬性表格於 {layer_name}</translation>
         </message>
         <message>
             <source>Set {property} on {layer_name}</source>
@@ -1535,20 +1034,12 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <translation>設定樣式 {layer_name}</translation>
         </message>
         <message>
-            <source>Take a screenshot</source>
-            <translation>擷取螢幕畫面</translation>
-        </message>
-        <message>
             <source>The complete AI Agent guide</source>
             <translation>完整的 AI Agent 指南</translation>
         </message>
         <message>
             <source>The panel from the first prompt to the finished map.</source>
             <translation>從第一個 prompt 到完成地圖的面板。</translation>
-        </message>
-        <message>
-            <source>Trim or extend a line endpoint</source>
-            <translation>修剪或延伸線端點</translation>
         </message>
         <message>
             <source>Turn {frames_folder} into a GIF</source>
@@ -1569,10 +1060,6 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <source>Zonal statistics of {raster_layer} in {polygon_layer}</source>
             <translation>{raster_layer} 的分區統計，於 {polygon_layer}</translation>
-        </message>
-        <message>
-            <source>Zonal statistics with Earth Engine</source>
-            <translation>使用 Earth Engine 的分區統計</translation>
         </message>
         <message>
             <source>Area of interest[: {label}][ from {layer_name}]</source>
@@ -1656,36 +1143,16 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <translation>%n 個結果</translation>
         </message>
         <message>
-            <source>1 layer won't come back: {names}</source>
-            <translation>1 個圖層不會還原：{names}</translation>
-        </message>
-        <message>
             <source>1 result</source>
             <translation>1 個結果</translation>
-        </message>
-        <message>
-            <source>Categories</source>
-            <translation>類別</translation>
-        </message>
-        <message>
-            <source>Changes made in QGIS, outside the agent.</source>
-            <translation>在 QGIS 中、AI Agent 以外所做的變更。</translation>
         </message>
         <message>
             <source>Data sources</source>
             <translation>資料來源</translation>
         </message>
         <message>
-            <source>Data: {names}</source>
-            <translation>資料：{names}</translation>
-        </message>
-        <message>
             <source>Go back to an earlier version of your project</source>
             <translation>回到專案的較早版本</translation>
-        </message>
-        <message>
-            <source>Going back brings the project and every backed-up layer back. These layers keep the data they have now:</source>
-            <translation>回到先前版本會將專案及每個已備份的圖層一起恢復。這些圖層會保留它們目前的資料：</translation>
         </message>
         <message>
             <source>Good to know</source>
@@ -1700,18 +1167,6 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <translation>檢查地理參照 {raster}</translation>
         </message>
         <message>
-            <source>Next</source>
-            <translation>下一個</translation>
-        </message>
-        <message>
-            <source>Previous</source>
-            <translation>上一個</translation>
-        </message>
-        <message>
-            <source>Put back brings the project to where this request left it.</source>
-            <translation>「還原」會讓專案回到此要求結束時的樣子。</translation>
-        </message>
-        <message>
             <source>Put it back</source>
             <translation>還原</translation>
         </message>
@@ -1722,18 +1177,6 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <source>Read data from a web page</source>
             <translation>從網頁讀取資料</translation>
-        </message>
-        <message>
-            <source>Real tasks the agent runs from one sentence. Open one to see its prompt.</source>
-            <translation>AI Agent 只需一句話就能執行的實際任務。開啟其中一項即可查看其 prompt。</translation>
-        </message>
-        <message>
-            <source>Restore puts the project back as this request left it.</source>
-            <translation>「還原」會讓專案回到此要求結束時的樣子。</translation>
-        </message>
-        <message>
-            <source>Sample data included</source>
-            <translation>包含範例資料</translation>
         </message>
         <message>
             <source>Sample file</source>
@@ -1752,32 +1195,8 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <translation>步驟</translation>
         </message>
         <message>
-            <source>Undo puts the project back as it was before this request.</source>
-            <translation>「復原」會讓專案回到此要求之前的樣子。</translation>
-        </message>
-        <message>
-            <source>Undo the agent's last request</source>
+            <source>Undo the AI agent's last request</source>
             <translation>復原 AI Agent 的上一個要求</translation>
-        </message>
-        <message>
-            <source>Use this example</source>
-            <translation>使用此範例</translation>
-        </message>
-        <message>
-            <source>Write the report {title}</source>
-            <translation>撰寫報告 {title}</translation>
-        </message>
-        <message>
-            <source>{layer} ({reason})</source>
-            <translation>{layer}（{reason}）</translation>
-        </message>
-        <message>
-            <source>{n} layers won't come back: {names}</source>
-            <translation>{n} 個圖層不會還原：{names}</translation>
-        </message>
-        <message>
-            <source>• {layer}: {reason}</source>
-            <translation>• {layer}：{reason}</translation>
         </message>
         <message>
             <source>Change a label of the layout {layout_name}</source>
@@ -1810,10 +1229,6 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <source>Remove one item from the layout {layout_name}</source>
             <translation>從圖面配置移除一個項目 {layout_name}</translation>
-        </message>
-        <message>
-            <source>Sends when the agent finishes</source>
-            <translation>AI Agent 完成時傳送</translation>
         </message>
         <message>
             <source>AI Agent {version} is installed.</source>
@@ -1863,10 +1278,6 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <translation>新增 {name}[，來源：{source}]</translation>
         </message>
         <message>
-            <source>Bring back what this request changed.</source>
-            <translation>還原這個請求所做的變更。</translation>
-        </message>
-        <message>
             <source>Buffer of {DISTANCE} around {INPUT}</source>
             <translation>{INPUT} 周圍 {DISTANCE} 的緩衝區</translation>
         </message>
@@ -1897,14 +1308,6 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <source>Contours of {INPUT}[ every {INTERVAL}]</source>
             <translation>{INPUT} 的等高線[，每 {INTERVAL}]</translation>
-        </message>
-        <message>
-            <source>Copy a report of this problem, then paste it into an email to us.</source>
-            <translation>複製這個問題的報告，再貼到寄給我們的電子郵件中。</translation>
-        </message>
-        <message>
-            <source>Copy report</source>
-            <translation>複製報告</translation>
         </message>
         <message>
             <source>Count {POINTS} in each feature of {POLYGONS}</source>
@@ -1959,20 +1362,12 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <translation>合併 {LAYERS}</translation>
         </message>
         <message>
-            <source>Open an email</source>
-            <translation>開啟電子郵件</translation>
-        </message>
-        <message>
             <source>Polygonize {INPUT}</source>
             <translation>將 {INPUT} 轉為多邊形</translation>
         </message>
         <message>
             <source>Rasterize {INPUT}</source>
             <translation>將 {INPUT} 轉為網格</translation>
-        </message>
-        <message>
-            <source>Remove what this request changed on the map.</source>
-            <translation>移除這個請求在地圖上所做的變更。</translation>
         </message>
         <message>
             <source>Remove {OVERLAY} from {INPUT}</source>
@@ -1989,10 +1384,6 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <source>Run processing</source>
             <translation>執行處理</translation>
-        </message>
-        <message>
-            <source>Save it as a file</source>
-            <translation>另存為檔案</translation>
         </message>
         <message>
             <source>Simplify {INPUT}[ with a tolerance of {TOLERANCE}]</source>
@@ -2015,12 +1406,8 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <translation>{INPUT} 每個圖徵中 {INPUT_RASTER} 的統計</translation>
         </message>
         <message>
-            <source>The agent reads it at its next step</source>
+            <source>The AI agent reads it at its next step</source>
             <translation>代理會在下一步讀取</translation>
-        </message>
-        <message>
-            <source>This conversation: your messages, each step the AI took and what it found, and technical details about QGIS and the plugin. Never your passwords, your sign-in or the contents of your files.</source>
-            <translation>這段對話：你的訊息、AI 的每個步驟與發現，以及 QGIS 和外掛的技術細節。絕不包含你的密碼、登入資訊或檔案內容。</translation>
         </message>
         <message>
             <source>Turn {INPUT} into lines</source>
@@ -2033,10 +1420,6 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <source>Voronoi polygons of {INPUT}</source>
             <translation>{INPUT} 的 Voronoi 多邊形</translation>
-        </message>
-        <message>
-            <source>What is included</source>
-            <translation>包含的內容</translation>
         </message>
         <message>
             <source>{algorithm} on {layer}</source>
@@ -2071,48 +1454,12 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <translation>{tool}，對象：{layer}</translation>
         </message>
         <message>
-            <source>1 layer added</source>
-            <translation>已新增 1 個圖層</translation>
-        </message>
-        <message>
-            <source>1 layer removed</source>
-            <translation>已移除 1 個圖層</translation>
-        </message>
-        <message>
-            <source>Available when the agent finishes</source>
+            <source>Available when the AI agent finishes</source>
             <translation>代理完成後即可使用</translation>
         </message>
         <message>
             <source>Changes made in QGIS</source>
             <translation>在 QGIS 中所做的變更</translation>
-        </message>
-        <message>
-            <source>Email address copied</source>
-            <translation>已複製電子郵件地址</translation>
-        </message>
-        <message>
-            <source>Hide categories</source>
-            <translation>隱藏類別</translation>
-        </message>
-        <message>
-            <source>Report copied</source>
-            <translation>已複製回報內容</translation>
-        </message>
-        <message>
-            <source>Send us a report and we will look into it and fix it.</source>
-            <translation>請傳送回報給我們,我們會查看並修正。</translation>
-        </message>
-        <message>
-            <source>Show categories</source>
-            <translation>顯示類別</translation>
-        </message>
-        <message>
-            <source>Tell us what went wrong</source>
-            <translation>告訴我們哪裡出了問題</translation>
-        </message>
-        <message>
-            <source>Then paste it into an email to:</source>
-            <translation>然後將它貼到電子郵件中,寄給:</translation>
         </message>
         <message>
             <source>file the run wrote</source>
@@ -2135,34 +1482,13 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <translation>無法還原 {layer}({reason})</translation>
         </message>
         <message>
-            <source>{names} and {n} more</source>
-            <translation>{names} 以及另外 {n} 個</translation>
-        </message>
-        <message>
-            <source>{n} layers added</source>
-            <translation>已新增 {n} 個圖層</translation>
-        </message>
-        <message>
             <source>{n} layers can't be restored</source>
             <translation>無法還原 {n} 個圖層</translation>
-        </message>
-        <message>
-            <source>{n} layers changed</source>
-            <translation>已變更 {n} 個圖層</translation>
-        </message>
-        <message>
-            <source>{n} layers removed</source>
-            <translation>已移除 {n} 個圖層</translation>
         </message>
         <message>
             <location filename="src/ui/library/pictures.py" />
             <source>After</source>
             <translation>之後</translation>
-        </message>
-        <message>
-            <location filename="src/ui/library/home.py" />
-            <source>Ask the agent</source>
-            <translation>詢問 Agent</translation>
         </message>
         <message>
             <location filename="src/ui/library/pictures.py" />
@@ -2193,11 +1519,6 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <location filename="src/ui/library/slider.py" />
             <source>Enlarge</source>
             <translation>放大</translation>
-        </message>
-        <message>
-            <location filename="src/ui/library/home.py" />
-            <source>No example matches these words. The agent may still do it.</source>
-            <translation>沒有符合這些字詞的範例。Agent 仍可能完成這項工作。</translation>
         </message>
         <message>
             <location filename="src/ui/library/parts.py" />
@@ -2335,10 +1656,6 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <translation>沒有符合這些字詞的範例。AI 助理仍有可能做到。</translation>
         </message>
         <message>
-            <source>Real tasks the AI agent does from one sentence. Open one to try it.</source>
-            <translation>AI 助理只憑一句話就能完成的真實任務。打開一個來試試。</translation>
-        </message>
-        <message>
             <source>Save the report {title}</source>
             <translation>儲存報告 {title}</translation>
         </message>
@@ -2471,10 +1788,6 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <translation>請登入以便在這裡傳送意見回饋，或寄信給我們：{email}。</translation>
         </message>
         <message>
-            <source>We'll receive your message, this conversation and technical details (plugin and QGIS version, system, recent logs). Never your passwords or the contents of your files.</source>
-            <translation>我們會收到您的訊息、這段對話和技術資訊（外掛程式與 QGIS 版本、系統、最近的記錄）。絕不包含您的密碼或檔案內容。</translation>
-        </message>
-        <message>
             <source>You sent several reports in a short time. Try again in a few minutes.</source>
             <translation>您在短時間內傳送了多則回報。請幾分鐘後再試。</translation>
         </message>
@@ -2499,18 +1812,6 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <translation>你輸入的內容</translation>
         </message>
         <message>
-            <source>Expired on {day}.</source>
-            <translation>已於 {day} 過期。</translation>
-        </message>
-        <message>
-            <source>Expires on {day}.</source>
-            <translation>將於 {day} 過期。</translation>
-        </message>
-        <message>
-            <source>Private link: its signature stays on this computer. TerraLab and the AI agent see only the site and the file name.</source>
-            <translation>私人連結：簽章只留在這台電腦上。TerraLab 和 AI 代理只會看到網站與檔案名稱。</translation>
-        </message>
-        <message>
             <source>expired</source>
             <translation>已過期</translation>
         </message>
@@ -2519,88 +1820,13 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <name>AIAgentContext</name>
         <message>
             <location filename="src/core/context.py" />
-            <source>Add an OpenStreetMap basemap</source>
-            <translation>新增 OpenStreetMap 底圖</translation>
-        </message>
-        <message>
-            <location filename="src/core/context.py" />
-            <source>Buffer {layer} by 100 m into a new layer</source>
-            <translation>對 {layer} 建立 100 m 緩衝區到新圖層</translation>
-        </message>
-        <message>
-            <location filename="src/core/context.py" />
-            <source>Check the geometry validity of {layer}</source>
-            <translation>檢查 {layer} 的幾何有效性</translation>
-        </message>
-        <message>
-            <location filename="src/core/context.py" />
-            <source>Clip {layer} to the selection</source>
-            <translation>將 {layer} 裁剪至選取項目</translation>
-        </message>
-        <message>
-            <location filename="src/core/context.py" />
-            <source>Count {points} per {polygons}</source>
-            <translation>計算每個 {polygons} 中的 {points}</translation>
-        </message>
-        <message>
-            <location filename="src/core/context.py" />
-            <source>Describe the layers in this project</source>
-            <translation>描述此專案中的圖層</translation>
-        </message>
-        <message>
-            <location filename="src/core/context.py" />
-            <source>Describe the raster bands and their value range</source>
-            <translation>描述影像波段及其值範圍</translation>
-        </message>
-        <message>
-            <location filename="src/core/context.py" />
-            <source>Detect buildings with AI Segmentation</source>
-            <translation>使用 AI Segmentation 偵測建築物</translation>
-        </message>
-        <message>
-            <location filename="src/core/context.py" />
-            <source>Export a map layout of the current view</source>
-            <translation>匯出目前檢視的地圖版面配置</translation>
-        </message>
-        <message>
-            <location filename="src/core/context.py" />
-            <source>Load a dataset from a file or a URL</source>
-            <translation>從檔案或 URL 載入資料集</translation>
-        </message>
-        <message>
-            <location filename="src/core/context.py" />
-            <source>Load a vector dataset to work with</source>
-            <translation>載入要處理的向量資料集</translation>
-        </message>
-        <message>
-            <location filename="src/core/context.py" />
             <source>Raster</source>
             <translation>網格</translation>
         </message>
         <message>
             <location filename="src/core/context.py" />
-            <source>Sample the elevation at the selected points</source>
-            <translation>取樣所選點的高程</translation>
-        </message>
-        <message>
-            <location filename="src/core/context.py" />
-            <source>Style {layer} by {field}</source>
-            <translation>依 {field} 設定 {layer} 樣式</translation>
-        </message>
-        <message>
-            <location filename="src/core/context.py" />
-            <source>Style {layer} with a categorized renderer</source>
-            <translation>使用分類轉譯器設定 {layer} 樣式</translation>
-        </message>
-        <message>
-            <location filename="src/core/context.py" />
             <source>Table</source>
             <translation>表格</translation>
-        </message>
-        <message>
-            <location filename="src/core/context.py" />
-            <source>What can you do in this project?</source>
-            <translation>此專案可以做什麼？</translation>
         </message>
         <message>
             <source>QGIS is not running</source>
@@ -2673,11 +1899,6 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         </message>
         <message>
             <location filename="src/ui/options_page.py" />
-            <source>AI Agent by TerraLab drives QGIS in plain language: load data, style layers, run analyses, build layouts. It asks before risky changes and you can undo a run.</source>
-            <translation>由 TerraLab 打造的 AI Agent 以淺顯易懂的語言操作 QGIS：載入資料、設定圖層樣式、執行分析、建立版面配置。執行具風險的變更前會先詢問，且您可以復原某次執行。</translation>
-        </message>
-        <message>
-            <location filename="src/ui/options_page.py" />
             <source>AI Agent settings...</source>
             <translation>AI Agent 設定…</translation>
         </message>
@@ -2685,11 +1906,6 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <location filename="src/ui/options_page.py" />
             <source>Open AI Agent</source>
             <translation>開啟 AI Agent</translation>
-        </message>
-        <message>
-            <location filename="src/ui/options_page.py" />
-            <source>Open the panel with Ctrl+Alt+A, or type "ai" followed by a question in the locator bar (Ctrl+K). Right-click a layer, a feature or the map to ask about it.</source>
-            <translation>以 Ctrl+Alt+A 開啟面板，或在定位器 (Ctrl+K) 中輸入「ai」，後面接著問題。在圖層、圖徵或地圖上按一下滑鼠右鍵即可詢問相關內容。</translation>
         </message>
         <message>
             <source>AI Agent by TerraLab is your AI agent inside QGIS: it loads data, styles layers, runs analyses and builds layouts. It asks before risky changes and you can undo a run.</source>
@@ -2707,16 +1923,6 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <location filename="src/plugin.py" />
             <source>AI Agent could not open its panel: {error}</source>
             <translation>AI Agent 無法開啟其面板：{error}</translation>
-        </message>
-        <message>
-            <location filename="src/plugin.py" />
-            <source>Drive QGIS in plain language</source>
-            <translation>以簡單語言操作 QGIS</translation>
-        </message>
-        <message>
-            <location filename="src/plugin.py" />
-            <source>Open the AI Agent panel and drive QGIS in plain language.</source>
-            <translation>開啟 AI Agent 面板，用自然語言操作 QGIS。</translation>
         </message>
         <message>
             <location filename="src/plugin.py" />
@@ -2759,23 +1965,19 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <translation>顯示</translation>
         </message>
         <message>
-            <source>The agent is waiting for your approval.</source>
-            <translation>AI Agent 正在等待您的核准。</translation>
-        </message>
-        <message>
             <source>Your AI agent inside QGIS</source>
             <translation>您在 QGIS 中的 AI 代理</translation>
         </message>
         <message>
-            <source>The agent finished.</source>
+            <source>The AI agent finished.</source>
             <translation>AI Agent 已完成。</translation>
         </message>
         <message>
-            <source>The agent is waiting for your answer.</source>
+            <source>The AI agent is waiting for your answer.</source>
             <translation>AI Agent 正在等待您的回答。</translation>
         </message>
         <message>
-            <source>The agent stopped before finishing.</source>
+            <source>The AI agent stopped before finishing.</source>
             <translation>AI Agent 在完成前已停止。</translation>
         </message>
     </context>
@@ -2855,11 +2057,6 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         </message>
         <message>
             <location filename="src/api/account.py" />
-            <source>Still waiting for the sign-in page. If no browser opened, or the page shows an error, click Cancel and try again.</source>
-            <translation>仍在等待登入頁面。如果沒有開啟瀏覽器，或頁面顯示錯誤，請按一下「取消」再試一次。</translation>
-        </message>
-        <message>
-            <location filename="src/api/account.py" />
             <source>That address does not match the account. Nothing was deleted.</source>
             <translation>此電子郵件地址與帳戶不符。未刪除任何內容。</translation>
         </message>
@@ -2905,18 +2102,6 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         </message>
         <message>
             <location filename="src/api/account.py" />
-            <source>You are signed in on this computer, but QGIS cannot read your sign-in until you enter its master password.</source>
-            <translation>您已在此電腦上登入，但 QGIS 必須等您輸入主密碼後才能讀取登入資訊。</translation>
-        </message>
-        <message>
-            <location filename="src/api/account.py" />
-            <source>You can also open this address by hand:
-{}</source>
-            <translation>您也可以手動開啟此地址：
-{}</translation>
-        </message>
-        <message>
-            <location filename="src/api/account.py" />
             <source>Your account is scheduled for deletion. Everything is erased for good on {date}. Until then, sign in on terra-lab.ai to cancel it.</source>
             <translation>您的帳戶已排定刪除。所有內容將於 {date} 永久清除。在此之前，請在 terra-lab.ai 登入以取消。</translation>
         </message>
@@ -2949,20 +2134,12 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <translation>您已在此電腦上登入，但 QGIS 必須等您輸入主密碼後才能讀取登入資訊。按一下「登入」以輸入。</translation>
         </message>
         <message>
-            <source>Opening the checkout</source>
-            <translation>正在開啟結帳頁面</translation>
-        </message>
-        <message>
             <source>Signed in (from {}).</source>
             <translation>已登入（來自 {}）。</translation>
         </message>
         <message>
             <source>Signed in as {} (from {}).</source>
             <translation>已登入為 {}（來自 {}）。</translation>
-        </message>
-        <message>
-            <source>No connection to terra-lab.ai. Still trying...</source>
-            <translation>無法連線至 terra-lab.ai。仍在嘗試中…</translation>
         </message>
         <message>
             <source>Can't reach TerraLab. Retrying.</source>
@@ -2976,19 +2153,13 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <source>Still waiting for the sign-in page. No browser? Click Open browser: it also copies the link, to paste in your browser.</source>
             <translation>仍在等待登入頁面。沒有開啟瀏覽器？按一下「開啟瀏覽器」：這也會複製連結，可貼到你的瀏覽器中。</translation>
         </message>
+        <message>
+            <source>QGIS could not save your sign-in on this computer. Click Sign in to try again.</source>
+            <translation>QGIS 無法在這台電腦上儲存您的登入資訊。請點擊「登入」再試一次。</translation>
+        </message>
     </context>
     <context>
         <name>AccountSettingsDialog</name>
-        <message>
-            <location filename="src/ui/account_settings_dialog.py" />
-            <source>Account settings</source>
-            <translation>帳戶設定</translation>
-        </message>
-        <message>
-            <location filename="src/ui/account_settings_dialog.py" />
-            <source>Book a call</source>
-            <translation>預約通話</translation>
-        </message>
         <message>
             <location filename="src/ui/account_settings_dialog.py" />
             <source>Connected</source>
@@ -3006,26 +2177,6 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         </message>
         <message>
             <location filename="src/ui/account_settings_dialog.py" />
-            <source>Could not load your account. Try again in a moment.</source>
-            <translation>無法載入您的帳戶。請稍後再試。</translation>
-        </message>
-        <message>
-            <location filename="src/ui/account_settings_dialog.py" />
-            <source>Could not reach TerraLab. Check your internet connection, then try again.</source>
-            <translation>無法連線至 TerraLab。請檢查網際網路連線後再試一次。</translation>
-        </message>
-        <message>
-            <location filename="src/ui/account_settings_dialog.py" />
-            <source>Custom quota, team seats, invoices, or a custom AI solution.</source>
-            <translation>自訂配額、團隊席位、發票或自訂 AI 解決方案。</translation>
-        </message>
-        <message>
-            <location filename="src/ui/account_settings_dialog.py" />
-            <source>Errors, versions and which features you use, linked to your account. Never your prompts, your layers, your coordinates or your files. On Pro, lifecycle and counts only, no content.</source>
-            <translation>與您帳戶連結的錯誤、版本及功能使用情形。絕不包含您的 prompt、圖層、座標或檔案。Pro 方案僅記錄生命週期與次數，不含內容。</translation>
-        </message>
-        <message>
-            <location filename="src/ui/account_settings_dialog.py" />
             <source>Free plan</source>
             <translation>免費方案</translation>
         </message>
@@ -3033,41 +2184,6 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <location filename="src/ui/account_settings_dialog.py" />
             <source>Loading account info...</source>
             <translation>正在載入帳戶資訊...</translation>
-        </message>
-        <message>
-            <location filename="src/ui/account_settings_dialog.py" />
-            <source>Manage account</source>
-            <translation>管理帳戶</translation>
-        </message>
-        <message>
-            <location filename="src/ui/account_settings_dialog.py" />
-            <source>Need more than Pro?</source>
-            <translation>需要超過 Pro 的方案？</translation>
-        </message>
-        <message>
-            <location filename="src/ui/account_settings_dialog.py" />
-            <source>Opens terra-lab.ai in your browser.</source>
-            <translation>在瀏覽器中開啟 terra-lab.ai。</translation>
-        </message>
-        <message>
-            <location filename="src/ui/account_settings_dialog.py" />
-            <source>Opens your terra-lab.ai account in the browser.</source>
-            <translation>在瀏覽器中開啟您的 terra-lab.ai 帳戶。</translation>
-        </message>
-        <message>
-            <location filename="src/ui/account_settings_dialog.py" />
-            <source>Opens your terra-lab.ai dashboard in the browser.</source>
-            <translation>在瀏覽器中開啟您的 terra-lab.ai 儀表板。</translation>
-        </message>
-        <message>
-            <location filename="src/ui/account_settings_dialog.py" />
-            <source>Opens your terra-lab.ai dashboard: your plan, your runs and your payment details.</source>
-            <translation>在瀏覽器中開啟您的 terra-lab.ai 儀表板：您的方案、執行次數及付款詳細資料。</translation>
-        </message>
-        <message>
-            <location filename="src/ui/account_settings_dialog.py" />
-            <source>Personal, non-commercial use. A paid plan adds commercial use for one person.</source>
-            <translation>個人非商業用途。付費方案為一人增加商業用途。</translation>
         </message>
         <message>
             <location filename="src/ui/account_settings_dialog.py" />
@@ -3091,11 +2207,6 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         </message>
         <message>
             <location filename="src/ui/account_settings_dialog.py" />
-            <source>Share usage statistics with TerraLab</source>
-            <translation>與 TerraLab 分享使用統計資料</translation>
-        </message>
-        <message>
-            <location filename="src/ui/account_settings_dialog.py" />
             <source>Sign out</source>
             <translation>登出</translation>
         </message>
@@ -3111,38 +2222,13 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         </message>
         <message>
             <location filename="src/ui/account_settings_dialog.py" />
-            <source>There's a problem with your subscription. Your last payment may have failed. Open your account to update your payment method or review your plan.</source>
-            <translation>您的訂閱發生問題。上次付款可能失敗。請開啟您的帳戶以更新付款方式或查看方案。</translation>
-        </message>
-        <message>
-            <location filename="src/ui/account_settings_dialog.py" />
-            <source>This computer is no longer signed in. Sign out, then sign in again to reconnect it.</source>
-            <translation>此電腦已不再登入。請登出後重新登入以重新連線。</translation>
-        </message>
-        <message>
-            <location filename="src/ui/account_settings_dialog.py" />
             <source>Update payment method</source>
             <translation>更新付款方式</translation>
         </message>
         <message>
             <location filename="src/ui/account_settings_dialog.py" />
-            <source>Upgrade to Pro</source>
-            <translation>升級至 Pro</translation>
-        </message>
-        <message>
-            <location filename="src/ui/account_settings_dialog.py" />
-            <source>Working in a team?</source>
-            <translation>以團隊方式工作？</translation>
-        </message>
-        <message>
-            <location filename="src/ui/account_settings_dialog.py" />
             <source>You can sign back in anytime from QGIS.</source>
             <translation>您可以隨時從 QGIS 重新登入。</translation>
-        </message>
-        <message>
-            <location filename="src/ui/account_settings_dialog.py" />
-            <source>{used} of {limit} runs used this month</source>
-            <translation>本月已使用 {used} 次執行，共 {limit} 次</translation>
         </message>
         <message>
             <location filename="src/ui/account_settings_dialog.py" />
@@ -3174,11 +2260,6 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         </message>
         <message>
             <location filename="src/ui/dock/activation_state.py" />
-            <source>Drive QGIS in plain language</source>
-            <translation>以簡單語言操作 QGIS</translation>
-        </message>
-        <message>
-            <location filename="src/ui/dock/activation_state.py" />
             <source>Finish the sign-in in your browser, then come back here.</source>
             <translation>在瀏覽器中完成登入，然後返回此處。</translation>
         </message>
@@ -3186,11 +2267,6 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <location filename="src/ui/dock/activation_state.py" />
             <source>Open browser</source>
             <translation>開啟瀏覽器</translation>
-        </message>
-        <message>
-            <location filename="src/ui/dock/activation_state.py" />
-            <source>Sign in / Sign up to start</source>
-            <translation>登入／註冊以開始</translation>
         </message>
         <message>
             <location filename="src/ui/dock/activation_state.py" />
@@ -3204,16 +2280,6 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         </message>
         <message>
             <location filename="src/ui/dock/activation_state.py" />
-            <source>Then ask the AI for anything: load data, style layers, run analyses, edit features.</source>
-            <translation>然後向 AI 詢問任何事：載入資料、設定圖層樣式、執行分析、編輯圖徵。</translation>
-        </message>
-        <message>
-            <location filename="src/ui/dock/activation_state.py" />
-            <source>Type this code in the browser if it asks for one</source>
-            <translation>如果瀏覽器要求代碼，請輸入此代碼</translation>
-        </message>
-        <message>
-            <location filename="src/ui/dock/activation_state.py" />
             <source>Waiting for your browser sign-in...</source>
             <translation>正在等待您在瀏覽器中登入…</translation>
         </message>
@@ -3223,26 +2289,8 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <translation>您已登入。</translation>
         </message>
         <message>
-            <location filename="src/ui/dock/activation_state.py" />
-            <source>Your browser asks for this code.</source>
-            <translation>您的瀏覽器要求此代碼。</translation>
-        </message>
-        <message>
-            <location filename="src/ui/dock/activation_state.py" />
-            <source>Your sign-in is no longer valid on this computer.</source>
-            <translation>您的登入在此電腦上已不再有效。</translation>
-        </message>
-        <message>
-            <source>Signing up is free and takes 15 seconds, in your browser.</source>
-            <translation>免費註冊，瀏覽器內 15 秒完成。</translation>
-        </message>
-        <message>
             <source>Your AI agent inside QGIS</source>
             <translation>您在 QGIS 中的 AI 代理</translation>
-        </message>
-        <message>
-            <source>The browser page should show the code {code}</source>
-            <translation>瀏覽器頁面應顯示代碼 {code}</translation>
         </message>
         <message>
             <source>Only type a code you see on terra-lab.ai, on a page you opened from this QGIS.</source>
@@ -3381,14 +2429,6 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <translation>查詢資料來源</translation>
         </message>
         <message>
-            <source>{m} min {s} s</source>
-            <translation>{m} 分 {s} 秒</translation>
-        </message>
-        <message>
-            <source>{n} s</source>
-            <translation>{n} 秒</translation>
-        </message>
-        <message>
             <source>{words} · {done} of {total}</source>
             <translation>{words} · {done} / {total}</translation>
         </message>
@@ -3401,32 +2441,12 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <translation>AI Agent</translation>
         </message>
         <message>
-            <source>Undone</source>
-            <translation>已復原</translation>
-        </message>
-        <message>
-            <source>Put back</source>
-            <translation>還原</translation>
-        </message>
-        <message>
             <source>Undo</source>
             <translation>復原</translation>
         </message>
         <message>
             <source>Copy</source>
             <translation>複製</translation>
-        </message>
-        <message>
-            <source>Also undoes the later request</source>
-            <translation>同時復原之後的請求</translation>
-        </message>
-        <message>
-            <source>Also undoes the {n} later requests</source>
-            <translation>同時復原之後的 {n} 個請求</translation>
-        </message>
-        <message>
-            <source>Go back here</source>
-            <translation>回到這裡</translation>
         </message>
         <message>
             <source>Redo</source>
@@ -3521,26 +2541,6 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         </message>
         <message>
             <location filename="src/core/controller_actions.py" />
-            <source>Back to after run {n}</source>
-            <translation>回到執行 {n} 之後</translation>
-        </message>
-        <message>
-            <location filename="src/core/controller_actions.py" />
-            <source>Back to before run {n}</source>
-            <translation>回到執行 {n} 之前</translation>
-        </message>
-        <message>
-            <location filename="src/core/controller_actions.py" />
-            <source>Back to your edits after run {n}</source>
-            <translation>回到您在執行 {n} 之後的編輯</translation>
-        </message>
-        <message>
-            <location filename="src/core/controller.py" />
-            <source>Connection lost. Reconnecting...</source>
-            <translation>連線中斷，正在重新連線…</translation>
-        </message>
-        <message>
-            <location filename="src/core/controller_actions.py" />
             <source>Data files (*.gpkg *.geojson *.json *.shp *.csv *.tif *.tiff *.kml *.kmz *.zip);;All files (*)</source>
             <translation>資料檔案 (*.gpkg *.geojson *.json *.shp *.csv *.tif *.tiff *.kml *.kmz *.zip);;所有檔案 (*)</translation>
         </message>
@@ -3553,11 +2553,6 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <location filename="src/core/snapshot_report.py" />
             <source>Layer order or groups changed</source>
             <translation>圖層順序或群組已變更</translation>
-        </message>
-        <message>
-            <location filename="src/core/controller.py" />
-            <source>Not connected to the agent service yet. Reconnecting, retry in a moment.</source>
-            <translation>尚未連線至代理程式服務。正在重新連線，請稍後再試。</translation>
         </message>
         <message>
             <location filename="src/core/controller_actions.py" />
@@ -3611,21 +2606,6 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         </message>
         <message>
             <location filename="src/core/controller.py" />
-            <source>The agent service reported an error.</source>
-            <translation>AI Agent 服務回報錯誤。</translation>
-        </message>
-        <message>
-            <location filename="src/core/controller.py" />
-            <source>The agent service stopped answering. The run was ended, you can retry it.</source>
-            <translation>AI Agent 服務停止回應。執行已結束，您可以重試。</translation>
-        </message>
-        <message>
-            <location filename="src/core/controller.py" />
-            <source>The message could not be sent.</source>
-            <translation>無法傳送訊息。</translation>
-        </message>
-        <message>
-            <location filename="src/core/controller.py" />
             <source>The user dismissed the proposal.</source>
             <translation>使用者已忽略此建議。</translation>
         </message>
@@ -3636,54 +2616,12 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         </message>
         <message>
             <location filename="src/core/controller.py" />
-            <source>This plugin build cannot show that card.</source>
-            <translation>此外掛版本無法顯示該卡片。</translation>
-        </message>
-        <message>
-            <location filename="src/core/controller_actions.py" />
-            <source>This state is no longer available.</source>
-            <translation>這個狀態已不再可用。</translation>
-        </message>
-        <message>
-            <location filename="src/core/controller.py" />
             <source>You have used every task of this period.</source>
             <translation>您已用完此期間的所有任務。</translation>
         </message>
         <message>
-            <source>Not connected to the agent service. Retry once the connection is back.</source>
-            <translation>未連線至 AI Agent 服務。連線恢復後請重試。</translation>
-        </message>
-        <message>
-            <source>Reconnected. Waiting for the agent service to resume the run...</source>
-            <translation>已重新連線，等待 AI Agent 服務繼續執行…</translation>
-        </message>
-        <message>
-            <source>The connection dropped and the agent service no longer has this run. You can retry it.</source>
-            <translation>連線中斷，AI Agent 服務已無此執行。您可以重試。</translation>
-        </message>
-        <message>
-            <source>The run ended without a summary from the agent service.</source>
-            <translation>此執行已結束，未收到 AI Agent 服務的摘要。</translation>
-        </message>
-        <message>
             <source>{name} could not be loaded. Check the file and try again.</source>
             <translation>{name} 無法載入。請檢查檔案後再試。</translation>
-        </message>
-        <message>
-            <source>Deleted 1 working layer</source>
-            <translation>已刪除 1 個工作圖層</translation>
-        </message>
-        <message>
-            <source>Deleted {n} working layers</source>
-            <translation>已刪除 {n} 個工作圖層</translation>
-        </message>
-        <message>
-            <source>Kept 1 working layer</source>
-            <translation>已保留 1 個工作圖層</translation>
-        </message>
-        <message>
-            <source>Kept {n} working layers</source>
-            <translation>已保留 {n} 個工作圖層</translation>
         </message>
         <message>
             <source>The service is updating. Resuming...</source>
@@ -3694,44 +2632,8 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <translation>思考中…</translation>
         </message>
         <message>
-            <source>Tidied 1 working layer away</source>
-            <translation>已整理掉 1 個工作圖層</translation>
-        </message>
-        <message>
-            <source>Tidied {n} working layers away</source>
-            <translation>已整理掉 {n} 個工作圖層</translation>
-        </message>
-        <message>
             <source>Working layers</source>
             <translation>工作圖層</translation>
-        </message>
-        <message>
-            <source>Basemaps here are limited without QuickMapServices.</source>
-            <translation>沒有 QuickMapServices 的話，這裡的底圖很有限。</translation>
-        </message>
-        <message>
-            <source>Install it</source>
-            <translation>安裝它</translation>
-        </message>
-        <message>
-            <source>It is the free QGIS plugin that carries the basemaps people mean by name, Google, Bing, Esri, CartoDB and about two hundred more. Installed, I use it on my own.</source>
-            <translation>它是免費的 QGIS 外掛，收錄了大家會直接點名的底圖：Google、Bing、Esri、CartoDB 以及大約兩百多個。安裝後，我就會自己使用它。</translation>
-        </message>
-        <message>
-            <source>Not now</source>
-            <translation>暫時不要</translation>
-        </message>
-        <message>
-            <source>Opened the plugin manager</source>
-            <translation>已開啟外掛管理員</translation>
-        </message>
-        <message>
-            <source>Opened the plugin's page</source>
-            <translation>已開啟外掛頁面</translation>
-        </message>
-        <message>
-            <source>The plugin manager would not open</source>
-            <translation>無法開啟外掛管理員</translation>
         </message>
         <message>
             <source>Your changes since this point could not be saved, so nothing was restored. Save the project and try again.</source>
@@ -3740,16 +2642,6 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <source>Reconnected. Checking how the run ended...</source>
             <translation>已重新連線。正在檢查這次執行如何結束…</translation>
-        </message>
-        <message>
-            <location filename="src/core/controller_frames.py" />
-            <source>QGIS stopped responding for a while during this run.</source>
-            <translation>本次執行期間，QGIS 曾有一段時間無回應。</translation>
-        </message>
-        <message>
-            <location filename="src/core/controller_frames.py" />
-            <source>QGIS stopped responding for {n} seconds during this run.</source>
-            <translation>本次執行期間，QGIS 曾有 {n} 秒無回應。</translation>
         </message>
         <message>
             <location filename="src/core/controller_runs.py" />
@@ -3778,11 +2670,6 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         </message>
         <message>
             <location filename="src/core/controller_runs.py" />
-            <source>The connection to the agent service was lost and did not come back. The run was ended, you can retry it once you are online.</source>
-            <translation>與 AI Agent 服務的連線已中斷且未恢復。執行已結束，您可以在恢復連線後重試。</translation>
-        </message>
-        <message>
-            <location filename="src/core/controller_runs.py" />
             <source>The message could not be sent. Retry, or reload the plugin if it keeps failing.</source>
             <translation>訊息無法傳送。請重試，若持續失敗，請重新載入外掛。</translation>
         </message>
@@ -3802,24 +2689,8 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <translation>此版本屬於專案 {name}。請開啟該專案以回到此版本。</translation>
         </message>
         <message>
-            <source>1 layer in the project</source>
-            <translation>專案中有 1 個 layer</translation>
-        </message>
-        <message>
-            <source>Back to {point}.</source>
-            <translation>返回 {point}。</translation>
-        </message>
-        <message>
-            <source>Could not fully go back to {point}. {reason}</source>
-            <translation>無法完整回到{point}。{reason}</translation>
-        </message>
-        <message>
             <source>No results</source>
             <translation>沒有結果</translation>
-        </message>
-        <message>
-            <source>Not connected to the agent service, so nothing was sent. Reconnecting now: your message is kept, and Retry sends it once the connection is back.</source>
-            <translation>未連線至 AI Agent 服務，因此未送出任何內容。現在正在重新連線：您的訊息已保留，連線恢復後按「重試」即可送出。</translation>
         </message>
         <message>
             <source>Permission mode changed. It applies from the next action.</source>
@@ -3828,70 +2699,6 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <source>Permission mode changed. It applies from the next action; the open card still needs your answer.</source>
             <translation>權限模式已變更。將從下一個動作開始套用；開啟的卡片仍需要您的回答。</translation>
-        </message>
-        <message>
-            <source>The message could not be sent: the connection to the agent service is down.</source>
-            <translation>無法送出訊息：與 AI Agent 服務的連線中斷。</translation>
-        </message>
-        <message>
-            <source>after request {n}</source>
-            <translation>請求 {n} 之後</translation>
-        </message>
-        <message>
-            <source>after “{request}”</source>
-            <translation>「{request}」之後</translation>
-        </message>
-        <message>
-            <source>before request {n}</source>
-            <translation>請求 {n} 之前</translation>
-        </message>
-        <message>
-            <source>before “{request}”</source>
-            <translation>「{request}」之前</translation>
-        </message>
-        <message>
-            <source>data put back in {files}</source>
-            <translation>資料已放回 {files}</translation>
-        </message>
-        <message>
-            <source>the start of this chat</source>
-            <translation>此聊天的開始</translation>
-        </message>
-        <message>
-            <source>your own changes</source>
-            <translation>您自己的變更</translation>
-        </message>
-        <message>
-            <source>{n} layers in the project</source>
-            <translation>專案中有 {n} 個 layers</translation>
-        </message>
-        <message>
-            <source>Back to after “{request}”.</source>
-            <translation>回到「{request}」之後。</translation>
-        </message>
-        <message>
-            <source>Back to before “{request}”.</source>
-            <translation>回到「{request}」之前。</translation>
-        </message>
-        <message>
-            <source>Back to your own changes.</source>
-            <translation>回到您自己的變更。</translation>
-        </message>
-        <message>
-            <source>Forward to after “{request}”.</source>
-            <translation>前進到「{request}」之後。</translation>
-        </message>
-        <message>
-            <source>Forward to before “{request}”.</source>
-            <translation>前進到「{request}」之前。</translation>
-        </message>
-        <message>
-            <source>Forward to your own changes.</source>
-            <translation>前進到您自己的變更。</translation>
-        </message>
-        <message>
-            <source>Put back</source>
-            <translation>還原</translation>
         </message>
         <message>
             <source>Signed in (from {}).</source>
@@ -3908,10 +2715,6 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <source>Stopped. The run had not changed the project.</source>
             <translation>已停止。此執行尚未變更專案。</translation>
-        </message>
-        <message>
-            <source>Stopped. The version before this request is no longer kept, so nothing was put back.</source>
-            <translation>已停止。此要求之前的版本已不再保留，因此未還原任何內容。</translation>
         </message>
         <message>
             <source>This file is no longer where the run wrote it.</source>
@@ -3934,38 +2737,6 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <translation>在儲存 {layer} 上未儲存的編輯之前，無法複製該圖層，因此未還原任何內容。請在 QGIS 中儲存或捨棄這些編輯後再試一次。</translation>
         </message>
         <message>
-            <source>request {n}</source>
-            <translation>要求 {n}</translation>
-        </message>
-        <message>
-            <source>{names} and {n} more</source>
-            <translation>{names} 及其他 {n} 個</translation>
-        </message>
-        <message>
-            <source>{names} didn't come back ({reason}).</source>
-            <translation>{names} 未能還原（{reason}）。</translation>
-        </message>
-        <message>
-            <source>{names} didn't come back.</source>
-            <translation>{names} 未能還原。</translation>
-        </message>
-        <message>
-            <source>Brought back everything up to “{request}”.</source>
-            <translation>已還原到「{request}」為止的所有內容。</translation>
-        </message>
-        <message>
-            <source>Brought back what “{request}” changed.</source>
-            <translation>已還原「{request}」所做的變更。</translation>
-        </message>
-        <message>
-            <source>Moved 1 layer into {group}</source>
-            <translation>已將 1 個圖層移入 {group}</translation>
-        </message>
-        <message>
-            <source>Moved {n} layers into {group}</source>
-            <translation>已將 {n} 個圖層移入 {group}</translation>
-        </message>
-        <message>
             <source>No internet connection. Retrying.</source>
             <translation>沒有網際網路連線，正在重試。</translation>
         </message>
@@ -3984,14 +2755,6 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <source>Redo</source>
             <translation>重做</translation>
-        </message>
-        <message>
-            <source>Removed what came after “{request}”.</source>
-            <translation>已移除「{request}」之後的內容。</translation>
-        </message>
-        <message>
-            <source>Removed what “{request}” changed.</source>
-            <translation>已移除「{request}」所做的變更。</translation>
         </message>
         <message>
             <source>Stopped. The version before this request is no longer kept, so nothing was undone.</source>
@@ -4094,10 +2857,6 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <translation>一個暫存圖層</translation>
         </message>
         <message>
-            <source>Not handled, the AI agent is offline: {0}</source>
-            <translation>未處理，AI 代理已離線：{0}</translation>
-        </message>
-        <message>
             <source>Nothing is kept about this project yet.</source>
             <translation>目前尚未保存任何關於此專案的內容。</translation>
         </message>
@@ -4108,14 +2867,6 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <source>Project memory cleared.</source>
             <translation>專案記憶已清除。</translation>
-        </message>
-        <message>
-            <source>Watched folder: not handled, no answer from the server: {0}</source>
-            <translation>監看資料夾：未處理，伺服器沒有回應：{0}</translation>
-        </message>
-        <message>
-            <source>Watched folder: not handled, the AI agent is offline: {0}</source>
-            <translation>監看資料夾：未處理，AI 代理已離線：{0}</translation>
         </message>
         <message>
             <source>Clear what the AI agent remembers about this project?</source>
@@ -4129,6 +2880,30 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <source>The AI agent is not connected. Try again in a moment.</source>
             <translation>AI Agent 尚未連線。請稍後再試。</translation>
         </message>
+        <message>
+            <source>Nothing was changed: the file of {layer} is read-only. Make it writable, then go back again.</source>
+            <translation>未做任何變更。{layer} 的檔案為唯讀。請先將其設為可寫入，然後再次回到該步驟。</translation>
+        </message>
+        <message>
+            <source>Nothing was changed: {layer} is in use by another program. Close it there, then go back again.</source>
+            <translation>未做任何變更。{layer} 正被其他程式使用。請先在該程式中關閉它，然後再次回到該步驟。</translation>
+        </message>
+        <message>
+            <source>Nothing was changed: {layer} is open in {program}. Close it there, then go back again.</source>
+            <translation>未做任何變更。{layer} 正在 {program} 中開啟。請先在該程式中關閉它，然後再次回到該步驟。</translation>
+        </message>
+        <message>
+            <source>QGIS closed while going back to an earlier step: some files are at that step and others are not. Open Map history and go back to that step again to finish. It may list those files as your own changes: they are the unfinished step.</source>
+            <translation>回到較早步驟時 QGIS 被關閉：部分檔案已回到該步驟，其餘檔案尚未回到。請開啟地圖歷史記錄，再次回到該步驟即可完成。這些檔案可能會顯示為你自己的變更，它們其實是未完成的步驟。</translation>
+        </message>
+        <message>
+            <source>{n} more files are in the same case.</source>
+            <translation>還有 {n} 個檔案屬於同樣的情況。</translation>
+        </message>
+        <message>
+            <source>Stopped: AI Agent was updated or turned off during this run.</source>
+            <translation>已停止：AI Agent 在此次執行期間已更新或關閉。</translation>
+        </message>
     </context>
     <context>
         <name>AgentSession</name>
@@ -4139,18 +2914,8 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         </message>
         <message>
             <location filename="src/core/session.py" />
-            <source>The agent service is unavailable right now (HTTP {code}).</source>
-            <translation>AI Agent 服務目前無法使用（HTTP {code}）。</translation>
-        </message>
-        <message>
-            <location filename="src/core/session.py" />
             <source>The proxy asks for a login. Set the proxy user and password in QGIS (Settings &gt; Options &gt; Network).</source>
             <translation>代理伺服器要求登入。請在 QGIS 的「設定」→「選項」→「網路」中設定代理伺服器的使用者名稱和密碼。</translation>
-        </message>
-        <message>
-            <location filename="src/core/session.py" />
-            <source>The proxy refused the connection to the agent service.</source>
-            <translation>代理伺服器拒絕了與 AI Agent 服務的連線。</translation>
         </message>
         <message>
             <location filename="src/core/session.py" />
@@ -4196,10 +2961,6 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <translation>此版本的 AI Agent 已不再支援。請更新外掛以繼續。</translation>
         </message>
         <message>
-            <source>TerraLab's server is not answering. Retrying.</source>
-            <translation>TerraLab 的伺服器沒有回應。正在重試。</translation>
-        </message>
-        <message>
             <source>Can't reach TerraLab. Retrying.</source>
             <translation>無法連線到 TerraLab，正在重試。</translation>
         </message>
@@ -4222,11 +2983,6 @@ The erasure is final once the grace period ends. Until then you can cancel it by
     </context>
     <context>
         <name>AttachPopover</name>
-        <message>
-            <location filename="src/ui/attach_menu.py" />
-            <source>Add photos &amp; files</source>
-            <translation>加入相片與檔案</translation>
-        </message>
         <message>
             <location filename="src/ui/attach_menu.py" />
             <source>Attach a layer of this project</source>
@@ -4264,10 +3020,6 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <source>File</source>
             <translation>檔案</translation>
-        </message>
-        <message>
-            <source>Files and photos</source>
-            <translation>檔案與相片</translation>
         </message>
         <message>
             <source>Image</source>
@@ -4323,19 +3075,9 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <translation>對話已精簡</translation>
         </message>
         <message>
-            <location filename="src/ui/chat_panel_layout.py" />
-            <source>The agent keeps a summary of the earlier exchanges. Your messages stay visible.</source>
-            <translation>AI Agent 會保留先前交流的摘要。您的訊息仍會顯示。</translation>
-        </message>
-        <message>
             <location filename="src/ui/chat_panel.py" />
             <source>More tasks next month</source>
             <translation>下個月有更多任務</translation>
-        </message>
-        <message>
-            <location filename="src/ui/chat_panel.py" />
-            <source>Noted for later: {0}. You can remove it in Settings &gt; Memory.</source>
-            <translation>已記下供日後使用：{0}。您可以在 Settings &gt; Memory 中移除。</translation>
         </message>
         <message>
             <location filename="src/ui/chat_panel.py" />
@@ -4353,28 +3095,8 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <translation>思考中…</translation>
         </message>
         <message>
-            <location filename="src/ui/chat_panel.py" />
-            <source>Upgrade to Pro to keep going</source>
-            <translation>升級至 Pro 以繼續</translation>
-        </message>
-        <message>
-            <location filename="src/ui/chat_panel.py" />
-            <source>Waiting for your answer...</source>
-            <translation>等待您的回答…</translation>
-        </message>
-        <message>
-            <location filename="src/ui/chat_panel_runs.py" />
-            <source>%n runs left</source>
-            <translation>剩餘 %n 次執行</translation>
-        </message>
-        <message>
-            <location filename="src/ui/chat_panel_runs.py" />
-            <source>1 run left</source>
-            <translation>剩餘 1 次執行</translation>
-        </message>
-        <message>
             <location filename="src/ui/chat_panel_layout.py" />
-            <source>Add a few words: what should the agent do with it?</source>
+            <source>Add a few words: what should the AI agent do with it?</source>
             <translation>加上幾句話：希望 AI Agent 用它做什麼？</translation>
         </message>
         <message>
@@ -4383,20 +3105,8 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <translation>使用 Pro 繼續工作</translation>
         </message>
         <message>
-            <source>%n steps</source>
-            <translation>%n 個步驟</translation>
-        </message>
-        <message>
-            <source>1 step</source>
-            <translation>1 個步驟</translation>
-        </message>
-        <message>
             <source>Nothing could be added from that drop.</source>
             <translation>無法從該次拖放加入任何內容。</translation>
-        </message>
-        <message>
-            <source>Redo: forward to {point}</source>
-            <translation>重做：前進到 {point}</translation>
         </message>
         <message>
             <source>Stopped</source>
@@ -4407,38 +3117,6 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <translation>無法送出訊息。訊息仍在這裡，請再試一次。</translation>
         </message>
         <message>
-            <source>Undo: back to {point}</source>
-            <translation>復原：返回 {point}</translation>
-        </message>
-        <message>
-            <source>Waiting for your approval: Allow or Deny below.</source>
-            <translation>正在等待您的核准：請在下方選擇允許或拒絕。</translation>
-        </message>
-        <message>
-            <source>%n actions</source>
-            <translation>%n 項動作</translation>
-        </message>
-        <message>
-            <source>1 action</source>
-            <translation>1 項動作</translation>
-        </message>
-        <message>
-            <source>Back to before this request</source>
-            <translation>回到此要求之前</translation>
-        </message>
-        <message>
-            <source>Back to before “{request}”</source>
-            <translation>回到「{request}」之前</translation>
-        </message>
-        <message>
-            <source>Forward to after this request</source>
-            <translation>前進到此要求之後</translation>
-        </message>
-        <message>
-            <source>Forward to after “{request}”</source>
-            <translation>前進到「{request}」之後</translation>
-        </message>
-        <message>
             <source>Waiting for your approval</source>
             <translation>等待您的核准</translation>
         </message>
@@ -4447,16 +3125,8 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <translation>已加入記憶：{0}</translation>
         </message>
         <message>
-            <source>Editing your last message.</source>
-            <translation>正在編輯您的上一則訊息。</translation>
-        </message>
-        <message>
             <source>Not answered</source>
             <translation>未回答</translation>
-        </message>
-        <message>
-            <source>Not connected to the agent service. The message stays queued.</source>
-            <translation>未連線至 AI Agent 服務。訊息會保留在佇列中。</translation>
         </message>
         <message>
             <source>Paused · nothing is sent until you choose</source>
@@ -4471,19 +3141,15 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <translation>立即傳送此訊息</translation>
         </message>
         <message>
-            <source>The agent now reads the earlier exchanges as a shorter record that keeps your requests and what it made.</source>
+            <source>The AI agent now reads the earlier exchanges as a shorter record that keeps your requests and what it made.</source>
             <translation>AI Agent 現在會將先前的往來內容視為較短的紀錄來閱讀，其中保留您的要求及它所產生的內容。</translation>
         </message>
         <message>
-            <source>Undo what this message did</source>
-            <translation>復原此訊息所做的變更</translation>
-        </message>
-        <message>
-            <source>{lead} · sent when the agent finishes</source>
+            <source>{lead} · sent when the AI agent finishes</source>
             <translation>{lead} · AI Agent 完成時傳送</translation>
         </message>
         <message>
-            <source>{lead} · the agent reads it at its next step</source>
+            <source>{lead} · the AI agent reads it at its next step</source>
             <translation>{lead} · AI Agent 會在下一步讀取</translation>
         </message>
         <message>
@@ -4491,24 +3157,12 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <translation>已加入佇列 {n} 則</translation>
         </message>
         <message>
-            <source>Bring back what this request changed</source>
-            <translation>還原這個請求所做的變更</translation>
-        </message>
-        <message>
             <source>Not connected to TerraLab. The message stays queued.</source>
             <translation>未連線到 TerraLab。訊息會保留在佇列中。</translation>
         </message>
         <message>
-            <source>Remove what this request changed on the map</source>
-            <translation>移除這個請求在地圖上所做的變更</translation>
-        </message>
-        <message>
             <source>Waiting for your answer</source>
             <translation>等待你的回答</translation>
-        </message>
-        <message>
-            <source>1 layer couldn't be restored</source>
-            <translation>有 1 個圖層無法還原</translation>
         </message>
         <message>
             <source>Back to the oldest version still kept.</source>
@@ -4517,14 +3171,6 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <source>Back to the project as this chat found it.</source>
             <translation>回到此對話開始時的專案狀態。</translation>
-        </message>
-        <message>
-            <source>Brings back: {layers}</source>
-            <translation>將還原:{layers}</translation>
-        </message>
-        <message>
-            <source>Brings this request's changes back</source>
-            <translation>還原此請求的變更</translation>
         </message>
         <message>
             <source>Changes restored</source>
@@ -4545,14 +3191,6 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <source>Redo</source>
             <translation>重做</translation>
-        </message>
-        <message>
-            <source>Removes this request's changes from the map</source>
-            <translation>從地圖移除此請求的變更</translation>
-        </message>
-        <message>
-            <source>Removes: {layers}</source>
-            <translation>將移除:{layers}</translation>
         </message>
         <message>
             <source>Restored to here</source>
@@ -4662,6 +3300,10 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <source>Task ended</source>
             <translation>任務已結束</translation>
         </message>
+        <message>
+            <source>Removed from the queue</source>
+            <translation>已從佇列中移除</translation>
+        </message>
     </context>
     <context>
         <name>ChatSidebar</name>
@@ -4711,16 +3353,6 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <translation>未命名對話</translation>
         </message>
         <message>
-            <location filename="src/ui/sidebar.py" />
-            <source>Upgrade</source>
-            <translation>升級</translation>
-        </message>
-        <message>
-            <location filename="src/ui/sidebar.py" />
-            <source>Do more with Pro</source>
-            <translation>使用 Pro 做更多事</translation>
-        </message>
-        <message>
             <source>Get Pro</source>
             <translation>升級 Pro</translation>
         </message>
@@ -4728,53 +3360,8 @@ The erasure is final once the grace period ends. Until then you can cancel it by
     <context>
         <name>CheckpointSheet</name>
         <message>
-            <location filename="src/ui/checkpoint_sheet.py" />
-            <source>Back to the project as it was before the first run</source>
-            <translation>回到首次執行之前的專案</translation>
-        </message>
-        <message>
-            <source>Discard everything from this chat</source>
-            <translation>捨棄此對話所有內容</translation>
-        </message>
-        <message>
-            <source>Back to the oldest state still kept</source>
-            <translation>回到仍保留的最舊狀態</translation>
-        </message>
-        <message>
-            <source>Go back in this chat</source>
-            <translation>回到此對話的先前位置</translation>
-        </message>
-        <message>
-            <source>Nothing is deleted. You can always come back.</source>
-            <translation>不會刪除任何內容。你隨時可以回來。</translation>
-        </message>
-        <message>
-            <source>Back to the project as it was before the first request</source>
-            <translation>回到第一個要求之前的專案狀態</translation>
-        </message>
-        <message>
-            <source>Back to the oldest version still kept</source>
-            <translation>回到仍保留的最舊版本</translation>
-        </message>
-        <message>
-            <source>Going back never deletes anything.</source>
-            <translation>回到先前版本絕不會刪除任何內容。</translation>
-        </message>
-        <message>
-            <source>In a closed project</source>
-            <translation>在已關閉的專案中</translation>
-        </message>
-        <message>
-            <source>In {project}</source>
-            <translation>在 {project} 中</translation>
-        </message>
-        <message>
             <source>No longer kept</source>
             <translation>已不再保留</translation>
-        </message>
-        <message>
-            <source>Put back</source>
-            <translation>還原</translation>
         </message>
         <message>
             <source>Request {n}</source>
@@ -4785,44 +3372,8 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <translation>還原</translation>
         </message>
         <message>
-            <source>Stop and go back to before this request</source>
-            <translation>停止並回到此要求之前</translation>
-        </message>
-        <message>
-            <source>Stop and go back to before “{request}”</source>
-            <translation>停止並回到「{request}」之前</translation>
-        </message>
-        <message>
-            <source>Stops the run, then puts the project back as it was before this request.</source>
-            <translation>停止執行，然後讓專案回到此要求之前的樣子。</translation>
-        </message>
-        <message>
             <source>Undo</source>
             <translation>復原</translation>
-        </message>
-        <message>
-            <source>Undo everything in this chat</source>
-            <translation>復原此對話中的所有操作</translation>
-        </message>
-        <message>
-            <source>Versions of this project</source>
-            <translation>此專案的版本</translation>
-        </message>
-        <message>
-            <source>Your own changes</source>
-            <translation>您自己的變更</translation>
-        </message>
-        <message>
-            <source>Also undoes 1 later request</source>
-            <translation>同時復原之後的 1 個請求</translation>
-        </message>
-        <message>
-            <source>Also undoes {n} later requests</source>
-            <translation>同時復原之後的 {n} 個請求</translation>
-        </message>
-        <message>
-            <source>Go back here</source>
-            <translation>回到這裡</translation>
         </message>
         <message>
             <source>Redo</source>
@@ -4882,16 +3433,6 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <translation>複製</translation>
         </message>
         <message>
-            <location filename="src/ui/code_block.py" />
-            <source>No changes</source>
-            <translation>沒有變更</translation>
-        </message>
-        <message>
-            <location filename="src/ui/code_block.py" />
-            <source>changes</source>
-            <translation>變更</translation>
-        </message>
-        <message>
             <source>Collapse</source>
             <translation>收合</translation>
         </message>
@@ -4909,16 +3450,6 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         </message>
         <message>
             <location filename="src/ui/composer.py" />
-            <source>Add files or photos</source>
-            <translation>加入檔案或相片</translation>
-        </message>
-        <message>
-            <location filename="src/ui/composer.py" />
-            <source>Add photos, files or one of this project's layers. A layer can also be dragged from the Layers panel; Ctrl+V pastes a picture.</source>
-            <translation>加入相片、檔案或此專案的圖層。也可以從圖層面板拖曳圖層；Ctrl+V 可貼上圖片。</translation>
-        </message>
-        <message>
-            <location filename="src/ui/composer.py" />
             <source>Give the AI agent a task in QGIS...</source>
             <translation>交給 AI 代理一項 QGIS 任務…</translation>
         </message>
@@ -4926,11 +3457,6 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <location filename="src/ui/composer.py" />
             <source>No image in the clipboard.</source>
             <translation>剪貼簿中沒有圖片。</translation>
-        </message>
-        <message>
-            <location filename="src/ui/composer.py" />
-            <source>Offline. Reconnecting...</source>
-            <translation>離線。正在重新連線...</translation>
         </message>
         <message>
             <location filename="src/ui/composer.py" />
@@ -4958,16 +3484,6 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <translation>這還不像一項任務。請用一句話說明您想做什麼。</translation>
         </message>
         <message>
-            <location filename="src/ui/composer.py" />
-            <source>This effort comes with Pro. See the plans.</source>
-            <translation>此投入程度為 Pro 方案提供。請查看方案。</translation>
-        </message>
-        <message>
-            <location filename="src/ui/composer.py" />
-            <source>Upgrade to Pro</source>
-            <translation>升級至 Pro</translation>
-        </message>
-        <message>
             <source>You can attach up to {n} items.</source>
             <translation>最多可附加 {n} 個項目。</translation>
         </message>
@@ -4988,21 +3504,8 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <translation>無法讀取：{names}</translation>
         </message>
         <message>
-            <source>not a supported file: {names}</source>
-            <translation>不支援的檔案：{names}</translation>
-        </message>
-        <message>
             <source>{n} left out, {total} at most</source>
             <translation>已略過 {n} 個，上限 {total} 個</translation>
-        </message>
-        <message>
-            <source>{level} effort needs Pro. Pick Low, or upgrade.</source>
-            <translation>{level} 程度需要 Pro。請選擇 Low，或升級。</translation>
-        </message>
-        <message>
-            <location filename="src/ui/composer.py" />
-            <source>Not connected to the agent service. Reconnecting now, your message is kept.</source>
-            <translation>未連線至 agent 服務。正在重新連線，您的訊息已保留。</translation>
         </message>
         <message>
             <location filename="src/ui/composer.py" />
@@ -5044,40 +3547,8 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <translation>連線已恢復。您的訊息已送出。</translation>
         </message>
         <message>
-            <source>Not connected to the agent service. Press to try again now; your message is kept.</source>
-            <translation>未連線至 AI Agent 服務。按下即可立即重試；您的訊息已保留。</translation>
-        </message>
-        <message>
-            <source>Not connected to the agent service. Reconnecting now.</source>
-            <translation>未連線至 AI Agent 服務。現在正在重新連線。</translation>
-        </message>
-        <message>
-            <source>Not connected to the agent service. Reconnecting; type, it will be sent.</source>
-            <translation>未連線至 AI Agent 服務。正在重新連線；請輸入訊息，連線恢復後就會送出。</translation>
-        </message>
-        <message>
-            <source>Not connected to the agent service. Your message stays here and goes out as soon as the connection is back.</source>
-            <translation>未連線至 AI Agent 服務。您的訊息會留在這裡，連線恢復後立即送出。</translation>
-        </message>
-        <message>
-            <source>Reconnecting to the agent service. Press to try again now; your message is kept.</source>
-            <translation>正在重新連線至 AI Agent 服務。按下即可立即重試；您的訊息已保留。</translation>
-        </message>
-        <message>
-            <source>Reconnecting to the agent service. Type, it will be sent.</source>
-            <translation>正在重新連線至 AI Agent 服務。請輸入訊息，連線恢復後就會送出。</translation>
-        </message>
-        <message>
-            <source>Reconnecting to the agent service. Your message stays here and goes out as soon as the connection is back.</source>
-            <translation>正在重新連線至 AI Agent 服務。您的訊息會留在這裡，連線恢復後立即送出。</translation>
-        </message>
-        <message>
             <source>Retry the connection</source>
             <translation>重試連線</translation>
-        </message>
-        <message>
-            <source>Add photos &amp; files</source>
-            <translation>加入相片與檔案</translation>
         </message>
         <message>
             <source>a folder cannot be added, drop its files: {names}</source>
@@ -5092,7 +3563,7 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <translation>加入佇列</translation>
         </message>
         <message>
-            <source>Queue it: the agent reads it at its next step (Enter)</source>
+            <source>Queue it: the AI agent reads it at its next step (Enter)</source>
             <translation>加入佇列：AI Agent 會在下一步讀取（Enter）</translation>
         </message>
         <message>
@@ -5140,11 +3611,6 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <name>ComposerInput</name>
         <message>
             <location filename="src/ui/composer_input.py" />
-            <source>Connectors</source>
-            <translation>連接器</translation>
-        </message>
-        <message>
-            <location filename="src/ui/composer_input.py" />
             <source>QGIS plugins</source>
             <translation>QGIS 外掛</translation>
         </message>
@@ -5165,82 +3631,9 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <translation>授權與條款</translation>
         </message>
         <message>
-            <source>Open {host} in your browser</source>
-            <translation>在瀏覽器中開啟 {host}</translation>
-        </message>
-        <message>
-            <source>Show more</source>
-            <translation>顯示更多</translation>
-        </message>
-        <message>
-            <location filename="src/ui/connector_page.py" />
-            <source>%n commands the agent can run</source>
-            <translation>%n 個代理可執行的指令</translation>
-        </message>
-        <message>
-            <location filename="src/ui/connector_page.py" />
-            <source>%n ready sources</source>
-            <translation>%n 個就緒來源</translation>
-        </message>
-        <message>
-            <location filename="src/ui/connector_page.py" />
-            <source>1 command the agent can run</source>
-            <translation>1 個代理可執行的命令</translation>
-        </message>
-        <message>
-            <location filename="src/ui/connector_page.py" />
-            <source>1 ready source</source>
-            <translation>1 個就緒來源</translation>
-        </message>
-        <message>
             <location filename="src/ui/connector_page.py" />
             <source>Attribution</source>
             <translation>出處</translation>
-        </message>
-        <message>
-            <location filename="src/ui/connector_page.py" />
-            <source>Author</source>
-            <translation>作者</translation>
-        </message>
-        <message>
-            <location filename="src/ui/connector_page.py" />
-            <source>Basemaps</source>
-            <translation>底圖</translation>
-        </message>
-        <message>
-            <location filename="src/ui/connector_page.py" />
-            <source>Biodiversity</source>
-            <translation>生物多樣性</translation>
-        </message>
-        <message>
-            <location filename="src/ui/connector_page.py" />
-            <source>Boundaries</source>
-            <translation>邊界</translation>
-        </message>
-        <message>
-            <location filename="src/ui/connector_page.py" />
-            <source>Buildings</source>
-            <translation>建築物</translation>
-        </message>
-        <message>
-            <location filename="src/ui/connector_page.py" />
-            <source>Cadastre</source>
-            <translation>地籍</translation>
-        </message>
-        <message>
-            <location filename="src/ui/connector_page.py" />
-            <source>Category</source>
-            <translation>類別</translation>
-        </message>
-        <message>
-            <location filename="src/ui/connector_page.py" />
-            <source>Climate</source>
-            <translation>氣候</translation>
-        </message>
-        <message>
-            <location filename="src/ui/connector_page.py" />
-            <source>Connectors</source>
-            <translation>連接器</translation>
         </message>
         <message>
             <location filename="src/ui/connector_page.py" />
@@ -5249,38 +3642,8 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         </message>
         <message>
             <location filename="src/ui/connector_page.py" />
-            <source>Elevation</source>
-            <translation>高程</translation>
-        </message>
-        <message>
-            <location filename="src/ui/connector_page.py" />
-            <source>Enable</source>
-            <translation>啟用</translation>
-        </message>
-        <message>
-            <location filename="src/ui/connector_page.py" />
-            <source>Extracts</source>
-            <translation>擷取</translation>
-        </message>
-        <message>
-            <location filename="src/ui/connector_page.py" />
-            <source>Folder</source>
-            <translation>資料夾</translation>
-        </message>
-        <message>
-            <location filename="src/ui/connector_page.py" />
             <source>Good to know</source>
             <translation>實用資訊</translation>
-        </message>
-        <message>
-            <location filename="src/ui/connector_page.py" />
-            <source>Hazards</source>
-            <translation>災害</translation>
-        </message>
-        <message>
-            <location filename="src/ui/connector_page.py" />
-            <source>Imagery</source>
-            <translation>影像</translation>
         </message>
         <message>
             <location filename="src/ui/connector_page.py" />
@@ -5294,28 +3657,8 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         </message>
         <message>
             <location filename="src/ui/connector_page.py" />
-            <source>Installed but switched off in the QGIS plugin manager</source>
-            <translation>已安裝，但在 QGIS 外掛管理員中已關閉</translation>
-        </message>
-        <message>
-            <location filename="src/ui/connector_page.py" />
-            <source>Land cover</source>
-            <translation>土地覆蓋</translation>
-        </message>
-        <message>
-            <location filename="src/ui/connector_page.py" />
             <source>Licence</source>
             <translation>授權</translation>
-        </message>
-        <message>
-            <location filename="src/ui/connector_page.py" />
-            <source>No menu commands. The agent reads it but cannot drive it.</source>
-            <translation>沒有選單命令。代理可讀取，但無法操作。</translation>
-        </message>
-        <message>
-            <location filename="src/ui/connector_page.py" />
-            <source>Not installed on this machine</source>
-            <translation>此電腦尚未安裝</translation>
         </message>
         <message>
             <location filename="src/ui/connector_page.py" />
@@ -5324,53 +3667,8 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         </message>
         <message>
             <location filename="src/ui/connector_page.py" />
-            <source>Points of interest</source>
-            <translation>興趣點</translation>
-        </message>
-        <message>
-            <location filename="src/ui/connector_page.py" />
-            <source>Population</source>
-            <translation>人口</translation>
-        </message>
-        <message>
-            <location filename="src/ui/connector_page.py" />
-            <source>Portals</source>
-            <translation>資料入口</translation>
-        </message>
-        <message>
-            <location filename="src/ui/connector_page.py" />
-            <source>Ready sources</source>
-            <translation>就緒來源</translation>
-        </message>
-        <message>
-            <location filename="src/ui/connector_page.py" />
-            <source>Skills</source>
-            <translation>技能</translation>
-        </message>
-        <message>
-            <location filename="src/ui/connector_page.py" />
-            <source>Status</source>
-            <translation>狀態</translation>
-        </message>
-        <message>
-            <location filename="src/ui/connector_page.py" />
             <source>Terms</source>
             <translation>服務條款</translation>
-        </message>
-        <message>
-            <location filename="src/ui/connector_page.py" />
-            <source>Transport</source>
-            <translation>交通</translation>
-        </message>
-        <message>
-            <location filename="src/ui/connector_page.py" />
-            <source>Version</source>
-            <translation>版本</translation>
-        </message>
-        <message>
-            <location filename="src/ui/connector_page.py" />
-            <source>Water</source>
-            <translation>水域</translation>
         </message>
         <message>
             <location filename="src/ui/connector_page.py" />
@@ -5379,18 +3677,8 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         </message>
         <message>
             <location filename="src/ui/connector_page.py" />
-            <source>What is inside</source>
-            <translation>內容</translation>
-        </message>
-        <message>
-            <location filename="src/ui/connector_page.py" />
             <source>What it needs</source>
             <translation>需求條件</translation>
-        </message>
-        <message>
-            <location filename="src/ui/connector_page.py" />
-            <source>What the agent can trigger</source>
-            <translation>代理可觸發的項目</translation>
         </message>
         <message>
             <location filename="src/ui/connector_page.py" />
@@ -5398,38 +3686,8 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <translation>需要您自己在資料提供者的帳戶，並會要求提供金鑰。</translation>
         </message>
         <message>
-            <location filename="src/ui/connector_page.py" />
-            <source>and %n more</source>
-            <translation>以及另外 %n 個</translation>
-        </message>
-        <message>
-            <location filename="src/ui/connector_page.py" />
-            <source>and 1 more</source>
-            <translation>還有 1 個</translation>
-        </message>
-        <message>
-            <source>%s is not installed on this machine. Install it to send this example.</source>
-            <translation>%s 尚未安裝於此電腦。請安裝後再傳送此範例。</translation>
-        </message>
-        <message>
-            <source>%s is switched off in the QGIS plugin manager. Enable it to send this example.</source>
-            <translation>%s 已在 QGIS 外掛管理員中停用。請啟用以傳送此範例。</translation>
-        </message>
-        <message>
             <source>Nothing, but it is run by volunteers. Expect it to be slower or stricter about how much you can ask for.</source>
             <translation>無需任何條件，但由志工營運。速度可能較慢，對可要求的資料量也可能限制較嚴。</translation>
-        </message>
-        <message>
-            <source>%n ready datasets</source>
-            <translation>%n 個可用資料集</translation>
-        </message>
-        <message>
-            <source>1 ready dataset</source>
-            <translation>1 個可用資料集</translation>
-        </message>
-        <message>
-            <source>About</source>
-            <translation>關於</translation>
         </message>
         <message>
             <source>Data sources</source>
@@ -5448,20 +3706,8 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <translation>將 @{name} 放入輸入框，方便您提出自己的問題。</translation>
         </message>
         <message>
-            <source>Show all %n examples</source>
-            <translation>顯示全部 %n 個範例</translation>
-        </message>
-        <message>
-            <source>The logo belongs to its owner, who does not endorse AI Agent.</source>
-            <translation>此標誌屬於其擁有者，擁有者並不為 AI Agent 背書。</translation>
-        </message>
-        <message>
             <source>Use in chat</source>
             <translation>在對話中使用</translation>
-        </message>
-        <message>
-            <source>Fewer details</source>
-            <translation>較少細節</translation>
         </message>
         <message>
             <source>More details</source>
@@ -5490,10 +3736,6 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <source>Retry</source>
             <translation>重試</translation>
-        </message>
-        <message>
-            <source>See all %n examples</source>
-            <translation>查看全部 %n 個範例</translation>
         </message>
         <message>
             <source>The datasets could not be loaded.</source>
@@ -5531,62 +3773,14 @@ The erasure is final once the grace period ends. Until then you can cancel it by
     <context>
         <name>ConnectorsPage</name>
         <message>
-            <source> and {n} ready datasets</source>
-            <translation> 及 {n} 個可直接使用的資料集</translation>
-        </message>
-        <message>
-            <source>Nothing to set up: just ask in the chat. The agent reaches these {reach} by itself, free, with no account or key.</source>
-            <translation>不需要設定，直接在對話中提問即可。代理程式會自行連線這些{reach}，免費，不需要帳號或金鑰。</translation>
-        </message>
-        <message>
-            <location filename="src/ui/connectors_page.py" />
-            <source>All</source>
-            <translation>全部</translation>
-        </message>
-        <message>
-            <location filename="src/ui/connectors_page.py" />
-            <source>Connectors</source>
-            <translation>連接器</translation>
-        </message>
-        <message>
             <location filename="src/ui/connectors_page.py" />
             <source>Data sources</source>
             <translation>資料來源</translation>
         </message>
         <message>
             <location filename="src/ui/connectors_page.py" />
-            <source>Inside QGIS</source>
-            <translation>在 QGIS 內</translation>
-        </message>
-        <message>
-            <location filename="src/ui/connectors_page.py" />
-            <source>Nothing matches that.</source>
-            <translation>沒有相符項目。</translation>
-        </message>
-        <message>
-            <location filename="src/ui/connectors_page.py" />
-            <source>On</source>
-            <translation>開啟</translation>
-        </message>
-        <message>
-            <location filename="src/ui/connectors_page.py" />
-            <source>Popular</source>
-            <translation>熱門</translation>
-        </message>
-        <message>
-            <location filename="src/ui/connectors_page.py" />
             <source>QGIS plugins</source>
             <translation>QGIS 外掛</translation>
-        </message>
-        <message>
-            <location filename="src/ui/connectors_page.py" />
-            <source>Search connectors</source>
-            <translation>搜尋連接器</translation>
-        </message>
-        <message>
-            <location filename="src/ui/connectors_page.py" />
-            <source>Show all {total}</source>
-            <translation>顯示全部 {total} 個</translation>
         </message>
         <message>
             <location filename="src/ui/connectors_page.py" />
@@ -5599,68 +3793,13 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <translation>面板連線後即會顯示清單。</translation>
         </message>
         <message>
-            <source>%n data sources</source>
-            <translation>%n 個資料來源</translation>
-        </message>
-        <message>
-            <source>%n ready datasets</source>
-            <translation>%n 個現成資料集</translation>
-        </message>
-        <message>
-            <source>, {n} ready datasets</source>
-            <translation>，{n} 個可用資料集</translation>
-        </message>
-        <message>
             <source>Install</source>
             <translation>安裝</translation>
-        </message>
-        <message>
-            <source>Not installed on this machine.</source>
-            <translation>此電腦尚未安裝。</translation>
-        </message>
-        <message>
-            <source>Switched off in the QGIS plugin manager.</source>
-            <translation>已在 QGIS 外掛管理員中停用。</translation>
-        </message>
-        <message>
-            <source>Enable</source>
-            <translation>啟用</translation>
-        </message>
-        <message>
-            <source>No connectors match</source>
-            <translation>沒有符合的連接器</translation>
-        </message>
-        <message>
-            <source>, free with no account or key</source>
-            <translation>，免費，無需帳戶或金鑰</translation>
-        </message>
-        <message>
-            <source>No data sources match</source>
-            <translation>沒有符合的資料來源</translation>
-        </message>
-        <message>
-            <source>Search data sources</source>
-            <translation>搜尋資料來源</translation>
-        </message>
-        <message>
-            <location filename="src/ui/library/home.py" />
-            <source>Ask the agent</source>
-            <translation>詢問 Agent</translation>
-        </message>
-        <message>
-            <location filename="src/ui/connectors_page.py" />
-            <source>Browse Popular</source>
-            <translation>瀏覽熱門</translation>
         </message>
         <message>
             <location filename="src/ui/library/home.py" />
             <source>Clear search</source>
             <translation>清除搜尋</translation>
-        </message>
-        <message>
-            <location filename="src/ui/connectors_page.py" />
-            <source>No data source matches these words. The agent may still find the data.</source>
-            <translation>沒有符合這些字詞的資料來源。Agent 仍可能找到資料。</translation>
         </message>
         <message>
             <source>%n sources</source>
@@ -5687,24 +3826,8 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <translation>來源</translation>
         </message>
         <message>
-            <source>The library of data the AI agent can use. It finds and loads what it needs by itself.</source>
-            <translation>AI 助理可使用的資料庫。它會自行尋找並載入所需的資料。</translation>
-        </message>
-        <message>
             <source>Try in chat</source>
             <translation>在對話中試試</translation>
-        </message>
-        <message>
-            <source>countries</source>
-            <translation>個國家</translation>
-        </message>
-        <message>
-            <source>datasets</source>
-            <translation>個資料集</translation>
-        </message>
-        <message>
-            <source>sources</source>
-            <translation>個來源</translation>
         </message>
         <message>
             <source>Search sources, datasets or a country</source>
@@ -5786,15 +3909,6 @@ The erasure is final once the grace period ends. Until then you can cancel it by
     <context>
         <name>DropOverlay</name>
         <message>
-            <location filename="src/ui/drop_overlay.py" />
-            <source>Drop a layer or a file here</source>
-            <translation>將圖層或檔案拖放到這裡</translation>
-        </message>
-        <message>
-            <source>Add to the chat</source>
-            <translation>加入對話</translation>
-        </message>
-        <message>
             <source>Drop to add to the chat</source>
             <translation>拖放以加入對話</translation>
         </message>
@@ -5817,7 +3931,7 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         </message>
         <message>
             <location filename="src/ui/effort_chip.py" />
-            <source>How hard the agent works on the next message</source>
+            <source>How hard the AI agent works on the next message</source>
             <translation>AI Agent 處理下一則訊息的強度</translation>
         </message>
         <message>
@@ -5832,21 +3946,8 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         </message>
         <message>
             <location filename="src/ui/effort_chip.py" />
-            <source>Upgrade to Pro</source>
-            <translation>升級至 Pro</translation>
-        </message>
-        <message>
-            <source>Pro only: this message runs on Low</source>
-            <translation>僅限 Pro：此訊息以 Low 執行</translation>
-        </message>
-        <message>
-            <location filename="src/ui/effort_chip.py" />
             <source>Unlock with Pro</source>
             <translation>使用 Pro 解鎖</translation>
-        </message>
-        <message>
-            <source>Effort can be changed after this run ends</source>
-            <translation>本次執行結束後即可變更強度</translation>
         </message>
         <message>
             <source>Get Pro</source>
@@ -5883,11 +3984,6 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <name>EmptyState</name>
         <message>
             <location filename="src/ui/empty_state.py" />
-            <source>Got it</source>
-            <translation>知道了</translation>
-        </message>
-        <message>
-            <location filename="src/ui/empty_state.py" />
             <source>What are we working on?</source>
             <translation>我們現在要處理什麼？</translation>
         </message>
@@ -5902,30 +3998,6 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <source>AI can make mistakes. Check its changes.</source>
             <translation>AI 可能會出錯。請查核它的變更。</translation>
-        </message>
-        <message>
-            <source>Asks before it acts.</source>
-            <translation>行動前會先詢問。</translation>
-        </message>
-        <message>
-            <source>Deleting, overwriting or spending. One click undoes a run.</source>
-            <translation>刪除、覆寫或花費。按一下就能復原一次執行。</translation>
-        </message>
-        <message>
-            <source>Does the work.</source>
-            <translation>會把事情做好。</translation>
-        </message>
-        <message>
-            <source>Knows your project.</source>
-            <translation>了解你的專案。</translation>
-        </message>
-        <message>
-            <source>Layers, fields, CRS, selection, view.</source>
-            <translation>圖層、欄位、CRS、選取範圍、檢視。</translation>
-        </message>
-        <message>
-            <source>Loads data, styles layers, runs analyses, builds maps.</source>
-            <translation>載入資料、設定圖層樣式、執行分析、建立地圖。</translation>
         </message>
         <message>
             <source>Data</source>
@@ -6018,11 +4090,6 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <translation>設定</translation>
         </message>
         <message>
-            <location filename="src/ui/header.py" />
-            <source>Undo the agent's changes: back to an earlier state of this project</source>
-            <translation>復原助理的變更：回到此專案的先前狀態</translation>
-        </message>
-        <message>
             <source>Get Pro</source>
             <translation>取得 Pro</translation>
         </message>
@@ -6033,10 +4100,6 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <source>by TerraLab</source>
             <translation>由 TerraLab 提供</translation>
-        </message>
-        <message>
-            <source>Go back to an earlier version ({key})</source>
-            <translation>回到較早的版本（{key}）</translation>
         </message>
         <message>
             <source>Settings ({email})</source>
@@ -6248,14 +4311,6 @@ Click to open its page.</source>
             <translation>面板連線後即會顯示教學。</translation>
         </message>
         <message>
-            <source>Tutorials</source>
-            <translation>教學</translation>
-        </message>
-        <message>
-            <source>Videos and guides to get started. They open in your browser.</source>
-            <translation>入門影片與指南，會在瀏覽器中開啟。</translation>
-        </message>
-        <message>
             <source>Learn</source>
             <translation>學習</translation>
         </message>
@@ -6337,11 +4392,6 @@ Click to open its page.</source>
         </message>
         <message>
             <location filename="src/api/pairing_poll_task.py" />
-            <source>No connection to the sign-in service. Check your internet connection, then click Sign in to try again.</source>
-            <translation>無法連線至登入服務。請檢查網路連線，然後按一下「登入」再試一次。</translation>
-        </message>
-        <message>
-            <location filename="src/api/pairing_poll_task.py" />
             <source>Sign-in failed unexpectedly. Click Sign in to try again.</source>
             <translation>登入意外失敗。按一下「登入」再試一次。</translation>
         </message>
@@ -6367,14 +4417,6 @@ Click to open its page.</source>
     </context>
     <context>
         <name>PermissionCard</name>
-        <message>
-            <source>This data comes from a site outside the sources the agent knows.</source>
-            <translation>這份資料來自代理程式已知來源以外的網站。</translation>
-        </message>
-        <message>
-            <source>This data comes from sites outside the sources the agent knows.</source>
-            <translation>這些資料來自代理程式已知來源以外的網站。</translation>
-        </message>
         <message>
             <location filename="src/ui/cards_run.py" />
             <source>Allow</source>
@@ -6420,10 +4462,6 @@ Click to open its page.</source>
             <translation>已允許</translation>
         </message>
         <message>
-            <source>Allowed for this project</source>
-            <translation>已允許用於此專案</translation>
-        </message>
-        <message>
             <source>Denied</source>
             <translation>已拒絕</translation>
         </message>
@@ -6442,10 +4480,6 @@ Click to open its page.</source>
             <translation>表示式</translation>
         </message>
         <message>
-            <source>Allow file writes in this project</source>
-            <translation>允許在此專案中寫入檔案</translation>
-        </message>
-        <message>
             <source>Hide the address</source>
             <translation>隱藏網址</translation>
         </message>
@@ -6460,14 +4494,6 @@ Click to open its page.</source>
         <message>
             <source>Show the {n} addresses</source>
             <translation>顯示 {n} 個網址</translation>
-        </message>
-        <message>
-            <source>{hosts} were not named by you or by a known catalog.</source>
-            <translation>您沒有提到 {hosts}，已知目錄中也找不到。</translation>
-        </message>
-        <message>
-            <source>{host} was not named by you or by a known catalog.</source>
-            <translation>您沒有提到 {host}，已知目錄中也找不到。</translation>
         </message>
         <message>
             <source>Hide the code</source>
@@ -6486,49 +4512,19 @@ Click to open its page.</source>
             <translation>{n} 項動作等待您的核准。</translation>
         </message>
         <message>
-            <source>Allow for this run</source>
-            <translation>允許本次執行</translation>
-        </message>
-        <message>
-            <source>Allowed for this run</source>
-            <translation>已允許本次執行</translation>
-        </message>
-        <message>
-            <source>Your answer also counts for the next calls of this kind in this answer.</source>
-            <translation>你的回答也適用於這次回答中後續同類型的呼叫。</translation>
-        </message>
-        <message>
             <source>{action}, {n} times</source>
             <translation>{action}，共 {n} 次</translation>
-        </message>
-        <message>
-            <source>{hosts}: sites you did not name, in no known catalog</source>
-            <translation>{hosts}：你沒有指定的網站，且不在任何已知目錄中</translation>
-        </message>
-        <message>
-            <source>{host}: a site you did not name, in no known catalog</source>
-            <translation>{host}：你沒有指定的網站，且不在任何已知目錄中</translation>
         </message>
         <message>
             <source>{n} actions</source>
             <translation>{n} 個動作</translation>
         </message>
         <message>
-            <location filename="src/ui/cards_run.py" />
-            <source>Allow for this run also covers later scripts that make the same calls. Removing layers or features still asks.</source>
-            <translation>「允許本次執行」也涵蓋之後進行相同呼叫的腳本。移除圖層或圖徵時仍會詢問。</translation>
-        </message>
-        <message>
-            <location filename="src/ui/cards_run.py" />
-            <source>Allow for this run also covers later scripts using {libs}, including files they write or delete. Removing layers or features still asks.</source>
-            <translation>「允許本次執行」也涵蓋之後使用 {libs} 的腳本，包括它們寫入或刪除的檔案。移除圖層或圖徵時仍會詢問。</translation>
-        </message>
-        <message>
-            <source>The page links to sites the agent does not know: {hosts}.</source>
+            <source>The page links to sites the AI agent does not know: {hosts}.</source>
             <translation>此頁面連結到 AI 助理不認識的網站：{hosts}。</translation>
         </message>
         <message>
-            <source>The page links to {hosts}, a site the agent does not know.</source>
+            <source>The page links to {hosts}, a site the AI agent does not know.</source>
             <translation>此頁面連結到 {hosts}，這是 AI 助理不認識的網站。</translation>
         </message>
         <message>
@@ -6586,11 +4582,6 @@ Click to open its page.</source>
         </message>
         <message>
             <location filename="src/ui/permission_chip.py" />
-            <source>Asks before deleting or overwriting.</source>
-            <translation>刪除或覆寫前會先詢問。</translation>
-        </message>
-        <message>
-            <location filename="src/ui/permission_chip.py" />
             <source>Asks your permission for every change.</source>
             <translation>每次變更都會先徵求您的同意。</translation>
         </message>
@@ -6611,46 +4602,12 @@ Click to open its page.</source>
         </message>
         <message>
             <location filename="src/ui/permission_chip.py" />
-            <source>Never asks. Works on its own.</source>
-            <translation>從不詢問，自行運作。</translation>
-        </message>
-        <message>
-            <location filename="src/ui/permission_chip.py" />
             <source>Permission mode</source>
             <translation>權限模式</translation>
         </message>
         <message>
-            <location filename="src/ui/permission_chip.py" />
-            <source>Switch</source>
-            <translation>切換</translation>
-        </message>
-        <message>
-            <location filename="src/ui/permission_chip.py" />
-            <source>Switch to Autopilot?</source>
-            <translation>切換至 Autopilot？</translation>
-        </message>
-        <message>
-            <location filename="src/ui/permission_chip.py" />
-            <source>Upgrade</source>
-            <translation>升級</translation>
-        </message>
-        <message>
-            <source>AI Agent will delete layers and overwrite files without asking. Running code and anything that spends credits still ask. Undo covers the project, not every file on disk. The next chat starts in Balanced again.</source>
-            <translation>AI Agent 將不經詢問刪除圖層並覆寫檔案。執行程式碼與消耗點數仍會詢問。復原僅涵蓋專案，不含磁碟所有檔案。下次對話仍從 Balanced 開始。</translation>
-        </message>
-        <message>
             <source>What AI Agent may do without asking</source>
             <translation>AI Agent 可不經詢問執行的操作</translation>
-        </message>
-        <message>
-            <location filename="src/ui/permission_chip.py" />
-            <source>Deletes layers and overwrites files without asking.</source>
-            <translation>不經詢問刪除圖層並覆寫檔案。</translation>
-        </message>
-        <message>
-            <location filename="src/ui/permission_chip.py" />
-            <source>Running code and spending credits still ask first.</source>
-            <translation>執行程式碼與消耗點數仍會先詢問。</translation>
         </message>
         <message>
             <location filename="src/ui/permission_chip.py" />
@@ -6673,25 +4630,12 @@ Click to open its page.</source>
             <translation>復原只涵蓋專案，不包含磁碟上的所有檔案。</translation>
         </message>
         <message>
-            <location filename="src/ui/permission_chip.py" />
-            <source>With Pro</source>
-            <translation>使用 Pro</translation>
-        </message>
-        <message>
             <source>Asks before deleting, overwriting, installing or reaching an unknown site.</source>
             <translation>在刪除、覆寫、安裝或連線至未知網站前會先詢問。</translation>
         </message>
         <message>
             <source>Deletes layers, overwrites files and runs Python code without asking.</source>
             <translation>不詢問即刪除圖層、覆寫檔案並執行 Python 程式碼。</translation>
-        </message>
-        <message>
-            <source>Spending credits still asks first.</source>
-            <translation>花費點數仍會先詢問。</translation>
-        </message>
-        <message>
-            <source>Works on its own. Asks only about credits, installs and other plugins.</source>
-            <translation>自行運作。僅就點數、安裝與其他外掛進行詢問。</translation>
         </message>
         <message>
             <source>Get Pro</source>
@@ -6733,17 +4677,8 @@ Click to open its page.</source>
     <context>
         <name>ProCard</name>
         <message>
-            <location filename="src/ui/settings_pages.py" />
-            <source>PRO</source>
-            <translation>PRO</translation>
-        </message>
-        <message>
             <source>Get Pro</source>
             <translation>升級 Pro</translation>
-        </message>
-        <message>
-            <source>What Pro adds</source>
-            <translation>Pro 的額外功能</translation>
         </message>
     </context>
     <context>
@@ -6780,11 +4715,6 @@ Click to open its page.</source>
         </message>
         <message>
             <location filename="src/ui/cards_question.py" />
-            <source>auto</source>
-            <translation>自動</translation>
-        </message>
-        <message>
-            <location filename="src/ui/cards_question.py" />
             <source>pending</source>
             <translation>待處理</translation>
         </message>
@@ -6792,6 +4722,10 @@ Click to open its page.</source>
             <location filename="src/ui/cards_question.py" />
             <source>skipped</source>
             <translation>已跳過</translation>
+        </message>
+        <message>
+            <source>Question {n} of {count}</source>
+            <translation>第 {n} 個問題，共 {count} 個</translation>
         </message>
     </context>
     <context>
@@ -6851,16 +4785,6 @@ Click to open its page.</source>
         </message>
         <message>
             <location filename="src/ui/quota_card.py" />
-            <source>My company pays by quote</source>
-            <translation>My company pays by quote</translation>
-        </message>
-        <message>
-            <location filename="src/ui/quota_card.py" />
-            <source>1 free run left.</source>
-            <translation>剩餘 1 次免費執行。</translation>
-        </message>
-        <message>
-            <location filename="src/ui/quota_card.py" />
             <source>Copied</source>
             <translation>已複製</translation>
         </message>
@@ -6868,16 +4792,6 @@ Click to open its page.</source>
             <location filename="src/ui/quota_card.py" />
             <source>Copy email</source>
             <translation>複製電子郵件</translation>
-        </message>
-        <message>
-            <location filename="src/ui/quota_card.py" />
-            <source>Custom needs? Write to us: {email}</source>
-            <translation>有自訂需求？請寫信給我們：{email}</translation>
-        </message>
-        <message>
-            <location filename="src/ui/quota_card.py" />
-            <source>Keep the agent working on your projects.</source>
-            <translation>讓代理程式繼續處理您的專案。</translation>
         </message>
         <message>
             <location filename="src/ui/quota_card.py" />
@@ -6896,21 +4810,6 @@ Click to open its page.</source>
         </message>
         <message>
             <location filename="src/ui/quota_card.py" />
-            <source>Upgrade to Pro</source>
-            <translation>升級至 Pro</translation>
-        </message>
-        <message>
-            <location filename="src/ui/quota_card.py" />
-            <source>You used all {n} free runs this month. They come back on your renewal date.</source>
-            <translation>本月 {n} 次免費執行已用完，將於續訂日恢復。</translation>
-        </message>
-        <message>
-            <location filename="src/ui/quota_card.py" />
-            <source>You used all {n} free runs this month. They come back on {date}.</source>
-            <translation>本月 {n} 次免費執行已用完，將於 {date} 恢復。</translation>
-        </message>
-        <message>
-            <location filename="src/ui/quota_card.py" />
             <source>Your free tasks for this month are used</source>
             <translation>本月免費任務已用完</translation>
         </message>
@@ -6918,16 +4817,6 @@ Click to open its page.</source>
             <location filename="src/ui/quota_card.py" />
             <source>Your tasks for this month are used</source>
             <translation>本月任務已用完</translation>
-        </message>
-        <message>
-            <location filename="src/ui/quota_card.py" />
-            <source>a month</source>
-            <translation>每月</translation>
-        </message>
-        <message>
-            <location filename="src/ui/quota_card.py" />
-            <source>{n} free runs left.</source>
-            <translation>剩餘 {n} 次免費執行。</translation>
         </message>
         <message>
             <source>You used all {n} tasks this month.</source>
@@ -6939,38 +4828,16 @@ Click to open its page.</source>
         </message>
         <message>
             <location filename="src/ui/quota_card.py" />
-            <source>Get more runs</source>
-            <translation>取得更多執行次數</translation>
-        </message>
-        <message>
-            <location filename="src/ui/quota_card.py" />
             <source>Keep working with Pro</source>
             <translation>使用 Pro 繼續工作</translation>
-        </message>
-        <message>
-            <location filename="src/ui/quota_card.py" />
-            <source>{n} runs a month, higher effort levels and Autopilot.</source>
-            <translation>每月 {n} 次執行、更高投入程度與 Autopilot。</translation>
         </message>
         <message>
             <source>Get Pro</source>
             <translation>取得 Pro</translation>
         </message>
         <message>
-            <source>{n} runs a month and higher effort levels.</source>
-            <translation>每月 {n} 次執行，以及更高的運算強度等級。</translation>
-        </message>
-        <message>
             <source>Invoice for my company</source>
             <translation>為我的公司開立發票</translation>
-        </message>
-        <message>
-            <source>Pro gives you {n} runs a month for {amount}.</source>
-            <translation>Pro 每月提供 {n} 次執行，費用為 {amount}。</translation>
-        </message>
-        <message>
-            <source>Pro gives you {n} runs a month.</source>
-            <translation>Pro 每月提供 {n} 次執行。</translation>
         </message>
         <message>
             <source>Autopilot</source>
@@ -7003,10 +4870,6 @@ Click to open its page.</source>
         <message>
             <source>Pro: {n} tasks a month and harder tasks</source>
             <translation>Pro：每月 {n} 項任務，以及更困難的任務</translation>
-        </message>
-        <message>
-            <source>You ran {n} tasks this month.</source>
-            <translation>您本月已執行 {n} 項任務。</translation>
         </message>
         <message>
             <source>{amount}/month</source>
@@ -7077,6 +4940,18 @@ Click to open its page.</source>
             <source>Your payment of {amount} failed</source>
             <translation>你的 {amount} 付款失敗了</translation>
         </message>
+        <message>
+            <source>Free for 7 days, nothing to pay today, then monthly at your student price. Cancel in one click.</source>
+            <translation>免費試用 7 天，今天無需付款，之後按月以您的學生價收費。一鍵即可取消。</translation>
+        </message>
+        <message>
+            <source>Free for 7 days, nothing to pay today, then {price}/month excl. VAT. Cancel in one click.</source>
+            <translation>免費試用 7 天，今天無需付款，之後 {price}/月（未稅）。一鍵即可取消。</translation>
+        </message>
+        <message>
+            <source>Medium effort now, High after the trial</source>
+            <translation>試用期間使用 Medium 強度，試用結束後使用 High 強度</translation>
+        </message>
     </context>
     <context>
         <name>QuotaPauseCard</name>
@@ -7084,11 +4959,6 @@ Click to open its page.</source>
             <location filename="src/ui/cards_run.py" />
             <source>Paused</source>
             <translation>已暫停</translation>
-        </message>
-        <message>
-            <location filename="src/ui/cards_run.py" />
-            <source>Resume</source>
-            <translation>繼續</translation>
         </message>
         <message>
             <location filename="src/ui/cards_run.py" />
@@ -7172,75 +5042,12 @@ Click to open its page.</source>
         </message>
         <message>
             <location filename="src/ui/cards_run.py" />
-            <source>Discard</source>
-            <translation>捨棄</translation>
-        </message>
-        <message>
-            <location filename="src/ui/cards_run.py" />
-            <source>Manual changes since this point will be lost.</source>
-            <translation>從這個時間點之後的手動變更將會遺失。</translation>
-        </message>
-        <message>
-            <location filename="src/ui/cards_run.py" />
             <source>Restore</source>
             <translation>還原</translation>
-        </message>
-        <message>
-            <location filename="src/ui/cards_run.py" />
-            <source>This drops everything the agent did in this chat, and your own changes since.</source>
-            <translation>這會捨棄 agent 在這個交談中所做的所有內容，以及您之後自己的變更。</translation>
-        </message>
-        <message>
-            <location filename="src/ui/cards_run.py" />
-            <source>This drops everything the agent did in this chat.</source>
-            <translation>這會捨棄 agent 在這個交談中所做的所有內容。</translation>
-        </message>
-        <message>
-            <source>This goes back to the oldest state still kept, not to the very start: the earlier ones were cleared to save disk space.</source>
-            <translation>這會回到仍保留的最舊狀態，而非最開始：較早的狀態已清除以節省磁碟空間。</translation>
-        </message>
-        <message>
-            <source>Go back to {point}? Your own changes since then will be lost.</source>
-            <translation>要返回 {point} 嗎？您之後所做的變更將會遺失。</translation>
-        </message>
-        <message>
-            <source>Go back</source>
-            <translation>回到</translation>
-        </message>
-        <message>
-            <source>Go back to {point}? Your edits since then are kept as a version you can return to.</source>
-            <translation>要回到{point}嗎？您之後的編輯會保留為可回到的版本。</translation>
-        </message>
-        <message>
-            <source>Go back? Your edits since then are kept as a version you can return to.</source>
-            <translation>要回到先前的版本嗎？您之後的編輯會保留為可回到的版本。</translation>
-        </message>
-        <message>
-            <source>Undo everything the agent did in this chat, back to the oldest version still kept? You can put it back.</source>
-            <translation>要復原 AI Agent 在此對話中的所有操作，回到仍保留的最舊版本嗎？您可以還原回來。</translation>
-        </message>
-        <message>
-            <source>Undo everything the agent did in this chat? You can put it back.</source>
-            <translation>要復原 AI Agent 在此對話中的所有操作嗎？您可以還原回來。</translation>
         </message>
     </context>
     <context>
         <name>RunTrace</name>
-        <message>
-            <location filename="src/ui/trace.py" />
-            <source>%n failed</source>
-            <translation>%n 次失敗</translation>
-        </message>
-        <message>
-            <location filename="src/ui/trace.py" />
-            <source>%n steps</source>
-            <translation>%n 個步驟</translation>
-        </message>
-        <message>
-            <location filename="src/ui/trace.py" />
-            <source>1 step</source>
-            <translation>1 個步驟</translation>
-        </message>
         <message>
             <location filename="src/ui/trace.py" />
             <source>Done</source>
@@ -7266,18 +5073,6 @@ Click to open its page.</source>
             <translation>%n 項先前的動作</translation>
         </message>
         <message>
-            <source>Failed after {time}</source>
-            <translation>{time} 後失敗</translation>
-        </message>
-        <message>
-            <source>Stopped after {time}</source>
-            <translation>{time} 後停止</translation>
-        </message>
-        <message>
-            <source>Thought for {time}</source>
-            <translation>已思考 {time}</translation>
-        </message>
-        <message>
             <source>QGIS closed before this finished</source>
             <translation>QGIS 在完成前已關閉</translation>
         </message>
@@ -7286,16 +5081,8 @@ Click to open its page.</source>
             <translation>已拒絕</translation>
         </message>
         <message>
-            <source>{step} and {n} more</source>
-            <translation>{step} 及另外 {n} 項</translation>
-        </message>
-        <message>
             <source>Waiting for you</source>
             <translation>等待你的回應</translation>
-        </message>
-        <message>
-            <source>Worked for {time}</source>
-            <translation>已執行 {time}</translation>
         </message>
         <message>
             <source>blocked</source>
@@ -7329,32 +5116,8 @@ Click to open its page.</source>
             <translation>AI 會自行儲存筆記</translation>
         </message>
         <message>
-            <source>You can review or remove them here.</source>
-            <translation>你可以在這裡檢視或移除。</translation>
-        </message>
-        <message>
             <source>Your chats are kept 30 days so a conversation survives an update. Off, the team never reads them. 0 days of history stores nothing.</source>
             <translation>你的對話會保留 30 天，讓對話在更新後仍可接續。關閉時，團隊永遠不會讀取這些對話。保留天數設為 0 天時，不會儲存任何紀錄。</translation>
-        </message>
-        <message>
-            <location filename="src/ui/settings_dialog.py" />
-            <source>1 minute</source>
-            <translation>1 分鐘</translation>
-        </message>
-        <message>
-            <location filename="src/ui/settings_dialog.py" />
-            <source>2 minutes</source>
-            <translation>2 分鐘</translation>
-        </message>
-        <message>
-            <location filename="src/ui/settings_dialog.py" />
-            <source>30 seconds</source>
-            <translation>30 秒</translation>
-        </message>
-        <message>
-            <location filename="src/ui/settings_dialog.py" />
-            <source>A short summary of the changes once a task is done.</source>
-            <translation>任務完成後提供變更的簡短摘要。</translation>
         </message>
         <message>
             <location filename="src/ui/settings_dialog.py" />
@@ -7388,16 +5151,6 @@ Click to open its page.</source>
         </message>
         <message>
             <location filename="src/ui/settings_dialog.py" />
-            <source>Advanced</source>
-            <translation>進階</translation>
-        </message>
-        <message>
-            <location filename="src/ui/settings_dialog.py" />
-            <source>Answer a question for me after</source>
-            <translation>等待多久後代我回答問題</translation>
-        </message>
-        <message>
-            <location filename="src/ui/settings_dialog.py" />
             <source>Answers</source>
             <translation>回答</translation>
         </message>
@@ -7418,11 +5171,6 @@ Click to open its page.</source>
         </message>
         <message>
             <location filename="src/ui/settings_dialog.py" />
-            <source>Billing</source>
-            <translation>帳單</translation>
-        </message>
-        <message>
-            <location filename="src/ui/settings_dialog.py" />
             <source>Cancel</source>
             <translation>取消</translation>
         </message>
@@ -7433,33 +5181,8 @@ Click to open its page.</source>
         </message>
         <message>
             <location filename="src/ui/settings_dialog.py" />
-            <source>Connectors</source>
-            <translation>連接器</translation>
-        </message>
-        <message>
-            <location filename="src/ui/settings_dialog.py" />
             <source>Contact us</source>
             <translation>聯絡我們</translation>
-        </message>
-        <message>
-            <location filename="src/ui/settings_dialog.py" />
-            <source>Context the AI reads at the start of every conversation, and the notes it keeps between them.</source>
-            <translation>AI 在每次對話開始時讀取的背景，以及它在對話之間保留的筆記。</translation>
-        </message>
-        <message>
-            <location filename="src/ui/settings_dialog.py" />
-            <source>Could not load your account. Try again in a moment.</source>
-            <translation>無法載入您的帳戶。請稍後再試。</translation>
-        </message>
-        <message>
-            <location filename="src/ui/settings_dialog.py" />
-            <source>Could not reach TerraLab. Check your internet connection, then try again.</source>
-            <translation>無法連上 TerraLab。請檢查網路連線後再試。</translation>
-        </message>
-        <message>
-            <location filename="src/ui/settings_dialog.py" />
-            <source>Danger zone</source>
-            <translation>危險區域</translation>
         </message>
         <message>
             <location filename="src/ui/settings_dialog.py" />
@@ -7473,11 +5196,6 @@ Click to open its page.</source>
         </message>
         <message>
             <location filename="src/ui/settings_dialog.py" />
-            <source>Each step with its inputs and results, under the answer.</source>
-            <translation>在答案下方顯示每個步驟及其輸入與結果。</translation>
-        </message>
-        <message>
-            <location filename="src/ui/settings_dialog.py" />
             <source>Everything the panel does without leaving the keyboard.</source>
             <translation>不離開鍵盤即可完成面板的全部操作。</translation>
         </message>
@@ -7485,11 +5203,6 @@ Click to open its page.</source>
             <location filename="src/ui/settings_dialog.py" />
             <source>Expert</source>
             <translation>專家</translation>
-        </message>
-        <message>
-            <location filename="src/ui/settings_dialog.py" />
-            <source>Explain what it did after each run</source>
-            <translation>每次執行後說明做了什麼</translation>
         </message>
         <message>
             <location filename="src/ui/settings_dialog.py" />
@@ -7508,11 +5221,6 @@ Click to open its page.</source>
         </message>
         <message>
             <location filename="src/ui/settings_dialog.py" />
-            <source>How it should work. Example: always answer in French, name new layers in snake_case, never delete a layer without asking.</source>
-            <translation>運作方式。範例：永遠以法文回答，新圖層以 snake_case 命名，未經詢問絕不刪除圖層。</translation>
-        </message>
-        <message>
-            <location filename="src/ui/settings_dialog.py" />
             <source>How much the AI explains.</source>
             <translation>AI 說明的詳細程度。</translation>
         </message>
@@ -7523,33 +5231,8 @@ Click to open its page.</source>
         </message>
         <message>
             <location filename="src/ui/settings_dialog.py" />
-            <source>How the AI names the layers it creates.</source>
-            <translation>AI 如何為它建立的圖層命名。</translation>
-        </message>
-        <message>
-            <location filename="src/ui/settings_dialog.py" />
-            <source>How you work</source>
-            <translation>您的工作方式</translation>
-        </message>
-        <message>
-            <location filename="src/ui/settings_dialog.py" />
-            <source>I work in EPSG:2154</source>
-            <translation>我使用 EPSG:2154</translation>
-        </message>
-        <message>
-            <location filename="src/ui/settings_dialog.py" />
             <source>Imperial</source>
             <translation>英制</translation>
-        </message>
-        <message>
-            <location filename="src/ui/settings_dialog.py" />
-            <source>Included with Pro</source>
-            <translation>Pro 包含</translation>
-        </message>
-        <message>
-            <location filename="src/ui/settings_dialog.py" />
-            <source>Instructions for the AI</source>
-            <translation>給 AI 的指示</translation>
         </message>
         <message>
             <location filename="src/ui/settings_dialog.py" />
@@ -7558,43 +5241,13 @@ Click to open its page.</source>
         </message>
         <message>
             <location filename="src/ui/settings_dialog.py" />
-            <source>Layer names</source>
-            <translation>圖層名稱</translation>
-        </message>
-        <message>
-            <location filename="src/ui/settings_dialog.py" />
-            <source>Let the AI add its own notes</source>
-            <translation>允許 AI 新增自己的筆記</translation>
-        </message>
-        <message>
-            <location filename="src/ui/settings_dialog.py" />
             <source>Loading account info...</source>
             <translation>正在載入帳戶資訊…</translation>
         </message>
         <message>
             <location filename="src/ui/settings_dialog.py" />
-            <source>Loading your plan...</source>
-            <translation>正在載入您的方案…</translation>
-        </message>
-        <message>
-            <location filename="src/ui/settings_dialog.py" />
-            <source>Manage account</source>
-            <translation>管理帳戶</translation>
-        </message>
-        <message>
-            <location filename="src/ui/settings_dialog.py" />
-            <source>Manage account in browser</source>
-            <translation>在瀏覽器中管理帳戶</translation>
-        </message>
-        <message>
-            <location filename="src/ui/settings_dialog.py" />
             <source>Memory</source>
             <translation>記憶</translation>
-        </message>
-        <message>
-            <location filename="src/ui/settings_dialog.py" />
-            <source>Metres and hectares, or feet, miles and acres.</source>
-            <translation>公尺與公頃，或英呎、英里與英畝。</translation>
         </message>
         <message>
             <location filename="src/ui/settings_dialog.py" />
@@ -7613,23 +5266,8 @@ Click to open its page.</source>
         </message>
         <message>
             <location filename="src/ui/settings_dialog.py" />
-            <source>No runs counted yet this month.</source>
-            <translation>本月尚無計入的執行。</translation>
-        </message>
-        <message>
-            <location filename="src/ui/settings_dialog.py" />
-            <source>Noted by the AI</source>
-            <translation>由 AI 記錄</translation>
-        </message>
-        <message>
-            <location filename="src/ui/settings_dialog.py" />
             <source>Often</source>
             <translation>經常</translation>
-        </message>
-        <message>
-            <location filename="src/ui/settings_dialog.py" />
-            <source>Open terra-lab.ai</source>
-            <translation>開啟 terra-lab.ai</translation>
         </message>
         <message>
             <location filename="src/ui/settings_dialog.py" />
@@ -7638,23 +5276,8 @@ Click to open its page.</source>
         </message>
         <message>
             <location filename="src/ui/settings_dialog.py" />
-            <source>Opens the Billing page.</source>
-            <translation>開啟帳單頁面。</translation>
-        </message>
-        <message>
-            <location filename="src/ui/settings_dialog.py" />
-            <source>Personal, non-commercial use.</source>
-            <translation>個人非商業用途。</translation>
-        </message>
-        <message>
-            <location filename="src/ui/settings_dialog.py" />
             <source>Personalisation</source>
             <translation>個人化</translation>
-        </message>
-        <message>
-            <location filename="src/ui/settings_dialog.py" />
-            <source>Plain words</source>
-            <translation>白話名稱</translation>
         </message>
         <message>
             <location filename="src/ui/settings_dialog.py" />
@@ -7663,18 +5286,8 @@ Click to open its page.</source>
         </message>
         <message>
             <location filename="src/ui/settings_dialog.py" />
-            <source>Pro follows your standing rules in every run: the language it answers in, how it names layers, and what it must never do without asking.</source>
-            <translation>Pro 會在每次執行中遵循您的固定規則：回答語言、圖層命名方式，以及未經詢問絕不執行的事項。</translation>
-        </message>
-        <message>
-            <location filename="src/ui/settings_dialog.py" />
             <source>Pro plan</source>
             <translation>Pro 方案</translation>
-        </message>
-        <message>
-            <location filename="src/ui/settings_dialog.py" />
-            <source>Pro reads this before every run, so your job, your city and your usual CRS do not have to be typed into each prompt.</source>
-            <translation>Pro 會在每次執行前讀取此內容，因此您的工作、城市與常用 CRS 無需在每個 prompt 中重複輸入。</translation>
         </message>
         <message>
             <location filename="src/ui/settings_dialog.py" />
@@ -7695,11 +5308,6 @@ Click to open its page.</source>
             <location filename="src/ui/settings_dialog.py" />
             <source>Regular</source>
             <translation>中階</translation>
-        </message>
-        <message>
-            <location filename="src/ui/settings_dialog.py" />
-            <source>Report a problem</source>
-            <translation>回報問題</translation>
         </message>
         <message>
             <location filename="src/ui/settings_dialog.py" />
@@ -7748,26 +5356,6 @@ Click to open its page.</source>
         </message>
         <message>
             <location filename="src/ui/settings_dialog.py" />
-            <source>Share usage statistics with TerraLab</source>
-            <translation>與 TerraLab 分享使用統計資料</translation>
-        </message>
-        <message>
-            <location filename="src/ui/settings_dialog.py" />
-            <source>Short answers, a balance, or the full reasoning.</source>
-            <translation>簡短回答、兩者平衡，或完整推理。</translation>
-        </message>
-        <message>
-            <location filename="src/ui/settings_dialog.py" />
-            <source>Show tool details in the trace</source>
-            <translation>在執行過程中顯示工具詳細資料</translation>
-        </message>
-        <message>
-            <location filename="src/ui/settings_dialog.py" />
-            <source>Sign in first: deleting an account needs the address it was opened with.</source>
-            <translation>請先登入：刪除帳戶需要使用註冊時的地址。</translation>
-        </message>
-        <message>
-            <location filename="src/ui/settings_dialog.py" />
             <source>Sign in to see your account.</source>
             <translation>登入以查看您的帳戶。</translation>
         </message>
@@ -7798,43 +5386,13 @@ Click to open its page.</source>
         </message>
         <message>
             <location filename="src/ui/settings_dialog.py" />
-            <source>The AI takes the option it recommended and carries on.</source>
-            <translation>AI 會採用其建議的選項並繼續執行。</translation>
-        </message>
-        <message>
-            <location filename="src/ui/settings_dialog.py" />
-            <source>The language the AI writes its answers in.</source>
-            <translation>AI 撰寫答案使用的語言。</translation>
-        </message>
-        <message>
-            <location filename="src/ui/settings_dialog.py" />
-            <source>The plan this copy of QGIS is signed in on.</source>
-            <translation>此 QGIS 目前登入所用的方案。</translation>
-        </message>
-        <message>
-            <location filename="src/ui/settings_dialog.py" />
             <source>The shortcuts could not be listed.</source>
             <translation>無法列出快速鍵。</translation>
         </message>
         <message>
             <location filename="src/ui/settings_dialog.py" />
-            <source>This computer is no longer signed in. Sign out, then sign in again to reconnect it.</source>
-            <translation>此電腦已登出。請先登出再重新登入以重新連線。</translation>
-        </message>
-        <message>
-            <location filename="src/ui/settings_dialog.py" />
-            <source>This plugin would not start.</source>
-            <translation>此外掛無法啟動。</translation>
-        </message>
-        <message>
-            <location filename="src/ui/settings_dialog.py" />
             <source>This project</source>
             <translation>此專案</translation>
-        </message>
-        <message>
-            <location filename="src/ui/settings_dialog.py" />
-            <source>Tutorials</source>
-            <translation>教學</translation>
         </message>
         <message>
             <location filename="src/ui/settings_dialog.py" />
@@ -7848,48 +5406,13 @@ Click to open its page.</source>
         </message>
         <message>
             <location filename="src/ui/settings_dialog.py" />
-            <source>Upgrade to Pro</source>
-            <translation>升級至 Pro</translation>
-        </message>
-        <message>
-            <location filename="src/ui/settings_dialog.py" />
             <source>Urban planner</source>
             <translation>都市規劃師</translation>
         </message>
         <message>
             <location filename="src/ui/settings_dialog.py" />
-            <source>Used in its answers. Empty: it uses no name.</source>
-            <translation>AI 回答時會使用。留空則不使用名字。</translation>
-        </message>
-        <message>
-            <location filename="src/ui/settings_dialog.py" />
-            <source>What the AI should call you</source>
-            <translation>希望 AI 如何稱呼您</translation>
-        </message>
-        <message>
-            <location filename="src/ui/settings_dialog.py" />
-            <source>What you do</source>
-            <translation>您的工作</translation>
-        </message>
-        <message>
-            <location filename="src/ui/settings_dialog.py" />
             <source>When needed</source>
             <translation>視需要</translation>
-        </message>
-        <message>
-            <location filename="src/ui/settings_dialog.py" />
-            <source>Who is signed in, and how this copy of the plugin behaves.</source>
-            <translation>目前登入者，以及此外掛的運作方式。</translation>
-        </message>
-        <message>
-            <location filename="src/ui/settings_dialog.py" />
-            <source>Who you are</source>
-            <translation>您是誰</translation>
-        </message>
-        <message>
-            <location filename="src/ui/settings_dialog.py" />
-            <source>Who you are and what you work on. Example: urban planner at the city of Lyon, I mostly work with cadastre and PLU layers in EPSG:2154.</source>
-            <translation>您是誰以及您的工作內容。範例：里昂市的都市規劃師，我主要處理 EPSG:2154 的地籍與 PLU 圖層。</translation>
         </message>
         <message>
             <location filename="src/ui/settings_dialog.py" />
@@ -7903,23 +5426,8 @@ Click to open its page.</source>
         </message>
         <message>
             <location filename="src/ui/settings_dialog.py" />
-            <source>Your job in a few words. It changes which data and which method it reaches for first.</source>
-            <translation>用幾個詞描述您的工作。這會影響它優先選擇的資料與方法。</translation>
-        </message>
-        <message>
-            <location filename="src/ui/settings_dialog.py" />
             <source>by TerraLab</source>
             <translation>由 TerraLab 提供</translation>
-        </message>
-        <message>
-            <location filename="src/ui/settings_dialog.py" />
-            <source>runs left of {limit} this month</source>
-            <translation>本月剩餘執行次數（共 {limit} 次）</translation>
-        </message>
-        <message>
-            <location filename="src/ui/settings_dialog.py" />
-            <source>runs this month</source>
-            <translation>本月執行次數</translation>
         </message>
         <message>
             <location filename="src/ui/settings_dialog.py" />
@@ -7932,76 +5440,8 @@ Click to open its page.</source>
             <translation>本月 {used} 次執行</translation>
         </message>
         <message>
-            <source>Always wait for me</source>
-            <translation>一律等我回答</translation>
-        </message>
-        <message>
-            <source>Compare plans</source>
-            <translation>比較方案</translation>
-        </message>
-        <message>
-            <source>Computer-style names</source>
-            <translation>程式風格名稱</translation>
-        </message>
-        <message>
-            <source>Errors, versions and which features you use, linked to your account. Never your prompts, your layers, your coordinates or your files. On Pro, only that you used the app and when, never what you did in it.</source>
-            <translation>錯誤、版本與使用的功能，會連結至您的帳號。絕不含您的 prompt、圖層、座標或檔案。在 Pro 上，僅記錄使用時間，絕不記錄操作內容。</translation>
-        </message>
-        <message>
             <source>Language, style, permissions, your profile and your memory notes go back to their defaults. You stay signed in.</source>
             <translation>語言、回應風格、權限、個人檔案與記憶筆記將恢復預設值。您仍保持登入。</translation>
-        </message>
-        <message>
-            <source>Lets us read a conversation only when we are fixing a wrong answer or something that broke. Turn it off any time, with no other effect.</source>
-            <translation>僅在修正錯誤答案或故障時才讀取對話。可隨時關閉，無其他影響。</translation>
-        </message>
-        <message>
-            <source>Manage</source>
-            <translation>管理</translation>
-        </message>
-        <message>
-            <source>More plugins</source>
-            <translation>更多外掛</translation>
-        </message>
-        <message>
-            <source>Open the dashboard</source>
-            <translation>開啟儀表板</translation>
-        </message>
-        <message>
-            <source>Payment happens on the TerraLab website, never inside QGIS. Your plan here updates on its own.</source>
-            <translation>付款在 TerraLab 網站進行，不在 QGIS 內。此處方案會自動更新。</translation>
-        </message>
-        <message>
-            <source>Plans and prices, on the TerraLab website.</source>
-            <translation>方案與價格，見 TerraLab 網站。</translation>
-        </message>
-        <message>
-            <source>See pricing</source>
-            <translation>查看價格</translation>
-        </message>
-        <message>
-            <source>Short reminders it keeps between conversations.</source>
-            <translation>對話間保留的簡短提醒。</translation>
-        </message>
-        <message>
-            <source>There's a problem with your subscription: your last payment may have failed. Update your payment method to fix it.</source>
-            <translation>訂閱有問題：上次付款可能失敗。請更新付款方式。</translation>
-        </message>
-        <message>
-            <source>Your TerraLab account and its data are erased, and every TerraLab plugin stops working. To confirm, type your email address again.</source>
-            <translation>您的 TerraLab 帳號與資料將被刪除，所有 TerraLab 外掛將停止運作。請再次輸入電子郵件地址以確認。</translation>
-        </message>
-        <message>
-            <source>Your plan already turns this off. What you write is never read to improve the product, no matter how this switch is set.</source>
-            <translation>您的方案已關閉此項。無論此開關為何，您寫的內容絕不會被用於改善產品。</translation>
-        </message>
-        <message>
-            <source>Your plan, payment method and invoices are on the TerraLab dashboard.</source>
-            <translation>您的方案、付款方式與發票見 TerraLab 儀表板。</translation>
-        </message>
-        <message>
-            <source>{left} runs left of {limit} this month</source>
-            <translation>本月剩餘 {left} / {limit} 次執行</translation>
         </message>
         <message>
             <source>Another project</source>
@@ -8016,21 +5456,8 @@ Click to open its page.</source>
             <translation>每次編輯發生時，檢視會跟著移到編輯處。關閉後，檢視會停留在您設定的位置。</translation>
         </message>
         <message>
-            <source>Memory folder</source>
-            <translation>記憶資料夾</translation>
-        </message>
-        <message>
             <source>Open</source>
             <translation>開啟</translation>
-        </message>
-        <message>
-            <source>Your notes as Markdown files on this computer. Reword or delete one there and the next conversation follows.</source>
-            <translation>您的筆記以 Markdown 檔案存放在這台電腦上。在該處改寫或刪除任一檔案，下次對話就會照著變動。</translation>
-        </message>
-        <message>
-            <location filename="src/ui/settings_account.py" />
-            <source>Back to defaults, memory notes included. You stay signed in.</source>
-            <translation>恢復預設值，包含記憶筆記。您仍保持登入。</translation>
         </message>
         <message>
             <location filename="src/ui/settings_account.py" />
@@ -8046,11 +5473,6 @@ Click to open its page.</source>
             <location filename="src/ui/settings_account.py" />
             <source>Could not reach TerraLab</source>
             <translation>無法連線至 TerraLab</translation>
-        </message>
-        <message>
-            <location filename="src/ui/settings_dialog.py" />
-            <source>Do more with Pro</source>
-            <translation>使用 Pro 做更多事</translation>
         </message>
         <message>
             <location filename="src/ui/settings_account.py" />
@@ -8078,21 +5500,6 @@ Click to open its page.</source>
             <translation>絕不包含您的 prompt、圖層、坐標或檔案。</translation>
         </message>
         <message>
-            <location filename="src/ui/settings_account.py" />
-            <source>Off on your plan: chats are never read to improve it.</source>
-            <translation>您的方案已關閉此項：對話絕不會被讀取以改善產品。</translation>
-        </message>
-        <message>
-            <location filename="src/ui/settings_account.py" />
-            <source>Plus memory, your instructions and higher effort.</source>
-            <translation>另含記憶、您的指示與更高強度。</translation>
-        </message>
-        <message>
-            <location filename="src/ui/settings_account.py" />
-            <source>Pro: commercial use and more runs</source>
-            <translation>Pro：商業用途與更多執行次數</translation>
-        </message>
-        <message>
             <location filename="src/ui/settings_billing.py" />
             <source>See what Pro unlocks</source>
             <translation>查看 Pro 解鎖的內容</translation>
@@ -8106,16 +5513,6 @@ Click to open its page.</source>
             <location filename="src/ui/settings_account.py" />
             <source>Sign in first to delete your account.</source>
             <translation>請先登入，然後才能刪除帳戶。</translation>
-        </message>
-        <message>
-            <location filename="src/ui/settings_account.py" />
-            <source>Sign out, then sign in again.</source>
-            <translation>登出後重新登入。</translation>
-        </message>
-        <message>
-            <location filename="src/ui/settings_account.py" />
-            <source>This computer is no longer signed in</source>
-            <translation>此電腦已登出</translation>
         </message>
         <message>
             <location filename="src/ui/settings_account.py" />
@@ -8143,16 +5540,6 @@ Click to open its page.</source>
             <translation>請更新付款方式以解決問題。</translation>
         </message>
         <message>
-            <location filename="src/ui/settings_dialog.py" />
-            <source>What Pro unlocks, on the TerraLab website.</source>
-            <translation>Pro 解鎖的內容，見 TerraLab 網站。</translation>
-        </message>
-        <message>
-            <location filename="src/ui/settings_account.py" />
-            <source>What you write is never read to improve the product, no matter how this switch is set.</source>
-            <translation>無論此開關如何設定，您寫的內容絕不會被用於改善產品。</translation>
-        </message>
-        <message>
             <location filename="src/ui/settings_account.py" />
             <source>Your last payment may have failed</source>
             <translation>您上次的付款可能失敗</translation>
@@ -8177,24 +5564,12 @@ Click to open its page.</source>
             <translation>刪除</translation>
         </message>
         <message>
-            <source>Upgrade</source>
-            <translation>升級</translation>
-        </message>
-        <message>
-            <source>Commercial use and more tasks with Pro</source>
-            <translation>Pro 提供商業使用與更多任務</translation>
-        </message>
-        <message>
             <source>Get Pro</source>
             <translation>升級 Pro</translation>
         </message>
         <message>
             <source>Manage plan</source>
             <translation>管理方案</translation>
-        </message>
-        <message>
-            <source>Memory between conversations</source>
-            <translation>跨對話記憶</translation>
         </message>
         <message>
             <source>More</source>
@@ -8205,24 +5580,12 @@ Click to open its page.</source>
             <translation>開啟視窗</translation>
         </message>
         <message>
-            <source>Pro reads who you are and your standing rules before every run: your job, your city, your usual CRS, the language it answers in, how it names layers and what it must never do without asking.</source>
-            <translation>Pro 會在每次執行前讀取你的身分和長期規則：你的職業、你的城市、你常用的 CRS、回答使用的語言、圖層的命名方式，以及未經詢問絕不能做的事。</translation>
-        </message>
-        <message>
-            <source>Show the steps it takes</source>
-            <translation>顯示它執行的步驟</translation>
-        </message>
-        <message>
             <source>Sign in</source>
             <translation>登入</translation>
         </message>
         <message>
             <source>Sign in to see your account</source>
             <translation>登入以查看你的帳號</translation>
-        </message>
-        <message>
-            <source>The list of steps above each answer.</source>
-            <translation>顯示在每則回答上方的步驟清單。</translation>
         </message>
         <message>
             <source>This computer was signed out</source>
@@ -8237,10 +5600,6 @@ Click to open its page.</source>
             <translation>登入後，你的方案、任務和設定會顯示在這裡。</translation>
         </message>
         <message>
-            <source>Your profile and instructions, read before every run</source>
-            <translation>你的個人資料與指示，每次執行前都會讀取</translation>
-        </message>
-        <message>
             <source>+ Add a note</source>
             <translation>+ 新增筆記</translation>
         </message>
@@ -8249,20 +5608,8 @@ Click to open its page.</source>
             <translation>由 AI 新增</translation>
         </message>
         <message>
-            <source>It asks before adding one.</source>
-            <translation>新增前會先詢問。</translation>
-        </message>
-        <message>
             <source>Markdown files on this computer</source>
             <translation>這台電腦上的 Markdown 檔案</translation>
-        </message>
-        <message>
-            <source>SAVED NOTES · {n}</source>
-            <translation>已儲存的筆記 · {n}</translation>
-        </message>
-        <message>
-            <source>The AI can suggest notes</source>
-            <translation>AI 可以建議筆記</translation>
         </message>
         <message>
             <source>e.g. I work in EPSG:2154</source>
@@ -8302,20 +5649,12 @@ Click to open its page.</source>
             <translation>一律以法文回答，未經詢問不得刪除圖層</translation>
         </message>
         <message>
-            <source>Choose folder...</source>
-            <translation>選擇資料夾...</translation>
-        </message>
-        <message>
             <source>Clear project memory</source>
             <translation>清除專案記憶</translation>
         </message>
         <message>
             <source>Connected accounts</source>
             <translation>已連結的帳號</translation>
-        </message>
-        <message>
-            <source>Folder to watch</source>
-            <translation>要監看的資料夾</translation>
         </message>
         <message>
             <source>Instructions</source>
@@ -8334,16 +5673,8 @@ Click to open its page.</source>
             <translation>名稱</translation>
         </message>
         <message>
-            <source>No folder chosen</source>
-            <translation>尚未選擇資料夾</translation>
-        </message>
-        <message>
             <source>Pro reads both before every run.</source>
             <translation>Pro 在每次執行前都會讀取這兩項。</translation>
-        </message>
-        <message>
-            <source>Proactive triggers</source>
-            <translation>主動觸發</translation>
         </message>
         <message>
             <source>Project memory</source>
@@ -8362,16 +5693,8 @@ Click to open its page.</source>
             <translation>顯示專案記憶</translation>
         </message>
         <message>
-            <source>The AI agent looks at new data files in this folder and at the schedules you ask for, only while QGIS is open. Nothing runs when QGIS is closed.</source>
-            <translation>AI 代理會查看此資料夾中的新資料檔案和你要求的排程，但只在 QGIS 開啟時進行。QGIS 關閉時不會執行任何動作。</translation>
-        </message>
-        <message>
             <source>Urban planner at the city of Lyon, cadastre and PLU layers in EPSG:2154</source>
             <translation>里昂市的都市規劃師，地籍和 PLU 圖層使用 EPSG:2154</translation>
-        </message>
-        <message>
-            <source>Watch a folder and run my schedules while QGIS is open</source>
-            <translation>在 QGIS 開啟時監看資料夾並執行我的排程</translation>
         </message>
         <message>
             <source>What Pro adds: {points}</source>
@@ -8380,6 +5703,10 @@ Click to open its page.</source>
         <message>
             <source>commercial use, more tasks, memory, your instructions and higher effort</source>
             <translation>商業用途、更多任務、記憶、你的指示和更高的投入程度</translation>
+        </message>
+        <message>
+            <source>Delete this note? The AI will not add it back.</source>
+            <translation>要刪除這則筆記嗎？AI 不會再把它加回來。</translation>
         </message>
     </context>
     <context>
@@ -8471,14 +5798,6 @@ Click to open its page.</source>
             <location filename="src/ui/bubbles.py" />
             <source>Thinking</source>
             <translation>思考中</translation>
-        </message>
-    </context>
-    <context>
-        <name>StepLine</name>
-        <message>
-            <location filename="src/ui/bubbles.py" />
-            <source>for {n}s</source>
-            <translation>已持續 {n} 秒</translation>
         </message>
     </context>
     <context>
@@ -8657,51 +5976,6 @@ Click to open its page.</source>
     <context>
         <name>ToolExecutor</name>
         <message>
-            <source>{area} km²</source>
-            <translation>{area} km²</translation>
-        </message>
-        <message>
-            <source>{area} ha</source>
-            <translation>{area} ha</translation>
-        </message>
-        <message>
-            <source>{area} m²</source>
-            <translation>{area} m²</translation>
-        </message>
-        <message>
-            <source>the '{layer}' layer ({area})</source>
-            <translation>'{layer}' 圖層（{area}）</translation>
-        </message>
-        <message>
-            <source>Run {label} on {zone}. This spends your {label} credits.</source>
-            <translation>在 {zone} 上執行 {label}。這會用掉你的 {label} 點數。</translation>
-        </message>
-        <message>
-            <source> at {resolution}</source>
-            <translation> 解析度 {resolution}</translation>
-        </message>
-        <message>
-            <source> at the panel's selected resolution</source>
-            <translation> 使用面板所選的解析度</translation>
-        </message>
-        <message>
-            <source>{price} credits per generation</source>
-            <translation>每次生成 {price} 點數</translation>
-        </message>
-        <message>
-            <source>Run AI Edit{size}: {cost}. Image footprint: {zone}; billing is per generation.</source>
-            <translation>執行 AI Edit{size}：{cost}。影像範圍：{zone}；依每次生成計費。</translation>
-        </message>
-        <message>
-            <source>about {price} credits per generation (the 2K price; the live price was unavailable)</source>
-            <translation>每次生成約 {price} 點數（2K 價格；無法取得即時價格）</translation>
-        </message>
-        <message>
-            <location filename="src/core/executor.py" />
-            <source>Allowing also covers the other code this answer runs.</source>
-            <translation>允許亦涵蓋此回答執行的其他程式碼。</translation>
-        </message>
-        <message>
             <location filename="src/core/executor.py" />
             <source>Question mode is read only: {tool} would modify the project.</source>
             <translation>提問模式為唯讀：{tool} 會修改專案。</translation>
@@ -8756,24 +6030,12 @@ Click to open its page.</source>
             <translation>此次執行已結束；未執行此呼叫。</translation>
         </message>
         <message>
-            <source>Your answer covers the other code this answer runs.</source>
-            <translation>你的回答涵蓋此回答所執行的其他程式碼。</translation>
-        </message>
-        <message>
-            <source>Your answer covers the other {tool} calls this answer makes.</source>
-            <translation>您的回答涵蓋此回答所發出的其他 {tool} 呼叫。</translation>
-        </message>
-        <message>
             <source>Question mode is read only: the snippet {what}.</source>
             <translation>提問模式為唯讀：此程式片段{what}。</translation>
         </message>
         <message>
             <source>Run Python code</source>
             <translation>執行 Python 程式碼</translation>
-        </message>
-        <message>
-            <source>Run Python code that {what}.</source>
-            <translation>執行 Python 程式碼：{what}。</translation>
         </message>
         <message>
             <source>could not be saved first, so Undo could not take it back</source>
@@ -8839,41 +6101,9 @@ Click to open its page.</source>
             <source>Signed in</source>
             <translation>已登入</translation>
         </message>
-    </context>
-    <context>
-        <name>ToolGroup</name>
         <message>
-            <location filename="src/ui/tool_rows.py" />
-            <source>%n messages</source>
-            <translation>%n 則訊息</translation>
-        </message>
-        <message>
-            <location filename="src/ui/tool_rows.py" />
-            <source>%n tools</source>
-            <translation>%n 個工具</translation>
-        </message>
-        <message>
-            <location filename="src/ui/tool_rows.py" />
-            <source>1 message</source>
-            <translation>1 則訊息</translation>
-        </message>
-        <message>
-            <location filename="src/ui/tool_rows.py" />
-            <source>1 tool</source>
-            <translation>1 個工具</translation>
-        </message>
-    </context>
-    <context>
-        <name>ToolStack</name>
-        <message>
-            <location filename="src/ui/tool_rows.py" />
-            <source>%n calls</source>
-            <translation>%n 次呼叫</translation>
-        </message>
-        <message>
-            <location filename="src/ui/tool_rows.py" />
-            <source>1 call</source>
-            <translation>1 次呼叫</translation>
+            <source>could not be put back, so what it changed is still in the project</source>
+            <translation>無法放回，因此它所做的變更仍保留在專案中</translation>
         </message>
     </context>
     <context>
@@ -8931,10 +6161,6 @@ Click to open its page.</source>
             <source>{name}. Click to open.</source>
             <translation>{name}。按一下以開啟。</translation>
         </message>
-        <message>
-            <source>Edit message</source>
-            <translation>編輯訊息</translation>
-        </message>
     </context>
     <context>
         <name>_LayerChip</name>
@@ -8942,26 +6168,6 @@ Click to open its page.</source>
             <location filename="src/ui/layer_links.py" />
             <source>CRS</source>
             <translation>CRS</translation>
-        </message>
-        <message>
-            <location filename="src/ui/layer_links.py" />
-            <source>Click to open it in QGIS.</source>
-            <translation>按一下以在 QGIS 中開啟。</translation>
-        </message>
-        <message>
-            <location filename="src/ui/layer_links.py" />
-            <source>Its CRS changed. Click to open it in QGIS.</source>
-            <translation>其 CRS 已變更。按一下以在 QGIS 中開啟。</translation>
-        </message>
-        <message>
-            <location filename="src/ui/layer_links.py" />
-            <source>Its file was written on disk. Click to open it in QGIS.</source>
-            <translation>其檔案已寫入磁碟。按一下以在 QGIS 中開啟。</translation>
-        </message>
-        <message>
-            <location filename="src/ui/layer_links.py" />
-            <source>New layer. Click to open it in QGIS.</source>
-            <translation>新圖層。按一下以在 QGIS 中開啟。</translation>
         </message>
         <message>
             <location filename="src/ui/layer_links.py" />
@@ -9010,22 +6216,8 @@ Click to open its page.</source>
         </message>
         <message>
             <location filename="src/ui/layer_links.py" />
-            <source>{n:+d} features. Click to open it in QGIS.</source>
-            <translation>{n:+d} 個圖徵。按一下以在 QGIS 中開啟。</translation>
-        </message>
-        <message>
-            <source>{n:+d} feature. Click to open it in QGIS.</source>
-            <translation>{n:+d} 個圖徵。按一下以在 QGIS 中開啟。</translation>
-        </message>
-        <message>
-            <location filename="src/ui/layer_links.py" />
             <source>Click to select it in the Layers panel.</source>
             <translation>按一下以在圖層面板中選取。</translation>
-        </message>
-        <message>
-            <location filename="src/ui/layer_links.py" />
-            <source>Credit: {credit}</source>
-            <translation>出處：{credit}</translation>
         </message>
         <message>
             <location filename="src/ui/layer_links.py" />
@@ -9036,11 +6228,6 @@ Click to open its page.</source>
             <location filename="src/ui/layer_links.py" />
             <source>Its file was written on disk. Click to select it in the Layers panel.</source>
             <translation>其檔案已寫入磁碟。按一下以在圖層面板中選取。</translation>
-        </message>
-        <message>
-            <location filename="src/ui/layer_links.py" />
-            <source>Licence: {licence}</source>
-            <translation>授權：{licence}</translation>
         </message>
         <message>
             <location filename="src/ui/layer_links.py" />
@@ -9132,50 +6319,16 @@ Click to open its page.</source>
         </message>
         <message>
             <location filename="src/ui/cards_question.py" />
-            <source>auto</source>
-            <translation>自動</translation>
-        </message>
-        <message>
-            <location filename="src/ui/cards_question.py" />
             <source>skipped</source>
             <translation>已跳過</translation>
-        </message>
-        <message>
-            <source>Something else</source>
-            <translation>其他</translation>
-        </message>
-        <message>
-            <location filename="src/ui/cards_question.py" />
-            <source>Answers itself in %n seconds</source>
-            <translation>%n 秒後自動回答</translation>
-        </message>
-        <message>
-            <location filename="src/ui/cards_question.py" />
-            <source>Answers itself in 1 second</source>
-            <translation>1 秒後自動回答</translation>
         </message>
     </context>
     <context>
         <name>_StepRow</name>
         <message>
             <location filename="src/ui/cards_tool.py" />
-            <source>%n tools</source>
-            <translation>%n 個工具</translation>
-        </message>
-        <message>
-            <location filename="src/ui/cards_tool.py" />
-            <source>1 tool</source>
-            <translation>1 個工具</translation>
-        </message>
-        <message>
-            <location filename="src/ui/cards_tool.py" />
             <source>Failed</source>
             <translation>失敗</translation>
-        </message>
-        <message>
-            <location filename="src/ui/cards_tool.py" />
-            <source>Running</source>
-            <translation>執行中</translation>
         </message>
         <message>
             <source>Done</source>
@@ -9196,52 +6349,20 @@ Click to open its page.</source>
     <context>
         <name>SiblingCard</name>
         <message>
-            <source>Install in QGIS</source>
-            <translation>在 QGIS 中安裝</translation>
-        </message>
-        <message>
             <source>Installed</source>
             <translation>已安裝</translation>
-        </message>
-        <message>
-            <source>Open in QGIS</source>
-            <translation>在 QGIS 中開啟</translation>
         </message>
         <message>
             <source>Opens the QGIS plugin manager on this plugin.</source>
             <translation>在 QGIS 外掛程式管理員中開啟此外掛。</translation>
         </message>
         <message>
-            <source>Read the guide</source>
-            <translation>閱讀指南</translation>
-        </message>
-        <message>
             <source>Show the plugin's panel.</source>
             <translation>顯示此外掛的面板。</translation>
-        </message>
-        <message>
-            <source>The written tutorial, on the TerraLab blog.</source>
-            <translation>文字版教學，見 TerraLab 部落格。</translation>
         </message>
     </context>
     <context>
         <name>SiblingsPage</name>
-        <message>
-            <source>Detect objects in a raster and get them back as real polygons: building footprints, trees, water, solar panels, anything you can point at. Runs on your machine or on our servers, and exports to GeoPackage, Shapefile or GeoJSON.</source>
-            <translation>在柵格中偵測物件並回傳真實多邊形：建物輪廓、樹木、水體、太陽能板等。可在本機或伺服器執行，可匯出為 GeoPackage、Shapefile 或 GeoJSON。</translation>
-        </message>
-        <message>
-            <source>Repaint the imagery you already have open, from a sentence: a redevelopment before it is built, a street planted with trees, a flood, an orthophoto redrawn as a clean site plan. The result comes back georeferenced, on the source's own extent and CRS.</source>
-            <translation>用一句話重繪已開啟的影像：未建的重劃、植樹街道、水災、正射影像重繪為基地平面圖。結果具地理定位，維持原範圍與 CRS。</translation>
-        </message>
-        <message>
-            <source>More plugins</source>
-            <translation>更多外掛</translation>
-        </message>
-        <message>
-            <source>The two other TerraLab plugins for QGIS. They install from here.</source>
-            <translation>TerraLab 另外兩個 QGIS 外掛。可從這裡安裝。</translation>
-        </message>
         <message>
             <location filename="src/ui/siblings_page.py" />
             <source>Edit your imagery with a single sentence.</source>
@@ -9262,10 +6383,6 @@ Click to open its page.</source>
         <message>
             <source>Update required</source>
             <translation>需要更新</translation>
-        </message>
-        <message>
-            <source>Update to keep using {product}. It takes one click in the QGIS Plugin Manager; the plugin reloads on its own.</source>
-            <translation>更新以繼續使用 {product}。在 QGIS 外掛管理員中按一下即可，外掛會自動重新載入。</translation>
         </message>
         <message>
             <source>You have {installed}.</source>
@@ -9298,46 +6415,6 @@ Click to open its page.</source>
             <translation>刪除</translation>
         </message>
         <message>
-            <source>Deleted {n} working layer</source>
-            <translation>已刪除 {n} 個工作圖層</translation>
-        </message>
-        <message>
-            <source>Deleted {n} working layers</source>
-            <translation>已刪除 {n} 個工作圖層</translation>
-        </message>
-        <message>
-            <source>I left {n} working layer behind.</source>
-            <translation>我留下了 {n} 個工作圖層。</translation>
-        </message>
-        <message>
-            <source>I left {n} working layers behind.</source>
-            <translation>我留下了 {n} 個工作圖層。</translation>
-        </message>
-        <message>
-            <source>Keep them</source>
-            <translation>保留它們</translation>
-        </message>
-        <message>
-            <source>Kept {n} working layer</source>
-            <translation>已保留 {n} 個工作圖層</translation>
-        </message>
-        <message>
-            <source>Kept {n} working layers</source>
-            <translation>已保留 {n} 個工作圖層</translation>
-        </message>
-        <message>
-            <source>Tidied {n} working layer away</source>
-            <translation>已整理掉 {n} 個工作圖層</translation>
-        </message>
-        <message>
-            <source>Tidied {n} working layers away</source>
-            <translation>已整理掉 {n} 個工作圖層</translation>
-        </message>
-        <message>
-            <source>Tidy up</source>
-            <translation>整理</translation>
-        </message>
-        <message>
             <source>Working layers</source>
             <translation>工作圖層</translation>
         </message>
@@ -9349,48 +6426,12 @@ Click to open its page.</source>
             <source>pending</source>
             <translation>待處理</translation>
         </message>
-        <message>
-            <source>Group and hide</source>
-            <translation>分組並隱藏</translation>
-        </message>
-        <message>
-            <source>Keep them where they are</source>
-            <translation>保持原位</translation>
-        </message>
-        <message>
-            <source>Move them into a hidden, collapsed group named {group}</source>
-            <translation>將它們移入名為 {group} 的隱藏摺疊群組</translation>
-        </message>
-        <message>
-            <source>Moved {n} layer into {group}</source>
-            <translation>已將 {n} 個圖層移入 {group}</translation>
-        </message>
-        <message>
-            <source>Moved {n} layers into {group}</source>
-            <translation>已將 {n} 個圖層移入 {group}</translation>
-        </message>
-        <message>
-            <source>The agent left {n} working layer behind</source>
-            <translation>代理留下了 {n} 個工作圖層</translation>
-        </message>
-        <message>
-            <source>The agent left {n} working layers behind</source>
-            <translation>代理留下了 {n} 個工作圖層</translation>
-        </message>
     </context>
     <context>
         <name>PluginOfferCard</name>
         <message>
             <source>Install</source>
             <translation>安裝</translation>
-        </message>
-        <message>
-            <source>Not now</source>
-            <translation>暫時不要</translation>
-        </message>
-        <message>
-            <source>Opened the plugin manager</source>
-            <translation>已開啟外掛管理員</translation>
         </message>
         <message>
             <source>pending</source>
@@ -9434,37 +6475,7 @@ Click to open its page.</source>
         </message>
     </context>
     <context>
-        <name>_FileChip</name>
-        <message>
-            <location filename="src/ui/layer_links.py" />
-            <source>Click to show it in its folder.</source>
-            <translation>按一下以在所在資料夾中顯示。</translation>
-        </message>
-    </context>
-    <context>
-        <name>_WarningsChip</name>
-        <message>
-            <location filename="src/ui/layer_links.py" />
-            <source>%n warnings</source>
-            <translation>%n 則警告</translation>
-        </message>
-        <message>
-            <location filename="src/ui/layer_links.py" />
-            <source>1 warning</source>
-            <translation>1 則警告</translation>
-        </message>
-        <message>
-            <location filename="src/ui/layer_links.py" />
-            <source>What QGIS found when it read the result back. Click to read it.</source>
-            <translation>QGIS 讀回結果時發現的內容。按一下以查看。</translation>
-        </message>
-    </context>
-    <context>
         <name>AIAgentLicence</name>
-        <message>
-            <source>Dataset page</source>
-            <translation>資料集頁面</translation>
-        </message>
         <message>
             <source>Date unknown</source>
             <translation>日期未知</translation>
@@ -9472,14 +6483,6 @@ Click to open its page.</source>
         <message>
             <source>Live, loaded {day}</source>
             <translation>即時，已載入 {day}</translation>
-        </message>
-        <message>
-            <source>Your own file</source>
-            <translation>您自己的檔案</translation>
-        </message>
-        <message>
-            <source>Your own source</source>
-            <translation>您自己的來源</translation>
         </message>
         <message>
             <source>Dataset page and licence terms</source>
@@ -9578,13 +6581,6 @@ Click to open its page.</source>
         </message>
     </context>
     <context>
-        <name>_VerifyLink</name>
-        <message>
-            <source>Verify</source>
-            <translation>驗證</translation>
-        </message>
-    </context>
-    <context>
         <name>ChatLabel</name>
         <message>
             <source>Copy</source>
@@ -9610,10 +6606,6 @@ Click to open its page.</source>
             <translation>圖片</translation>
         </message>
         <message>
-            <source>Not on disk any more</source>
-            <translation>已不在磁碟上</translation>
-        </message>
-        <message>
             <source>Open</source>
             <translation>開啟</translation>
         </message>
@@ -9622,28 +6614,12 @@ Click to open its page.</source>
             <translation>在瀏覽器中開啟</translation>
         </message>
         <message>
-            <source>PDF</source>
-            <translation>PDF</translation>
-        </message>
-        <message>
-            <source>Raster data</source>
-            <translation>網格資料</translation>
-        </message>
-        <message>
             <source>Show in folder</source>
             <translation>在資料夾中顯示</translation>
         </message>
         <message>
             <source>Table</source>
             <translation>表格</translation>
-        </message>
-        <message>
-            <source>Vector data</source>
-            <translation>向量資料</translation>
-        </message>
-        <message>
-            <source>Web page</source>
-            <translation>網頁</translation>
         </message>
         <message>
             <source>{path}
@@ -9702,20 +6678,8 @@ This file is no longer where the run wrote it.</source>
             <translation>取得 Pro</translation>
         </message>
         <message>
-            <source>Get more runs</source>
-            <translation>取得更多執行次數</translation>
-        </message>
-        <message>
             <source>{n} free tasks left</source>
             <translation>剩餘 {n} 項免費任務</translation>
-        </message>
-        <message>
-            <source>{n} runs a month with Pro</source>
-            <translation>Pro 每月 {n} 次執行</translation>
-        </message>
-        <message>
-            <source>Get Pro for High effort</source>
-            <translation>取得 Pro 以使用 High 強度</translation>
         </message>
         <message>
             <source>Pro: {n} tasks a month, Medium and High effort for harder work, Autopilot</source>
@@ -9738,18 +6702,7 @@ This file is no longer where the run wrote it.</source>
         </message>
     </context>
     <context>
-        <name>_MoreRow</name>
-        <message>
-            <source>+%n more</source>
-            <translation>+%n 個</translation>
-        </message>
-    </context>
-    <context>
         <name>_NowLine</name>
-        <message>
-            <source>Now</source>
-            <translation>現在</translation>
-        </message>
         <message>
             <source>Current</source>
             <translation>目前</translation>
@@ -9762,24 +6715,12 @@ This file is no longer where the run wrote it.</source>
             <translation>關閉</translation>
         </message>
         <message>
-            <source>Did not do what I asked</source>
-            <translation>未依照我的要求執行</translation>
-        </message>
-        <message>
             <source>Send</source>
             <translation>傳送</translation>
         </message>
         <message>
-            <source>Thanks</source>
-            <translation>謝謝</translation>
-        </message>
-        <message>
             <source>Too slow</source>
             <translation>太慢了</translation>
-        </message>
-        <message>
-            <source>What went wrong? (optional)</source>
-            <translation>出了什麼問題？（選填）</translation>
         </message>
         <message>
             <source>Wrong result</source>
@@ -9848,24 +6789,8 @@ This file is no longer where the run wrote it.</source>
             <translation>新增</translation>
         </message>
         <message>
-            <source>Added to memory</source>
-            <translation>已加入記憶</translation>
-        </message>
-        <message>
             <source>Memory</source>
             <translation>記憶</translation>
-        </message>
-        <message>
-            <source>No thanks</source>
-            <translation>不用了</translation>
-        </message>
-        <message>
-            <source>Remember this for next time?</source>
-            <translation>要記住這個供下次使用嗎?</translation>
-        </message>
-        <message>
-            <source>Replaces: {0}</source>
-            <translation>取代:{0}</translation>
         </message>
         <message>
             <source>Settings</source>
@@ -9875,15 +6800,11 @@ This file is no longer where the run wrote it.</source>
             <source>Show less</source>
             <translation>顯示較少</translation>
         </message>
-        <message>
-            <source>Show the whole note</source>
-            <translation>顯示完整筆記</translation>
-        </message>
     </context>
     <context>
         <name>Toast</name>
         <message>
-            <source>Available when the agent finishes</source>
+            <source>Available when the AI agent finishes</source>
             <translation>代理完成後即可使用</translation>
         </message>
     </context>
@@ -9896,14 +6817,6 @@ This file is no longer where the run wrote it.</source>
         <message>
             <source>Layers affected</source>
             <translation>受影響的圖層</translation>
-        </message>
-        <message>
-            <source>Removed</source>
-            <translation>已移除</translation>
-        </message>
-        <message>
-            <source>Restored</source>
-            <translation>已還原</translation>
         </message>
         <message>
             <source>Put back as before</source>
@@ -9927,16 +6840,6 @@ This file is no longer where the run wrote it.</source>
     </context>
     <context>
         <name>_WorkingMore</name>
-        <message>
-            <location filename="src/ui/file_card.py" />
-            <source>1 working file</source>
-            <translation>1 個工作檔案</translation>
-        </message>
-        <message>
-            <location filename="src/ui/file_card.py" />
-            <source>{n} working files</source>
-            <translation>{n} 個工作檔案</translation>
-        </message>
         <message>
             <source>+{n} more</source>
             <translation>還有 {n} 項</translation>
@@ -10051,13 +6954,9 @@ This file is no longer where the run wrote it.</source>
             <source>Continue</source>
             <translation>繼續</translation>
         </message>
-    </context>
-    <context>
-        <name>FileCardStack</name>
         <message>
-            <location filename="src/ui/file_card.py" />
-            <source>Working files</source>
-            <translation>工作檔案</translation>
+            <source>1 day</source>
+            <translation>1 天</translation>
         </message>
     </context>
     <context>
@@ -10278,14 +7177,6 @@ This file is no longer where the run wrote it.</source>
             <translation>傳送</translation>
         </message>
         <message>
-            <source>Sent with this conversation and your recent logs, to fix issues and improve AI Agent.</source>
-            <translation>將與此對話及您最近的記錄檔一併傳送，用於修復問題並改進 AI Agent。</translation>
-        </message>
-        <message>
-            <source>Tell us more</source>
-            <translation>告訴我們更多</translation>
-        </message>
-        <message>
             <source>Thanks for the feedback</source>
             <translation>感謝您的意見回饋</translation>
         </message>
@@ -10327,6 +7218,18 @@ This file is no longer where the run wrote it.</source>
         <message>
             <source>{n} more</source>
             <translation>另外 {n} 個</translation>
+        </message>
+        <message>
+            <source>No</source>
+            <translation>否</translation>
+        </message>
+        <message>
+            <source>The algorithm's id, to find it in the Processing toolbox</source>
+            <translation>演算法的 ID，用來在處理工具箱中找到它</translation>
+        </message>
+        <message>
+            <source>Yes</source>
+            <translation>是</translation>
         </message>
     </context>
     <context>
@@ -10567,10 +7470,6 @@ This file is no longer where the run wrote it.</source>
             <translation>移除</translation>
         </message>
         <message>
-            <source>Remove the access to {host}</source>
-            <translation>移除 {host} 的存取權</translation>
-        </message>
-        <message>
             <source>S3 keys</source>
             <translation>S3 金鑰</translation>
         </message>
@@ -10601,10 +7500,6 @@ This file is no longer where the run wrote it.</source>
         <message>
             <source>Change project…</source>
             <translation>變更專案…</translation>
-        </message>
-        <message>
-            <source>Google sign-in</source>
-            <translation>Google 登入</translation>
         </message>
         <message>
             <source>Signed in with the browser</source>
@@ -11602,6 +8497,17 @@ This file is no longer where the run wrote it.</source>
         <message>
             <source>Your words are sent with this chat and recent logs.</source>
             <translation>您的文字會連同此對話和最近的日誌一併傳送。</translation>
+        </message>
+    </context>
+    <context>
+        <name>NoteRow</name>
+        <message>
+            <source>Delete this note</source>
+            <translation>刪除這則筆記</translation>
+        </message>
+        <message>
+            <source>Edit this note</source>
+            <translation>編輯這則筆記</translation>
         </message>
     </context>
 </TS>

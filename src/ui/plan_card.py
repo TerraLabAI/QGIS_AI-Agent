@@ -58,7 +58,9 @@ from .style import (
     MOTION_FOLD_MS,
     RADIUS_CARD,
     RADIUS_CONTROL,
+    WEIGHT_MEDIUM,
     accent_color,
+    medium_font_weight,
     qcolor,
 )
 from .trace_rows import Chevron, HoverRow
@@ -71,7 +73,7 @@ _TURN_MS = 900
 _MAX_STEPS = 100
 
 _TITLE_QSS = scale_qss_font_px(
-    f"QLabel {{ font-size: {FONT_BASE}px; font-weight: 500; color: {INK};"
+    f"QLabel {{ font-size: {FONT_BASE}px; font-weight: {WEIGHT_MEDIUM}; color: {INK};"
     " background: transparent; border: none; }"
 )
 
@@ -88,7 +90,7 @@ _STEP_QSS = {
         " background: transparent; border: none; }"
     )
     for state, colour, weight in (
-        ("active", INK, " font-weight: 500;"),
+        ("active", INK, f" font-weight: {WEIGHT_MEDIUM};"),
         ("pending", INK_2, ""),
         ("done", INK_3, ""),
         ("failed", INK_2, ""),
@@ -96,6 +98,13 @@ _STEP_QSS = {
     )
 }
 _STATES = tuple(_STEP_QSS)
+
+
+def _cut(text, limit: int) -> str:
+
+
+    text = str(text or "")
+    return text if len(text) <= limit else text[:limit - 1].rstrip() + "\u2026"
 
 
 class _StepMark(QWidget):
@@ -203,7 +212,7 @@ class _StepMark(QWidget):
                     painter.drawArc(ring, int((90 - self._angle) * 16), -100 * 16)
                 font = QFont(self.font())
                 font.setPixelSize(scale_point_size(FONT_MICRO))
-                font.setWeight(QFont.Weight.Medium if active else QFont.Weight.Normal)
+                font.setWeight(medium_font_weight() if active else QFont.Weight.Normal)
                 painter.setFont(font)
                 painter.setPen(qcolor(INK if active else INK_3))
                 painter.drawText(ring, int(Qt.AlignmentFlag.AlignCenter), str(self.number))
@@ -245,8 +254,8 @@ class _StepRow(QWidget):
 
     def set_label(self, label: str, count: str = "") -> None:
 
-        self._label.setText(str(label or "")[:240])
-        self._count.setText(str(count or "")[:80])
+        self._label.setText(_cut(label, 240))
+        self._count.setText(_cut(count, 80))
         self._count.setVisible(bool(count))
 
     def set_state(self, state: str) -> None:
@@ -342,8 +351,8 @@ class PlanCard(QWidget):
             step_id = str(step.get("id") or i)
             if step_id in kept:
                 continue
-            label = str(step.get("label") or "")[:240]
-            count = str(step.get("count") or "")[:80]
+            label = _cut(step.get("label"), 240)
+            count = _cut(step.get("count"), 80)
             row = self._rows.pop(step_id, None)
             if row is None:
                 row = _StepRow(step_id, len(kept) + 1, label, count, self._body)

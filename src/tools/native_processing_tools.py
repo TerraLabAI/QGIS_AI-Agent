@@ -27,6 +27,7 @@ import json
 import math
 import os
 import re
+import sys
 import tempfile
 import threading
 import zlib
@@ -436,6 +437,22 @@ def _text_of(call) -> str:
     return value if isinstance(value, str) else ""
 
 
+def _code_stamp(provider) -> str:
+
+
+
+
+
+
+
+
+    try:
+        info = os.stat(sys.modules[type(provider).__module__].__file__)
+    except (AttributeError, KeyError, OSError, TypeError):
+        return ""
+    return f"{info.st_size}:{info.st_mtime_ns}"
+
+
 def _catalog_key(algorithms: list) -> str:
 
 
@@ -448,7 +465,7 @@ def _catalog_key(algorithms: list) -> str:
         ids.append(str(algorithm.id() or ""))
         if provider_id not in providers:
             try:
-                providers[provider_id] = _text_of(algorithm.provider().versionInfo)
+                providers[provider_id] = _code_stamp(algorithm.provider())
             except Exception:  # noqa: BLE001
                 providers[provider_id] = ""
     try:

@@ -426,36 +426,41 @@ def _update_features(args: dict) -> dict:
     not_found: list = []
     refused: list = []
     unknown_fields: dict = {}
-    for update in updates:
-        fid = update["fid"]
-        feat = layer.getFeature(fid)
-        if not feat.isValid():
+    try:
+        for update in updates:
+            fid = update["fid"]
+            feat = layer.getFeature(fid)
+            if not feat.isValid():
 
-            not_found.append(fid)
-            continue
-        attrs = update.get("attributes", {})
-
-
-        wrote = 0
-        if len(truncations) < 50:
-            for warning in vector_write.value_warnings(layer, attrs):
-                warning["fid"] = fid
-                truncations.append(warning)
-        for field_name, value in attrs.items():
-            idx = layer.fields().indexOf(field_name)
-            if idx < 0:
-                unknown_fields.setdefault(field_name, [])
-                unknown_fields[field_name].append(fid)
-            elif layer.changeAttributeValue(fid, idx, value):
-                wrote += 1
-            else:
-                refused.append({"fid": fid, "field": field_name})
+                not_found.append(fid)
+                continue
+            attrs = update.get("attributes", {})
 
 
-        if wrote == len(attrs):
-            updated += 1
-        elif wrote:
-            partial.append(fid)
+            wrote = 0
+            if len(truncations) < 50:
+                for warning in vector_write.value_warnings(layer, attrs):
+                    warning["fid"] = fid
+                    truncations.append(warning)
+            for field_name, value in attrs.items():
+                idx = layer.fields().indexOf(field_name)
+                if idx < 0:
+                    unknown_fields.setdefault(field_name, [])
+                    unknown_fields[field_name].append(fid)
+                elif layer.changeAttributeValue(fid, idx, value):
+                    wrote += 1
+                else:
+                    refused.append({"fid": fid, "field": field_name})
+
+
+            if wrote == len(attrs):
+                updated += 1
+            elif wrote:
+                partial.append(fid)
+    except Exception:
+
+        vector_write.abort_edit(layer, started)
+        raise
 
     failure = vector_write.finish_edit(layer, started, f"The {updated + len(partial)} attribute change(s)")
     if failure is not None:
@@ -832,10 +837,8 @@ def _select_by_geometry(args: dict) -> dict:
 
 
 
-
-
         calculator = None
-        if layer.crs().isGeographic():
+        if layer.crs().isValid():
             from qgis.core import QgsDistanceArea
 
             calculator = QgsDistanceArea()

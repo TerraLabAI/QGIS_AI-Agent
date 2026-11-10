@@ -38,7 +38,9 @@ from __future__ import annotations
 import hashlib
 import os
 import re
+import ssl
 import sys
+import urllib.parse
 
 from .logger import log, log_warning
 
@@ -188,16 +190,187 @@ def ensure() -> int:
 
 
 
+
     global _checked
     added = 0
     if not _checked:
         _checked = True
         added = _store_roots()
     try:
+        _follow_windows_store()
+    except Exception as exc:  # noqa: BLE001
+        log_warning(f"Windows root store not re-read: {exc}")
+    try:
         _complete_chains()
     except Exception as exc:  # noqa: BLE001
         log_warning(f"Public intermediates not added: {exc}")
     return added
+
+
+_asked: dict = {}
+
+_ASK_TIMEOUT_S = 8.0
+
+
+def learn(url: str) -> bool:
+
+
+
+
+
+
+
+
+
+
+
+
+    if sys.platform != "win32":
+        return False
+    parts = urllib.parse.urlsplit(url)
+    if parts.scheme != "https" or not parts.hostname:
+        return False
+    key = (parts.hostname.lower(), parts.port or 443)
+    if key in _asked:
+        return False
+    try:
+        _asked[key] = _windows_accepts(*key)
+    except Exception as exc:  # noqa: BLE001
+        log_warning(f"Windows was not asked about {key[0]}: {exc}")
+        _asked[key] = False
+    if _asked[key]:
+        log(f"Windows accepts {key[0]} and holds the public root it needed; the certificate store is read again.")
+        try:
+            from .background import run_on_main_thread
+
+            run_on_main_thread(_follow_windows_store)
+        except Exception as exc:  # noqa: BLE001
+            log_warning(f"QGIS did not re-read the Windows root store: {exc}")
+    return _asked[key]
+
+
+def _windows_accepts(host: str, port: int) -> bool:
+
+
+
+
+    import ctypes
+    import socket
+
+    unchecked = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+    unchecked.check_hostname = False
+    unchecked.verify_mode = ssl.CERT_NONE  # nosec B323
+    with socket.create_connection((host, port), timeout=_ASK_TIMEOUT_S) as raw, \
+            unchecked.wrap_socket(raw, server_hostname=host) as tls:
+        leaf = tls.getpeercert(True)
+        read = getattr(tls, "get_unverified_chain", None) or getattr(tls._sslobj, "get_unverified_chain", None)
+
+        sent = [item if isinstance(item, bytes) else item.public_bytes(ssl._ssl.ENCODING_DER)
+                for item in (read() if read else ())]
+    if not leaf:
+        return False
+
+    crypt32 = ctypes.WinDLL("crypt32", use_last_error=True)
+    pointer = ctypes.c_void_p
+
+    class Usage(ctypes.Structure):
+        _fields_ = [("count", ctypes.c_uint32), ("names", ctypes.POINTER(ctypes.c_char_p))]
+
+    class UsageMatch(ctypes.Structure):
+        _fields_ = [("match", ctypes.c_uint32), ("usage", Usage)]
+
+
+    class ChainPara(ctypes.Structure):
+        _fields_ = [("size", ctypes.c_uint32), ("requested", UsageMatch)]
+
+    class SslPara(ctypes.Structure):
+        _fields_ = [("size", ctypes.c_uint32), ("auth", ctypes.c_uint32), ("checks", ctypes.c_uint32),
+                    ("server", ctypes.c_wchar_p)]
+
+    class PolicyPara(ctypes.Structure):
+        _fields_ = [("size", ctypes.c_uint32), ("flags", ctypes.c_uint32), ("extra", pointer)]
+
+    class PolicyStatus(ctypes.Structure):
+        _fields_ = [("size", ctypes.c_uint32), ("error", ctypes.c_uint32), ("chain", ctypes.c_int32),
+                    ("element", ctypes.c_int32), ("extra", pointer)]
+
+    crypt32.CertOpenStore.restype = pointer
+    crypt32.CertOpenStore.argtypes = [pointer, ctypes.c_uint32, pointer, ctypes.c_uint32, pointer]
+    crypt32.CertAddEncodedCertificateToStore.argtypes = [pointer, ctypes.c_uint32, ctypes.c_char_p, ctypes.c_uint32,
+                                                         ctypes.c_uint32, ctypes.POINTER(pointer)]
+    crypt32.CertGetCertificateChain.argtypes = [pointer, pointer, pointer, pointer, ctypes.POINTER(ChainPara),
+                                                ctypes.c_uint32, pointer, ctypes.POINTER(pointer)]
+    crypt32.CertVerifyCertificateChainPolicy.argtypes = [pointer, pointer, ctypes.POINTER(PolicyPara),
+                                                         ctypes.POINTER(PolicyStatus)]
+    crypt32.CertFreeCertificateChain.argtypes = [pointer]
+    crypt32.CertFreeCertificateContext.argtypes = [pointer]
+    crypt32.CertCloseStore.argtypes = [pointer, ctypes.c_uint32]
+
+
+    x509, add_always, memory_store, ssl_policy, server_auth = 1, 4, 2, 4, 2
+    store = crypt32.CertOpenStore(memory_store, 0, None, 0, None)
+    if not store:
+        return False
+    context, chain = pointer(), pointer()
+    try:
+        if not crypt32.CertAddEncodedCertificateToStore(store, x509, leaf, len(leaf), add_always,
+                                                        ctypes.byref(context)):
+            return False
+        for der in sent[1:]:
+            crypt32.CertAddEncodedCertificateToStore(store, x509, der, len(der), add_always, None)
+        names = (ctypes.c_char_p * 1)(b"1.3.6.1.5.5.7.3.1")
+        para = ChainPara(ctypes.sizeof(ChainPara), UsageMatch(1, Usage(1, names)))
+        if not crypt32.CertGetCertificateChain(None, context, None, store, ctypes.byref(para), 0, None,
+                                               ctypes.byref(chain)):
+            return False
+        extra = SslPara(ctypes.sizeof(SslPara), server_auth, 0, host)
+        policy = PolicyPara(ctypes.sizeof(PolicyPara), 0, ctypes.cast(ctypes.byref(extra), pointer))
+        status = PolicyStatus(ctypes.sizeof(PolicyStatus))
+        accepted = crypt32.CertVerifyCertificateChainPolicy(ssl_policy, chain, ctypes.byref(policy),
+                                                            ctypes.byref(status))
+        return bool(accepted) and status.error == 0
+    finally:
+        if chain:
+            crypt32.CertFreeCertificateChain(chain)
+        if context:
+            crypt32.CertFreeCertificateContext(context)
+        crypt32.CertCloseStore(store, 0)
+
+
+
+
+_system_seen: set = set()
+
+
+def _follow_windows_store() -> int:
+
+
+
+
+
+
+
+    if sys.platform != "win32":
+        return 0
+    from qgis.core import QgsApplication
+
+    manager = QgsApplication.authManager()
+    if manager is None or manager.isDisabled():
+        return 0
+
+    system = {hashlib.sha256(der).hexdigest() for der, _encoding, _trust in ssl.enum_certificates("ROOT")}
+    if system <= _system_seen:
+        return 0
+    _system_seen.update(system)
+    before = {_sha256(cert) for cert in manager.trustedCaCertsCache()}
+    if system <= before:
+        return 0
+    manager.rebuildCaCertsCache()
+    manager.rebuildTrustedCaCertsCache()
+    gained = len({_sha256(cert) for cert in manager.trustedCaCertsCache()} - before)
+    if gained:
+        log(f"QGIS now trusts {gained} more public roots: Windows added them to its store after QGIS started.")
+    return gained
 
 
 def _store_roots() -> int:

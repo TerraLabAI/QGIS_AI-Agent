@@ -12,6 +12,7 @@ import math
 from qgis.core import QgsLayoutMeasurementConverter, QgsRectangle, QgsUnitTypes
 
 from ..core import licence
+from ..core.invariants import metres_per_map_unit
 from ..core.numbers import as_float
 from ..core.qt_compat import enum_member
 from ..core.tool_registry import tool_error
@@ -58,28 +59,9 @@ def _page_text(layout) -> str:
         return ""
 
 
-def _metres_per_map_unit(crs) -> float | None:
-
-    try:
-        from qgis.core import Qgis, QgsUnitTypes
-
-        metres = enum_member(Qgis, "DistanceUnit", "Meters", None)
-        degrees = enum_member(Qgis, "DistanceUnit", "Degrees", None)
-        if metres is None:
-            metres = enum_member(QgsUnitTypes, "DistanceUnit", "DistanceMeters")
-            degrees = enum_member(QgsUnitTypes, "DistanceUnit", "DistanceDegrees")
-        units = crs.mapUnits()
-        if units == degrees:
-            return None
-        factor = float(QgsUnitTypes.fromUnitToUnitFactor(units, metres))
-    except Exception:  # noqa: BLE001
-        return None
-    return factor if factor > 0 else None
-
-
 def _ground_text(reference_map, rect) -> str:
 
-    factor = _metres_per_map_unit(reference_map.crs())
+    factor = metres_per_map_unit(reference_map.crs())
     if factor is not None:
         return f"{rect.width() * factor / 1000:.1f} x {rect.height() * factor / 1000:.1f} km"
     return f"{rect.width():.4f} x {rect.height():.4f} degrees"

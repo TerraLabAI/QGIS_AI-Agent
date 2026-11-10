@@ -36,6 +36,7 @@ from .font_scale import scale_px_length, scale_qss_font_px
 from .icons import pixmap_for
 from .settings_pages import GHOST_BTN_QSS, PRIMARY_BTN_QSS
 from .shared import available_screen_rect, exec_dialog, tr
+from .widgets import break_anywhere
 
 DIALOG_W = 420
 SIDE_PAD = 24
@@ -155,12 +156,17 @@ class ConfirmDialog(QDialog):
             f"QLabel {{ background: {S.FIELD}; border: none;"
             f" border-radius: {scale_px_length(BADGE_PX) // 2}px; }}")
         line.addWidget(badge, 0, Qt.AlignmentFlag.AlignVCenter)
-        label = QLabel(text, row)
+
+        label = QLabel(break_anywhere(text), row)
         label.setTextFormat(Qt.TextFormat.PlainText)
         label.setWordWrap(True)
         label.setFixedWidth(self._text_width)
         label.setStyleSheet(scale_qss_font_px(
             f"font-size: 13px; color: {S.INK}; background: transparent;"))
+
+
+        label.ensurePolished()
+        label.setMinimumHeight(label.heightForWidth(self._text_width))
         line.addWidget(label, 1, Qt.AlignmentFlag.AlignVCenter)
         return row
 
@@ -169,6 +175,7 @@ class ConfirmDialog(QDialog):
         label.setObjectName("confirmDialogNote")
         label.setTextFormat(Qt.TextFormat.PlainText)
         label.setWordWrap(True)
+        label.setIndent(0)
 
 
         indent = scale_px_length(BADGE_PX) + ROW_SPACING
@@ -176,6 +183,8 @@ class ConfirmDialog(QDialog):
             f"font-size: 12px; color: {S.INK_3}; background: transparent;"
             f" margin-left: {indent}px;"))
         label.setFixedWidth(self._text_width + indent)
+        label.ensurePolished()
+        label.setMinimumHeight(label.heightForWidth(self._text_width + indent))
         return label
 
 

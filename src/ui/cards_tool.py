@@ -40,10 +40,13 @@ import re
 import time
 
 from qgis.PyQt.QtCore import (
+    QRectF,
+    QSize,
     Qt,
     QTimer,
     pyqtSignal,
 )
+from qgis.PyQt.QtGui import QPainter, QPainterPath
 from qgis.PyQt.QtWidgets import (
     QApplication,
     QHBoxLayout,
@@ -63,30 +66,34 @@ from .card_base import (
     fade_up,
     format_duration,
     humanise_tool_name,
+    mono_font,
     stop_fade_up,
 )
 from .code_block import CodeBlock
 from .cross_plugin_discovery import open_sibling
-from .font_scale import scale_qss_font_px
+from .font_scale import scale_px_length, scale_qss_font_px
 from .icons import pixmap_for, sibling_logo_pixmap
 from .style import (
     _BTN_QUIET,
     ACCENT_INK,
+    CHIP_PX,
+    FIELD,
     FILE_BADGES,
     FONT_BODY,
     FONT_HINT,
     GREEN,
-    HOVER,
     INK,
     INK_2,
     INK_3,
     ORANGE,
+    RADIUS_CHIP,
     RADIUS_CONTROL,
     RED,
     ROW_PX,
     SPACE_CARD,
     SPACE_TIGHT,
     TAGS,
+    keyboard_ring,
     qcolor,
     repolish,
 )
@@ -109,7 +116,7 @@ from .tool_describe import (
     source_text,
     tool_glyph,
 )
-from .tool_rows import _HoverRow, _MonoChip
+from .trace_rows import HoverRow
 from .transcript import fence
 from .widgets import ChatLabel, ElidedLabel, FlowLayout, Spinner
 
@@ -122,6 +129,59 @@ SCRIPT_PREAMBLE = (
     "    from qgis.utils import iface\n"
 )
 _COPIED_MS = 1500
+
+
+class _MonoChip(QLabel):
+
+
+
+
+    def __init__(self, text: str = "", parent=None):
+        super().__init__(parent)
+        self._full = ""
+        self._font = mono_font(FONT_HINT)
+        self.setFixedHeight(scale_px_length(CHIP_PX))
+        self.setSizePolicy(QSizePolicy.Policy.Maximum, QSizePolicy.Policy.Fixed)
+        self.setText(text)
+
+    def setText(self, text: str) -> None:  # noqa: N802
+        self._full = " ".join(str(text or "").split())
+        super().setText(self._full)
+        self.updateGeometry()
+        self.update()
+
+    def full_text(self) -> str:
+        return self._full
+
+    def _text_width(self) -> int:
+        from qgis.PyQt.QtGui import QFontMetrics
+
+        return QFontMetrics(self._font).horizontalAdvance(self._full)
+
+    def sizeHint(self) -> QSize:  # noqa: N802
+        return QSize(self._text_width() + 12 + 2, scale_px_length(CHIP_PX))
+
+    def minimumSizeHint(self) -> QSize:  # noqa: N802
+        return QSize(min(48, self.sizeHint().width()), CHIP_PX)
+
+    def paintEvent(self, event):  # noqa: N802
+        try:
+            painter = QPainter(self)
+            painter.setRenderHint(QPainter.RenderHint.Antialiasing, True)
+            path = QPainterPath()
+            path.addRoundedRect(QRectF(self.rect()), RADIUS_CHIP, RADIUS_CHIP)
+            painter.fillPath(path, qcolor(FIELD))
+            painter.setFont(self._font)
+            painter.setPen(qcolor(INK_2))
+            from qgis.PyQt.QtGui import QFontMetrics
+
+            text = QFontMetrics(self._font).elidedText(
+                self._full, Qt.TextElideMode.ElideRight, max(0, self.width() - 12))
+            painter.drawText(QRectF(6, 0, self.width() - 12, self.height()),
+                             Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter, text)
+            painter.end()
+        except Exception:  # noqa: BLE001
+            return
 
 
 
@@ -182,12 +242,15 @@ FAMILY_COLOURS = {"accent_ink": ACCENT_INK, "orange": ORANGE, "ink_2": INK_2, "i
 _TOOL_SUB_QSS = scale_qss_font_px(
     f"QLabel {{ font-size: {FONT_BODY}px; color: {INK_2}; background: transparent; border: none; }}"
 )
+_TOOL_NOTE_CARD_QSS = scale_qss_font_px(
+    f"QLabel {{ font-size: {FONT_BODY}px; color: {INK}; background: {TAGS['danger'][0]};"
+    f" border: none; border-radius: {RADIUS_CONTROL}px; padding: 7px 10px; }}")
 _TOOL_NOTE_QSS = scale_qss_font_px(
     f"QLabel {{ font-size: {FONT_HINT}px; color: {INK_3}; background: transparent; border: none; }}"
 )
 _ROW_HOVER_QSS = (
+
     f"QWidget#toolRow {{ background: transparent; border-radius: {RADIUS_CONTROL}px; }}"
-    f"QWidget#toolRow:hover {{ background: {HOVER}; }}"
 )
 
 
@@ -274,7 +337,7 @@ class ToolCard(QWidget):
         col.setContentsMargins(0, 0, 0, 0)
         col.setSpacing(SPACE_TIGHT)
 
-        self._header = _HoverRow(self)
+        self._header = HoverRow(self, radius=RADIUS_CONTROL)
         self._header.setObjectName("toolRow")
         self._header.setStyleSheet(_ROW_HOVER_QSS)
         self._header.setFixedHeight(ROW_PX)
@@ -446,9 +509,9 @@ class ToolCard(QWidget):
             return ""
         if self.ok is False:
             return self.failure_text()
-        warning = check_warning(self.summary)
-        if warning or not (self._after_failure or self.recovered_failures()):
-            return warning
+
+        if check_warning(self.summary) or not (self._after_failure or self.recovered_failures()):
+            return ""
 
 
         return self.sentence_text()
@@ -507,7 +570,10 @@ class ToolCard(QWidget):
 
     def opens(self) -> bool:
 
-        if self.has_code() or self.extra_text() or self.ok is not None:
+        if self.has_code() or self.extra_text():
+            return True
+
+        if self.ok is not None and (self._details is None or self._details.has_content):
             return True
         return bool(self._sibling_id) and is_sibling_installed(self._sibling_id)
 
@@ -515,6 +581,10 @@ class ToolCard(QWidget):
         self._sync_details()
         text = self.extra_text() if self._bare else self.sentence_text()
         self._sentence_label.setText(text)
+
+
+        failed = self._bare and bool(text) and self.ok is False
+        self._sentence_label.setStyleSheet(_TOOL_NOTE_CARD_QSS if failed else _TOOL_SUB_QSS)
         self._sentence_label.setVisible(bool(text))
         more = self._failure_has_more()
         self._failure_btn.setText(self.tr("Show less") if self._failure_full
@@ -529,7 +599,7 @@ class ToolCard(QWidget):
         elif shown and self._details is not None:
             self._details.refresh()
         if self._details is not None:
-            self._details.setVisible(shown)
+            self._details.setVisible(shown and self._details.has_content)
 
     def _sync_details(self) -> None:
         if self._expanded:
@@ -609,6 +679,7 @@ class ToolCard(QWidget):
     def _button(self, text: str, slot):
         button = QPushButton(text, self)
         button.setStyleSheet(_BTN_QUIET)
+        keyboard_ring(button)
         button.setCursor(Qt.CursorShape.PointingHandCursor)
         button.setAutoDefault(False)
         button.clicked.connect(slot)

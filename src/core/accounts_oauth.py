@@ -37,6 +37,7 @@ from qgis.PyQt.QtCore import QByteArray, QUrl, pyqtSignal
 from qgis.PyQt.QtNetwork import QNetworkReply, QNetworkRequest
 
 from .logger import log_warning
+from .qt_compat import task_flags
 
 
 BROWSER = {"copernicus": "accounts_cdse", "googledrive": "accounts_drive:google",
@@ -217,12 +218,7 @@ class DeviceSignIn(QgsTask):
     done = pyqtSignal(bool, str)
 
     def __init__(self, client: Client, after=None, label: str = "Sign in"):
-        flags = QgsTask.Flag.CanCancel
-        for name in ("Hidden", "Silent"):
-            extra = getattr(QgsTask.Flag, name, None)
-            if extra is not None:
-                flags = flags | extra
-        super().__init__(label, flags)
+        super().__init__(label, task_flags(QgsTask, hidden=True))
         self.client, self.after = client, after
         self._result: dict = {}
         self.reason = ""

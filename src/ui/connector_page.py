@@ -69,6 +69,8 @@ from .widgets import ElidedLabel
 
 _BOX_PX, _BOX_RADIUS = 64, 14
 _DATASET_H = 40
+
+_THUMB_W, _THUMB_H, _DATASET_THUMB_H = 80, 45, 60
 _PROMPTS = 3
 _FACT_W = 140
 
@@ -737,10 +739,17 @@ class _DatasetRow(Pressable):
         super().__init__(parent, radius=C.px(8))
         from .connectors_page import short_licence
 
-        self.setFixedHeight(C.px(_DATASET_H))
+        thumb = str(row.get("thumb_url") or "")
+        self.setFixedHeight(C.px(_DATASET_THUMB_H if thumb else _DATASET_H))
         line = QHBoxLayout(self)
         line.setContentsMargins(C.px(C.EDGE), 0, C.px(C.EDGE), 0)
         line.setSpacing(C.px(C.SPACE_2))
+        if thumb:
+            from .library.pictures import wear_thumbnail
+
+            picture = QLabel(self)
+            wear_thumbnail(picture, thumb, C.px(_THUMB_W), C.px(_THUMB_H))
+            line.addWidget(picture, 0, Qt.AlignmentFlag.AlignVCenter)
         title = str(row.get("title") or row.get("id") or "")
         name = ElidedLabel(title, self)
         name.setStyleSheet(C.text_qss(C.BODY_PX, C.T.text))

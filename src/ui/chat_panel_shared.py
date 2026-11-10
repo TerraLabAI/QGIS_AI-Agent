@@ -161,7 +161,7 @@ class RestoreDivider(CompactionDivider):
     def set_link_enabled(self, enabled: bool) -> None:
 
         self._link.setEnabled(bool(enabled))
-        self._link.setToolTip("" if enabled else tr("Available when the agent finishes"))
+        self._link.setToolTip("" if enabled else tr("Available when the AI agent finishes"))
 
     def _elide(self) -> None:
         label = self.label

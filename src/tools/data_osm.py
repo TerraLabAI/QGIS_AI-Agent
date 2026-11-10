@@ -17,7 +17,7 @@ import urllib.request
 
 from qgis.core import QgsProject, QgsVectorLayer
 
-from ..core import catalog, geodata_rules, limits, net, tuning
+from ..core import background, catalog, geodata_rules, limits, net, tuning
 from ..core.background import run_on_main_thread
 from ..core.data_date import from_range
 from ..core.host_platform import remove_quietly, remove_tree
@@ -1145,6 +1145,9 @@ def _osm_stream_load(query: str, final_query: str, args: dict, area_km2: float, 
 
         def _create():
             added = []
+            if not background.still_awaited():
+
+                return added
             for family in _LIFTED_FAMILIES:
                 if family not in tables:
                     continue

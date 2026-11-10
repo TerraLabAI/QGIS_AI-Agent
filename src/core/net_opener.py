@@ -207,6 +207,16 @@ def set_trust(ca_pem: bytes | None) -> bool:
     return True
 
 
+def reload_system_trust() -> None:
+
+
+    global _OPENER, _SSL_CONTEXT
+    with _PROXY_LOCK:
+        _SSL_CONTEXT = None
+        old, _OPENER = _OPENER, None
+    _drop_pool(old)
+
+
 
 
 
@@ -670,8 +680,12 @@ def set_proxy(address: str | None) -> bool:
 
 def proxy_in_use() -> str | None:
 
-    with _PROXY_LOCK:
-        return _redact_proxy(_PROXY_URL) if _PROXY_URL else None
+
+
+
+
+    address = _PROXY_URL
+    return _redact_proxy(address) if address else None
 
 
 
@@ -720,7 +734,7 @@ def withdrawn_reason(host: str) -> str:
 
 
 
-    host = str(host or "").strip().lower()
+    host = str(host or "").strip().lower().rstrip(".")
     keys = [host] + ["." + ".".join(host.split(".")[cut:]) for cut in range(0, len(host.split(".")) - 1)]
     try:
         from . import tuning

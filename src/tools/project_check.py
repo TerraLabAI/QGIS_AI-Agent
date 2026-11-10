@@ -27,7 +27,7 @@ from ..core.host_platform import IS_WINDOWS
 from ..core.policy import create_managed_temp_dir
 from ..core.security import validate_path
 from ..core.tool_registry import Tool, ToolRegistry, tool_error
-from .child_python import _child_environment, _qgis_python, _read_json, _tail
+from .child_python import _child_environment, _qgis_python, _read_json, _tail, start_refused
 
 _PLUGIN_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 _WORKER = os.path.join(_PLUGIN_ROOT, "src", "workers", "project_check_worker.py")
@@ -84,15 +84,20 @@ def _run_child(path: str, stopped, python_executable: str) -> dict:
         if IS_WINDOWS and hasattr(subprocess, "CREATE_NO_WINDOW") else {}
     started = time.monotonic()
     with open(log_path, "wb") as log_handle:
-        process = subprocess.Popen(  # nosec B603
-            [python_executable, "-s", _WORKER, job_path, status_path],
-            cwd=work_dir,
-            env=_child_environment(python_executable, work_dir),
-            stdin=subprocess.DEVNULL,
-            stdout=log_handle,
-            stderr=subprocess.STDOUT,
-            **kwargs,
-        )
+        try:
+            process = subprocess.Popen(  # nosec B603
+                [python_executable, "-s", _WORKER, job_path, status_path],
+                cwd=work_dir,
+                env=_child_environment(python_executable, work_dir),
+                stdin=subprocess.DEVNULL,
+                stdout=log_handle,
+                stderr=subprocess.STDOUT,
+                **kwargs,
+            )
+        except OSError as exc:
+            return tool_error(
+                f"{start_refused(exc)} The saved project cannot be opened anywhere else.",
+                "QGIS_PYTHON_NOT_FOUND", hint="project_check_no_python")
         while process.poll() is None:
             if stopped is not None and stopped():
                 process.terminate()

@@ -207,7 +207,7 @@
             <translation>Đã yêu cầu {what} từ {source} trong khung nhìn hiện tại</translation>
         </message>
         <message>
-            <source>Available when the agent finishes</source>
+            <source>Available when the AI agent finishes</source>
             <translation>Có sẵn khi AI agent hoàn tất</translation>
         </message>
         <message>
@@ -403,10 +403,6 @@
             <translation>Sao chép địa chỉ email</translation>
         </message>
         <message>
-            <source>Copy report</source>
-            <translation>Sao chép báo cáo</translation>
-        </message>
-        <message>
             <source>Copy the address below and paste it into a browser.</source>
             <translation>Sao chép địa chỉ bên dưới và dán vào trình duyệt.</translation>
         </message>
@@ -417,10 +413,6 @@
         <message>
             <source>Copy the support address below into your email app.</source>
             <translation>Sao chép địa chỉ hỗ trợ bên dưới vào ứng dụng email của bạn.</translation>
-        </message>
-        <message>
-            <source>Could not copy</source>
-            <translation>Không thể sao chép</translation>
         </message>
         <message>
             <source>Count {POINTS} in each feature of {POLYGONS}</source>
@@ -497,10 +489,6 @@
         <message>
             <source>Edit the last queued message</source>
             <translation>Sửa tin nhắn cuối cùng trong hàng đợi</translation>
-        </message>
-        <message>
-            <source>Email address copied</source>
-            <translation>Đã sao chép địa chỉ email</translation>
         </message>
         <message>
             <source>Enlarge</source>
@@ -799,10 +787,6 @@
             <translation>Dòng mới</translation>
         </message>
         <message>
-            <source>Next</source>
-            <translation>Tiếp theo</translation>
-        </message>
-        <message>
             <source>No answer came back. Try again.</source>
             <translation>Không nhận được phản hồi. Hãy thử lại.</translation>
         </message>
@@ -869,10 +853,6 @@
         <message>
             <source>Preparing a summary…</source>
             <translation>Đang chuẩn bị bản tóm tắt…</translation>
-        </message>
-        <message>
-            <source>Previous</source>
-            <translation>Trước đó</translation>
         </message>
         <message>
             <source>Print layouts changed</source>
@@ -1003,10 +983,6 @@
             <translation>Đọc kiểu hiển thị của {layer_name}</translation>
         </message>
         <message>
-            <source>Real tasks the AI agent does from one sentence. Open one to try it.</source>
-            <translation>Những việc thực tế mà AI agent làm từ một câu. Mở một ví dụ để thử.</translation>
-        </message>
-        <message>
             <source>Remove one item from the layout {layout_name}</source>
             <translation>Xóa một mục khỏi trình bày {layout_name}</translation>
         </message>
@@ -1027,20 +1003,8 @@
             <translation>Đổi tên {old_name} thành {new_name} trong {layer_name}</translation>
         </message>
         <message>
-            <source>Render the map</source>
-            <translation>Kết xuất bản đồ</translation>
-        </message>
-        <message>
             <source>Reorder the layers</source>
             <translation>Sắp xếp lại các lớp</translation>
-        </message>
-        <message>
-            <source>Report a problem</source>
-            <translation>Báo cáo sự cố</translation>
-        </message>
-        <message>
-            <source>Report copied</source>
-            <translation>Đã sao chép báo cáo</translation>
         </message>
         <message>
             <source>Reproject {INPUT} to {TARGET_CRS}</source>
@@ -1163,10 +1127,6 @@
             <translation>Gửi tin nhắn</translation>
         </message>
         <message>
-            <source>Send us a report and we will look into it and fix it.</source>
-            <translation>Hãy gửi báo cáo cho chúng tôi, chúng tôi sẽ xem xét và khắc phục.</translation>
-        </message>
-        <message>
             <source>Set NoData on {layer_name}</source>
             <translation>Đặt NoData cho {layer_name}</translation>
         </message>
@@ -1275,10 +1235,6 @@
             <translation>Tạo kiểu cho {layer_name}</translation>
         </message>
         <message>
-            <source>Tell us what went wrong</source>
-            <translation>Cho chúng tôi biết đã xảy ra lỗi gì</translation>
-        </message>
-        <message>
             <source>Terms</source>
             <translation>Điều khoản</translation>
         </message>
@@ -1299,7 +1255,7 @@
             <translation>AI agent bị kẹt ở cùng một bước.</translation>
         </message>
         <message>
-            <source>The agent reads it at its next step</source>
+            <source>The AI agent reads it at its next step</source>
             <translation>AI agent sẽ đọc nó ở bước tiếp theo</translation>
         </message>
         <message>
@@ -1307,7 +1263,7 @@
             <translation>Dịch vụ AI agent đã khởi động lại hai lần trong một bước.</translation>
         </message>
         <message>
-            <source>The agent wants to run this action.</source>
+            <source>The AI agent wants to run this action.</source>
             <translation>AI agent muốn chạy hành động này.</translation>
         </message>
         <message>
@@ -1359,10 +1315,6 @@
             <translation>Địa chỉ hỗ trợ đã được sao chép vào bộ nhớ tạm: hãy dán vào ứng dụng email của bạn.</translation>
         </message>
         <message>
-            <source>Then paste it into an email to:</source>
-            <translation>Sau đó dán vào một email gửi tới:</translation>
-        </message>
-        <message>
             <source>They help us fix bugs. You can switch them off in Settings whenever you want.</source>
             <translation>Chúng giúp chúng tôi sửa lỗi. Bạn có thể tắt chúng trong Cài đặt bất cứ lúc nào.</translation>
         </message>
@@ -1373,10 +1325,6 @@
         <message>
             <source>This conversation is too long.</source>
             <translation>Cuộc trò chuyện này quá dài.</translation>
-        </message>
-        <message>
-            <source>This conversation: your messages, each step the AI took and what it found, and technical details about QGIS and the plugin. Never your passwords, your sign-in or the contents of your files.</source>
-            <translation>Cuộc trò chuyện này: tin nhắn của bạn, từng bước AI đã thực hiện và những gì nó tìm thấy, cùng các chi tiết kỹ thuật về QGIS và plugin. Không bao giờ gồm mật khẩu, thông tin đăng nhập hay nội dung tập tin của bạn.</translation>
         </message>
         <message>
             <source>This layer is no longer in the project.</source>
@@ -1415,7 +1363,7 @@
             <translation>Nhập địa chỉ đó để xác nhận.</translation>
         </message>
         <message>
-            <source>Undo the agent's last request</source>
+            <source>Undo the AI agent's last request</source>
             <translation>Hoàn tác yêu cầu gần nhất của AI agent</translation>
         </message>
         <message>
@@ -1739,10 +1687,6 @@ Việc xóa là không thể hoàn tác khi thời gian chờ kết thúc. Cho �
             <translation>Đăng nhập để gửi phản hồi từ đây, hoặc viết cho chúng tôi tại {email}.</translation>
         </message>
         <message>
-            <source>We'll receive your message, this conversation and technical details (plugin and QGIS version, system, recent logs). Never your passwords or the contents of your files.</source>
-            <translation>Chúng tôi sẽ nhận tin nhắn của bạn, cuộc trò chuyện này và các thông tin kỹ thuật (phiên bản plugin và QGIS, hệ thống, nhật ký gần đây). Không bao giờ nhận mật khẩu hay nội dung tệp của bạn.</translation>
-        </message>
-        <message>
             <source>You sent several reports in a short time. Try again in a few minutes.</source>
             <translation>Bạn đã gửi nhiều báo cáo trong thời gian ngắn. Hãy thử lại sau vài phút.</translation>
         </message>
@@ -1765,18 +1709,6 @@ Việc xóa là không thể hoàn tác khi thời gian chờ kết thúc. Cho �
         <message>
             <source>What you type</source>
             <translation>Bạn nhập gì</translation>
-        </message>
-        <message>
-            <source>Expired on {day}.</source>
-            <translation>Đã hết hạn vào {day}.</translation>
-        </message>
-        <message>
-            <source>Expires on {day}.</source>
-            <translation>Hết hạn vào {day}.</translation>
-        </message>
-        <message>
-            <source>Private link: its signature stays on this computer. TerraLab and the AI agent see only the site and the file name.</source>
-            <translation>Liên kết riêng tư: chữ ký của liên kết chỉ nằm trên máy tính này. TerraLab và AI agent chỉ thấy trang web và tên tệp.</translation>
         </message>
         <message>
             <source>expired</source>
@@ -2000,15 +1932,15 @@ Việc xóa là không thể hoàn tác khi thời gian chờ kết thúc. Cho �
             <translation>Đăng nhập để xem tài khoản của bạn.</translation>
         </message>
         <message>
-            <source>The agent finished.</source>
+            <source>The AI agent finished.</source>
             <translation>AI agent đã hoàn thành.</translation>
         </message>
         <message>
-            <source>The agent is waiting for your answer.</source>
+            <source>The AI agent is waiting for your answer.</source>
             <translation>AI agent đang chờ câu trả lời của bạn.</translation>
         </message>
         <message>
-            <source>The agent stopped before finishing.</source>
+            <source>The AI agent stopped before finishing.</source>
             <translation>AI agent đã dừng trước khi hoàn thành.</translation>
         </message>
         <message>
@@ -2183,6 +2115,10 @@ Việc xóa là không thể hoàn tác khi thời gian chờ kết thúc. Cho �
             <source>Your subscription is not active. Open your TerraLab dashboard, then try again.</source>
             <translation>Gói đăng ký của bạn không còn hiệu lực. Hãy mở bảng điều khiển TerraLab của bạn, rồi thử lại.</translation>
         </message>
+        <message>
+            <source>QGIS could not save your sign-in on this computer. Click Sign in to try again.</source>
+            <translation>QGIS không thể lưu thông tin đăng nhập trên máy tính này. Nhấp vào Đăng nhập để thử lại.</translation>
+        </message>
     </context>
     <context>
         <name>ActivationCard</name>
@@ -2219,24 +2155,12 @@ Việc xóa là không thể hoàn tác khi thời gian chờ kết thúc. Cho �
             <translation>Đăng nhập</translation>
         </message>
         <message>
-            <source>Sign in / Sign up to start</source>
-            <translation>Đăng nhập / Đăng ký để bắt đầu</translation>
-        </message>
-        <message>
             <source>Sign in again</source>
             <translation>Đăng nhập lại</translation>
         </message>
         <message>
             <source>Sign in via your browser to start using AI Agent</source>
             <translation>Đăng nhập qua trình duyệt để bắt đầu dùng AI Agent</translation>
-        </message>
-        <message>
-            <source>Signing up is free and takes 15 seconds, in your browser.</source>
-            <translation>Đăng ký miễn phí và chỉ mất 15 giây, ngay trong trình duyệt.</translation>
-        </message>
-        <message>
-            <source>Then ask the AI for anything: load data, style layers, run analyses, edit features.</source>
-            <translation>Sau đó hãy nhờ AI làm bất cứ việc gì: tải dữ liệu, tạo kiểu cho lớp, chạy phân tích, chỉnh sửa đối tượng.</translation>
         </message>
         <message>
             <source>Type the code shown in your browser:</source>
@@ -2360,14 +2284,6 @@ Việc xóa là không thể hoàn tác khi thời gian chờ kết thúc. Cho �
         <message>
             <source>Querying the source</source>
             <translation>Đang truy vấn nguồn</translation>
-        </message>
-        <message>
-            <source>{m} min {s} s</source>
-            <translation>{m} phút {s} giây</translation>
-        </message>
-        <message>
-            <source>{n} s</source>
-            <translation>{n} giây</translation>
         </message>
         <message>
             <source>{words} · {done} of {total}</source>
@@ -2664,10 +2580,6 @@ Việc xóa là không thể hoàn tác khi thời gian chờ kết thúc. Cho �
             <translation>Không thể gửi lại tin nhắn này nữa.</translation>
         </message>
         <message>
-            <source>This plugin build cannot show that card.</source>
-            <translation>Bản dựng plugin này không thể hiển thị thẻ đó.</translation>
-        </message>
-        <message>
             <source>This point belongs to an unsaved project that was closed, so it cannot be restored here.</source>
             <translation>Điểm này thuộc về một dự án chưa lưu đã bị đóng, nên không thể khôi phục tại đây.</translation>
         </message>
@@ -2752,10 +2664,6 @@ Việc xóa là không thể hoàn tác khi thời gian chờ kết thúc. Cho �
             <translation>Không thể lưu phiên bản {file} của bạn vào Lịch sử bản đồ, nên không có gì được khôi phục.</translation>
         </message>
         <message>
-            <source>Not handled, the AI agent is offline: {0}</source>
-            <translation>Chưa xử lý, AI agent đang ngoại tuyến: {0}</translation>
-        </message>
-        <message>
             <source>Nothing is kept about this project yet.</source>
             <translation>Chưa lưu gì về dự án này.</translation>
         </message>
@@ -2768,14 +2676,6 @@ Việc xóa là không thể hoàn tác khi thời gian chờ kết thúc. Cho �
             <translation>Đã xóa bộ nhớ dự án.</translation>
         </message>
         <message>
-            <source>Watched folder: not handled, no answer from the server: {0}</source>
-            <translation>Thư mục theo dõi: chưa xử lý, máy chủ không phản hồi: {0}</translation>
-        </message>
-        <message>
-            <source>Watched folder: not handled, the AI agent is offline: {0}</source>
-            <translation>Thư mục theo dõi: chưa xử lý, AI agent đang ngoại tuyến: {0}</translation>
-        </message>
-        <message>
             <source>Clear what the AI agent remembers about this project?</source>
             <translation>Xóa những gì AI Agent nhớ về dự án này?</translation>
         </message>
@@ -2786,6 +2686,30 @@ Việc xóa là không thể hoàn tác khi thời gian chờ kết thúc. Cho �
         <message>
             <source>The AI agent is not connected. Try again in a moment.</source>
             <translation>AI Agent chưa được kết nối. Hãy thử lại sau giây lát.</translation>
+        </message>
+        <message>
+            <source>Nothing was changed: the file of {layer} is read-only. Make it writable, then go back again.</source>
+            <translation>Chưa có gì thay đổi: tập tin của lớp {layer} ở chế độ chỉ đọc. Hãy cho phép ghi, rồi quay lại lần nữa.</translation>
+        </message>
+        <message>
+            <source>Nothing was changed: {layer} is in use by another program. Close it there, then go back again.</source>
+            <translation>Chưa có gì thay đổi: lớp {layer} đang được chương trình khác sử dụng. Hãy đóng nó ở đó, rồi quay lại lần nữa.</translation>
+        </message>
+        <message>
+            <source>Nothing was changed: {layer} is open in {program}. Close it there, then go back again.</source>
+            <translation>Chưa có gì thay đổi: lớp {layer} đang mở trong {program}. Hãy đóng nó ở đó, rồi quay lại lần nữa.</translation>
+        </message>
+        <message>
+            <source>QGIS closed while going back to an earlier step: some files are at that step and others are not. Open Map history and go back to that step again to finish. It may list those files as your own changes: they are the unfinished step.</source>
+            <translation>QGIS đã đóng khi đang quay lại một bước trước đó: một số tập tin ở bước đó còn số khác thì không. Mở Lịch sử bản đồ và quay lại bước đó lần nữa để hoàn tất. Có thể các tập tin này được liệt kê như thay đổi của riêng bạn: đó là bước chưa hoàn tất.</translation>
+        </message>
+        <message>
+            <source>{n} more files are in the same case.</source>
+            <translation>Còn {n} tập tin khác trong cùng trường hợp.</translation>
+        </message>
+        <message>
+            <source>Stopped: AI Agent was updated or turned off during this run.</source>
+            <translation>Đã dừng: AI Agent được cập nhật hoặc bị tắt trong lúc chạy.</translation>
         </message>
     </context>
     <context>
@@ -2934,7 +2858,7 @@ Việc xóa là không thể hoàn tác khi thời gian chờ kết thúc. Cho �
     <context>
         <name>ChatPanel</name>
         <message>
-            <source>Add a few words: what should the agent do with it?</source>
+            <source>Add a few words: what should the AI agent do with it?</source>
             <translation>Thêm vài từ: AI agent nên làm gì với nó?</translation>
         </message>
         <message>
@@ -3046,7 +2970,7 @@ Việc xóa là không thể hoàn tác khi thời gian chờ kết thúc. Cho �
             <translation>Đã dừng</translation>
         </message>
         <message>
-            <source>The agent now reads the earlier exchanges as a shorter record that keeps your requests and what it made.</source>
+            <source>The AI agent now reads the earlier exchanges as a shorter record that keeps your requests and what it made.</source>
             <translation>AI agent giờ đọc các trao đổi trước đó dưới dạng bản ghi ngắn hơn, giữ lại các yêu cầu của bạn và những gì nó đã tạo.</translation>
         </message>
         <message>
@@ -3118,11 +3042,11 @@ Việc xóa là không thể hoàn tác khi thời gian chờ kết thúc. Cho �
             <translation>{layer}: {reason}</translation>
         </message>
         <message>
-            <source>{lead} · sent when the agent finishes</source>
+            <source>{lead} · sent when the AI agent finishes</source>
             <translation>{lead} · gửi khi AI agent hoàn tất</translation>
         </message>
         <message>
-            <source>{lead} · the agent reads it at its next step</source>
+            <source>{lead} · the AI agent reads it at its next step</source>
             <translation>{lead} · AI agent sẽ đọc ở bước tiếp theo</translation>
         </message>
         <message>
@@ -3172,6 +3096,10 @@ Việc xóa là không thể hoàn tác khi thời gian chờ kết thúc. Cho �
         <message>
             <source>Task ended</source>
             <translation>Tác vụ đã kết thúc</translation>
+        </message>
+        <message>
+            <source>Removed from the queue</source>
+            <translation>Đã xóa khỏi hàng chờ</translation>
         </message>
     </context>
     <context>
@@ -3369,7 +3297,7 @@ Việc xóa là không thể hoàn tác khi thời gian chờ kết thúc. Cho �
             <translation>Hàng đợi</translation>
         </message>
         <message>
-            <source>Queue it: the agent reads it at its next step (Enter)</source>
+            <source>Queue it: the AI agent reads it at its next step (Enter)</source>
             <translation>Xếp hàng: AI agent sẽ đọc ở bước tiếp theo (Enter)</translation>
         </message>
         <message>
@@ -3535,10 +3463,6 @@ Việc xóa là không thể hoàn tác khi thời gian chờ kết thúc. Cho �
             <translation>Thử lại</translation>
         </message>
         <message>
-            <source>See all %n examples</source>
-            <translation>Xem tất cả %n ví dụ</translation>
-        </message>
-        <message>
             <source>The datasets could not be loaded.</source>
             <translation>Không thể tải các bộ dữ liệu.</translation>
         </message>
@@ -3614,10 +3538,6 @@ Việc xóa là không thể hoàn tác khi thời gian chờ kết thúc. Cho �
             <translation>Không có nguồn dữ liệu nào khớp với các từ này. AI agent vẫn có thể tìm thấy dữ liệu.</translation>
         </message>
         <message>
-            <source>Search data sources</source>
-            <translation>Tìm nguồn dữ liệu</translation>
-        </message>
-        <message>
             <source>See all</source>
             <translation>Xem tất cả</translation>
         </message>
@@ -3626,28 +3546,12 @@ Việc xóa là không thể hoàn tác khi thời gian chờ kết thúc. Cho �
             <translation>Nguồn</translation>
         </message>
         <message>
-            <source>The library of data the AI agent can use. It finds and loads what it needs by itself.</source>
-            <translation>Thư viện dữ liệu mà AI agent có thể dùng. Nó tự tìm và tải những gì cần.</translation>
-        </message>
-        <message>
             <source>The list arrives when the panel connects.</source>
             <translation>Danh sách sẽ xuất hiện khi bảng điều khiển kết nối.</translation>
         </message>
         <message>
             <source>Try in chat</source>
             <translation>Thử trong cuộc trò chuyện</translation>
-        </message>
-        <message>
-            <source>countries</source>
-            <translation>quốc gia</translation>
-        </message>
-        <message>
-            <source>datasets</source>
-            <translation>bộ dữ liệu</translation>
-        </message>
-        <message>
-            <source>sources</source>
-            <translation>nguồn</translation>
         </message>
         <message>
             <source>Search sources, datasets or a country</source>
@@ -3751,7 +3655,7 @@ Việc xóa là không thể hoàn tác khi thời gian chờ kết thúc. Cho �
             <translation>Nhận Pro</translation>
         </message>
         <message>
-            <source>How hard the agent works on the next message</source>
+            <source>How hard the AI agent works on the next message</source>
             <translation>AI agent làm việc nỗ lực đến mức nào cho tin nhắn tiếp theo</translation>
         </message>
         <message>
@@ -4138,14 +4042,6 @@ Nhấn để hiện trong bảng Lớp.</translation>
             <translation>Các hướng dẫn sẽ xuất hiện khi bảng điều khiển kết nối.</translation>
         </message>
         <message>
-            <source>Tutorials</source>
-            <translation>Hướng dẫn</translation>
-        </message>
-        <message>
-            <source>Videos and guides to get started. They open in your browser.</source>
-            <translation>Video và hướng dẫn để bắt đầu. Chúng mở trong trình duyệt của bạn.</translation>
-        </message>
-        <message>
             <source>Learn</source>
             <translation>Tìm hiểu</translation>
         </message>
@@ -4386,28 +4282,16 @@ Nhấn để hiện trong bảng Lớp.</translation>
             <translation>Hiện thêm {n}</translation>
         </message>
         <message>
-            <source>The page links to sites the agent does not know: {hosts}.</source>
+            <source>The page links to sites the AI agent does not know: {hosts}.</source>
             <translation>Trang liên kết đến các trang web mà AI agent không biết: {hosts}.</translation>
         </message>
         <message>
-            <source>The page links to {hosts}, a site the agent does not know.</source>
+            <source>The page links to {hosts}, a site the AI agent does not know.</source>
             <translation>Trang liên kết đến {hosts}, một trang web mà AI agent không biết.</translation>
-        </message>
-        <message>
-            <source>This data comes from a site outside the sources the agent knows.</source>
-            <translation>Dữ liệu này đến từ một trang web nằm ngoài các nguồn mà AI agent biết.</translation>
-        </message>
-        <message>
-            <source>This data comes from sites outside the sources the agent knows.</source>
-            <translation>Dữ liệu này đến từ các trang web nằm ngoài các nguồn mà AI agent biết.</translation>
         </message>
         <message>
             <source>View the code ({n} lines)</source>
             <translation>Xem mã ({n} dòng)</translation>
-        </message>
-        <message>
-            <source>Your answer also counts for the next calls of this kind in this answer.</source>
-            <translation>Câu trả lời của bạn cũng áp dụng cho các lệnh gọi tiếp theo cùng loại trong câu trả lời này.</translation>
         </message>
         <message>
             <source>expression</source>
@@ -4574,10 +4458,6 @@ Nhấn để hiện trong bảng Lớp.</translation>
             <source>Get Pro</source>
             <translation>Nhận Pro</translation>
         </message>
-        <message>
-            <source>What Pro adds</source>
-            <translation>Pro bổ sung những gì</translation>
-        </message>
     </context>
     <context>
         <name>QuestionCard</name>
@@ -4612,6 +4492,10 @@ Nhấn để hiện trong bảng Lớp.</translation>
         <message>
             <source>skipped</source>
             <translation>đã bỏ qua</translation>
+        </message>
+        <message>
+            <source>Question {n} of {count}</source>
+            <translation>Câu hỏi {n} trên {count}</translation>
         </message>
     </context>
     <context>
@@ -4809,6 +4693,18 @@ Nhấn để hiện trong bảng Lớp.</translation>
             <source>Your payment of {amount} failed</source>
             <translation>Khoản thanh toán {amount} của bạn không thành công</translation>
         </message>
+        <message>
+            <source>Free for 7 days, nothing to pay today, then monthly at your student price. Cancel in one click.</source>
+            <translation>Miễn phí 7 ngày, hôm nay không phải trả gì, sau đó tính theo tháng với giá sinh viên của bạn. Hủy chỉ với một cú nhấp.</translation>
+        </message>
+        <message>
+            <source>Free for 7 days, nothing to pay today, then {price}/month excl. VAT. Cancel in one click.</source>
+            <translation>Miễn phí 7 ngày, hôm nay không phải trả gì, sau đó {price}/tháng chưa gồm VAT. Hủy chỉ với một cú nhấp.</translation>
+        </message>
+        <message>
+            <source>Medium effort now, High after the trial</source>
+            <translation>Mức Medium bây giờ, mức High sau thời gian dùng thử</translation>
+        </message>
     </context>
     <context>
         <name>QuotaPauseCard</name>
@@ -4958,6 +4854,10 @@ Nhấn để hiện trong bảng Lớp.</translation>
             <source>{n} days</source>
             <translation>{n} ngày</translation>
         </message>
+        <message>
+            <source>1 day</source>
+            <translation>1 ngày</translation>
+        </message>
     </context>
     <context>
         <name>RunSummaryCard</name>
@@ -4997,10 +4897,6 @@ Nhấn để hiện trong bảng Lớp.</translation>
             <translation>Thất bại</translation>
         </message>
         <message>
-            <source>Failed after {time}</source>
-            <translation>Thất bại sau {time}</translation>
-        </message>
-        <message>
             <source>QGIS closed before this finished</source>
             <translation>QGIS đã đóng trước khi việc này hoàn tất</translation>
         </message>
@@ -5009,24 +4905,12 @@ Nhấn để hiện trong bảng Lớp.</translation>
             <translation>Đã dừng</translation>
         </message>
         <message>
-            <source>Stopped after {time}</source>
-            <translation>Đã dừng sau {time}</translation>
-        </message>
-        <message>
             <source>Thinking</source>
             <translation>Đang suy nghĩ</translation>
         </message>
         <message>
-            <source>Thought for {time}</source>
-            <translation>Đã suy nghĩ {time}</translation>
-        </message>
-        <message>
             <source>Waiting for you</source>
             <translation>Đang chờ bạn</translation>
-        </message>
-        <message>
-            <source>Worked for {time}</source>
-            <translation>Đã làm việc {time}</translation>
         </message>
         <message>
             <source>blocked</source>
@@ -5071,10 +4955,6 @@ Nhấn để hiện trong bảng Lớp.</translation>
             <translation>+ Thêm ghi chú</translation>
         </message>
         <message>
-            <source>A short summary of the changes once a task is done.</source>
-            <translation>Bản tóm tắt ngắn về các thay đổi sau khi hoàn thành một tác vụ.</translation>
-        </message>
-        <message>
             <source>AI Agent</source>
             <translation>AI Agent</translation>
         </message>
@@ -5103,10 +4983,6 @@ Nhấn để hiện trong bảng Lớp.</translation>
             <translation>Do bạn thêm</translation>
         </message>
         <message>
-            <source>Advanced</source>
-            <translation>Nâng cao</translation>
-        </message>
-        <message>
             <source>Another project</source>
             <translation>Dự án khác</translation>
         </message>
@@ -5117,10 +4993,6 @@ Nhấn để hiện trong bảng Lớp.</translation>
         <message>
             <source>Auto</source>
             <translation>Tự động</translation>
-        </message>
-        <message>
-            <source>Back to defaults, memory notes included. You stay signed in.</source>
-            <translation>Quay về mặc định, gồm cả các ghi chú bộ nhớ. Bạn vẫn đăng nhập.</translation>
         </message>
         <message>
             <source>Balanced</source>
@@ -5139,14 +5011,6 @@ Nhấn để hiện trong bảng Lớp.</translation>
             <translation>Hãy kiểm tra kết nối internet, rồi thử lại.</translation>
         </message>
         <message>
-            <source>Commercial use and more tasks with Pro</source>
-            <translation>Sử dụng thương mại và nhiều tác vụ hơn với Pro</translation>
-        </message>
-        <message>
-            <source>Computer-style names</source>
-            <translation>Tên theo kiểu máy tính</translation>
-        </message>
-        <message>
             <source>Concise</source>
             <translation>Ngắn gọn</translation>
         </message>
@@ -5155,20 +5019,12 @@ Nhấn để hiện trong bảng Lớp.</translation>
             <translation>Liên hệ chúng tôi</translation>
         </message>
         <message>
-            <source>Context the AI reads at the start of every conversation, and the notes it keeps between them.</source>
-            <translation>Ngữ cảnh mà AI đọc khi bắt đầu mỗi cuộc trò chuyện, và các ghi chú nó giữ giữa các cuộc trò chuyện.</translation>
-        </message>
-        <message>
             <source>Could not load your account</source>
             <translation>Không thể tải tài khoản của bạn</translation>
         </message>
         <message>
             <source>Could not reach TerraLab</source>
             <translation>Không thể kết nối đến TerraLab</translation>
-        </message>
-        <message>
-            <source>Danger zone</source>
-            <translation>Vùng nguy hiểm</translation>
         </message>
         <message>
             <source>Data sources</source>
@@ -5211,10 +5067,6 @@ Nhấn để hiện trong bảng Lớp.</translation>
             <translation>Chuyên gia</translation>
         </message>
         <message>
-            <source>Explain what it did after each run</source>
-            <translation>Giải thích những gì đã làm sau mỗi lần chạy</translation>
-        </message>
-        <message>
             <source>Free plan</source>
             <translation>Gói Free</translation>
         </message>
@@ -5235,10 +5087,6 @@ Nhấn để hiện trong bảng Lớp.</translation>
             <translation>Cho phép xem lại cuộc trò chuyện</translation>
         </message>
         <message>
-            <source>How it should work. Example: always answer in French, name new layers in snake_case, never delete a layer without asking.</source>
-            <translation>Cách nó nên làm việc. Ví dụ: luôn trả lời bằng tiếng Pháp, đặt tên lớp mới theo kiểu snake_case, không bao giờ xóa một lớp mà không hỏi.</translation>
-        </message>
-        <message>
             <source>How much the AI explains.</source>
             <translation>Mức độ AI giải thích.</translation>
         </message>
@@ -5247,20 +5095,8 @@ Nhấn để hiện trong bảng Lớp.</translation>
             <translation>Mức độ thường xuyên AI hỏi trước khi hành động.</translation>
         </message>
         <message>
-            <source>How the AI names the layers it creates.</source>
-            <translation>Cách AI đặt tên cho các lớp nó tạo ra.</translation>
-        </message>
-        <message>
-            <source>How you work</source>
-            <translation>Cách bạn làm việc</translation>
-        </message>
-        <message>
             <source>Imperial</source>
             <translation>Hệ Anh</translation>
-        </message>
-        <message>
-            <source>Instructions for the AI</source>
-            <translation>Hướng dẫn cho AI</translation>
         </message>
         <message>
             <source>Keyboard shortcuts</source>
@@ -5273,10 +5109,6 @@ Nhấn để hiện trong bảng Lớp.</translation>
         <message>
             <source>Language, style, permissions, your profile and your memory notes go back to their defaults. You stay signed in.</source>
             <translation>Ngôn ngữ, phong cách, quyền, hồ sơ của bạn và các ghi chú bộ nhớ quay về mặc định. Bạn vẫn đăng nhập.</translation>
-        </message>
-        <message>
-            <source>Layer names</source>
-            <translation>Tên lớp</translation>
         </message>
         <message>
             <source>We may read a chat only to fix a bug, never to train AI. Chats are kept 30 days.</source>
@@ -5303,24 +5135,12 @@ Nhấn để hiện trong bảng Lớp.</translation>
             <translation>Bộ nhớ</translation>
         </message>
         <message>
-            <source>Memory between conversations</source>
-            <translation>Bộ nhớ giữa các cuộc trò chuyện</translation>
-        </message>
-        <message>
-            <source>Metres and hectares, or feet, miles and acres.</source>
-            <translation>Mét và héc-ta, hoặc feet, dặm và mẫu Anh.</translation>
-        </message>
-        <message>
             <source>Metric</source>
             <translation>Hệ mét</translation>
         </message>
         <message>
             <source>More</source>
             <translation>Thêm</translation>
-        </message>
-        <message>
-            <source>More plugins</source>
-            <translation>Thêm plugin</translation>
         </message>
         <message>
             <source>Move the map to what it changes</source>
@@ -5347,10 +5167,6 @@ Nhấn để hiện trong bảng Lớp.</translation>
             <translation>Mở</translation>
         </message>
         <message>
-            <source>Open terra-lab.ai</source>
-            <translation>Mở terra-lab.ai</translation>
-        </message>
-        <message>
             <source>Open the AI Agent page</source>
             <translation>Mở trang AI Agent</translation>
         </message>
@@ -5363,24 +5179,12 @@ Nhấn để hiện trong bảng Lớp.</translation>
             <translation>Cá nhân hóa</translation>
         </message>
         <message>
-            <source>Plain words</source>
-            <translation>Từ ngữ đơn giản</translation>
-        </message>
-        <message>
-            <source>Plus memory, your instructions and higher effort.</source>
-            <translation>Cộng với bộ nhớ, hướng dẫn của bạn và mức nỗ lực cao hơn.</translation>
-        </message>
-        <message>
             <source>Privacy</source>
             <translation>Quyền riêng tư</translation>
         </message>
         <message>
             <source>Pro plan</source>
             <translation>Gói Pro</translation>
-        </message>
-        <message>
-            <source>Pro reads who you are and your standing rules before every run: your job, your city, your usual CRS, the language it answers in, how it names layers and what it must never do without asking.</source>
-            <translation>Pro đọc bạn là ai và các quy tắc cố định của bạn trước mỗi lần chạy: công việc, thành phố, HTCTĐ thường dùng, ngôn ngữ trả lời, cách đặt tên lớp và những gì nó không bao giờ được làm mà không hỏi.</translation>
         </message>
         <message>
             <source>Pro reads your notes at the start of every conversation.</source>
@@ -5397,10 +5201,6 @@ Nhấn để hiện trong bảng Lớp.</translation>
         <message>
             <source>Regular</source>
             <translation>Thông thường</translation>
-        </message>
-        <message>
-            <source>Report a problem</source>
-            <translation>Báo cáo sự cố</translation>
         </message>
         <message>
             <source>Reset</source>
@@ -5431,10 +5231,6 @@ Nhấn để hiện trong bảng Lớp.</translation>
             <translation>Thử lại</translation>
         </message>
         <message>
-            <source>SAVED NOTES · {n}</source>
-            <translation>GHI CHÚ ĐÃ LƯU · {n}</translation>
-        </message>
-        <message>
             <source>Same as QGIS</source>
             <translation>Giống QGIS</translation>
         </message>
@@ -5445,14 +5241,6 @@ Nhấn để hiện trong bảng Lớp.</translation>
         <message>
             <source>Share usage statistics</source>
             <translation>Chia sẻ thống kê sử dụng</translation>
-        </message>
-        <message>
-            <source>Short answers, a balance, or the full reasoning.</source>
-            <translation>Câu trả lời ngắn, cân bằng, hoặc toàn bộ lập luận.</translation>
-        </message>
-        <message>
-            <source>Show the steps it takes</source>
-            <translation>Hiện các bước nó thực hiện</translation>
         </message>
         <message>
             <source>Sign in</source>
@@ -5485,14 +5273,6 @@ Nhấn để hiện trong bảng Lớp.</translation>
         <message>
             <source>The AI saves notes on its own</source>
             <translation>AI tự lưu ghi chú</translation>
-        </message>
-        <message>
-            <source>The language the AI writes its answers in.</source>
-            <translation>Ngôn ngữ mà AI dùng để viết câu trả lời.</translation>
-        </message>
-        <message>
-            <source>The list of steps above each answer.</source>
-            <translation>Danh sách các bước phía trên mỗi câu trả lời.</translation>
         </message>
         <message>
             <source>The shortcuts could not be listed.</source>
@@ -5531,10 +5311,6 @@ Nhấn để hiện trong bảng Lớp.</translation>
             <translation>Tắt bất cứ lúc nào, không có tác động nào khác.</translation>
         </message>
         <message>
-            <source>Tutorials</source>
-            <translation>Hướng dẫn</translation>
-        </message>
-        <message>
             <source>Units</source>
             <translation>Đơn vị</translation>
         </message>
@@ -5551,36 +5327,8 @@ Nhấn để hiện trong bảng Lớp.</translation>
             <translation>Nhà quy hoạch đô thị</translation>
         </message>
         <message>
-            <source>Used in its answers. Empty: it uses no name.</source>
-            <translation>Được dùng trong các câu trả lời. Để trống: không dùng tên nào.</translation>
-        </message>
-        <message>
-            <source>What Pro unlocks, on the TerraLab website.</source>
-            <translation>Pro mở khóa những gì, trên trang web TerraLab.</translation>
-        </message>
-        <message>
-            <source>What the AI should call you</source>
-            <translation>AI nên gọi bạn là gì</translation>
-        </message>
-        <message>
-            <source>What you do</source>
-            <translation>Bạn làm gì</translation>
-        </message>
-        <message>
             <source>When needed</source>
             <translation>Khi cần</translation>
-        </message>
-        <message>
-            <source>Who you are</source>
-            <translation>Bạn là ai</translation>
-        </message>
-        <message>
-            <source>Who you are and what you work on. Example: urban planner at the city of Lyon, I mostly work with cadastre and PLU layers in EPSG:2154.</source>
-            <translation>Bạn là ai và bạn làm việc về lĩnh vực gì. Ví dụ: nhà quy hoạch đô thị tại thành phố Lyon, tôi chủ yếu làm việc với các lớp địa chính và PLU trong EPSG:2154.</translation>
-        </message>
-        <message>
-            <source>You can review or remove them here.</source>
-            <translation>Bạn có thể xem lại hoặc xóa chúng tại đây.</translation>
         </message>
         <message>
             <source>You can sign back in anytime from QGIS.</source>
@@ -5595,10 +5343,6 @@ Nhấn để hiện trong bảng Lớp.</translation>
             <translation>Tên của bạn</translation>
         </message>
         <message>
-            <source>Your job in a few words. It changes which data and which method it reaches for first.</source>
-            <translation>Công việc của bạn, vài từ thôi. Nó quyết định AI agent ưu tiên dữ liệu và phương pháp nào trước.</translation>
-        </message>
-        <message>
             <source>Your last payment may have failed</source>
             <translation>Lần thanh toán gần nhất của bạn có thể đã thất bại</translation>
         </message>
@@ -5609,10 +5353,6 @@ Nhấn để hiện trong bảng Lớp.</translation>
         <message>
             <source>Your plan, tasks and settings appear here once you sign in.</source>
             <translation>Gói, tác vụ và cài đặt của bạn sẽ hiện ở đây sau khi bạn đăng nhập.</translation>
-        </message>
-        <message>
-            <source>Your profile and instructions, read before every run</source>
-            <translation>Hồ sơ và hướng dẫn của bạn, được đọc trước mỗi lần chạy</translation>
         </message>
         <message>
             <source>Your sign-in, your plan and your privacy.</source>
@@ -5660,20 +5400,12 @@ Nhấn để hiện trong bảng Lớp.</translation>
             <translation>Luôn trả lời bằng tiếng Pháp, không bao giờ xóa lớp mà không hỏi</translation>
         </message>
         <message>
-            <source>Choose folder...</source>
-            <translation>Chọn thư mục...</translation>
-        </message>
-        <message>
             <source>Clear project memory</source>
             <translation>Xóa bộ nhớ dự án</translation>
         </message>
         <message>
             <source>Connected accounts</source>
             <translation>Tài khoản đã kết nối</translation>
-        </message>
-        <message>
-            <source>Folder to watch</source>
-            <translation>Thư mục cần theo dõi</translation>
         </message>
         <message>
             <source>Instructions</source>
@@ -5692,16 +5424,8 @@ Nhấn để hiện trong bảng Lớp.</translation>
             <translation>Tên</translation>
         </message>
         <message>
-            <source>No folder chosen</source>
-            <translation>Chưa chọn thư mục</translation>
-        </message>
-        <message>
             <source>Pro reads both before every run.</source>
             <translation>Pro đọc cả hai trước mỗi lần chạy.</translation>
-        </message>
-        <message>
-            <source>Proactive triggers</source>
-            <translation>Kích hoạt chủ động</translation>
         </message>
         <message>
             <source>Project memory</source>
@@ -5720,16 +5444,8 @@ Nhấn để hiện trong bảng Lớp.</translation>
             <translation>Hiện bộ nhớ dự án</translation>
         </message>
         <message>
-            <source>The AI agent looks at new data files in this folder and at the schedules you ask for, only while QGIS is open. Nothing runs when QGIS is closed.</source>
-            <translation>AI agent xem các tệp dữ liệu mới trong thư mục này và các lịch bạn yêu cầu, chỉ khi QGIS đang mở. Không có gì chạy khi QGIS đã đóng.</translation>
-        </message>
-        <message>
             <source>Urban planner at the city of Lyon, cadastre and PLU layers in EPSG:2154</source>
             <translation>Quy hoạch viên đô thị tại thành phố Lyon, các lớp địa chính và PLU trong EPSG:2154</translation>
-        </message>
-        <message>
-            <source>Watch a folder and run my schedules while QGIS is open</source>
-            <translation>Theo dõi một thư mục và chạy các lịch của tôi khi QGIS đang mở</translation>
         </message>
         <message>
             <source>What Pro adds: {points}</source>
@@ -5739,36 +5455,24 @@ Nhấn để hiện trong bảng Lớp.</translation>
             <source>commercial use, more tasks, memory, your instructions and higher effort</source>
             <translation>dùng cho mục đích thương mại, nhiều tác vụ hơn, bộ nhớ, hướng dẫn của bạn và mức nỗ lực cao hơn</translation>
         </message>
+        <message>
+            <source>Delete this note? The AI will not add it back.</source>
+            <translation>Xóa ghi chú này? AI sẽ không thêm lại ghi chú này.</translation>
+        </message>
     </context>
     <context>
         <name>SiblingCard</name>
         <message>
-            <source>Install in QGIS</source>
-            <translation>Cài đặt trong QGIS</translation>
-        </message>
-        <message>
             <source>Installed</source>
             <translation>Đã cài đặt</translation>
-        </message>
-        <message>
-            <source>Open in QGIS</source>
-            <translation>Mở trong QGIS</translation>
         </message>
         <message>
             <source>Opens the QGIS plugin manager on this plugin.</source>
             <translation>Mở trình quản lý plugin của QGIS tại plugin này.</translation>
         </message>
         <message>
-            <source>Read the guide</source>
-            <translation>Đọc hướng dẫn</translation>
-        </message>
-        <message>
             <source>Show the plugin's panel.</source>
             <translation>Hiện bảng của plugin.</translation>
-        </message>
-        <message>
-            <source>The written tutorial, on the TerraLab blog.</source>
-            <translation>Hướng dẫn bằng văn bản, trên blog TerraLab.</translation>
         </message>
     </context>
     <context>
@@ -5776,14 +5480,6 @@ Nhấn để hiện trong bảng Lớp.</translation>
         <message>
             <source>Edit your imagery with a single sentence.</source>
             <translation>Chỉnh sửa ảnh của bạn chỉ bằng một câu.</translation>
-        </message>
-        <message>
-            <source>More plugins</source>
-            <translation>Thêm plugin</translation>
-        </message>
-        <message>
-            <source>The two other TerraLab plugins for QGIS. They install from here.</source>
-            <translation>Hai plugin TerraLab khác cho QGIS. Chúng được cài đặt từ đây.</translation>
         </message>
         <message>
             <source>Turn buildings, trees or water into polygons.</source>
@@ -5925,7 +5621,7 @@ Nhấn để hiện trong bảng Lớp.</translation>
     <context>
         <name>Toast</name>
         <message>
-            <source>Available when the agent finishes</source>
+            <source>Available when the AI agent finishes</source>
             <translation>Có sẵn khi AI agent hoàn tất</translation>
         </message>
     </context>
@@ -6138,6 +5834,10 @@ Nhấn để hiện trong bảng Lớp.</translation>
             <source>Signed in</source>
             <translation>Đã đăng nhập</translation>
         </message>
+        <message>
+            <source>could not be put back, so what it changed is still in the project</source>
+            <translation>không thể được khôi phục, vì vậy những gì nó đã thay đổi vẫn còn trong dự án</translation>
+        </message>
     </context>
     <context>
         <name>UpdateBanner</name>
@@ -6244,10 +5944,6 @@ Nhấn để hiện trong bảng Lớp.</translation>
             <translation>HTCTĐ</translation>
         </message>
         <message>
-            <source>Click to open it in QGIS.</source>
-            <translation>Nhấp để mở trong QGIS.</translation>
-        </message>
-        <message>
             <source>Click to select it in the Layers panel.</source>
             <translation>Nhấp để chọn trong bảng Lớp.</translation>
         </message>
@@ -6264,16 +5960,8 @@ Nhấn để hiện trong bảng Lớp.</translation>
             <translation>Bắt nguồn từ: {value}</translation>
         </message>
         <message>
-            <source>Its CRS changed. Click to open it in QGIS.</source>
-            <translation>HTCTĐ của nó đã thay đổi. Nhấp để mở trong QGIS.</translation>
-        </message>
-        <message>
             <source>Its CRS changed. Click to select it in the Layers panel.</source>
             <translation>HTCTĐ của nó đã thay đổi. Nhấp để chọn trong bảng Lớp.</translation>
-        </message>
-        <message>
-            <source>Its file was written on disk. Click to open it in QGIS.</source>
-            <translation>Tập tin của nó đã được ghi vào đĩa. Nhấp để mở trong QGIS.</translation>
         </message>
         <message>
             <source>Its file was written on disk. Click to select it in the Layers panel.</source>
@@ -6294,10 +5982,6 @@ Nhấn để hiện trong bảng Lớp.</translation>
         <message>
             <source>New layer, 1 feature. Click to select it in the Layers panel.</source>
             <translation>Lớp mới, 1 đối tượng. Nhấp để chọn trong bảng Lớp.</translation>
-        </message>
-        <message>
-            <source>New layer. Click to open it in QGIS.</source>
-            <translation>Lớp mới. Nhấp để mở trong QGIS.</translation>
         </message>
         <message>
             <source>New layer. Click to select it in the Layers panel.</source>
@@ -6356,16 +6040,8 @@ Nhấn để hiện trong bảng Lớp.</translation>
             <translation>đã tạo kiểu</translation>
         </message>
         <message>
-            <source>{n:+d} feature. Click to open it in QGIS.</source>
-            <translation>{n:+d} đối tượng. Nhấp để mở trong QGIS.</translation>
-        </message>
-        <message>
             <source>{n:+d} feature. Click to select it in the Layers panel.</source>
             <translation>{n:+d} đối tượng. Nhấp để chọn trong bảng Lớp.</translation>
-        </message>
-        <message>
-            <source>{n:+d} features. Click to open it in QGIS.</source>
-            <translation>{n:+d} đối tượng. Nhấp để mở trong QGIS.</translation>
         </message>
         <message>
             <source>{n:+d} features. Click to select it in the Layers panel.</source>
@@ -6547,14 +6223,6 @@ Nhấn để hiện trong bảng Lớp.</translation>
             <translation>Gửi</translation>
         </message>
         <message>
-            <source>Sent with this conversation and your recent logs, to fix issues and improve AI Agent.</source>
-            <translation>Được gửi kèm cuộc trò chuyện này và nhật ký gần đây của bạn, để khắc phục sự cố và cải thiện AI Agent.</translation>
-        </message>
-        <message>
-            <source>Tell us more</source>
-            <translation>Cho chúng tôi biết thêm</translation>
-        </message>
-        <message>
             <source>Thanks for the feedback</source>
             <translation>Cảm ơn bạn đã phản hồi</translation>
         </message>
@@ -6596,6 +6264,18 @@ Nhấn để hiện trong bảng Lớp.</translation>
         <message>
             <source>{n} more</source>
             <translation>Thêm {n}</translation>
+        </message>
+        <message>
+            <source>No</source>
+            <translation>Không</translation>
+        </message>
+        <message>
+            <source>The algorithm's id, to find it in the Processing toolbox</source>
+            <translation>ID của thuật toán, để tìm nó trong Hộp công cụ Xử lý</translation>
+        </message>
+        <message>
+            <source>Yes</source>
+            <translation>Có</translation>
         </message>
     </context>
     <context>
@@ -6836,10 +6516,6 @@ Nhấn để hiện trong bảng Lớp.</translation>
             <translation>Xóa</translation>
         </message>
         <message>
-            <source>Remove the access to {host}</source>
-            <translation>Xóa quyền truy cập vào {host}</translation>
-        </message>
-        <message>
             <source>S3 keys</source>
             <translation>Khóa S3</translation>
         </message>
@@ -6870,10 +6546,6 @@ Nhấn để hiện trong bảng Lớp.</translation>
         <message>
             <source>Change project…</source>
             <translation>Đổi dự án…</translation>
-        </message>
-        <message>
-            <source>Google sign-in</source>
-            <translation>Đăng nhập Google</translation>
         </message>
         <message>
             <source>Signed in with the browser</source>
@@ -7871,6 +7543,17 @@ Nhấn để hiện trong bảng Lớp.</translation>
         <message>
             <source>Your words are sent with this chat and recent logs.</source>
             <translation>Nội dung bạn viết sẽ được gửi cùng cuộc trò chuyện này và nhật ký gần đây.</translation>
+        </message>
+    </context>
+    <context>
+        <name>NoteRow</name>
+        <message>
+            <source>Delete this note</source>
+            <translation>Xóa ghi chú này</translation>
+        </message>
+        <message>
+            <source>Edit this note</source>
+            <translation>Sửa ghi chú này</translation>
         </message>
     </context>
 </TS>

@@ -33,6 +33,9 @@ from .core.served_state import get_latest_version, get_min_supported_version, ge
 _REPOSITORY_WAIT_S = 90
 _REPOSITORY_WAIT_S_RANGE = (5, 600)
 
+_LIST_WAIT_MS = 5000
+_LIST_WAITS_MAX = 6
+
 
 def offer_upgradeable_update(plugin, payload: dict | None = None) -> None:
 
@@ -142,6 +145,14 @@ def refresh_plugin_repository(plugin, served_version: str) -> None:
         from .ui.plugin_self_update import request_repository_fetch
 
         enabled = list(repositories.allEnabled())
+        if not enabled and not repositories.all() and plugin._update_list_waits < _LIST_WAITS_MAX:
+
+
+
+            plugin._update_list_waits += 1
+            plugin._update_refresh_requested = False
+            QTimer.singleShot(_LIST_WAIT_MS, partial(_offer_again, plugin))
+            return
         if not enabled:
 
             plugin._update_no_repository = True
@@ -160,6 +171,11 @@ def refresh_plugin_repository(plugin, served_version: str) -> None:
     timer.start(1000 * int(tuning.threshold(
         "update_fetch_timeout_s", _REPOSITORY_WAIT_S, *_REPOSITORY_WAIT_S_RANGE)))
     plugin._update_refresh_timer = timer
+
+
+def _offer_again(plugin) -> None:
+    if not plugin._unloading:
+        offer_upgradeable_update(plugin)
 
 
 def on_plugin_repository_late(plugin, served_version: str) -> None:

@@ -18,7 +18,7 @@ import weakref
 from datetime import datetime
 
 from qgis.PyQt import sip
-from qgis.PyQt.QtCore import QCoreApplication
+from qgis.PyQt.QtCore import QCoreApplication, Qt
 from qgis.PyQt.QtWidgets import QFileDialog, QLineEdit, QPushButton
 
 from ..core import accounts_cloud
@@ -129,6 +129,7 @@ class CloudKeysDialog(SignInDialog):
                 edit.setAccessibleName(text)
         if self.store == GCS:
             self._key_file = QPushButton(tr("Service account key (JSON file)"), self)
+            self._key_file.setCursor(Qt.CursorShape.PointingHandCursor)
             self._key_file.setObjectName("accountKeyFile")
             self._key_file.setAutoDefault(False)
             self._key_file.setStyleSheet(self._toggle.styleSheet())

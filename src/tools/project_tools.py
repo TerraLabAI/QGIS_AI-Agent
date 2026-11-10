@@ -67,17 +67,6 @@ def _extent_omission():
             "extent_note": "Remote extent was not queried: QGIS may fetch provider data on the main thread."}
 
 
-def _layer_kind(layer) -> str:
-
-
-
-
-
-
-
-    return layer_kind(layer)
-
-
 
 
 
@@ -130,7 +119,7 @@ def _get_project_context(args: dict) -> dict:
     for lid, layer in all_layers[:limit]:
         info = {
             "name": layer.name(),
-            "type": _layer_kind(layer),
+            "type": layer_kind(layer),
             "crs": crs_ref(layer.crs()),
         }
         if verbose or layer.name() in ambiguous:
@@ -320,7 +309,7 @@ def _list_layers(args: dict) -> dict:
         node = root.findLayer(lid)
         info = {
             "name": layer.name(),
-            "type": _layer_kind(layer),
+            "type": layer_kind(layer),
             "crs": crs_ref(layer.crs()),
         }
         if node is not None:
@@ -559,7 +548,7 @@ def _get_layer_info(args: dict) -> dict:
     info = {
         "name": layer.name(),
         "layer_id": layer.id(),
-        "type": _layer_kind(layer),
+        "type": layer_kind(layer),
         "crs": crs_ref(layer.crs()),
     }
     skip_remote_extent = not full_detail and remote

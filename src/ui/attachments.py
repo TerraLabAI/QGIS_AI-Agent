@@ -34,18 +34,18 @@ from qgis.PyQt.QtWidgets import QFrame, QVBoxLayout
 from .attach_card import (
     CARD_HEIGHT,
     CARD_RADIUS,
+    CLOSE_HIT,
     CLOSE_OVERHANG,
-    CLOSE_SIZE,
+    CLOSE_QSS,
     TILE_GLYPH,
     AttachCard,
     HoverReveal,
 )
 from .file_kinds import FILE_TYPES, IMAGE_EXTS
-from .file_preview import can_open, open_file_preview, tile_art
+from .file_preview import can_open, open_file_preview, size_words, tile_art
 from .font_scale import widget_pixel_ratio
 from .icons import ink_of, paper_of, theme_pixmap
 from .image_preview import ClickableThumb, open_image_preview
-from .style import _BTN_THUMB_CLOSE
 from .widgets import IconButton
 
 DATA_EXTS = (".gpkg", ".geojson", ".json", ".shp", ".csv", ".tif", ".tiff",
@@ -475,7 +475,8 @@ def attachment_caption(item: dict) -> str:
             size = f" ({item['width']} x {item['height']})"
         return str(item.get("name") or "") + size
     if item.get("kind") == "document" and item.get("size"):
-        return f"{item.get('path') or item.get('name') or ''} ({int(item['size']) / 1e6:.1f} MB)"
+
+        return f"{item.get('path') or item.get('name') or ''} ({size_words(item['size'])})"
     return str(item.get("path") or item.get("name") or "")
 
 
@@ -516,10 +517,10 @@ class AttachmentTag(QFrame):
         picture.setGeometry(0, CLOSE_OVERHANG, width, height)
         picture.setToolTip(self.tr("{name}. Click to open.").format(name=attachment_caption(self.item)))
         picture.clicked.connect(self._open)
-        close = IconButton(self, None, 10, self.tr("Remove"), _BTN_THUMB_CLOSE)
+        close = IconButton(self, None, 10, self.tr("Remove"), CLOSE_QSS)
         close.set_icon("close", 10, QColor(255, 255, 255))
-        close.setFixedSize(CLOSE_SIZE, CLOSE_SIZE)
-        close.move(self.width() - CLOSE_SIZE, 0)
+        close.setFixedSize(CLOSE_HIT, CLOSE_HIT)
+        close.move(self.width() - CLOSE_HIT, 0)
         close.clicked.connect(lambda: self.removed.emit(self.key))
         close.raise_()
         self._reveal = HoverReveal(self, close)

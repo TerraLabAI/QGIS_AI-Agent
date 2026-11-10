@@ -26,6 +26,7 @@ from qgis.core import QgsTask
 from qgis.PyQt.QtCore import QCoreApplication, pyqtSignal
 
 from ..core.logger import log
+from ..core.qt_compat import task_flags
 from ..core.settings import KEY_RE as ACTIVATION_KEY_RE
 from .terralab_client import HARD_CONNECTIVITY_CODES
 
@@ -71,7 +72,7 @@ class PairingPollTask(QgsTask):
     OFFLINE_BACKOFF_S = (2.0, 4.0, 8.0, 15.0)
 
     def __init__(self, client, code: str, interval_s: float = 2.0, total_timeout_s: float | None = None):
-        super().__init__(tr("Connecting AI Agent"), QgsTask.Flag.CanCancel)
+        super().__init__(tr("Connecting AI Agent"), task_flags(QgsTask, hidden=False))
         self._client = client
         self._code = code
         self._interval_s = interval_s

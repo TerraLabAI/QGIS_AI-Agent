@@ -22,20 +22,22 @@ from qgis.PyQt.QtCore import (
     QVariantAnimation,
     pyqtSignal,
 )
-from qgis.PyQt.QtGui import QPainter
+from qgis.PyQt.QtGui import QCursor, QPainter, QPen
 from qgis.PyQt.QtWidgets import QGraphicsOpacityEffect, QHBoxLayout, QWidget
 
 from .cards_click import _ClickRow
 from .font_scale import scale_qss_font_px
 from .icons import render_pixmap
 from .style import (
+    ACCENT_INK,
     FONT_BODY,
     FONT_HINT,
     HOVER,
+    HOVER_ON,
     INK,
     INK_2,
     INK_3,
-    MOTION_FADE_UP_MS,
+    MOTION_FADE_MS,
     RADIUS_CHIP,
     SPACE_CARD,
     accent_color,
@@ -48,7 +50,6 @@ ROW_MIN_PX = 28
 _ROW_PAD_X = 6
 _ROW_PAD_Y = 2
 _ROW_GAP = SPACE_CARD + 2
-_RISE_PX = 8
 
 _LABEL_QSS = scale_qss_font_px(
     f"QLabel {{ font-size: {FONT_BODY}px; color: {INK}; background: transparent; border: none; }}"
@@ -72,44 +73,38 @@ def fade_up(widget: QWidget, owner) -> None:
 
 
 
-    layout = widget.layout()
+
+
     try:
         effect = QGraphicsOpacityEffect(widget)
         effect.setOpacity(0.0)
         widget.setGraphicsEffect(effect)
-        margins = layout.contentsMargins() if layout is not None else None
-        rise = QVariantAnimation(widget)
-        rise.setDuration(MOTION_FADE_UP_MS)
-        rise.setEasingCurve(QEasingCurve.Type.OutQuint)
-        rise.setStartValue(0.0)
-        rise.setEndValue(1.0)
+        fade = QVariantAnimation(widget)
+        fade.setDuration(MOTION_FADE_MS)
+        fade.setEasingCurve(QEasingCurve.Type.OutQuint)
+        fade.setStartValue(0.0)
+        fade.setEndValue(1.0)
 
         def _step(value):
             try:
                 effect.setOpacity(float(value))
-                if margins is not None:
-                    lift = int(round(_RISE_PX * (1.0 - float(value))))
-                    layout.setContentsMargins(margins.left(), margins.top() + lift,
-                                              margins.right(), max(0, margins.bottom() - lift))
             except RuntimeError:
                 pass
 
         def _done():
             try:
                 widget.setGraphicsEffect(None)
-                if margins is not None:
-                    layout.setContentsMargins(margins)
             except RuntimeError:
                 pass
-            owner.release(rise)
+            owner.release(fade)
 
-        rise.valueChanged.connect(_step)
-        rise.finished.connect(_done)
+        fade.valueChanged.connect(_step)
+        fade.finished.connect(_done)
 
 
-        widget._fade_anim = rise
-        owner.hold(rise)
-        rise.start(QAbstractAnimation.DeletionPolicy.DeleteWhenStopped)
+        widget._fade_anim = fade
+        owner.hold(fade)
+        fade.start(QAbstractAnimation.DeletionPolicy.DeleteWhenStopped)
     except (RuntimeError, AttributeError, TypeError):
         try:
             widget.setGraphicsEffect(None)
@@ -121,12 +116,17 @@ class HoverRow(_ClickRow):
 
 
 
+
+
+
     hovered = pyqtSignal(bool)
 
     def __init__(self, parent=None, radius: int = RADIUS_CHIP):
         super().__init__(parent)
         self._radius = radius
         self._hot = False
+        self._down = False
+        self._ring = False
         self.setAttribute(Qt.WidgetAttribute.WA_Hover, True)
 
     def is_hot(self) -> bool:
@@ -144,14 +144,55 @@ class HoverRow(_ClickRow):
         self.hovered.emit(False)
         super().leaveEvent(event)
 
+    def mousePressEvent(self, event):  # noqa: N802
+        if event.button() == Qt.MouseButton.LeftButton:
+            self._down = True
+            self.update()
+        super().mousePressEvent(event)
+
+    def mouseMoveEvent(self, event):  # noqa: N802
+
+        if self._down:
+            self.update()
+        super().mouseMoveEvent(event)
+
+    def mouseReleaseEvent(self, event):  # noqa: N802
+        if self._down:
+            self._down = False
+            self.update()
+        super().mouseReleaseEvent(event)
+
+    def focusInEvent(self, event):  # noqa: N802
+
+        self._ring = event.reason() in (Qt.FocusReason.TabFocusReason,
+                                        Qt.FocusReason.BacktabFocusReason,
+                                        Qt.FocusReason.ShortcutFocusReason)
+        self.update()
+        super().focusInEvent(event)
+
+    def focusOutEvent(self, event):  # noqa: N802
+        self._ring = False
+        self.update()
+        super().focusOutEvent(event)
+
     def paintEvent(self, event):  # noqa: N802
-        if self._hot and self.cursor().shape() == Qt.CursorShape.PointingHandCursor:
+        clickable = self.cursor().shape() == Qt.CursorShape.PointingHandCursor
+        if clickable and (self._hot or self._down or self._ring):
             try:
                 painter = QPainter(self)
                 painter.setRenderHint(QPainter.RenderHint.Antialiasing, True)
-                painter.setPen(Qt.PenStyle.NoPen)
-                painter.setBrush(qcolor(HOVER))
-                painter.drawRoundedRect(QRectF(self.rect()), self._radius, self._radius)
+                held = self._down and self.rect().contains(self.mapFromGlobal(QCursor.pos()))
+                if held or self._hot:
+                    painter.setPen(Qt.PenStyle.NoPen)
+                    painter.setBrush(qcolor(HOVER_ON if held else HOVER))
+                    painter.drawRoundedRect(QRectF(self.rect()), self._radius, self._radius)
+                if self._ring:
+                    pen = QPen(qcolor(ACCENT_INK))
+                    pen.setWidthF(1.5)
+                    painter.setPen(pen)
+                    painter.setBrush(Qt.BrushStyle.NoBrush)
+                    painter.drawRoundedRect(QRectF(self.rect()).adjusted(1, 1, -1, -1),
+                                            self._radius, self._radius)
                 painter.end()
             except Exception:  # nosec B110
                 pass

@@ -140,6 +140,35 @@ def cached_on_disk(url: str) -> bool:
         return False
 
 
+def example_files(case) -> list:
+
+
+
+    import shutil
+    import tempfile
+
+    from ...core.output_paths import safe_file_name
+
+    out = []
+    for sample in tuple(getattr(case, "attach", ()) or ()):
+        if not cached_on_disk(sample.url):
+            continue
+        folder = os.path.join(tempfile.gettempdir(), "terralab-ai-agent-examples")
+        try:
+            os.makedirs(folder, exist_ok=True)
+            ext = os.path.splitext(sample.url.split("?")[0])[1].lower()
+            name = safe_file_name(sample.name, "reference")
+            if ext and not name.lower().endswith(ext):
+                name += ext
+            target = os.path.join(folder, name)
+            shutil.copyfile(thumbnail_cache_path(sample.url), target)
+        except OSError as exc:
+            log_warning(f"Example file not copied: {exc}")
+            continue
+        out.append(target)
+    return out
+
+
 class PictureStore(QObject):
 
 
@@ -855,8 +884,22 @@ def flag_urls(row: dict) -> list:
 
 def mark_urls(row: dict) -> list:
 
+
     url = str((row or {}).get("logo_url") or "")
-    return [url] if url else flag_urls(row)[:2]
+    urls = [url] if url else flag_urls(row)[:2]
+    stand_in = str((row or {}).get("stand_in") or "")
+    return urls + [stand_in] if stand_in else urls
+
+
+def _stand_in_pixmap(row: dict, accent: str, side: int, ratio: float, radius: float,
+                     inset: float) -> QPixmap:
+
+
+    url = str((row or {}).get("stand_in") or "")
+    if url and not (row or {}).get("_stand_in"):
+        return square_mark_pixmap({**row, "logo_url": url, "flags": [], "_stand_in": True},
+                                  accent, side, ratio, radius, inset)
+    return neutral_tile_pixmap(row, side, ratio, radius)
 
 
 
@@ -1015,7 +1058,7 @@ def square_mark_pixmap(row: dict, accent: str, side: int, ratio: float = 1.0,
     path = store().want_file(url) if url else ""
     image = QImage(str(path)) if path else QImage()
     if image.isNull():
-        return neutral_tile_pixmap(row, side, ratio, radius)
+        return _stand_in_pixmap(row, accent, side, ratio, radius, inset)
     flag = bool(flags) or is_flag(row)
     image = image.convertToFormat(QImage.Format.Format_ARGB32)
     if not flag:
@@ -1025,7 +1068,7 @@ def square_mark_pixmap(row: dict, accent: str, side: int, ratio: float = 1.0,
         if bounds is not None:
             image = image.copy(*bounds)
         if not readable_logo(image, side, inset, QColor(C.T.mark_bg)):
-            return neutral_tile_pixmap(row, side, ratio, radius)
+            return _stand_in_pixmap(row, accent, side, ratio, radius, inset)
     pixmap = QPixmap(int(round(side * ratio)), int(round(side * ratio)))
     pixmap.setDevicePixelRatio(ratio)
     pixmap.fill(Qt.GlobalColor.transparent)
@@ -1154,3 +1197,61 @@ def wear_square_mark(label, row: dict, accent: str, side: int, radius: float = 8
     label.setPixmap(render(row, accent, side, widget_pixel_ratio(label)))
     if any(usable(u) and not cached_on_disk(u) for u in mark_urls(row)):
         _MarkWatcher(label, row, accent, side, render)
+
+
+def _thumbnail_pixmap(url: str, width: int, height: int, ratio: float, radius: float) -> QPixmap:
+
+
+    ratio = max(1.0, float(ratio or 1.0))
+    pixmap = QPixmap(int(round(width * ratio)), int(round(height * ratio)))
+    pixmap.setDevicePixelRatio(ratio)
+    pixmap.fill(Qt.GlobalColor.transparent)
+    path = store().want_file(url) if url else ""
+    image = QImage(str(path)) if path else QImage()
+    shape = QPainterPath()
+    shape.addRoundedRect(QRectF(0.5, 0.5, width - 1, height - 1), radius, radius)
+    painter = QPainter(pixmap)
+    try:
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing, True)
+        painter.fillPath(shape, QColor(C.T.mark_bg))
+        if not image.isNull():
+            clip = QPainterPath()
+            clip.addRoundedRect(QRectF(0, 0, width, height), radius, radius)
+            _draw_cover(painter, image.convertToFormat(QImage.Format.Format_ARGB32),
+                        QRectF(0, 0, width, height), clip, ratio)
+        painter.setPen(QPen(_hairline(), 1))
+        painter.setBrush(Qt.BrushStyle.NoBrush)
+        painter.drawPath(shape)
+    finally:
+        painter.end()
+    return pixmap
+
+
+class _ThumbWatcher(QObject):
+
+
+    def __init__(self, label, url: str, width: int, height: int, radius: float):
+        super().__init__(label)
+        self._label, self._url = label, url
+        self._box = (width, height, radius)
+        store().ready.connect(self._on_ready)
+
+    def _on_ready(self, url: str) -> None:
+        if url != self._url:
+            return
+        try:
+            self._label.setPixmap(_thumbnail_pixmap(url, *self._box[:2], widget_pixel_ratio(self._label),
+                                                    self._box[2]))
+        except RuntimeError:
+            pass
+
+
+def wear_thumbnail(label, url: str, width: int = 80, height: int = 45, radius: float = 6.0) -> None:
+
+
+    label.setStyleSheet("QLabel { background: transparent; border: none; }")
+    label.setFixedSize(width, height)
+    label.setPixmap(_thumbnail_pixmap(url, width, height, widget_pixel_ratio(label), radius))
+    if usable(url) and not cached_on_disk(url):
+        _ThumbWatcher(label, url, width, height, radius)
+

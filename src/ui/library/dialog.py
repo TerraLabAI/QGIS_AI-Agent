@@ -75,6 +75,7 @@ from . import common as C
 from . import keys
 from .detail import ExampleDetail
 from .home import ExamplesHome
+from .pictures import example_files
 from .rail import LibraryRail
 
 _GRID_PAGE, _DETAIL_PAGE, _SOURCES_PAGE, _SOURCE_PAGE, _SECTION_PAGE = 0, 1, 2, 3, 4
@@ -495,8 +496,25 @@ class ExamplesDialog(QDialog):
         self._on_rail(SOURCES_KEY)
 
     def open_case(self, case) -> None:
+        where = self._tile_place()
         self._show_case(case)
         self._go(_DETAIL_PAGE, case)
+        try:
+            from ...core import telemetry
+            from ...core import telemetry_events as ev
+
+            telemetry.track(ev.EXAMPLE_VIEWED, {"slug": str(case.slug or ""), "from": where})
+        except Exception:  # nosec B110
+            pass
+
+    def _tile_place(self) -> str:
+
+        page = self._pages.currentIndex()
+        if page in (_SOURCE_PAGE, _SOURCES_PAGE, _SECTION_PAGE):
+            return "source"
+        if self._home.query():
+            return "search"
+        return "group" if self._home.group() else "home"
 
     def _show_case(self, case) -> None:
         if not case.listed:
@@ -576,10 +594,11 @@ class ExamplesDialog(QDialog):
 
 
         case = self._detail.case
+        attach = example_files(case) if case is not None else []
         self.accept()
         if case is not None:
             self.example_chosen.emit(case.slug)
-        self.prompt_chosen.emit(str(text), {})
+        self.prompt_chosen.emit(str(text), {"attach": attach} if attach else {})
 
     def _on_ask(self, query: str) -> None:
 

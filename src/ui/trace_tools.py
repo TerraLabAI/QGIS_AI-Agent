@@ -45,7 +45,17 @@ import time
 
 from qgis.PyQt.QtCore import QCoreApplication, Qt, QTimer
 from qgis.PyQt.QtGui import QPainter
-from qgis.PyQt.QtWidgets import QHBoxLayout, QLabel, QProgressBar, QPushButton, QSizePolicy, QVBoxLayout, QWidget
+from qgis.PyQt.QtWidgets import (
+    QFrame,
+    QGridLayout,
+    QHBoxLayout,
+    QLabel,
+    QProgressBar,
+    QPushButton,
+    QSizePolicy,
+    QVBoxLayout,
+    QWidget,
+)
 
 from ..core.layer_release import task_state
 from ..core.qt_compat import disconnect_quietly
@@ -55,7 +65,19 @@ from .font_scale import widget_pixel_ratio
 from .icons import pixmap_for
 from .source_marks import _clipped as clipped_mark
 from .source_marks import connector_row, family_pixmap, source_host, source_mark_pixmap
-from .style import _BTN_QUIET, INK_2, INK_3, SPACE_TIGHT, qcolor
+from .style import (
+    _BTN_QUIET,
+    HOVER,
+    INK_2,
+    INK_3,
+    INSET,
+    LINE,
+    RADIUS_CHIP,
+    RADIUS_CONTROL,
+    SPACE_TIGHT,
+    keyboard_ring,
+    qcolor,
+)
 from .tool_describe import (
     _with_layer_names,
     call_subject,
@@ -65,6 +87,8 @@ from .tool_describe import (
     result_facts,
 )
 from .tool_describe import source_text as _source_text
+from .tool_details import _KEY_QSS, _VALUE_QSS, asked_rows
+from .tool_details import _rule as details_rule
 from .trace_rows import (
     _HINT_QSS,
     _LABEL_QSS,
@@ -80,9 +104,14 @@ from .trace_rows import (
     HoverRow,
     _row_layout,
 )
-from .widgets import ElidedLabel, Spinner
+from .widgets import ChatLabel, ElidedLabel, Spinner
 
 _RESULT_MARK_PX = 14
+_RESULT_HOST_MAX_PX = 130
+_RESULT_ARROW_PX = 12
+
+_RESULT_LIST_QSS = (f"QFrame#resultList {{ background: {INSET}; border: 1px solid {LINE};"
+                    f" border-radius: {RADIUS_CONTROL}px; }}")
 _RESULTS_SHOWN = 5
 _CHEVRON_PX = 12
 
@@ -280,6 +309,8 @@ class _RowSpinner(Spinner):
 
     def __init__(self, diameter: int, color, parent=None):
         super().__init__(diameter, color=color, parent=parent)
+
+        self.setFixedSize(GLYPH_SLOT_PX, GLYPH_SLOT_PX)
         self._held = False
         self._still = None
 
@@ -308,7 +339,7 @@ class _RowSpinner(Spinner):
             if self._still is None:
                 self._still = pixmap_for(self, "clock", GLYPH_PX, qcolor(INK_3))
             painter = QPainter(self)
-            painter.drawPixmap(0, 0, self._still)
+            painter.drawPixmap((self.width() - GLYPH_PX) // 2, (self.height() - GLYPH_PX) // 2, self._still)
             painter.end()
         except Exception:  # noqa: BLE001
             return
@@ -337,11 +368,20 @@ class _ResultRow(QWidget):
 
     def __init__(self, name: str, host: str, family: dict | None = None, parent=None, link: str = ""):
         super().__init__(parent)
+
+
+        if not link and host and "." in host and not any(c.isspace() for c in host):
+            link = "https://" + host
         self._link = link
+        self.setObjectName("resultRow")
+        self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
         if link:
             self.setCursor(Qt.CursorShape.PointingHandCursor)
+            self.setAttribute(Qt.WidgetAttribute.WA_Hover, True)
+            self.setToolTip(link)
+            self.setStyleSheet(f"QWidget#resultRow:hover {{ background: {HOVER}; border-radius: {RADIUS_CHIP}px; }}")
         row = QHBoxLayout(self)
-        row.setContentsMargins(0, 0, 0, 0)
+        row.setContentsMargins(8, 0, 8, 0)
         row.setSpacing(8)
         self._mark = QLabel(self)
         self._mark.setFixedSize(GLYPH_SLOT_PX, GLYPH_SLOT_PX)
@@ -356,19 +396,26 @@ class _ResultRow(QWidget):
 
             store().ready.connect(self._on_logo_ready)
         row.addWidget(self._mark, 0, Qt.AlignmentFlag.AlignVCenter)
+
         title = ElidedLabel(name, self)
         title.setObjectName("resultName")
         title.setStyleSheet(_LABEL_QSS)
-        title.setSizePolicy(QSizePolicy.Policy.Maximum, QSizePolicy.Policy.Preferred)
-        row.addWidget(title, 0, Qt.AlignmentFlag.AlignVCenter)
+        title.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Preferred)
+        row.addWidget(title, 1, Qt.AlignmentFlag.AlignVCenter)
         if host:
             domain = ElidedLabel(host, self)
             domain.setObjectName("resultHost")
             domain.setStyleSheet(_HINT_QSS)
             domain.setSizePolicy(QSizePolicy.Policy.Maximum, QSizePolicy.Policy.Preferred)
+            domain.setMaximumWidth(_RESULT_HOST_MAX_PX)
             row.addWidget(domain, 0, Qt.AlignmentFlag.AlignVCenter)
-        row.addStretch(1)
-        self.setFixedHeight(24)
+
+        self._arrow = QLabel(self)
+        self._arrow.setFixedSize(_RESULT_ARROW_PX, _RESULT_ARROW_PX)
+        if link:
+            self._arrow.setPixmap(pixmap_for(self, "external", _RESULT_ARROW_PX, qcolor(INK_3)))
+        row.addWidget(self._arrow, 0, Qt.AlignmentFlag.AlignVCenter)
+        self.setFixedHeight(28)
         if link:
 
             for child in self.findChildren(QLabel):
@@ -469,7 +516,10 @@ class ActivityRow(QWidget):
         self._label.setStyleSheet(_VERB_QSS)
         self._label.setSizePolicy(QSizePolicy.Policy.Maximum, QSizePolicy.Policy.Preferred)
         row.addWidget(self._label, 0, Qt.AlignmentFlag.AlignVCenter)
-        self._secondary = ElidedLabel("", self._head, Qt.TextElideMode.ElideMiddle)
+
+
+
+        self._secondary = ElidedLabel("", self._head, Qt.TextElideMode.ElideRight)
         self._secondary.setObjectName("activitySubject")
         self._secondary.setStyleSheet(_HINT_QSS)
         self._secondary.setSizePolicy(QSizePolicy.Policy.Maximum, QSizePolicy.Policy.Preferred)
@@ -509,7 +559,8 @@ class ActivityRow(QWidget):
         self._bar.setTextVisible(False)
         self._bar.setFixedSize(_CALL_BAR_W, _CALL_BAR_PX)
         self._bar.setStyleSheet(
-            "QProgressBar { background: rgba(128,128,128,0.18); border: none; border-radius: 1px; }"
+            f"QProgressBar {{ background: rgba(128,128,128,0.18); border: none; border-radius: 1px;"
+            f" height: {_CALL_BAR_PX}px; }}"
             f"QProgressBar::chunk {{ background: {INK_3}; border-radius: 1px; }}")
         self._bar.hide()
         sub.addWidget(self._bar, 0, Qt.AlignmentFlag.AlignVCenter)
@@ -524,11 +575,13 @@ class ActivityRow(QWidget):
 
         self._body = QWidget(self)
         self._body_col = QVBoxLayout(self._body)
-        self._body_col.setContentsMargins(0, 0, 0, SPACE_TIGHT)
-        self._body_col.setSpacing(0)
-        self._results_host = QWidget(self._body)
+        self._body_col.setContentsMargins(0, 2, 0, SPACE_TIGHT)
+        self._body_col.setSpacing(4)
+        self._results_host = QFrame(self._body)
+        self._results_host.setObjectName("resultList")
+        self._results_host.setStyleSheet(_RESULT_LIST_QSS)
         self._results_col = QVBoxLayout(self._results_host)
-        self._results_col.setContentsMargins(0, 0, 0, 0)
+        self._results_col.setContentsMargins(4, 4, 4, 4)
         self._results_col.setSpacing(0)
         self._results_host.hide()
         self._body_col.addWidget(self._results_host)
@@ -540,6 +593,7 @@ class ActivityRow(QWidget):
         self._tries_btn = QPushButton("", self._body)
         self._tries_btn.setObjectName("activityTries")
         self._tries_btn.setStyleSheet(_BTN_QUIET)
+        keyboard_ring(self._tries_btn)
         self._tries_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         self._tries_btn.setAutoDefault(False)
         self._tries_btn.clicked.connect(self._toggle_tries)
@@ -997,6 +1051,32 @@ class ActivityRow(QWidget):
                 widget.hide()
                 widget.setParent(None)
                 widget.deleteLater()
+        asked = asked_rows(self.cards[-1].name, self.cards[-1].args) \
+            if self._results and is_search_tool(self.cards[-1].name) else []
+        if asked:
+
+            head = QWidget(self._results_host)
+            grid = QGridLayout(head)
+            grid.setContentsMargins(8, 5, 8, 7)
+            grid.setHorizontalSpacing(12)
+            grid.setVerticalSpacing(4)
+            grid.setColumnStretch(1, 1)
+            for index, (label, value, key) in enumerate(asked):
+                name = QLabel(label, head)
+                name.setStyleSheet(_KEY_QSS)
+                name.setIndent(0)
+                name.setToolTip(key)
+                text = ChatLabel(value, head, wrap=True, selectable=True)
+                text.setStyleSheet(_VALUE_QSS)
+                text.setIndent(0)
+                grid.addWidget(name, index, 0, Qt.AlignmentFlag.AlignTop)
+                grid.addWidget(text, index, 1)
+            self._results_col.addWidget(head)
+            rule = QWidget(self._results_host)
+            inset = QVBoxLayout(rule)
+            inset.setContentsMargins(8, 0, 8, 3)
+            inset.addWidget(details_rule(rule))
+            self._results_col.addWidget(rule)
         shown = self._results if self._results_open else self._results[:_RESULTS_SHOWN]
         for name, host, family, link in shown:
             self._results_col.addWidget(_ResultRow(name, host, family, self._results_host, link))
@@ -1006,7 +1086,8 @@ class ActivityRow(QWidget):
             label = _MoreRow(text, self._toggle_results, self._results_host)
             label.setObjectName("resultMore")
             label.setStyleSheet(_HINT_QSS)
-            label.setFixedHeight(22)
+            label.setContentsMargins(8, 0, 8, 0)
+            label.setFixedHeight(24)
             self._results_col.addWidget(label)
         self._results_host.setVisible(bool(self._results))
 

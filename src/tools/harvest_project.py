@@ -86,7 +86,8 @@ def register_harvest_project_tools(registry: ToolRegistry):
         },
         handler=_create_postgresql_connection,
 
-        always_confirm=lambda args: bool(args.get("auth_config_id")),
+
+        always_confirm=lambda args: bool(args.get("auth_config_id") or str(args.get("host") or "").strip()),
     ))
 
     registry.register(Tool(

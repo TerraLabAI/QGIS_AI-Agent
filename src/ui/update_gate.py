@@ -27,8 +27,8 @@ from .font_scale import scale_px_length, scale_qss_font_px, widget_pixel_ratio
 from .shared import PLUGIN_ICON_PATH, PRODUCT_NAME
 from .style import (
     _BTN_PRIMARY_WIDE,
-    ACCENT,
     ACCENT_BORDER_SOFT,
+    ACCENT_INK,
     ACCENT_TINT,
     BTN_PRIMARY_WIDE_PX,
     FONT_BODY,
@@ -38,7 +38,9 @@ from .style import (
     INK_3,
     LINE,
     RADIUS_CARD,
+    RADIUS_CHIP,
     SURFACE,
+    keyboard_ring,
 )
 
 _CARD_MAX_W = 380
@@ -48,8 +50,10 @@ _QSS = scale_qss_font_px(
     f"QFrame#updateGateCard {{ background: {SURFACE}; border: 1px solid {LINE};"
     f" border-radius: {RADIUS_CARD + 4}px; }}"
     f"QWidget#updateGateBadge {{ background: {ACCENT_TINT}; border: 1px solid {ACCENT_BORDER_SOFT};"
-    f" border-radius: 11px; }}"
-    f"QLabel#updateGateBadgeText {{ font-size: {FONT_HINT}px; font-weight: 600; color: {ACCENT};"
+
+
+    f" border-radius: {RADIUS_CHIP}px; }}"
+    f"QLabel#updateGateBadgeText {{ font-size: {FONT_HINT}px; font-weight: 600; color: {ACCENT_INK};"
     " background: transparent; border: none; }"
     f"QLabel#updateGateTitle {{ font-size: 16px; font-weight: 600; color: {INK};"
     " background: transparent; border: none; }"
@@ -144,6 +148,7 @@ class UpdateGate(QWidget):
         self._button.setObjectName("updateGateButton")
         self._button.setCursor(Qt.CursorShape.PointingHandCursor)
         self._button.setStyleSheet(_BTN_PRIMARY_WIDE)
+        keyboard_ring(self._button)
         self._button.setFixedHeight(scale_px_length(BTN_PRIMARY_WIDE_PX))
         self._button.setAutoDefault(False)
         self._button.clicked.connect(self._on_update)

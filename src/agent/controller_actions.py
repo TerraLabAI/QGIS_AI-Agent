@@ -14,7 +14,7 @@ import uuid
 
 from qgis.PyQt.QtCore import QCoreApplication, QTimer
 
-from ..core import layer_removed, link_vault, restore_guard, telemetry
+from ..core import layer_removed, link_vault, project_read, restore_guard, telemetry, trace
 from ..core import telemetry_events as ev
 from ..core.checkpoints import KIND_BEFORE, KIND_EDITS, NOT_PUT_BACK
 from ..core.context import mention_candidates
@@ -27,16 +27,13 @@ from ..core.served_state import get_pro_offer as _offer
 from ..core.snapshot import REASON_UNSAVED_EDITS, RunSnapshot, diff_changed, layer_file_path, unsaved_edit_layers
 from ..core.snapshot_files import _same_content
 from ..core.telemetry_errors import track_plugin_error, track_restore_failure
+from .controller_shared import tr
 
 
 def get_pro_offer() -> str:
 
 
     return _offer()
-
-
-def tr(text: str) -> str:
-    return QCoreApplication.translate("AgentController", text)
 
 
 def _restore_layers(rows) -> list:
@@ -89,12 +86,32 @@ def _not_kept(snapshot, hand, target_pairs=()) -> list:
     return lost
 
 
+
+def _blocked_notice(blocked: list) -> str:
+
+    first = blocked[0]
+    layer = str(first.get("layer") or "")
+    programs = [str(name) for name in first.get("programs") or [] if name]
+    if programs:
+        text = tr("Nothing was changed: {layer} is open in {program}. Close it there, then go back again.").format(
+            layer=layer, program=programs[0])
+    elif first.get("kind") == "read_only":
+        text = tr("Nothing was changed: the file of {layer} is read-only. Make it writable, "
+                  "then go back again.").format(layer=layer)
+    else:
+        text = tr("Nothing was changed: {layer} is in use by another program. Close it there, "
+                  "then go back again.").format(layer=layer)
+    if len(blocked) > 1:
+        text += " " + tr("{n} more files are in the same case.").format(n=len(blocked) - 1)
+    return text
+
 class PanelActionsMixin:
 
 
 
 
     _restoring = False
+    _restore_waiting = None
 
 
     _restore_after_stop = ""
@@ -143,8 +160,8 @@ class PanelActionsMixin:
         if self._run is not None:
             self.notice.emit("info", tr("Stop the current run before starting a new chat."))
             return
-        if user:
-            telemetry.track(ev.NEW_CHAT_STARTED, {"had_messages": self._thread_id is not None})
+        trace.mark("newchat.start")
+        began, had_messages = time.perf_counter(), self._thread_id is not None
         self._thread_id = None
 
         if self._settings.reset_autopilot():
@@ -153,20 +170,29 @@ class PanelActionsMixin:
         self._panel_call("set_current_thread", "")
         self._panel_call("set_run_changes", 0, False)
         self._send_history()
+        if user:
+            telemetry.track(ev.NEW_CHAT_STARTED, {
+                "had_messages": had_messages, "clear_ms": int((time.perf_counter() - began) * 1000)})
+        trace.mark("newchat.done")
 
     def _on_thread_selected(self, thread_id: str) -> None:
         if self._run is not None:
             self.notice.emit("info", tr("Stop the current run before switching chats."))
             return
+        trace.mark("thread.select")
+        began = time.perf_counter()
         thread = self._store.load(thread_id)
         if thread is None:
             self.notice.emit("warning", tr("This chat is gone."))
             self._panel_call("set_threads", self._store.list_threads(), _project_path())
             return
         self._thread_id = thread_id
-        telemetry.track(ev.THREAD_OPENED, _thread_opened_props(thread))
         link_vault.remember(thread_id, thread.get("messages", []))
         self._panel_call("load_thread", thread.get("messages", []))
+
+
+        telemetry.track(ev.THREAD_OPENED, dict(_thread_opened_props(thread),
+                                               load_ms=int((time.perf_counter() - began) * 1000)))
         self._panel_call("set_current_thread", thread_id)
         self._panel_call("set_run_changes", 0, False)
 
@@ -243,6 +269,13 @@ class PanelActionsMixin:
 
 
             return
+        if project_read.reading():
+
+
+
+            self._restore_waiting = (checkpoint_id, confirmed, discard, hand)
+            project_read.when_done(self._restore_waited)
+            return
 
         self._executor.record_pending_after()
         history = self._executor.history
@@ -291,6 +324,14 @@ class PanelActionsMixin:
                              len(removed), _restore_layers(removed), [os.path.basename(path) for path in hand],
                              not discard and history.steps_between(thread_id, entry) < 0)
             return
+        versions = history.file_versions(thread_id, entry)
+
+        held = entry.snapshot.files_blocked_now(versions)
+        if held:
+            track_restore_failure(held, str(entry.kind))
+            self.notice.emit("warning", _blocked_notice(held["files_blocked"]))
+            self._send_history()
+            return
         refusal, why = self._capture_edits(thread_id, current, entry, hand) if edits else ("", "")
         if refusal:
 
@@ -304,16 +345,19 @@ class PanelActionsMixin:
         left = history.current(thread_id)
         steps = history.steps_between(thread_id, entry)
         self._restoring = True
+        history.restore_begins(entry)
         started = time.monotonic()
         try:
 
 
 
+
             with layer_removed.undoing():
-                result = entry.snapshot.restore(file_name=entry.file_to_keep(),
-                                                extra_copies=history.file_versions(thread_id, entry))
+                result = entry.snapshot.restore(file_name=entry.file_to_keep(), extra_copies=versions,
+                                                own_saves=history.own_saves_after(thread_id, entry))
         finally:
             self._restoring = False
+            history.restore_ended()
 
             history.project_restored()
         log(f"Restore to {entry.kind} run {entry.run_index}: {result.get('message') or result}")
@@ -327,6 +371,13 @@ class PanelActionsMixin:
         if not ok and not refused:
 
             track_restore_failure(result, str(entry.kind))
+        blocked = [item for item in result.get("files_blocked") or [] if isinstance(item, dict)]
+        if refused and blocked:
+
+            track_restore_failure(result, str(entry.kind))
+            self.notice.emit("warning", _blocked_notice(blocked))
+            self._send_history()
+            return
         if refused:
 
 
@@ -422,6 +473,11 @@ class PanelActionsMixin:
             self._hand_check_pending = False
             log_warning(f"Hand-edit check not started: {exc}")
             self.notice.emit("warning", tr("Your files could not be checked, so nothing was restored."))
+
+    def _restore_waited(self) -> None:
+        waiting, self._restore_waiting = self._restore_waiting, None
+        if waiting is not None:
+            self._on_restore(*waiting)
 
     def _on_restore_after_stop(self, run_id: str) -> None:
 
@@ -692,7 +748,9 @@ class PanelActionsMixin:
                 ev.SUBSCRIBE_LINK_CLICKED, {"source": where, "where": where, "checkout_link": link,
                                             "offer": get_pro_offer()}),
 
-            trial_surface={"exhausted_card": "wall", "low_card": "low_card", "warning": "warning"}.get(where, "")
+
+            trial_surface={"exhausted_card": "wall", "low_card": "low_card", "warning": "warning",
+                           "effort": "effort", "autopilot": "autopilot"}.get(where, "")
             if self._trial_offered() else "")
         log(f"Upgrade opened from the panel ({where})")
 
@@ -892,6 +950,7 @@ class PanelActionsMixin:
         session = {
             "session_id": self._session.session_id or "",
             "state": self._session.state,
+            "held": getattr(self._session, "held", ""),
             "model": getattr(self._session, "model_label", ""),
             "effort": self._settings.effort,
             "mode": self._settings.mode,

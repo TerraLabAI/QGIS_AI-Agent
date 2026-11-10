@@ -211,6 +211,11 @@ def _inflate(body: bytes, encoding: str, max_bytes: int) -> bytes:
         if len(out) > max_bytes or worker.unconsumed_tail:
             raise FetchTooLarge(f"The answer expands to more than {max_bytes} bytes.")
         if not gzip_stream:
+            if not worker.eof:
+
+                raise FetchTruncated(
+                    "The compressed answer ended before its own end marker, so the file is "
+                    "incomplete. The connection dropped.")
             return out
 
 

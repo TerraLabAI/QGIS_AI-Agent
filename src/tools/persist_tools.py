@@ -36,7 +36,7 @@ from qgis.core import (
 from qgis.PyQt.QtCore import QT_TRANSLATE_NOOP
 
 from ..core import layer_order, output_paths, policy, security
-from ..core.background import run_on_main_thread, start_kept_thread
+from ..core.background import main_thread_invoker, run_on_main_thread, start_kept_thread
 from ..core.context import THREAD_PROPERTY
 from ..core.host_platform import remove_tree
 from ..core.logger import log, log_warning
@@ -424,13 +424,14 @@ def _release(items) -> None:
         WRITING.pop(item["id"], None)
 
 
-def save_run_layers(layer_ids, busy=None) -> int:
+def save_run_layers(layer_ids, busy=None, then=None, before_save=None) -> int:
+
 
 
     project = QgsProject.instance()
     layers = [project.mapLayer(str(layer_id)) for layer_id in dict.fromkeys(layer_ids or ())]
     layers = [layer for layer in layers if isinstance(layer, QgsVectorLayer) and layer.providerType() == "memory"]
-    return len(store_in_background(layers, busy).get("layers") or ())
+    return len(store_in_background(layers, busy, then=then, before_save=before_save).get("layers") or ())
 
 
 def _run_open() -> bool:
@@ -438,7 +439,8 @@ def _run_open() -> bool:
     return layer_order.current_run() is not None
 
 
-def store_in_background(layers, busy=None, save: bool = True) -> dict:
+def store_in_background(layers, busy=None, save: bool = True, then=None, before_save=None) -> dict:
+
 
 
 
@@ -490,7 +492,7 @@ def store_in_background(layers, busy=None, save: bool = True) -> dict:
         WRITING[item["id"]] = (gpkg, item["table"])
     try:
         start_kept_thread(_write_run_layers, plan, gpkg, project.transformContext(), busy or _run_open, save,
-                          name="ai-agent-layer-save")
+                          then, before_save, name="ai-agent-layer-save")
     except Exception:
         _release(plan)
         raise
@@ -595,7 +597,8 @@ def _write_one(item: dict, gpkg: str, folder: str, context) -> bool:
     return True
 
 
-def _write_run_layers(plan: list, gpkg: str, context, busy, save: bool = True) -> None:
+def _write_run_layers(plan: list, gpkg: str, context, busy, save: bool = True, then=None,
+                      before_save=None) -> None:
 
 
     from osgeo import gdal
@@ -616,25 +619,41 @@ def _write_run_layers(plan: list, gpkg: str, context, busy, save: bool = True) -
         for item in plan:
             item["source"] = None
         _release([item for item in plan if item["id"] not in written])
-    if not done:
-        return
     try:
-        run_on_main_thread(_repoint_when_idle, done, gpkg, busy, 0, save, timeout=30)
+        if not done:
+            if then is not None:
+                run_on_main_thread(then, timeout=30)
+            return
+        run_on_main_thread(_repoint_when_idle, done, gpkg, busy, 0, save, then, before_save, timeout=30)
     except Exception as exc:  # noqa: BLE001
         log_warning(f"Layers written to {gpkg} not repointed: {exc}")
         _release(done)
+        if then is not None:
 
 
-def _repoint_when_idle(done: list, gpkg: str, busy, tries: int, save: bool = True) -> None:
+            main_thread_invoker().invoke(then)
+
+
+def _repoint_when_idle(done: list, gpkg: str, busy, tries: int, save: bool = True, then=None,
+                       before_save=None) -> None:
 
     from qgis.PyQt.QtCore import QTimer
 
+    if busy is not None and busy() and tries < _IDLE_TRIES:
+        QTimer.singleShot(_IDLE_WAIT_MS, lambda: _repoint_when_idle(done, gpkg, busy, tries + 1, save, then,
+                                                                    before_save))
+        return
+    try:
+        _repoint_now(done, gpkg, busy, save, before_save)
+    finally:
+        if then is not None:
+            then()
+
+
+def _repoint_now(done: list, gpkg: str, busy, save: bool, before_save=None) -> None:
     if busy is not None and busy():
-        if tries < _IDLE_TRIES:
-            QTimer.singleShot(_IDLE_WAIT_MS, lambda: _repoint_when_idle(done, gpkg, busy, tries + 1, save))
-        else:
-            _release(done)
-            log_warning(f"Layers written to {gpkg} not repointed: a run stayed open")
+        _release(done)
+        log_warning(f"Layers written to {gpkg} not repointed: a run stayed open")
         return
     project = QgsProject.instance()
     moved = []
@@ -662,7 +681,19 @@ def _repoint_when_idle(done: list, gpkg: str, busy, tries: int, save: bool = Tru
     saved = False
     if save and project.fileName():
         temp_folder_ready("agent")
+
+        written = None
+        if before_save is not None:
+            try:
+                written = before_save(project.fileName())
+            except Exception as exc:  # noqa: BLE001
+                log_warning(f"Project file not copied before its save: {exc}")
         saved = project.write()
+        if saved and written is not None:
+            try:
+                written()
+            except Exception as exc:  # noqa: BLE001
+                log_warning(f"Project file copy not recorded after its save: {exc}")
     log(f"Layers saved to {gpkg}: {', '.join(moved)}"
         + (f"; project written to {project.fileName()}" if saved else ""))
 
@@ -688,7 +719,18 @@ def default_gpkg_path(layer_name: str = "") -> str | None:
         return path
     directory = os.path.dirname(fname)
     stem = os.path.splitext(os.path.basename(fname))[0]
-    return os.path.join(directory, f"{stem}_data.gpkg")
+    beside = os.path.join(directory, f"{stem}_data.gpkg")
+    room = len("-journal")
+    if security.fits_path(beside, room):
+        return beside
+
+
+
+
+    short = os.path.join(directory, "_data.gpkg")
+    if security.fits_path(short, room):
+        return short
+    return os.path.join(output_paths.exports_folder(), f"{output_paths.safe_file_name(stem, 'layers')}_data.gpkg")
 
 
 def scratch_layers_summary(project: QgsProject) -> tuple[list[dict], list[dict]]:

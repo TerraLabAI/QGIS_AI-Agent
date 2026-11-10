@@ -13,17 +13,14 @@ from . import tuning
 
 def section(name: str) -> dict:
 
-    value = (tuning.service_doc("tool_rules") or {}).get(name)
-    return value if isinstance(value, dict) else {}
+    return (tuning.service_doc("tool_rules") or {}).get(name) or {}
 
 
 def names(name: str, key: str) -> tuple:
 
-    value = section(name).get(key)
-    return tuple(value) if isinstance(value, list) else ()
+    return tuple(section(name).get(key) or ())
 
 
 def number(name: str, key: str):
 
-    value = section(name).get(key)
-    return value if isinstance(value, (int, float)) and not isinstance(value, bool) else None
+    return section(name).get(key)

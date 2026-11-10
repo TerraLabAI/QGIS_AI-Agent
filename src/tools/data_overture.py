@@ -62,10 +62,7 @@ _OVERTURE_TIMEOUT = 105
 
 
 
-
-
-def _overture_limit() -> int:
-    return 200_000
+_OVERTURE_LIMIT = 200_000
 
 
 
@@ -356,10 +353,7 @@ def _overture_trace(headers) -> dict:
     if headers is None:
         return out
     for header, key in (("X-Request-Id", "request_id"), ("Retry-After", "retry_after")):
-        try:
-            value = headers.get(header)
-        except Exception:  # noqa: BLE001
-            value = None
+        value = headers.get(header)
         if value:
             out[key] = str(value)
     return out
@@ -403,7 +397,7 @@ def _overture_call(theme: str, box, timeout: int = 0, subtype: str = "", limit: 
 
     timeout = timeout or tuning.limit("net", "hosted_timeout_s", _OVERTURE_TIMEOUT)
     west, south, east, north = box
-    cap = _overture_limit()
+    cap = _OVERTURE_LIMIT
     params = {"bbox": f"{west},{south},{east},{north}", "limit": min(cap, limit) if limit > 0 else cap}
     if subtype:
         params["subtype"] = subtype
@@ -1119,7 +1113,7 @@ def _overture_boxes(theme: str, box, max_km2: float, max_span: float, args: dict
 
 
                 wave, queue = queue[:_PIECES_AT_ONCE], queue[_PIECES_AT_ONCE:]
-                still_wanted = max(1, _overture_limit() - len(features))
+                still_wanted = max(1, _OVERTURE_LIMIT - len(features))
                 if pool is None or len(wave) == 1:
                     answers = [(item, ask(item[0], still_wanted)) for item in wave]
                 else:
@@ -1156,8 +1150,8 @@ def _overture_boxes(theme: str, box, max_km2: float, max_span: float, args: dict
                         continue
                     seen.add(identity)
                 features.append(feature)
-            if len(features) >= _overture_limit():
-                del features[_overture_limit():]
+            if len(features) >= _OVERTURE_LIMIT:
+                del features[_OVERTURE_LIMIT:]
                 truncated = True
                 if queue or answers:
                     meta["unread_boxes"] = len(queue) + len(answers)

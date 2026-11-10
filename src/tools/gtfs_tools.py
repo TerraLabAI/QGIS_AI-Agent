@@ -58,7 +58,7 @@ from ..core.output_paths import safe_file_name
 from ..core.policy import create_managed_temp_dir
 from ..core.qt_compat import enum_member
 from ..core.serialization import CodedText
-from ..core.text_encoding import ansi_encoding, detect_encoding
+from ..core.text_encoding import ansi_encoding, detect_encoding, python_codec
 from ..core.tool_registry import Tool, ToolRegistry, tool_error
 from .data_common import _download_timeout
 
@@ -234,7 +234,7 @@ def _decoded_rows(opener, name: str):
     except (AttributeError, OSError):
         sample = b""
     guess = detect_encoding(sample)
-    encoding = "utf-8-sig" if guess == "UTF-8" else guess
+    encoding = "utf-8-sig" if guess == "UTF-8" else python_codec(guess)
     text = io.TextIOWrapper(raw, encoding=encoding, newline="")
     try:
         yield from csv.DictReader(text)
@@ -242,7 +242,7 @@ def _decoded_rows(opener, name: str):
     except UnicodeDecodeError:
         pass
     text.close()
-    fallback = ansi_encoding()
+    fallback = python_codec(ansi_encoding())
     if fallback == encoding:
         raise _GtfsEncodingError(name, (encoding,))
     raw = opener()

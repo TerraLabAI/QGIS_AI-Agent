@@ -83,7 +83,7 @@ def safe_glob(pathname, *, root_dir=None, recursive=False):
             base = _check(root_dir)
         except FileNotFoundError:
             return []
-        found = _matches(os.path.join(base, pattern), recursive)
+        found = _matches(os.path.join(_glob.escape(base), pattern), recursive)
         return [os.path.relpath(p, base) for p in found]
     return _matches(anchor(pattern), recursive)
 
@@ -392,7 +392,7 @@ class Path(_PureNative):
 
     def resolve(self, strict=False):
 
-        return type(self)(os.path.realpath(anchor(str(self))))
+        return type(self)(os.path.realpath(_check(self, scoped=False)))
 
     def exists(self):
         return _probe(self, os.path.exists)
@@ -411,7 +411,7 @@ class Path(_PureNative):
         return iter([self / name for name in sorted(os.listdir(folder)) if _allowed(os.path.join(folder, name))])
 
     def glob(self, pattern):
-        return iter([type(self)(p) for p in safe_glob(os.path.join(str(self), pattern), recursive=True)])
+        return iter([type(self)(p) for p in safe_glob(os.path.join(_glob.escape(str(self)), pattern), recursive=True)])
 
     def rglob(self, pattern):
         return self.glob(os.path.join("**", pattern))

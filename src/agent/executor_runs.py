@@ -9,9 +9,7 @@ from __future__ import annotations
 
 import time
 
-from qgis.PyQt.QtCore import QCoreApplication
-
-from ..core import background, layer_egress, licence, limits, machine, stalls
+from ..core import background, layer_egress, licence, limits, machine, snapshot_watch, stalls, view3d_windows
 from ..core.checkpoints import KIND_AFTER
 from ..core.context import stamp_thread
 from ..core.layer_release import adopt_running_call
@@ -23,6 +21,7 @@ from ..core.serialization import error_details
 from ..core.snapshot import RunSnapshot, changed_layer_items, diff_changed
 from ..core.tool_registry import coded_fact, main_budget
 from ..tools import code_clock, guards
+from .executor_code import tr
 from .executor_idempotency import IdempotencyTable
 from .run_report import build_report
 
@@ -34,10 +33,6 @@ HAND_BACK_S = 60.0
 
 
 CANCELLED_KEEP = 200
-
-
-def tr(text: str) -> str:
-    return QCoreApplication.translate("ToolExecutor", text)
 
 
 def _open_dialog() -> str | None:
@@ -100,14 +95,24 @@ def _snippet_waiting() -> bool:
 
 
 class _ExecutorRuns:
+    _proj_checked = False
+
     @staticmethod
     def _refresh_proxy() -> None:
+
 
         try:
             from ..core.net_proxy import apply_qgis_proxy
             apply_qgis_proxy()
         except Exception as exc:  # noqa: BLE001
             log_warning(f"QGIS proxy not applied to tool fetches: {exc}")
+        if not _ExecutorRuns._proj_checked:
+            _ExecutorRuns._proj_checked = True
+            try:
+                from ..tools.processing_destinations import _ensure_proj_env
+                _ensure_proj_env()
+            except Exception as exc:  # noqa: BLE001
+                log_warning(f"PROJ data folder not checked: {exc}")
 
 
 
@@ -338,6 +343,7 @@ class _ExecutorRuns:
         self._cancelled.pop(run_id, None)
         self._blocked.pop(run_id, None)
         layer_egress.begin_run(run_id)
+        view3d_windows.begin_run(run_id)
         self._budgets[run_id] = guards.RunBudget()
         self.follower.enabled = bool(getattr(self._settings, "follow_edits", True))
         self.follower.begin()
@@ -397,6 +403,16 @@ class _ExecutorRuns:
             except Exception as exc:  # noqa: BLE001
                 log_warning(f"Task {task_id} not cancelled on Stop: {exc}")
 
+    def call_in_flight(self, run_id: str) -> tuple:
+
+
+        calls = [(started, name, in_background) for rid, name, started, in_background in self._inflight.values()
+                 if rid == run_id]
+        if not calls:
+            return "", 0.0, False
+        started, name, in_background = min(calls)
+        return name, max(0.0, time.monotonic() - started), bool(in_background)
+
     def main_call_in_flight(self, run_id: str) -> str:
 
         return next((name for rid, name, _started, in_background in self._inflight.values()
@@ -429,6 +445,7 @@ class _ExecutorRuns:
 
 
         self._closed = True
+        view3d_windows.shutdown()
 
         _stop_snippet_algorithm("")
         self._waiting_for_history.clear()
@@ -470,7 +487,11 @@ class _ExecutorRuns:
 
     def end_run(self, run_id: str) -> RunSnapshot | None:
         with stalls.probe("executor.end_run"):
-            return self._end_run(run_id)
+            try:
+                return self._end_run(run_id)
+            finally:
+
+                view3d_windows.end_run(run_id)
 
     def _end_run(self, run_id: str) -> RunSnapshot | None:
         _stop_snippet_algorithm(run_id)
@@ -501,6 +522,10 @@ class _ExecutorRuns:
         self._run_denied.pop(run_id, None)
         self._task_ids.pop(run_id, None)
         snapshot = self._snapshots.pop(run_id, None)
+        if snapshot is not None and snapshot.captured:
+
+
+            snapshot_watch.forget()
         thread_id = self._threads.pop(run_id, "")
         run_index = self._run_index.pop(run_id, 0)
         prompt = self._prompts.pop(run_id, "")
@@ -569,7 +594,7 @@ class _ExecutorRuns:
             return
         self._after_pending = (run_id, thread_id, run_index, snapshot, changed, changed_layer_items(diff), prompt)
 
-    def record_pending_after(self) -> bool:
+    def record_pending_after(self, only_run: str = "") -> bool:
 
 
 
@@ -577,9 +602,11 @@ class _ExecutorRuns:
 
 
 
-        pending, self._after_pending = self._after_pending, None
-        if pending is None:
+
+        pending = self._after_pending
+        if pending is None or (only_run and pending[0] != only_run):
             return False
+        self._after_pending = None
         run_id, thread_id, run_index, snapshot, changed, items, prompt = pending
         with stalls.probe("executor.record_after"):
             return self._capture_after(run_id, thread_id, run_index, snapshot, changed, items, prompt)
@@ -602,6 +629,9 @@ class _ExecutorRuns:
                     return False
             except Exception as exc:  # noqa: BLE001
                 log_warning(f"Snapshot diff against the restored point failed: {exc}")
+
+
+        snapshot_watch.forget()
         after = RunSnapshot(f"{run_id or 'run'}-after")
         try:
             captured = after.capture()

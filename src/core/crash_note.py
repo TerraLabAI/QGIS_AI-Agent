@@ -30,6 +30,10 @@
 
 
 
+
+
+
+
 from __future__ import annotations
 
 import hashlib
@@ -62,12 +66,18 @@ MAX_AGE_S = 7 * 24 * 3600.0
 STACK_PREFIX = "qgis-python-crash-info-"
 OWN_PREFIX = "python-crash-"
 OWN_SUFFIX = ".txt"
+
+
+
+ALIVE_PREFIX = "alive-"
+ALIVE_EVERY_MS = 60_000
 STACK_LIMIT = 2000
 _MAIN_ROOM = 400
 _DUMP_START = re.compile(r"^(?:Fatal Python error|Windows fatal exception): ", re.MULTILINE)
 _STACK_READ_BYTES = 262_144
 
 _record: dict = {}
+_alive_timer = None
 _pending: dict = {}
 _quit_signal = None
 _session_end_signal = None
@@ -94,6 +104,19 @@ def _record_path(pid: int) -> str:
 
 def _own_stack_path(pid: int) -> str:
     return os.path.join(AGENT_HOME, f"{OWN_PREFIX}{pid}{OWN_SUFFIX}")
+
+
+def _alive_path(pid: int) -> str:
+    return os.path.join(AGENT_HOME, f"{ALIVE_PREFIX}{pid}")
+
+
+def _touch_alive() -> None:
+    try:
+        with open(_alive_path(os.getpid()), "a", encoding="utf-8"):
+            pass
+        os.utime(_alive_path(os.getpid()), None)
+    except OSError:
+        pass
 
 
 def _write_record() -> None:
@@ -133,6 +156,7 @@ def _open_record() -> None:
     except (OSError, ValueError):
         pass
     _record.setdefault("pid", os.getpid())
+    _record.setdefault("main_thread", getattr(threading.main_thread(), "native_id", 0))
     _record.setdefault("started_at", time.time())
     _record.setdefault("run_id", "")
     _record.setdefault("session_id", "")
@@ -166,12 +190,32 @@ def start() -> None:
             _session_end_signal = app.commitDataRequest
     except Exception as exc:  # noqa: BLE001
         log_warning(f"Crash record session watch not set: {type(exc).__name__}: {exc}")
+    global _alive_timer
+    try:
+        from qgis.PyQt.QtCore import QTimer
+
+        if _alive_timer is None:
+            _touch_alive()
+            _alive_timer = QTimer()
+            _alive_timer.setInterval(ALIVE_EVERY_MS)
+            _alive_timer.timeout.connect(_touch_alive)
+            _alive_timer.start()
+    except Exception as exc:  # noqa: BLE001
+        log_warning(f"Crash record alive mark not set: {type(exc).__name__}: {exc}")
     if os.name == "nt":
         threading.Thread(target=_note_windows_ends, name="terralab-crash-events", daemon=True).start()
 
 
 def stop() -> None:
 
+    global _alive_timer
+    timer, _alive_timer = _alive_timer, None
+    if timer is not None:
+        try:
+            timer.stop()
+            timer.deleteLater()
+        except RuntimeError:
+            pass
     global _quit_signal
     if _quit_signal is not None:
         try:
@@ -242,7 +286,14 @@ def record_run(run_id: str, session_id: str, thread_id: str = "") -> None:
 
 
     _update(run_id=str(run_id or ""), session_id=str(session_id or ""), thread_id=str(thread_id or ""),
-            session_end_at=None)
+            session_end_at=None, run_end=None)
+
+
+def record_run_end(run_id: str, status: str) -> None:
+
+
+    if _record and run_id and run_id == _record.get("run_id"):
+        _update(run_end={"status": str(status or "")[:20], "at": time.time()})
 
 
 def write(run_id: str, tool_call_id: str, session_id: str, tool: str, args) -> None:
@@ -321,7 +372,8 @@ def _stack_paths(pid: int) -> list:
 
 
 
-    return [os.path.join(_temp_dir(), f"{STACK_PREFIX}{pid}"), _own_stack_path(pid), freeze_stack.path_for(pid)]
+    return [os.path.join(_temp_dir(), f"{STACK_PREFIX}{pid}"), _own_stack_path(pid), freeze_stack.path_for(pid),
+            _alive_path(pid)]
 
 
 def take(plugin_version: str = "") -> dict | None:
@@ -357,7 +409,8 @@ def take(plugin_version: str = "") -> dict | None:
                 drop.extend([path, *_stack_paths(pid)])
                 continue
             dead.append((mtime, pid, path, record))
-        own = _pid_of(name, OWN_PREFIX, OWN_SUFFIX) or freeze_stack.pid_of(name)
+        own = (_pid_of(name, OWN_PREFIX, OWN_SUFFIX) or freeze_stack.pid_of(name)
+               or _pid_of(name, ALIVE_PREFIX, ""))
         if own and not pid_alive(own) and f"{RECORD_PREFIX}{own}{RECORD_SUFFIX}" not in names:
             drop.append(os.path.join(AGENT_HOME, name))
     dead.sort(key=lambda item: item[0], reverse=True)
@@ -398,10 +451,22 @@ def take(plugin_version: str = "") -> dict | None:
         log("QGIS had died after a call returned; reporting it")
         note.update({"tool_call_id": "", "tool": "", "args_digest": "", "after_call": True,
                      "started_at": float(stack_mtime or mtime)})
+    ended = record.get("run_end") if isinstance(record.get("run_end"), dict) else None
+    if ended and isinstance(ended.get("at"), (int, float)):
+        note["run_end_status"] = str(ended.get("status") or "")[:20]
+        note["run_end_at"] = float(ended["at"])
+    try:
+        note["alive_at"] = float(os.path.getmtime(_alive_path(pid)))
+    except OSError:
+        pass
     if not stack:
 
 
         note.update({key: str(record[key])[:64] for key in _END_FIELDS if record.get(key)})
+    window = _crash_window(pid, record)
+    if window:
+        note.setdefault("end_kind", "crash_window")
+        note["end_thread"] = window
     if stack:
         note["python_stack"] = stack
 
@@ -411,6 +476,32 @@ def take(plugin_version: str = "") -> dict | None:
 
 
 _END_FIELDS = ("end_kind", "end_code", "end_module")
+CRASH_INFO_PREFIX = "qgis-crash-info-"
+
+
+def _crash_window(pid: int, record: dict) -> str:
+
+
+
+
+
+
+
+
+    path = os.path.join(_temp_dir(), f"{CRASH_INFO_PREFIX}{pid}")
+    try:
+        if os.path.getmtime(path) < float(record.get("started_at") or 0) - 2.0:
+            return ""
+        with open(path, encoding="utf-8", errors="replace") as handle:
+            lines = handle.read(256).splitlines()
+    except (OSError, ValueError):
+        return ""
+    if as_int(lines[0] if lines else "", 0) != pid:
+        return ""
+    thread, main = as_int(lines[1] if len(lines) > 1 else "", 0), as_int(record.get("main_thread"), 0)
+    if not thread or not main:
+        return "unknown"
+    return "main" if thread == main else "other"
 _EVENT_NS = "{http://schemas.microsoft.com/win/2004/08/events/event}"
 
 

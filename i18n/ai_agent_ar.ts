@@ -207,7 +207,7 @@
             <translation>تم طلب {what} من {source} في العرض الحالي</translation>
         </message>
         <message>
-            <source>Available when the agent finishes</source>
+            <source>Available when the AI agent finishes</source>
             <translation>متاح عند انتهاء وكيل الذكاء الاصطناعي</translation>
         </message>
         <message>
@@ -403,10 +403,6 @@
             <translation>نسخ عنوان البريد الإلكتروني</translation>
         </message>
         <message>
-            <source>Copy report</source>
-            <translation>نسخ التقرير</translation>
-        </message>
-        <message>
             <source>Copy the address below and paste it into a browser.</source>
             <translation>انسخ العنوان أدناه والصقه في متصفح.</translation>
         </message>
@@ -417,10 +413,6 @@
         <message>
             <source>Copy the support address below into your email app.</source>
             <translation>انسخ عنوان الدعم أدناه والصقه في تطبيق البريد الإلكتروني.</translation>
-        </message>
-        <message>
-            <source>Could not copy</source>
-            <translation>تعذر النسخ</translation>
         </message>
         <message>
             <source>Count {POINTS} in each feature of {POLYGONS}</source>
@@ -497,10 +489,6 @@
         <message>
             <source>Edit the last queued message</source>
             <translation>عدّل آخر رسالة في قائمة الانتظار</translation>
-        </message>
-        <message>
-            <source>Email address copied</source>
-            <translation>تم نسخ عنوان البريد الإلكتروني</translation>
         </message>
         <message>
             <source>Enlarge</source>
@@ -799,10 +787,6 @@
             <translation>سطر جديد</translation>
         </message>
         <message>
-            <source>Next</source>
-            <translation>التالي</translation>
-        </message>
-        <message>
             <source>No answer came back. Try again.</source>
             <translation>لم تصل أي إجابة. حاول مرة أخرى.</translation>
         </message>
@@ -869,10 +853,6 @@
         <message>
             <source>Preparing a summary…</source>
             <translation>جارٍ إعداد ملخص…</translation>
-        </message>
-        <message>
-            <source>Previous</source>
-            <translation>السابق</translation>
         </message>
         <message>
             <source>Print layouts changed</source>
@@ -1003,10 +983,6 @@
             <translation>قراءة نمط {layer_name}</translation>
         </message>
         <message>
-            <source>Real tasks the AI agent does from one sentence. Open one to try it.</source>
-            <translation>مهام حقيقية ينجزها وكيل الذكاء الاصطناعي من جملة واحدة. افتح أحدها لتجربته.</translation>
-        </message>
-        <message>
             <source>Remove one item from the layout {layout_name}</source>
             <translation>إزالة عنصر واحد من التصميم {layout_name}</translation>
         </message>
@@ -1027,20 +1003,8 @@
             <translation>إعادة تسمية {old_name} إلى {new_name} في {layer_name}</translation>
         </message>
         <message>
-            <source>Render the map</source>
-            <translation>رسم الخريطة</translation>
-        </message>
-        <message>
             <source>Reorder the layers</source>
             <translation>إعادة ترتيب الطبقات</translation>
-        </message>
-        <message>
-            <source>Report a problem</source>
-            <translation>الإبلاغ عن مشكلة</translation>
-        </message>
-        <message>
-            <source>Report copied</source>
-            <translation>تم نسخ التقرير</translation>
         </message>
         <message>
             <source>Reproject {INPUT} to {TARGET_CRS}</source>
@@ -1163,10 +1127,6 @@
             <translation>إرسال الرسالة</translation>
         </message>
         <message>
-            <source>Send us a report and we will look into it and fix it.</source>
-            <translation>أرسل إلينا تقريرًا وسنفحصه ونصلحه.</translation>
-        </message>
-        <message>
             <source>Set NoData on {layer_name}</source>
             <translation>ضبط NoData على {layer_name}</translation>
         </message>
@@ -1275,10 +1235,6 @@
             <translation>تنسيق {layer_name}</translation>
         </message>
         <message>
-            <source>Tell us what went wrong</source>
-            <translation>أخبرنا بما حدث</translation>
-        </message>
-        <message>
             <source>Terms</source>
             <translation>الشروط</translation>
         </message>
@@ -1299,7 +1255,7 @@
             <translation>علق وكيل الذكاء الاصطناعي عند الخطوة نفسها.</translation>
         </message>
         <message>
-            <source>The agent reads it at its next step</source>
+            <source>The AI agent reads it at its next step</source>
             <translation>يقرأه وكيل الذكاء الاصطناعي في خطوته التالية</translation>
         </message>
         <message>
@@ -1307,7 +1263,7 @@
             <translation>أُعيد تشغيل خدمة وكيل الذكاء الاصطناعي مرتين أثناء خطوة.</translation>
         </message>
         <message>
-            <source>The agent wants to run this action.</source>
+            <source>The AI agent wants to run this action.</source>
             <translation>يريد وكيل الذكاء الاصطناعي تنفيذ هذا الإجراء.</translation>
         </message>
         <message>
@@ -1359,10 +1315,6 @@
             <translation>نُسخ عنوان الدعم إلى الحافظة: الصقه في تطبيق البريد الإلكتروني.</translation>
         </message>
         <message>
-            <source>Then paste it into an email to:</source>
-            <translation>ثم الصقه في رسالة بريد إلكتروني إلى:</translation>
-        </message>
-        <message>
             <source>They help us fix bugs. You can switch them off in Settings whenever you want.</source>
             <translation>تساعدنا على إصلاح الأخطاء. يمكنك إيقافها في الإعدادات متى شئت.</translation>
         </message>
@@ -1373,10 +1325,6 @@
         <message>
             <source>This conversation is too long.</source>
             <translation>هذه المحادثة طويلة جدًا.</translation>
-        </message>
-        <message>
-            <source>This conversation: your messages, each step the AI took and what it found, and technical details about QGIS and the plugin. Never your passwords, your sign-in or the contents of your files.</source>
-            <translation>هذه المحادثة: رسائلك، وكل خطوة نفذها الذكاء الاصطناعي وما وجده، وتفاصيل تقنية عن QGIS و plugin. لا كلمات المرور ولا بيانات تسجيل دخولك ولا محتوى ملفاتك أبدًا.</translation>
         </message>
         <message>
             <source>This layer is no longer in the project.</source>
@@ -1415,7 +1363,7 @@
             <translation>اكتب هذا العنوان للتأكيد.</translation>
         </message>
         <message>
-            <source>Undo the agent's last request</source>
+            <source>Undo the AI agent's last request</source>
             <translation>التراجع عن آخر طلب لوكيل الذكاء الاصطناعي</translation>
         </message>
         <message>
@@ -1739,10 +1687,6 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <translation>سجّل الدخول لإرسال ملاحظاتك من هنا، أو راسلنا على {email}.</translation>
         </message>
         <message>
-            <source>We'll receive your message, this conversation and technical details (plugin and QGIS version, system, recent logs). Never your passwords or the contents of your files.</source>
-            <translation>سنتلقى رسالتك وهذه المحادثة وتفاصيل تقنية (إصدار الإضافة وQGIS، والنظام، والسجلات الأخيرة). لن نتلقى أبداً كلمات المرور أو محتوى ملفاتك.</translation>
-        </message>
-        <message>
             <source>You sent several reports in a short time. Try again in a few minutes.</source>
             <translation>أرسلت عدة بلاغات في وقت قصير. حاول مرة أخرى بعد بضع دقائق.</translation>
         </message>
@@ -1765,18 +1709,6 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <source>What you type</source>
             <translation>ما تكتبه</translation>
-        </message>
-        <message>
-            <source>Expired on {day}.</source>
-            <translation>انتهت الصلاحية في {day}.</translation>
-        </message>
-        <message>
-            <source>Expires on {day}.</source>
-            <translation>تنتهي الصلاحية في {day}.</translation>
-        </message>
-        <message>
-            <source>Private link: its signature stays on this computer. TerraLab and the AI agent see only the site and the file name.</source>
-            <translation>رابط خاص: يبقى توقيعه على هذا الكمبيوتر. يرى TerraLab ووكيل الذكاء الاصطناعي الموقع واسم الملف فقط.</translation>
         </message>
         <message>
             <source>expired</source>
@@ -2000,15 +1932,15 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <translation>سجّل الدخول لعرض حسابك.</translation>
         </message>
         <message>
-            <source>The agent finished.</source>
+            <source>The AI agent finished.</source>
             <translation>أنهى الوكيل عمله.</translation>
         </message>
         <message>
-            <source>The agent is waiting for your answer.</source>
+            <source>The AI agent is waiting for your answer.</source>
             <translation>الوكيل ينتظر إجابتك.</translation>
         </message>
         <message>
-            <source>The agent stopped before finishing.</source>
+            <source>The AI agent stopped before finishing.</source>
             <translation>توقف الوكيل قبل أن ينهي عمله.</translation>
         </message>
         <message>
@@ -2183,6 +2115,10 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <source>Your subscription is not active. Open your TerraLab dashboard, then try again.</source>
             <translation>اشتراكك غير نشط. افتح لوحة TerraLab ثم حاول مرة أخرى.</translation>
         </message>
+        <message>
+            <source>QGIS could not save your sign-in on this computer. Click Sign in to try again.</source>
+            <translation>تعذّر على QGIS حفظ تسجيل دخولك على هذا الكمبيوتر. انقر على «تسجيل الدخول» للمحاولة مرة أخرى.</translation>
+        </message>
     </context>
     <context>
         <name>ActivationCard</name>
@@ -2219,24 +2155,12 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <translation>تسجيل الدخول</translation>
         </message>
         <message>
-            <source>Sign in / Sign up to start</source>
-            <translation>تسجيل الدخول / إنشاء حساب للبدء</translation>
-        </message>
-        <message>
             <source>Sign in again</source>
             <translation>تسجيل الدخول من جديد</translation>
         </message>
         <message>
             <source>Sign in via your browser to start using AI Agent</source>
             <translation>سجّل الدخول عبر متصفحك لبدء استخدام AI Agent</translation>
-        </message>
-        <message>
-            <source>Signing up is free and takes 15 seconds, in your browser.</source>
-            <translation>إنشاء الحساب مجاني ويستغرق 15 ثانية، في متصفحك.</translation>
-        </message>
-        <message>
-            <source>Then ask the AI for anything: load data, style layers, run analyses, edit features.</source>
-            <translation>ثم اطلب من الذكاء الاصطناعي أي شيء: تحميل البيانات، تنسيق الطبقات، تنفيذ التحليلات، تعديل الميزات.</translation>
         </message>
         <message>
             <source>Type the code shown in your browser:</source>
@@ -2360,14 +2284,6 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <source>Querying the source</source>
             <translation>جارٍ الاستعلام من المصدر</translation>
-        </message>
-        <message>
-            <source>{m} min {s} s</source>
-            <translation>{m} د {s} ث</translation>
-        </message>
-        <message>
-            <source>{n} s</source>
-            <translation>{n} ث</translation>
         </message>
         <message>
             <source>{words} · {done} of {total}</source>
@@ -2664,10 +2580,6 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <translation>لا يمكن إعادة إرسال هذه الرسالة بعد الآن.</translation>
         </message>
         <message>
-            <source>This plugin build cannot show that card.</source>
-            <translation>لا يمكن لإصدار الـ plugin هذا عرض تلك البطاقة.</translation>
-        </message>
-        <message>
             <source>This point belongs to an unsaved project that was closed, so it cannot be restored here.</source>
             <translation>هذه النقطة تخص مشروعًا غير محفوظ أُغلق، لذلك لا يمكن استعادتها هنا.</translation>
         </message>
@@ -2752,10 +2664,6 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <translation>تعذّر حفظ نسختك من {file} في سجل الخريطة، لذلك لم تتم استعادة أي شيء.</translation>
         </message>
         <message>
-            <source>Not handled, the AI agent is offline: {0}</source>
-            <translation>لم تتم المعالجة، AI Agent غير متصل: {0}</translation>
-        </message>
-        <message>
             <source>Nothing is kept about this project yet.</source>
             <translation>لم يُحفظ شيء عن هذا المشروع بعد.</translation>
         </message>
@@ -2768,14 +2676,6 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <translation>تم مسح ذاكرة المشروع.</translation>
         </message>
         <message>
-            <source>Watched folder: not handled, no answer from the server: {0}</source>
-            <translation>المجلد المراقَب: لم تتم المعالجة، لا ردّ من الخادم: {0}</translation>
-        </message>
-        <message>
-            <source>Watched folder: not handled, the AI agent is offline: {0}</source>
-            <translation>المجلد المراقَب: لم تتم المعالجة، AI Agent غير متصل: {0}</translation>
-        </message>
-        <message>
             <source>Clear what the AI agent remembers about this project?</source>
             <translation>هل تريد مسح ما يتذكره وكيل الذكاء الاصطناعي عن هذا المشروع؟</translation>
         </message>
@@ -2786,6 +2686,30 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <source>The AI agent is not connected. Try again in a moment.</source>
             <translation>وكيل الذكاء الاصطناعي غير متصل. حاول مرة أخرى بعد قليل.</translation>
+        </message>
+        <message>
+            <source>Nothing was changed: the file of {layer} is read-only. Make it writable, then go back again.</source>
+            <translation>لم يتغير شيء: ملف {layer} للقراءة فقط. اجعله قابلاً للكتابة، ثم ارجع مرة أخرى.</translation>
+        </message>
+        <message>
+            <source>Nothing was changed: {layer} is in use by another program. Close it there, then go back again.</source>
+            <translation>لم يتغير شيء: {layer} قيد الاستخدام في برنامج آخر. أغلقه هناك، ثم ارجع مرة أخرى.</translation>
+        </message>
+        <message>
+            <source>Nothing was changed: {layer} is open in {program}. Close it there, then go back again.</source>
+            <translation>لم يتغير شيء: {layer} مفتوح في {program}. أغلقه هناك، ثم ارجع مرة أخرى.</translation>
+        </message>
+        <message>
+            <source>QGIS closed while going back to an earlier step: some files are at that step and others are not. Open Map history and go back to that step again to finish. It may list those files as your own changes: they are the unfinished step.</source>
+            <translation>أُغلق QGIS أثناء الرجوع إلى خطوة سابقة: بعض الملفات عند تلك الخطوة وبعضها ليس كذلك. افتح سجل الخريطة وارجع إلى تلك الخطوة مرة أخرى للإنهاء. قد يعرض تلك الملفات كتعديلاتك الخاصة: إنها الخطوة غير المكتملة.</translation>
+        </message>
+        <message>
+            <source>{n} more files are in the same case.</source>
+            <translation>هناك {n} ملفات أخرى في الحالة نفسها.</translation>
+        </message>
+        <message>
+            <source>Stopped: AI Agent was updated or turned off during this run.</source>
+            <translation>تم الإيقاف: جرى تحديث AI Agent أو إيقاف تشغيله أثناء هذا التشغيل.</translation>
         </message>
     </context>
     <context>
@@ -2934,7 +2858,7 @@ The erasure is final once the grace period ends. Until then you can cancel it by
     <context>
         <name>ChatPanel</name>
         <message>
-            <source>Add a few words: what should the agent do with it?</source>
+            <source>Add a few words: what should the AI agent do with it?</source>
             <translation>أضف بضع كلمات: ماذا يفعل الوكيل به؟</translation>
         </message>
         <message>
@@ -3046,7 +2970,7 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <translation>متوقف</translation>
         </message>
         <message>
-            <source>The agent now reads the earlier exchanges as a shorter record that keeps your requests and what it made.</source>
+            <source>The AI agent now reads the earlier exchanges as a shorter record that keeps your requests and what it made.</source>
             <translation>يقرأ الوكيل الآن التبادلات السابقة على هيئة سجل أقصر يحتفظ بطلباتك وبما أنشأه.</translation>
         </message>
         <message>
@@ -3118,11 +3042,11 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <translation>{layer}: {reason}</translation>
         </message>
         <message>
-            <source>{lead} · sent when the agent finishes</source>
+            <source>{lead} · sent when the AI agent finishes</source>
             <translation>{lead} · يُرسل عند انتهاء وكيل الذكاء الاصطناعي</translation>
         </message>
         <message>
-            <source>{lead} · the agent reads it at its next step</source>
+            <source>{lead} · the AI agent reads it at its next step</source>
             <translation>{lead} · يقرؤه وكيل الذكاء الاصطناعي في خطوته التالية</translation>
         </message>
         <message>
@@ -3172,6 +3096,10 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <source>Task ended</source>
             <translation>انتهت المهمة</translation>
+        </message>
+        <message>
+            <source>Removed from the queue</source>
+            <translation>تمت الإزالة من قائمة الانتظار</translation>
         </message>
     </context>
     <context>
@@ -3369,7 +3297,7 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <translation>إضافة إلى الانتظار</translation>
         </message>
         <message>
-            <source>Queue it: the agent reads it at its next step (Enter)</source>
+            <source>Queue it: the AI agent reads it at its next step (Enter)</source>
             <translation>أضفها إلى الانتظار: يقرؤها وكيل الذكاء الاصطناعي في خطوته التالية (Enter)</translation>
         </message>
         <message>
@@ -3535,10 +3463,6 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <translation>إعادة المحاولة</translation>
         </message>
         <message>
-            <source>See all %n examples</source>
-            <translation>عرض كل الأمثلة: %n</translation>
-        </message>
-        <message>
             <source>The datasets could not be loaded.</source>
             <translation>تعذر تحميل مجموعات البيانات.</translation>
         </message>
@@ -3614,10 +3538,6 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <translation>لا يوجد مصدر بيانات يطابق هذه الكلمات. قد يجد وكيل الذكاء الاصطناعي البيانات مع ذلك.</translation>
         </message>
         <message>
-            <source>Search data sources</source>
-            <translation>بحث في مصادر البيانات</translation>
-        </message>
-        <message>
             <source>See all</source>
             <translation>عرض الكل</translation>
         </message>
@@ -3626,28 +3546,12 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <translation>المصادر</translation>
         </message>
         <message>
-            <source>The library of data the AI agent can use. It finds and loads what it needs by itself.</source>
-            <translation>مكتبة البيانات التي يستخدمها وكيل الذكاء الاصطناعي. يجد ما يحتاجه ويحمله بنفسه.</translation>
-        </message>
-        <message>
             <source>The list arrives when the panel connects.</source>
             <translation>تصل القائمة عند اتصال اللوحة.</translation>
         </message>
         <message>
             <source>Try in chat</source>
             <translation>جرّبه في المحادثة</translation>
-        </message>
-        <message>
-            <source>countries</source>
-            <translation>البلدان</translation>
-        </message>
-        <message>
-            <source>datasets</source>
-            <translation>مجموعات البيانات</translation>
-        </message>
-        <message>
-            <source>sources</source>
-            <translation>المصادر</translation>
         </message>
         <message>
             <source>Search sources, datasets or a country</source>
@@ -3751,7 +3655,7 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <translation>احصل على Pro</translation>
         </message>
         <message>
-            <source>How hard the agent works on the next message</source>
+            <source>How hard the AI agent works on the next message</source>
             <translation>مقدار الجهد الذي يبذله وكيل الذكاء الاصطناعي في الرسالة التالية</translation>
         </message>
         <message>
@@ -4138,14 +4042,6 @@ Click to show it in the Layers panel.</source>
             <translation>تصل الدروس التعليمية عند اتصال اللوحة.</translation>
         </message>
         <message>
-            <source>Tutorials</source>
-            <translation>الدروس التعليمية</translation>
-        </message>
-        <message>
-            <source>Videos and guides to get started. They open in your browser.</source>
-            <translation>فيديوهات وأدلة للبدء. تُفتح في المتصفح.</translation>
-        </message>
-        <message>
             <source>Learn</source>
             <translation>تعلّم</translation>
         </message>
@@ -4386,28 +4282,16 @@ Click to show it in the Layers panel.</source>
             <translation>عرض المزيد: {n}</translation>
         </message>
         <message>
-            <source>The page links to sites the agent does not know: {hosts}.</source>
+            <source>The page links to sites the AI agent does not know: {hosts}.</source>
             <translation>تحتوي الصفحة على روابط إلى مواقع لا يعرفها وكيل الذكاء الاصطناعي: {hosts}.</translation>
         </message>
         <message>
-            <source>The page links to {hosts}, a site the agent does not know.</source>
+            <source>The page links to {hosts}, a site the AI agent does not know.</source>
             <translation>تحتوي الصفحة على رابط إلى {hosts}، وهو موقع لا يعرفه وكيل الذكاء الاصطناعي.</translation>
-        </message>
-        <message>
-            <source>This data comes from a site outside the sources the agent knows.</source>
-            <translation>تأتي هذه البيانات من موقع خارج المصادر التي يعرفها وكيل الذكاء الاصطناعي.</translation>
-        </message>
-        <message>
-            <source>This data comes from sites outside the sources the agent knows.</source>
-            <translation>تأتي هذه البيانات من مواقع خارج المصادر التي يعرفها وكيل الذكاء الاصطناعي.</translation>
         </message>
         <message>
             <source>View the code ({n} lines)</source>
             <translation>عرض الشيفرة (الأسطر: {n})</translation>
-        </message>
-        <message>
-            <source>Your answer also counts for the next calls of this kind in this answer.</source>
-            <translation>تُحتسب إجابتك أيضًا للاستدعاءات القادمة من هذا النوع في هذه الإجابة.</translation>
         </message>
         <message>
             <source>expression</source>
@@ -4574,10 +4458,6 @@ Click to show it in the Layers panel.</source>
             <source>Get Pro</source>
             <translation>احصل على Pro</translation>
         </message>
-        <message>
-            <source>What Pro adds</source>
-            <translation>ما يضيفه Pro</translation>
-        </message>
     </context>
     <context>
         <name>QuestionCard</name>
@@ -4612,6 +4492,10 @@ Click to show it in the Layers panel.</source>
         <message>
             <source>skipped</source>
             <translation>تم التخطي</translation>
+        </message>
+        <message>
+            <source>Question {n} of {count}</source>
+            <translation>السؤال {n} من {count}</translation>
         </message>
     </context>
     <context>
@@ -4809,6 +4693,18 @@ Click to show it in the Layers panel.</source>
             <source>Your payment of {amount} failed</source>
             <translation>فشلت عملية دفع {amount}</translation>
         </message>
+        <message>
+            <source>Free for 7 days, nothing to pay today, then monthly at your student price. Cancel in one click.</source>
+            <translation>مجانًا لمدة 7 أيام، لا شيء للدفع اليوم، ثم اشتراك شهري بسعر الطالب. ألغِ بنقرة واحدة.</translation>
+        </message>
+        <message>
+            <source>Free for 7 days, nothing to pay today, then {price}/month excl. VAT. Cancel in one click.</source>
+            <translation>مجانًا لمدة 7 أيام، لا شيء للدفع اليوم، ثم {price} شهريًا دون ضريبة القيمة المضافة. ألغِ بنقرة واحدة.</translation>
+        </message>
+        <message>
+            <source>Medium effort now, High after the trial</source>
+            <translation>مستوى الجهد Medium الآن، وHigh بعد التجربة</translation>
+        </message>
     </context>
     <context>
         <name>QuotaPauseCard</name>
@@ -4958,6 +4854,10 @@ Click to show it in the Layers panel.</source>
             <source>{n} days</source>
             <translation>الأيام: {n}</translation>
         </message>
+        <message>
+            <source>1 day</source>
+            <translation>يوم واحد</translation>
+        </message>
     </context>
     <context>
         <name>RunSummaryCard</name>
@@ -4997,10 +4897,6 @@ Click to show it in the Layers panel.</source>
             <translation>فشل</translation>
         </message>
         <message>
-            <source>Failed after {time}</source>
-            <translation>فشل بعد {time}</translation>
-        </message>
-        <message>
             <source>QGIS closed before this finished</source>
             <translation>أُغلق QGIS قبل اكتمال هذا</translation>
         </message>
@@ -5009,24 +4905,12 @@ Click to show it in the Layers panel.</source>
             <translation>متوقف</translation>
         </message>
         <message>
-            <source>Stopped after {time}</source>
-            <translation>أُوقف بعد {time}</translation>
-        </message>
-        <message>
             <source>Thinking</source>
             <translation>جارٍ التفكير</translation>
         </message>
         <message>
-            <source>Thought for {time}</source>
-            <translation>استغرق التفكير {time}</translation>
-        </message>
-        <message>
             <source>Waiting for you</source>
             <translation>بانتظارك</translation>
-        </message>
-        <message>
-            <source>Worked for {time}</source>
-            <translation>استغرق العمل {time}</translation>
         </message>
         <message>
             <source>blocked</source>
@@ -5071,10 +4955,6 @@ Click to show it in the Layers panel.</source>
             <translation>+ إضافة ملاحظة</translation>
         </message>
         <message>
-            <source>A short summary of the changes once a task is done.</source>
-            <translation>ملخص قصير للتغييرات عند اكتمال المهمة.</translation>
-        </message>
-        <message>
             <source>AI Agent</source>
             <translation>AI Agent</translation>
         </message>
@@ -5103,10 +4983,6 @@ Click to show it in the Layers panel.</source>
             <translation>أضفتها أنت</translation>
         </message>
         <message>
-            <source>Advanced</source>
-            <translation>متقدم</translation>
-        </message>
-        <message>
             <source>Another project</source>
             <translation>مشروع آخر</translation>
         </message>
@@ -5117,10 +4993,6 @@ Click to show it in the Layers panel.</source>
         <message>
             <source>Auto</source>
             <translation>تلقائي</translation>
-        </message>
-        <message>
-            <source>Back to defaults, memory notes included. You stay signed in.</source>
-            <translation>العودة إلى الإعدادات الافتراضية، بما فيها ملاحظات الذاكرة. يبقى تسجيل دخولك قائمًا.</translation>
         </message>
         <message>
             <source>Balanced</source>
@@ -5139,14 +5011,6 @@ Click to show it in the Layers panel.</source>
             <translation>تحقق من اتصالك بالإنترنت ثم أعد المحاولة.</translation>
         </message>
         <message>
-            <source>Commercial use and more tasks with Pro</source>
-            <translation>استخدام تجاري ومزيد من المهام مع Pro</translation>
-        </message>
-        <message>
-            <source>Computer-style names</source>
-            <translation>أسماء بنمط الحاسوب</translation>
-        </message>
-        <message>
             <source>Concise</source>
             <translation>موجز</translation>
         </message>
@@ -5155,20 +5019,12 @@ Click to show it in the Layers panel.</source>
             <translation>اتصل بنا</translation>
         </message>
         <message>
-            <source>Context the AI reads at the start of every conversation, and the notes it keeps between them.</source>
-            <translation>سياق يقرأه الذكاء الاصطناعي في بداية كل محادثة، والملاحظات التي يحتفظ بها بين المحادثات.</translation>
-        </message>
-        <message>
             <source>Could not load your account</source>
             <translation>تعذر تحميل حسابك</translation>
         </message>
         <message>
             <source>Could not reach TerraLab</source>
             <translation>تعذر الوصول إلى TerraLab</translation>
-        </message>
-        <message>
-            <source>Danger zone</source>
-            <translation>منطقة الخطر</translation>
         </message>
         <message>
             <source>Data sources</source>
@@ -5211,10 +5067,6 @@ Click to show it in the Layers panel.</source>
             <translation>خبير</translation>
         </message>
         <message>
-            <source>Explain what it did after each run</source>
-            <translation>شرح ما فعله بعد كل تشغيل</translation>
-        </message>
-        <message>
             <source>Free plan</source>
             <translation>خطة Free</translation>
         </message>
@@ -5235,10 +5087,6 @@ Click to show it in the Layers panel.</source>
             <translation>السماح بمراجعة المحادثة</translation>
         </message>
         <message>
-            <source>How it should work. Example: always answer in French, name new layers in snake_case, never delete a layer without asking.</source>
-            <translation>كيف ينبغي أن يعمل. مثال: أجب دائمًا بالفرنسية، وسمِّ الطبقات الجديدة بصيغة snake_case، ولا تحذف طبقة دون سؤال.</translation>
-        </message>
-        <message>
             <source>How much the AI explains.</source>
             <translation>مقدار شرح الذكاء الاصطناعي.</translation>
         </message>
@@ -5247,20 +5095,8 @@ Click to show it in the Layers panel.</source>
             <translation>عدد مرات سؤال الذكاء الاصطناعي قبل التنفيذ.</translation>
         </message>
         <message>
-            <source>How the AI names the layers it creates.</source>
-            <translation>كيف يسمي الذكاء الاصطناعي الطبقات التي ينشئها.</translation>
-        </message>
-        <message>
-            <source>How you work</source>
-            <translation>طريقة عملك</translation>
-        </message>
-        <message>
             <source>Imperial</source>
             <translation>إمبراطوري</translation>
-        </message>
-        <message>
-            <source>Instructions for the AI</source>
-            <translation>تعليمات للذكاء الاصطناعي</translation>
         </message>
         <message>
             <source>Keyboard shortcuts</source>
@@ -5273,10 +5109,6 @@ Click to show it in the Layers panel.</source>
         <message>
             <source>Language, style, permissions, your profile and your memory notes go back to their defaults. You stay signed in.</source>
             <translation>تعود اللغة والأسلوب والأذونات وملفك الشخصي وملاحظات الذاكرة إلى قيمها الافتراضية. يبقى تسجيل دخولك قائمًا.</translation>
-        </message>
-        <message>
-            <source>Layer names</source>
-            <translation>أسماء الطبقات</translation>
         </message>
         <message>
             <source>We may read a chat only to fix a bug, never to train AI. Chats are kept 30 days.</source>
@@ -5303,24 +5135,12 @@ Click to show it in the Layers panel.</source>
             <translation>الذاكرة</translation>
         </message>
         <message>
-            <source>Memory between conversations</source>
-            <translation>الذاكرة بين المحادثات</translation>
-        </message>
-        <message>
-            <source>Metres and hectares, or feet, miles and acres.</source>
-            <translation>الأمتار والهكتارات، أو الأقدام والأميال والأفدنة.</translation>
-        </message>
-        <message>
             <source>Metric</source>
             <translation>متري</translation>
         </message>
         <message>
             <source>More</source>
             <translation>المزيد</translation>
-        </message>
-        <message>
-            <source>More plugins</source>
-            <translation>plugins أخرى</translation>
         </message>
         <message>
             <source>Move the map to what it changes</source>
@@ -5347,10 +5167,6 @@ Click to show it in the Layers panel.</source>
             <translation>فتح</translation>
         </message>
         <message>
-            <source>Open terra-lab.ai</source>
-            <translation>افتح terra-lab.ai</translation>
-        </message>
-        <message>
             <source>Open the AI Agent page</source>
             <translation>افتح صفحة AI Agent</translation>
         </message>
@@ -5363,24 +5179,12 @@ Click to show it in the Layers panel.</source>
             <translation>التخصيص</translation>
         </message>
         <message>
-            <source>Plain words</source>
-            <translation>كلمات بسيطة</translation>
-        </message>
-        <message>
-            <source>Plus memory, your instructions and higher effort.</source>
-            <translation>إضافة إلى الذاكرة وتعليماتك ومستوى جهد أعلى.</translation>
-        </message>
-        <message>
             <source>Privacy</source>
             <translation>الخصوصية</translation>
         </message>
         <message>
             <source>Pro plan</source>
             <translation>خطة Pro</translation>
-        </message>
-        <message>
-            <source>Pro reads who you are and your standing rules before every run: your job, your city, your usual CRS, the language it answers in, how it names layers and what it must never do without asking.</source>
-            <translation>يقرأ Pro من أنت وقواعدك الدائمة قبل كل تشغيل: عملك ومدينتك ونظام CRS المعتاد لديك واللغة التي يجيب بها وكيفية تسمية الطبقات وما يجب ألا يفعله دون سؤال.</translation>
         </message>
         <message>
             <source>Pro reads your notes at the start of every conversation.</source>
@@ -5397,10 +5201,6 @@ Click to show it in the Layers panel.</source>
         <message>
             <source>Regular</source>
             <translation>عادي</translation>
-        </message>
-        <message>
-            <source>Report a problem</source>
-            <translation>الإبلاغ عن مشكلة</translation>
         </message>
         <message>
             <source>Reset</source>
@@ -5431,10 +5231,6 @@ Click to show it in the Layers panel.</source>
             <translation>إعادة المحاولة</translation>
         </message>
         <message>
-            <source>SAVED NOTES · {n}</source>
-            <translation>الملاحظات المحفوظة · {n}</translation>
-        </message>
-        <message>
             <source>Same as QGIS</source>
             <translation>مثل QGIS</translation>
         </message>
@@ -5445,14 +5241,6 @@ Click to show it in the Layers panel.</source>
         <message>
             <source>Share usage statistics</source>
             <translation>مشاركة إحصاءات الاستخدام</translation>
-        </message>
-        <message>
-            <source>Short answers, a balance, or the full reasoning.</source>
-            <translation>إجابات قصيرة، أو توازن، أو الاستدلال الكامل.</translation>
-        </message>
-        <message>
-            <source>Show the steps it takes</source>
-            <translation>إظهار الخطوات التي يتخذها</translation>
         </message>
         <message>
             <source>Sign in</source>
@@ -5485,14 +5273,6 @@ Click to show it in the Layers panel.</source>
         <message>
             <source>The AI saves notes on its own</source>
             <translation>يحفظ الذكاء الاصطناعي الملاحظات من تلقاء نفسه</translation>
-        </message>
-        <message>
-            <source>The language the AI writes its answers in.</source>
-            <translation>اللغة التي يكتب بها الذكاء الاصطناعي إجاباته.</translation>
-        </message>
-        <message>
-            <source>The list of steps above each answer.</source>
-            <translation>قائمة الخطوات فوق كل إجابة.</translation>
         </message>
         <message>
             <source>The shortcuts could not be listed.</source>
@@ -5531,10 +5311,6 @@ Click to show it in the Layers panel.</source>
             <translation>أوقفه في أي وقت دون أي أثر آخر.</translation>
         </message>
         <message>
-            <source>Tutorials</source>
-            <translation>الدروس التعليمية</translation>
-        </message>
-        <message>
             <source>Units</source>
             <translation>الوحدات</translation>
         </message>
@@ -5551,36 +5327,8 @@ Click to show it in the Layers panel.</source>
             <translation>مخطط حضري</translation>
         </message>
         <message>
-            <source>Used in its answers. Empty: it uses no name.</source>
-            <translation>يُستخدم في إجاباته. إن تُرك فارغًا فلن يستخدم أي اسم.</translation>
-        </message>
-        <message>
-            <source>What Pro unlocks, on the TerraLab website.</source>
-            <translation>ما يتيحه Pro، على موقع TerraLab.</translation>
-        </message>
-        <message>
-            <source>What the AI should call you</source>
-            <translation>بماذا يناديك الذكاء الاصطناعي</translation>
-        </message>
-        <message>
-            <source>What you do</source>
-            <translation>عملك</translation>
-        </message>
-        <message>
             <source>When needed</source>
             <translation>عند الحاجة</translation>
-        </message>
-        <message>
-            <source>Who you are</source>
-            <translation>من أنت</translation>
-        </message>
-        <message>
-            <source>Who you are and what you work on. Example: urban planner at the city of Lyon, I mostly work with cadastre and PLU layers in EPSG:2154.</source>
-            <translation>من أنت وما تعمل عليه. مثال: مخطط حضري في مدينة ليون، أعمل غالبًا على طبقات السجل العقاري و PLU بنظام EPSG:2154.</translation>
-        </message>
-        <message>
-            <source>You can review or remove them here.</source>
-            <translation>يمكنك مراجعتها أو إزالتها هنا.</translation>
         </message>
         <message>
             <source>You can sign back in anytime from QGIS.</source>
@@ -5595,10 +5343,6 @@ Click to show it in the Layers panel.</source>
             <translation>اسمك الأول</translation>
         </message>
         <message>
-            <source>Your job in a few words. It changes which data and which method it reaches for first.</source>
-            <translation>مهنتك في بضع كلمات. تحدد البيانات والطريقة اللتين يبدأ بهما وكيل الذكاء الاصطناعي.</translation>
-        </message>
-        <message>
             <source>Your last payment may have failed</source>
             <translation>قد يكون دفعك الأخير قد فشل</translation>
         </message>
@@ -5609,10 +5353,6 @@ Click to show it in the Layers panel.</source>
         <message>
             <source>Your plan, tasks and settings appear here once you sign in.</source>
             <translation>تظهر خطتك ومهامك وإعداداتك هنا بعد تسجيل الدخول.</translation>
-        </message>
-        <message>
-            <source>Your profile and instructions, read before every run</source>
-            <translation>ملفك الشخصي وتعليماتك، تُقرأ قبل كل تشغيل</translation>
         </message>
         <message>
             <source>Your sign-in, your plan and your privacy.</source>
@@ -5660,20 +5400,12 @@ Click to show it in the Layers panel.</source>
             <translation>أجب دائمًا بالفرنسية، ولا تحذف أي طبقة دون سؤال</translation>
         </message>
         <message>
-            <source>Choose folder...</source>
-            <translation>اختيار مجلد...</translation>
-        </message>
-        <message>
             <source>Clear project memory</source>
             <translation>مسح ذاكرة المشروع</translation>
         </message>
         <message>
             <source>Connected accounts</source>
             <translation>الحسابات المتصلة</translation>
-        </message>
-        <message>
-            <source>Folder to watch</source>
-            <translation>المجلد المراد مراقبته</translation>
         </message>
         <message>
             <source>Instructions</source>
@@ -5692,16 +5424,8 @@ Click to show it in the Layers panel.</source>
             <translation>الاسم</translation>
         </message>
         <message>
-            <source>No folder chosen</source>
-            <translation>لم يتم اختيار مجلد</translation>
-        </message>
-        <message>
             <source>Pro reads both before every run.</source>
             <translation>يقرأ Pro كليهما قبل كل تشغيل.</translation>
-        </message>
-        <message>
-            <source>Proactive triggers</source>
-            <translation>المشغّلات الاستباقية</translation>
         </message>
         <message>
             <source>Project memory</source>
@@ -5720,16 +5444,8 @@ Click to show it in the Layers panel.</source>
             <translation>عرض ذاكرة المشروع</translation>
         </message>
         <message>
-            <source>The AI agent looks at new data files in this folder and at the schedules you ask for, only while QGIS is open. Nothing runs when QGIS is closed.</source>
-            <translation>يتفقد AI Agent ملفات البيانات الجديدة في هذا المجلد والجداول التي تطلبها، فقط أثناء فتح QGIS. لا يعمل شيء عند إغلاق QGIS.</translation>
-        </message>
-        <message>
             <source>Urban planner at the city of Lyon, cadastre and PLU layers in EPSG:2154</source>
             <translation>مخطط حضري في مدينة ليون، طبقات السجل العقاري وPLU بنظام EPSG:2154</translation>
-        </message>
-        <message>
-            <source>Watch a folder and run my schedules while QGIS is open</source>
-            <translation>راقب مجلدًا ونفّذ جداولي أثناء فتح QGIS</translation>
         </message>
         <message>
             <source>What Pro adds: {points}</source>
@@ -5739,36 +5455,24 @@ Click to show it in the Layers panel.</source>
             <source>commercial use, more tasks, memory, your instructions and higher effort</source>
             <translation>الاستخدام التجاري، ومهام أكثر، والذاكرة، وتعليماتك، وجهد أعلى</translation>
         </message>
+        <message>
+            <source>Delete this note? The AI will not add it back.</source>
+            <translation>هل تريد حذف هذه الملاحظة؟ لن يعيد الذكاء الاصطناعي إضافتها.</translation>
+        </message>
     </context>
     <context>
         <name>SiblingCard</name>
         <message>
-            <source>Install in QGIS</source>
-            <translation>ثبّت في QGIS</translation>
-        </message>
-        <message>
             <source>Installed</source>
             <translation>مثبّت</translation>
-        </message>
-        <message>
-            <source>Open in QGIS</source>
-            <translation>افتح في QGIS</translation>
         </message>
         <message>
             <source>Opens the QGIS plugin manager on this plugin.</source>
             <translation>يفتح مدير plugins في QGIS عند هذا الـ plugin.</translation>
         </message>
         <message>
-            <source>Read the guide</source>
-            <translation>اقرأ الدليل</translation>
-        </message>
-        <message>
             <source>Show the plugin's panel.</source>
             <translation>إظهار لوحة الـ plugin.</translation>
-        </message>
-        <message>
-            <source>The written tutorial, on the TerraLab blog.</source>
-            <translation>الشرح المكتوب، على مدونة TerraLab.</translation>
         </message>
     </context>
     <context>
@@ -5776,14 +5480,6 @@ Click to show it in the Layers panel.</source>
         <message>
             <source>Edit your imagery with a single sentence.</source>
             <translation>عدّل صورك بجملة واحدة.</translation>
-        </message>
-        <message>
-            <source>More plugins</source>
-            <translation>plugins أخرى</translation>
-        </message>
-        <message>
-            <source>The two other TerraLab plugins for QGIS. They install from here.</source>
-            <translation>الـ plugins الاثنان الآخران من TerraLab لـ QGIS. يمكن تثبيتهما من هنا.</translation>
         </message>
         <message>
             <source>Turn buildings, trees or water into polygons.</source>
@@ -5925,7 +5621,7 @@ Click to show it in the Layers panel.</source>
     <context>
         <name>Toast</name>
         <message>
-            <source>Available when the agent finishes</source>
+            <source>Available when the AI agent finishes</source>
             <translation>متاح عند انتهاء وكيل الذكاء الاصطناعي</translation>
         </message>
     </context>
@@ -6138,6 +5834,10 @@ Click to show it in the Layers panel.</source>
             <source>Signed in</source>
             <translation>تم تسجيل الدخول</translation>
         </message>
+        <message>
+            <source>could not be put back, so what it changed is still in the project</source>
+            <translation>تعذّر إعادته، لذا لا تزال التغييرات التي أجراها موجودة في المشروع</translation>
+        </message>
     </context>
     <context>
         <name>UpdateBanner</name>
@@ -6244,10 +5944,6 @@ Click to show it in the Layers panel.</source>
             <translation>CRS</translation>
         </message>
         <message>
-            <source>Click to open it in QGIS.</source>
-            <translation>انقر لفتحها في QGIS.</translation>
-        </message>
-        <message>
             <source>Click to select it in the Layers panel.</source>
             <translation>انقر لتحديدها في لوحة الطبقات.</translation>
         </message>
@@ -6264,16 +5960,8 @@ Click to show it in the Layers panel.</source>
             <translation>مشتقة من: {value}</translation>
         </message>
         <message>
-            <source>Its CRS changed. Click to open it in QGIS.</source>
-            <translation>تغيّر CRS الخاص بها. انقر لفتحها في QGIS.</translation>
-        </message>
-        <message>
             <source>Its CRS changed. Click to select it in the Layers panel.</source>
             <translation>تغيّر CRS الخاص بها. انقر لتحديدها في لوحة الطبقات.</translation>
-        </message>
-        <message>
-            <source>Its file was written on disk. Click to open it in QGIS.</source>
-            <translation>كُتب ملفها على القرص. انقر لفتحها في QGIS.</translation>
         </message>
         <message>
             <source>Its file was written on disk. Click to select it in the Layers panel.</source>
@@ -6294,10 +5982,6 @@ Click to show it in the Layers panel.</source>
         <message>
             <source>New layer, 1 feature. Click to select it in the Layers panel.</source>
             <translation>طبقة جديدة، ميزة واحدة. انقر لتحديدها في لوحة الطبقات.</translation>
-        </message>
-        <message>
-            <source>New layer. Click to open it in QGIS.</source>
-            <translation>طبقة جديدة. انقر لفتحها في QGIS.</translation>
         </message>
         <message>
             <source>New layer. Click to select it in the Layers panel.</source>
@@ -6356,16 +6040,8 @@ Click to show it in the Layers panel.</source>
             <translation>منسّقة</translation>
         </message>
         <message>
-            <source>{n:+d} feature. Click to open it in QGIS.</source>
-            <translation>ميزة: {n:+d}. انقر لفتحها في QGIS.</translation>
-        </message>
-        <message>
             <source>{n:+d} feature. Click to select it in the Layers panel.</source>
             <translation>ميزة: {n:+d}. انقر لتحديدها في لوحة الطبقات.</translation>
-        </message>
-        <message>
-            <source>{n:+d} features. Click to open it in QGIS.</source>
-            <translation>الميزات: {n:+d}. انقر لفتحها في QGIS.</translation>
         </message>
         <message>
             <source>{n:+d} features. Click to select it in the Layers panel.</source>
@@ -6547,14 +6223,6 @@ Click to show it in the Layers panel.</source>
             <translation>إرسال</translation>
         </message>
         <message>
-            <source>Sent with this conversation and your recent logs, to fix issues and improve AI Agent.</source>
-            <translation>تُرسل مع هذه المحادثة وسجلاتك الأخيرة لإصلاح المشكلات وتحسين AI Agent.</translation>
-        </message>
-        <message>
-            <source>Tell us more</source>
-            <translation>أخبرنا بالمزيد</translation>
-        </message>
-        <message>
             <source>Thanks for the feedback</source>
             <translation>شكرًا على ملاحظاتك</translation>
         </message>
@@ -6596,6 +6264,18 @@ Click to show it in the Layers panel.</source>
         <message>
             <source>{n} more</source>
             <translation>{n} أخرى</translation>
+        </message>
+        <message>
+            <source>No</source>
+            <translation>لا</translation>
+        </message>
+        <message>
+            <source>The algorithm's id, to find it in the Processing toolbox</source>
+            <translation>معرّف الخوارزمية، للعثور عليها في صندوق أدوات المعالجة</translation>
+        </message>
+        <message>
+            <source>Yes</source>
+            <translation>نعم</translation>
         </message>
     </context>
     <context>
@@ -6836,10 +6516,6 @@ Click to show it in the Layers panel.</source>
             <translation>إزالة</translation>
         </message>
         <message>
-            <source>Remove the access to {host}</source>
-            <translation>إزالة الوصول إلى {host}</translation>
-        </message>
-        <message>
             <source>S3 keys</source>
             <translation>مفاتيح S3</translation>
         </message>
@@ -6870,10 +6546,6 @@ Click to show it in the Layers panel.</source>
         <message>
             <source>Change project…</source>
             <translation>تغيير المشروع…</translation>
-        </message>
-        <message>
-            <source>Google sign-in</source>
-            <translation>تسجيل الدخول عبر Google</translation>
         </message>
         <message>
             <source>Signed in with the browser</source>
@@ -7871,6 +7543,17 @@ Click to show it in the Layers panel.</source>
         <message>
             <source>Your words are sent with this chat and recent logs.</source>
             <translation>تُرسل كلماتك مع هذه المحادثة وأحدث السجلات.</translation>
+        </message>
+    </context>
+    <context>
+        <name>NoteRow</name>
+        <message>
+            <source>Delete this note</source>
+            <translation>احذف هذه الملاحظة</translation>
+        </message>
+        <message>
+            <source>Edit this note</source>
+            <translation>عدّل هذه الملاحظة</translation>
         </message>
     </context>
 </TS>

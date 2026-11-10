@@ -27,6 +27,8 @@ from .style import (
     RED,
     ROW_PX,
     SURFACE,
+    WEIGHT_MEDIUM,
+    keyboard_ring,
 )
 from .widgets import ChatLabel, ElidedLabel
 
@@ -64,26 +66,32 @@ class _TaskRow(QFrame):
         line = QHBoxLayout()
         line.setContentsMargins(0, 0, 0, 0)
         line.setSpacing(8)
-        self._state = QLabel(self)
-        self._state.setFixedWidth(64)
         self._title = ElidedLabel("", self)
-        self._title.setStyleSheet(f"color: {INK}; font-size: {FONT_BODY}px; font-weight: 500;")
+        self._title.setStyleSheet(f"color: {INK}; font-size: {FONT_BODY}px; font-weight: {WEIGHT_MEDIUM};")
         self._stop = QPushButton(self.tr("Stop"), self)
         self._stop.setStyleSheet(_BTN_QUIET)
+        keyboard_ring(self._stop)
         self._stop.setCursor(Qt.CursorShape.PointingHandCursor)
         self._stop.setFixedHeight(ROW_PX - 4)
         self._stop.clicked.connect(lambda: self.stop_clicked.emit(self.task_id))
-        line.addWidget(self._state)
         line.addWidget(self._title, 1)
         line.addWidget(self._stop)
         col.addLayout(line)
+
+
+        under = QHBoxLayout()
+        under.setContentsMargins(0, 0, 0, 0)
+        under.setSpacing(6)
+        self._state = QLabel(self)
+        self._state.setIndent(0)
         self._note = ElidedLabel("", self)
         self._note.setStyleSheet(f"color: {INK_3}; font-size: {FONT_HINT}px;")
-        self._note.setContentsMargins(72, 0, 0, 0)
-        col.addWidget(self._note)
+        under.addWidget(self._state)
+        under.addWidget(self._note, 1)
+        col.addLayout(under)
         self._summary = ChatLabel("", self, wrap=True)
         self._summary.setStyleSheet(f"color: {INK_2}; font-size: {FONT_BODY}px;")
-        self._summary.setContentsMargins(72, 2, 0, 4)
+        self._summary.setContentsMargins(0, 2, 0, 4)
         self._summary.hide()
         col.addWidget(self._summary)
 
@@ -102,11 +110,10 @@ class _TaskRow(QFrame):
         self.status = status
         word, colour = _status_words().get(status, (status, INK_2))
         self._state.setText(word)
-        self._state.setStyleSheet(f"color: {colour}; font-size: {FONT_HINT}px; font-weight: 500;")
+        self._state.setStyleSheet(f"color: {colour}; font-size: {FONT_HINT}px; font-weight: {WEIGHT_MEDIUM};")
         self._title_text = title
         self._title.setText(title)
         self._note.setText(note if status != "done" else "")
-        self._note.setVisible(bool(self._note.text()))
         self._stop.setVisible(status not in FINAL)
         self.setCursor(Qt.CursorShape.PointingHandCursor if self._summary.text() else Qt.CursorShape.ArrowCursor)
 
@@ -167,9 +174,9 @@ class TasksPanel(QFrame):
             "QFrame#taskRow { background: transparent; border: none; }")
         self._col = QVBoxLayout(self)
         self._col.setContentsMargins(12, 8, 8, 8)
-        self._col.setSpacing(4)
+        self._col.setSpacing(6)
         head = QLabel(self.tr("Tasks"), self)
-        head.setStyleSheet(f"color: {INK_2}; font-size: {FONT_HINT}px; font-weight: 500; border: none;")
+        head.setStyleSheet(f"color: {INK_2}; font-size: {FONT_HINT}px; font-weight: {WEIGHT_MEDIUM}; border: none;")
         self._col.addWidget(head)
         self._rows = {}
         self.hide()

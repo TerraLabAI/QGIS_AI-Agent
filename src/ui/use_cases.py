@@ -109,6 +109,9 @@ class UseCase:
     after_small: str = ""
     split: float = 0.5
 
+
+    attach: tuple = ()
+
     def pair(self, small: bool = False) -> tuple:
 
 
@@ -269,6 +272,7 @@ def _clean_case(row):
         before_small=_https(row.get("before_small")),
         after_small=_https(row.get("after_small")),
         split=_split(row.get("split")),
+        attach=_samples(row.get("attach")),
     )
 
 

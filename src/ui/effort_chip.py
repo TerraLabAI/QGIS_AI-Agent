@@ -60,13 +60,14 @@ from qgis.PyQt.QtWidgets import (
     QWidget,
 )
 
+from ..core.host_platform import prefers_reduced_motion
 from ..core.numbers import as_float
 from ..core.plan import effort_name, efforts_allowed, efforts_stated, efforts_trial_locked, efforts_trial_note
-from ..core.served_state import get_effort_text
+from ..core.served_state import get_effort_text, get_pro_offer
 from .font_scale import scale_qss_font_px
 from .icons import pixmap_for
 from .permission_chip import select_qss
-from .quota_card import pro_price_per_month
+from .quota_card import pro_price_per_month, trial_cta
 from .shared import (
     event_pos,
     keep_on_screen,
@@ -77,6 +78,7 @@ from .shared import (
 from .style import (
     ACCENT,
     ACCENT_DARK,
+    ACCENT_HOVER,
     BTN_SMALL_PX,
     DARK,
     FIELD,
@@ -92,9 +94,12 @@ from .style import (
     ON_ACCENT,
     RADIUS_CARD,
     SURFACE,
+    WEIGHT_MEDIUM,
+    medium_font_weight,
     qcolor,
     repolish,
 )
+from .widgets import ElidedLabel, paint_keyboard_ring
 
 LOW, MEDIUM, HIGH = "low", "medium", "high"
 EFFORTS = (LOW, MEDIUM, HIGH)
@@ -142,17 +147,17 @@ _POPOVER_QSS = scale_qss_font_px(
     " background: transparent; border: none; }"
     f"QLabel#effortRunNote {{ font-size: {FONT_BODY}px; color: {INK_3};"
     " background: transparent; border: none; }"
-    f"QLabel#effortPrice {{ font-size: {FONT_BODY}px; font-weight: 500; color: {INK};"
+    f"QLabel#effortPrice {{ font-size: {FONT_BODY}px; font-weight: {WEIGHT_MEDIUM}; color: {INK};"
     " background: transparent; border: none; }"
 
 
     f"QPushButton#effortCta {{ background: {ACCENT}; color: {ON_ACCENT}; border: none;"
     f" border-radius: 12px; padding: 0 10px; font-size: {FONT_MICRO + 1}px; font-weight: 600; }}"
-    f"QPushButton#effortCta:hover {{ background: {ACCENT_DARK}; }}"
+    f"QPushButton#effortCta:hover {{ background: {ACCENT_HOVER}; }}"
     f"QPushButton#effortCta:pressed {{ background: {ACCENT_DARK}; }}"
 
 
-    f"QLabel#effortHead {{ font-size: {FONT_HINT}px; font-weight: 500;"
+    f"QLabel#effortHead {{ font-size: {FONT_HINT}px; font-weight: {WEIGHT_MEDIUM};"
     f" color: {INK_3}; background: transparent; border: none; }}"
     "QLabel { background: transparent; border: none; }"
 )
@@ -163,7 +168,9 @@ _POPOVER_QSS = scale_qss_font_px(
 _POPOVER_WIDTH = 320
 _CARD_MARGIN = 16
 _CARD_SPACING = 6
-_TEXT_WIDTH = _POPOVER_WIDTH - 2 * _CARD_MARGIN
+
+
+_TEXT_WIDTH = _POPOVER_WIDTH - 2 * _CARD_MARGIN - 2
 
 
 
@@ -566,17 +573,20 @@ class EffortSlider(QWidget):
     def keyPressEvent(self, event):  # noqa: N802
         key = event.key()
         if key in (Qt.Key.Key_Left, Qt.Key.Key_Down):
-            self._commit(max(0, self._value - 1))
+            self._commit(max(0, self._value - 1), glide=False)
         elif key in (Qt.Key.Key_Right, Qt.Key.Key_Up):
-            self._commit(min(len(EFFORTS) - 1, self._value + 1))
+            self._commit(min(len(EFFORTS) - 1, self._value + 1), glide=False)
         elif key == Qt.Key.Key_Home:
-            self._commit(0)
+            self._commit(0, glide=False)
         elif key == Qt.Key.Key_End:
-            self._commit(len(EFFORTS) - 1)
+            self._commit(len(EFFORTS) - 1, glide=False)
         else:
             super().keyPressEvent(event)
 
-    def _commit(self, target: int) -> None:
+    def _commit(self, target: int, glide: bool = True) -> None:
+
+
+
 
 
         changed = target != self._value
@@ -584,7 +594,12 @@ class EffortSlider(QWidget):
             self.locked_reached.emit(EFFORTS[target])
         self._value = target
         self._set_preview(target)
-        self._glide_to(target)
+        if glide and not prefers_reduced_motion():
+            self._glide_to(target)
+        else:
+            self._anim.stop()
+            self._pos = float(target)
+            self.update()
         self._pulse(target)
         if changed:
             self.changed.emit(EFFORTS[target])
@@ -865,7 +880,9 @@ class EffortPopover(QFrame):
 
 
 
-        self._price = QLabel(self)
+
+
+        self._price = ElidedLabel("", self)
         self._price.setObjectName("effortPrice")
         self._price.setFixedWidth(_TEXT_WIDTH)
         self._price.hide()
@@ -882,7 +899,7 @@ class EffortPopover(QFrame):
         self._stops.setFixedWidth(_TEXT_WIDTH)
         col.addWidget(self._stops)
 
-        self._run_note = QLabel(QCoreApplication.translate("EffortChip", "Applies from your next message."), self)
+        self._run_note = ElidedLabel(QCoreApplication.translate("EffortChip", "Applies from your next message."), self)
         self._run_note.setObjectName("effortRunNote")
         self._run_note.setFixedWidth(_TEXT_WIDTH)
         self._run_note.hide()
@@ -918,6 +935,9 @@ class EffortPopover(QFrame):
         if self._trial:
             locked_from = min(locked_from, EFFORTS.index(self._trial[0]))
         self.slider.set_locked_from(locked_from)
+
+        self._cta.setText(trial_cta() if get_pro_offer() == "trial"
+                          else QCoreApplication.translate("EffortChip", "Get Pro"))
         self._stops.trial = self._trial
         self._stops.update()
         self._price.setVisible(self.slider.is_locked(HIGH))
@@ -1036,11 +1056,11 @@ class EffortChip(QToolButton):
         self.setStyleSheet(_CHIP_QSS)
         self.setProperty("active", False)
         self.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+        self.setFocusPolicy(Qt.FocusPolicy.TabFocus)
 
 
         self.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextOnly)
-        self.setToolTip(self.tr("How hard the agent works on the next message"))
+        self.setToolTip(self.tr("How hard the AI agent works on the next message"))
         self.setAccessibleName(self.tr("Effort"))
         self._effort = DEFAULT_EFFORT
         self._paid = False
@@ -1158,7 +1178,7 @@ class EffortChip(QToolButton):
             name = self._names().get(self._effort, "")
             self.setToolTip(self.tr("{level} needs Pro. Pick Low to send.").format(level=name))
         else:
-            self.setToolTip(self.tr("How hard the agent works on the next message"))
+            self.setToolTip(self.tr("How hard the AI agent works on the next message"))
         self.updateGeometry()
         self.update()
 
@@ -1169,7 +1189,7 @@ class EffortChip(QToolButton):
         plain = QFont(self.font())
         plain.setWeight(QFont.Weight.Normal)
         strong = QFont(self.font())
-        strong.setWeight(QFont.Weight.Medium)
+        strong.setWeight(medium_font_weight())
         return plain, strong
 
     def sizeHint(self) -> QSize:  # noqa: N802
@@ -1213,6 +1233,13 @@ class EffortChip(QToolButton):
         y = (height - glyph.height() / glyph.devicePixelRatio()) / 2
         painter.drawPixmap(QPointF(x, y), glyph)
         painter.end()
+        paint_keyboard_ring(self)
+
+    def keyPressEvent(self, event):  # noqa: N802
+        if event.key() in (Qt.Key.Key_Return, Qt.Key.Key_Enter):
+            self.click()
+            return
+        super().keyPressEvent(event)
 
     @staticmethod
     def _draw_lock(painter: QPainter, x: float, height: float, colour: QColor) -> None:

@@ -223,6 +223,10 @@ def _stamp(path: str) -> tuple[int, ...] | None:
     try:
         wal = os.stat(path + "-wal")
         wal_stamp = (int(wal.st_size), int(getattr(wal, "st_mtime_ns", int(wal.st_mtime * 1e9))))
+        if not wal.st_size:
+
+
+            wal_stamp = (-1, -1)
     except OSError:
         wal_stamp = (-1, -1)
     return stamp + wal_stamp

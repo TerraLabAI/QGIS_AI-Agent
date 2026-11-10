@@ -608,9 +608,9 @@ class PermissionCard(_Card, FoldMixin):
             if name not in hosts:
                 hosts.append(name)
         if _writes_page(self._calls[0]["name"]):
-            reason = self.tr("The page links to {hosts}, a site the agent does not know.").format(
+            reason = self.tr("The page links to {hosts}, a site the AI agent does not know.").format(
                 hosts=", ".join(hosts[:3])) if len(hosts) == 1 else self.tr(
-                "The page links to sites the agent does not know: {hosts}.").format(hosts=", ".join(hosts[:3]))
+                "The page links to sites the AI agent does not know: {hosts}.").format(hosts=", ".join(hosts[:3]))
         else:
             reason = ""
         if reason:
@@ -936,7 +936,7 @@ def plain_sentence(sentence: str, args=None, name: str = "") -> str:
     effect = card_effect(name, args)
     if sentence and effect:
         sentence = f"{sentence} {effect}"
-    return sentence or tr("The agent wants to run this action.")
+    return sentence or tr("The AI agent wants to run this action.")
 
 
 def run_ending(code: str, reason: str, fallback: str) -> tuple[str, str]:

@@ -37,7 +37,6 @@ from ..core.logger import log, log_warning
 from ..core.numbers import as_int
 from ..core.snapshot_paths import layer_file_path
 from ..core.vsi import thread_options
-from ._compat import RASTER_STATS_ALL
 from ._layers import resolve_layer
 from .band_reads import hand_over
 from .elevation_style import min_max_stats
@@ -281,7 +280,7 @@ def _read(reads: dict, reopen: bool = False) -> dict:
         if cancel is not None and cancel():
             break
         try:
-            stats = clone.bandStatistics(band, RASTER_STATS_ALL, QgsRectangle(), _STATS_SAMPLE)
+            stats = clone.bandStatistics(band, sampleSize=_STATS_SAMPLE)
             answers[("stats", band)] = (stats.minimumValue, stats.maximumValue)
             stats = clone.bandStatistics(band, min_max_stats(), extent, 250000)
             answers[("range", band)] = (stats.minimumValue, stats.maximumValue)

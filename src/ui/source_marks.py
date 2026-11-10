@@ -77,6 +77,7 @@ from .style import (
     RADIUS_CARD,
     RADIUS_CONTROL,
     SURFACE,
+    WEIGHT_MEDIUM,
     hover_pill,
     qcolor,
 )
@@ -122,11 +123,11 @@ _POPOVER_SCROLL_QSS = (
     " background: transparent; }"
 )
 _TITLE_QSS = scale_qss_font_px(
-    f"QLabel {{ font-size: {FONT_HINT}px; font-weight: 500; color: {INK_3};"
+    f"QLabel {{ font-size: {FONT_HINT}px; font-weight: {WEIGHT_MEDIUM}; color: {INK_3};"
     " background: transparent; border: none; }"
 )
 _NAME_QSS = scale_qss_font_px(
-    f"QLabel {{ font-size: {FONT_BODY}px; font-weight: 500; color: {INK};"
+    f"QLabel {{ font-size: {FONT_BODY}px; font-weight: {WEIGHT_MEDIUM}; color: {INK};"
     " background: transparent; border: none; }"
 )
 _HOST_QSS = scale_qss_font_px(

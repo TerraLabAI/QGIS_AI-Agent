@@ -641,6 +641,11 @@ class _FeaturePass:
             self._read_and_copy()
         finally:
 
+
+
+            self._plan = []
+            self._files = []
+
             self._features_done.set()
             self._copies_done.set()
 

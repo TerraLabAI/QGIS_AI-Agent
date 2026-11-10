@@ -24,7 +24,7 @@ from qgis.PyQt.QtCore import QUrl
 
 from ..core import tuning
 from ..core.background import on_main_thread, run_on_main_thread
-from ..core.text_encoding import detect_encoding
+from ..core.text_encoding import detect_encoding, python_codec
 from ..core.tool_registry import coded_fact, tool_error
 from . import crs_landing
 from .data_common import built_here, worker_options
@@ -44,14 +44,22 @@ def _column_names(kind: str) -> list:
     return ((tuning.service_doc("vocab_rules") or {}).get("csv_columns") or {}).get(kind) or []
 
 
-def sniff(path: str) -> dict:
+def sniff(path: str, encoding: str = "") -> dict:
+
 
     with open(path, "rb") as fh:
         raw = fh.read(65536)
-    encoding = detect_encoding(raw)
+    found = detect_encoding(raw)
+
+    read_how = "given" if encoding else "declared" if found in ("UTF-8", "UTF-16") else "assumed"
+    encoding = encoding or found
 
 
-    sample = raw.decode("utf-8-sig" if encoding == "UTF-8" else encoding, errors="replace")
+    try:
+        sample = raw.decode("utf-8-sig" if encoding == "UTF-8" else python_codec(encoding), errors="replace")
+    except LookupError:
+
+        sample = raw.decode("latin-1")
     try:
         dialect = csv.Sniffer().sniff(sample, delimiters=",;\t|")
         delimiter = dialect.delimiter
@@ -92,6 +100,8 @@ def sniff(path: str) -> dict:
         projected = bool(xs and ys) and not lonlat_fits(min(xs), max(xs), min(ys), max(ys))
         if xs and ys:
             box = (min(xs), min(ys), max(xs), max(ys))
+    if decimal == "." and _decimal_comma(body, delimiter):
+        decimal = ","
 
     kinds = []
     if wkt and body:
@@ -100,7 +110,54 @@ def sniff(path: str) -> dict:
                                    if i_wkt < len(r) and _WKT_TYPE.match(r[i_wkt])))
     return {"delimiter": delimiter, "header": header, "headerless": headerless, "rows": len(body),
             "lat": lat, "lon": lon, "wkt": wkt, "wkt_types": kinds, "decimal": decimal, "projected": projected,
-            "encoding": encoding, "box": box}
+            "encoding": encoding, "encoding_from": read_how, "box": box,
+            "mixed_line_endings": _mixed_line_endings(sample)}
+
+
+def _mixed_line_endings(sample: str) -> bool:
+
+
+
+
+
+    crlf = lf = 0
+    quoted = False
+    for line in sample.split("\n")[:-1]:
+        quoted ^= line.count('"') % 2 == 1
+        if not quoted:
+            crlf += line.endswith("\r")
+            lf += not line.endswith("\r")
+    return bool(crlf and lf)
+
+
+
+
+
+
+
+
+
+
+_DECIMAL_POINT = re.compile(r"^-?\d+\.\d+$")
+_GROUPS = re.compile(r"^-?\d{1,3}(,\d{3})+$")
+_TWO_GROUPS = re.compile(r"^-?\d{1,3}(,\d{3}){2,}(\.\d+)?$")
+
+
+def _decimal_comma(body: list, delimiter: str) -> bool:
+
+
+
+
+    comma = clear = False
+    for row in body:
+        for cell in row:
+            cell = cell.strip()
+            if _DECIMAL_POINT.match(cell) or _TWO_GROUPS.match(cell):
+                return False
+            if _DECIMAL_COMMA.match(cell):
+                comma = True
+                clear = clear or not _GROUPS.match(cell)
+    return comma and (clear or delimiter == ";")
 
 
 _WKT_TYPE = re.compile(r"\s*(?:SRID=\d+;\s*)?([A-Za-z]+(?:\s+(?:Z|M|ZM))?)\s*(?:\(|EMPTY)", re.IGNORECASE)
@@ -201,7 +258,10 @@ def build_uri(path: str, info: dict, crs: str | None = None) -> tuple[str, str]:
         params.append("geomType=none")
     if geometry != "none":
         params.append("crs=" + (crs or "EPSG:4326"))
-    return QUrl.fromLocalFile(os.path.abspath(path)).toString() + "?" + "&".join(params), geometry
+
+
+    file_url = bytes(QUrl.fromLocalFile(os.path.abspath(path)).toEncoded()).decode("ascii")
+    return file_url + "?" + "&".join(params), geometry
 
 
 _GEOMETRY_SAMPLE_LIMIT = 2000
@@ -240,6 +300,20 @@ def _geometry_check(layer, geometry: str, info: dict) -> str | None:
     if total and empty * 2 > total:
         return "csv_rows_without_geometry"
     return None
+
+
+def read_as(layer, encoding: str, how: str) -> dict:
+
+
+
+
+
+    words = [field.name() for field in layer.fields()]
+    for feature in layer.getFeatures(QgsFeatureRequest().setLimit(1)):
+        words += [value for value in feature.attributes() if isinstance(value, str)]
+    sample = [word[:40] for word in dict.fromkeys(words) if not word.isascii()][:4]
+    return {"read_as": encoding, "from": how, **({"sample": sample} if sample else {}),
+            **(coded_fact(hint="encoding_assumed") if how == "assumed" else {})}
 
 
 def _geometry_kind_of(layer) -> str:
@@ -448,7 +522,7 @@ def _projected_source(path: str, layer, info: dict, crs: str | None):
                       coordinates=_rounded_box(extent))
 
 
-def prepare_csv(path: str, name: str, crs: str | None = None) -> dict | None:
+def prepare_csv(path: str, name: str, crs: str | None = None, encoding: str = "") -> dict | None:
 
 
 
@@ -457,7 +531,7 @@ def prepare_csv(path: str, name: str, crs: str | None = None) -> dict | None:
 
 
     try:
-        info = sniff(path)
+        info = sniff(path, encoding)
     except OSError:
         return None
     uri, geometry = build_uri(path, info, crs)
@@ -481,7 +555,7 @@ def prepare_csv(path: str, name: str, crs: str | None = None) -> dict | None:
     return prepared if prepared["handle"] is not None else None
 
 
-def add_csv(path: str, name: str, crs: str | None = None, timeout: float = 60) -> dict:
+def add_csv(path: str, name: str, crs: str | None = None, timeout: float = 60, encoding: str = "") -> dict:
 
 
 
@@ -490,15 +564,15 @@ def add_csv(path: str, name: str, crs: str | None = None, timeout: float = 60) -
 
 
     if on_main_thread():
-        return load_csv(path, name, crs)
-    prepared = prepare_csv(path, name, crs)
+        return load_csv(path, name, crs, encoding=encoding)
+    prepared = prepare_csv(path, name, crs, encoding)
     if prepared is None:
-        return run_on_main_thread(lambda: load_csv(path, name, crs), timeout=timeout)
+        return run_on_main_thread(lambda: load_csv(path, name, crs, encoding=encoding), timeout=timeout)
     held = [prepared]
     try:
         decided = run_on_main_thread(lambda: _csv_decision(path, prepared, crs), timeout=timeout)
         if isinstance(decided, tuple) and decided[0].authid():
-            again = prepare_csv(path, name, decided[0].authid())
+            again = prepare_csv(path, name, decided[0].authid(), encoding)
             if again is not None and not again.get("ogr"):
                 again.update(decided=decided, rebuilt=True)
                 held.append(again)
@@ -521,17 +595,18 @@ def _csv_decision(path: str, prepared: dict, crs: str | None):
     return _projected_source(path, layer, prepared["info"], crs)
 
 
-def load_csv(path: str, name: str, crs: str | None = None, prepared: dict | None = None) -> dict:
+def load_csv(path: str, name: str, crs: str | None = None, prepared: dict | None = None,
+             encoding: str = "") -> dict:
 
 
     if prepared is not None:
         info, uri, geometry = prepared["info"], prepared["uri"], prepared["geometry"]
         layer = prepared["handle"].take()
         if layer is None:
-            return load_csv(path, name, crs)
+            return load_csv(path, name, crs, encoding=encoding)
     else:
         try:
-            info = sniff(path)
+            info = sniff(path, encoding)
         except OSError as exc:
             return tool_error(f"Cannot read {os.path.basename(path)}: {exc}")
         uri, geometry = build_uri(path, info, crs)
@@ -587,6 +662,10 @@ def load_csv(path: str, name: str, crs: str | None = None, prepared: dict | None
         out["table_note"] = coded_fact(hint="csv_no_coordinates")
     if crs_note:
         out["_note"] = f"{crs_note} {out['_note']}" if out.get("_note") else crs_note
+    if info["encoding_from"] != "declared":
+        out["encoding"] = read_as(layer, info["encoding"], info["encoding_from"])
+    if info.get("mixed_line_endings"):
+        out["line_endings"] = coded_fact(hint="csv_mixed_line_endings")
     geometry_note = (prepared.get("geometry_note") if checked is not None and layer is checked
                      else _geometry_check(layer, geometry, info))
     if geometry_note:

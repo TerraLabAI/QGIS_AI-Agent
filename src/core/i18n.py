@@ -34,7 +34,7 @@ try:
 except ImportError:
     _safe_parse = ET.parse
 
-from qgis.core import QgsSettings
+from qgis.core import QgsApplication, QgsSettings
 from qgis.PyQt.QtCore import QCoreApplication, QLocale, QTranslator
 
 
@@ -124,17 +124,23 @@ def qgis_locale_names() -> tuple[str, str]:
 
 
 
+
+
+    try:
+        system = str(QLocale.system().name() or "")
+    except Exception:  # noqa: BLE001
+        system = ""
     override = ""
     try:
         store = QgsSettings()
         if store.value("locale/overrideFlag", False, type=bool):
             override = str(store.value("locale/userLocale", "", type=str) or "")
+        else:
+            spoken = str(QgsApplication.instance().translation() or "")
+            if spoken.replace("-", "_").lower() != system.lower():
+                override = spoken
     except Exception:  # noqa: BLE001  # nosec B110
         pass
-    try:
-        system = str(QLocale.system().name() or "")
-    except Exception:  # noqa: BLE001
-        system = ""
     return override, system
 
 

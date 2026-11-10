@@ -49,6 +49,7 @@ from qgis.PyQt.QtCore import (
 from qgis.PyQt.QtGui import QPainter
 from qgis.PyQt.QtWidgets import QHBoxLayout, QLabel, QSizePolicy, QVBoxLayout, QWidget
 
+from . import card_base
 from .cards_tool import ToolCard
 from .font_scale import scale_qss_font_px
 from .icons import pixmap_for
@@ -516,9 +517,12 @@ class RunTrace(QWidget):
 
 
 
+
         expanded = bool(expanded)
         was, self._expanded = self._expanded, expanded
-        if was == expanded or not self.isVisible():
+        if was == expanded or card_base.reduced_motion(self):
+            if was != expanded:
+                self._stop_roll()
             self._chevron.set_open(expanded)
             self._body.setVisible(expanded)
             self._body.setMaximumHeight(_UNBOUNDED if expanded else 0)
@@ -550,14 +554,17 @@ class RunTrace(QWidget):
 
 
 
-        self._stop_roll()
+
+
+        mid_roll = self._roll_anim is not None
+        self._stop_roll(settle=False)
         if open_it:
-            self._body.setMaximumHeight(0)
+            self._body.setMaximumHeight(start)
             self._body.setVisible(True)
         roll = QVariantAnimation(self)
         roll.setDuration(_FOLD_MS)
         roll.setEasingCurve(QEasingCurve.Type.OutQuint)
-        roll.setStartValue(float(start if open_it else max(start, target)))
+        roll.setStartValue(float(start if open_it or mid_roll else max(start, target)))
         roll.setEndValue(float(target if open_it else 0))
 
         def _step(value):
@@ -566,12 +573,21 @@ class RunTrace(QWidget):
             except RuntimeError:
                 pass
 
+        def _ended():
+
+
+            if self._roll_anim is roll:
+                self._roll_anim = None
+            self._roll_done(open_it)
+
         roll.valueChanged.connect(_step)
-        roll.finished.connect(lambda: self._roll_done(open_it))
+        roll.finished.connect(_ended)
         self._roll_anim = roll
         roll.start(QAbstractAnimation.DeletionPolicy.DeleteWhenStopped)
 
-    def _stop_roll(self) -> None:
+    def _stop_roll(self, settle: bool = True) -> None:
+
+
 
         roll = self._roll_anim
         self._roll_anim = None
@@ -583,7 +599,8 @@ class RunTrace(QWidget):
             pass
 
 
-        self._roll_done(self._expanded)
+        if settle:
+            self._roll_done(self._expanded)
 
     def cleanup(self) -> None:
 

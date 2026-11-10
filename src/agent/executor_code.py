@@ -87,6 +87,7 @@ CARD_BUDGET_S = 120.0
 CODE_POINT_SLOW_S = 5.0
 
 
+
 def tr(text: str) -> str:
     return QCoreApplication.translate("ToolExecutor", text)
 
@@ -570,11 +571,13 @@ class _ExecutorCode:
 
         return [layer.name() for layer in unsaved_edit_layers()]
 
-    def _code_roll_back(self, call: dict) -> None:
+    def _code_roll_back(self, call: dict) -> str:
+
+
         point = call.pop("code_point", None)
         if point is None:
             self._code_undo_without_point(call)
-            return
+            return ""
         snapshot, own = point
 
 
@@ -586,37 +589,43 @@ class _ExecutorCode:
         held = self._unsaved_edits()
         if held:
             log_warning("execute_code not rolled back: unsaved edits on " + ", ".join(held[:4]))
-            plan = call.get("code_plan") or {}
-            plan["reasons"] = list(plan.get("reasons") or []) + [
-                tr("ran with unsaved edits open on {layers}, so nothing was put back").format(
-                    layers=", ".join(held[:3]))]
             if own:
                 snapshot.discard()
-            return
+            return tr("ran with unsaved edits open on {layers}, so nothing was put back").format(
+                layers=", ".join(held[:3]))
         if not opened and snapshot.unchanged_since_capture():
 
             log("execute_code stopped before it changed anything, the project is kept as it is")
             if own:
                 snapshot.discard()
-            return
+            return ""
         tool_call_id = str(call.get("tool_call_id"))
 
 
 
         self._inflight[tool_call_id] = (str(call.get("run_id") or ""), CODE_TOOL, time.monotonic(), False)
+        failed = None
         try:
 
 
 
             outcome = put_back_in_place(snapshot) or snapshot.restore()
-            log(f"execute_code rolled back: {outcome.get('message', '') if isinstance(outcome, dict) else ''}")
+
+            if isinstance(outcome, dict) and outcome.get("ok") is False:
+                failed = str(outcome.get("message") or "the restore was refused")
+            else:
+                log(f"execute_code rolled back: {outcome.get('message', '') if isinstance(outcome, dict) else ''}")
         except Exception as exc:  # noqa: BLE001
-            log_warning(f"execute_code roll back failed: {exc}")
+            failed = str(exc)
         finally:
             self._inflight.pop(tool_call_id, None)
             self.history.project_restored()
         if own:
             snapshot.discard()
+        if failed is None:
+            return ""
+        log_warning(f"execute_code not rolled back: {failed}")
+        return tr("could not be put back, so what it changed is still in the project")
 
     @staticmethod
     def _code_undo_without_point(call: dict) -> None:
@@ -656,13 +665,15 @@ class _ExecutorCode:
         plan = call.setdefault("code_plan", {"reasons": []})
         code = str((call.get("args") or {}).get("code") or "")
         self._code_escalated[_fingerprint(code)] = cls
+        not_put_back = ""
         if result.get("isolated"):
 
             self._code_release(call)
         else:
-            self._code_roll_back(call)
+            not_put_back = self._code_roll_back(call)
         self._executing.discard(tool_call_id)
-        plan.update({"cls": cls, "granted": cls, "reasons": [reason] if reason else plan.get("reasons", [])})
+        reasons = [reason] if reason else list(plan.get("reasons") or [])
+        plan.update({"cls": cls, "granted": cls, "reasons": reasons + ([not_put_back] if not_put_back else [])})
         call["danger"] = ce.DANGER[cls]
         log(f"execute_code tripped at {cls}: {reason}")
         run_id = str(call.get("run_id") or "")

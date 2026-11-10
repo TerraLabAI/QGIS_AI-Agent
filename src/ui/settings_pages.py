@@ -31,6 +31,7 @@ from .icons import ink_of, pixmap_for
 from .style import (
     ACCENT,
     ACCENT_DARK,
+    ACCENT_HOVER,
     ACCENT_INK,
     FIELD,
     HOVER_ON,
@@ -41,9 +42,10 @@ from .style import (
     ON_ACCENT,
     RED,
     RED_TINT,
+    WEIGHT_MEDIUM,
 )
-from .styles import INK_HOVER_FILL, INK_PRESSED_FILL
-from .widgets import IconButton
+from .styles import INK_HOVER_FILL, INK_PRESSED_FILL, PANEL_BASE, PANEL_TEXT
+from .widgets import IconButton, plain_tip
 
 
 
@@ -57,12 +59,12 @@ ACCENT_TINT = "rgba(67, 160, 71, 0.10)"
 ACCENT_TINT_ON = "rgba(67, 160, 71, 0.20)"
 ACCENT_BORDER = "rgba(67, 160, 71, 0.45)"
 
-PAGE_TITLE_QSS = "font-size: 20px; font-weight: 600; color: palette(text); background: transparent;"
+PAGE_TITLE_QSS = "font-size: 20px; font-weight: 600; color: " + PANEL_TEXT + "; background: transparent;"
 PAGE_SUBTITLE_QSS = f"font-size: 12px; color: {MUTED}; background: transparent;"
-ROW_TITLE_QSS = "font-size: 13px; color: palette(text); background: transparent;"
+ROW_TITLE_QSS = "font-size: 13px; color: " + PANEL_TEXT + "; background: transparent;"
 ROW_NOTE_QSS = f"font-size: 11px; color: {MUTED}; background: transparent;"
 SAVED_HINT_QSS = f"font-size: 11px; color: {MUTED}; background: transparent;"
-GROUP_TITLE_QSS = "font-size: 13px; font-weight: 600; color: palette(text); background: transparent;"
+GROUP_TITLE_QSS = "font-size: 13px; font-weight: 600; color: " + PANEL_TEXT + "; background: transparent;"
 
 
 
@@ -80,10 +82,10 @@ def nav_qss(name: str) -> str:
     return (
         f"QListWidget#{name} {{ background: transparent; border: none; outline: none;"
         " padding: 4px 6px; font-size: 13px; }"
-        f"QListWidget#{name}::item {{ padding: 7px 8px; border-radius: 8px; color: palette(text);"
+        f"QListWidget#{name}::item {{ padding: 7px 8px; border-radius: 8px; color: {PANEL_TEXT};"
         " margin: 1px 0; }"
         f"QListWidget#{name}::item:hover {{ background: {TINT_HOVER}; }}"
-        f"QListWidget#{name}::item:selected {{ background: {TINT_HOVER}; color: palette(text); }}"
+        f"QListWidget#{name}::item:selected {{ background: {TINT_HOVER}; color: {PANEL_TEXT}; }}"
     )
 
 
@@ -100,13 +102,13 @@ ROW_DIVIDER_QSS = (f"QFrame {{ background: {HAIRLINE}; border: none; margin: 0 1
                    " max-height: 1px; min-height: 1px; }")
 
 PRIMARY_BTN_QSS = (
-    "QPushButton { background: palette(text); color: palette(base); border: none;"
+    "QPushButton { background: " + PANEL_TEXT + "; color: " + PANEL_BASE + "; border: none;"
     " border-radius: 8px; padding: 7px 14px; font-size: 12px; font-weight: 600; }"
     f"QPushButton:hover {{ background: {INK_HOVER_FILL}; }}"
     f"QPushButton:pressed {{ background: {INK_PRESSED_FILL}; }}"
 )
 GHOST_BTN_QSS = (
-    f"QPushButton {{ background: transparent; color: palette(text); border: 1px solid {HAIRLINE};"
+    f"QPushButton {{ background: transparent; color: {PANEL_TEXT}; border: 1px solid {HAIRLINE};"
     " border-radius: 8px; padding: 6px 14px; font-size: 12px; }"
     f"QPushButton:hover {{ background: {ACCENT_TINT}; border-color: {ACCENT_BORDER}; }}"
     f"QPushButton:pressed {{ background: {ACCENT_TINT_ON}; }}"
@@ -114,7 +116,8 @@ GHOST_BTN_QSS = (
 DANGER_GHOST_BTN_QSS = (
     f"QPushButton {{ background: transparent; color: {RED}; border: 1px solid {HAIRLINE};"
     " border-radius: 8px; padding: 6px 14px; font-size: 12px; }"
-    f"QPushButton:hover {{ background: {RED_TINT}; border-color: {RED}; }}"
+    f"QPushButton:hover {{ background: {RED_TINT}; }}"
+    f"QPushButton:pressed {{ background: {RED_TINT}; border-color: {RED}; }}"
 
     f"QPushButton:disabled {{ color: {INK_3}; border-color: {HAIRLINE}; background: transparent; }}"
 )
@@ -123,17 +126,18 @@ DANGER_GHOST_BTN_QSS = (
 GET_PRO_BTN_QSS = (
     f"QPushButton {{ background: {ACCENT}; color: {ON_ACCENT}; border: none;"
     " border-radius: 8px; padding: 7px 14px; font-size: 12px; font-weight: 600; }"
-    f"QPushButton:hover {{ background: {ACCENT_DARK}; }}"
+    f"QPushButton:hover {{ background: {ACCENT_HOVER}; }}"
+    f"QPushButton:pressed {{ background: {ACCENT_DARK}; }}"
 )
 COMBO_QSS = (
-    f"QComboBox {{ color: palette(text); background: palette(base); border: 1px solid {HAIRLINE};"
+    f"QComboBox {{ color: {PANEL_TEXT}; background: {PANEL_BASE}; border: 1px solid {HAIRLINE};"
     " border-radius: 8px; padding: 5px 28px 5px 10px; font-size: 12px; min-height: 18px; }"
     "QComboBox:hover { border-color: rgba(128,128,128,0.45); }"
     "QComboBox::drop-down { border: none; width: 26px; subcontrol-origin: padding;"
     " subcontrol-position: center right; }"
-    "QComboBox QAbstractItemView { color: palette(text); background: palette(base);"
+    "QComboBox QAbstractItemView { color: " + PANEL_TEXT + "; background: " + PANEL_BASE + ";"
     f" border: 1px solid {HAIRLINE}; selection-background-color: {TINT_ON};"
-    " selection-color: palette(text); outline: none; }"
+    " selection-color: " + PANEL_TEXT + "; outline: none; }"
 )
 
 
@@ -159,17 +163,17 @@ def _chevron_rule(widget) -> str:
 
 
 INPUT_QSS = (
-    f"QLineEdit {{ color: palette(text); background: palette(base); border: 1px solid {HAIRLINE};"
+    f"QLineEdit {{ color: {PANEL_TEXT}; background: {PANEL_BASE}; border: 1px solid {HAIRLINE};"
     " border-radius: 8px; padding: 6px 10px; font-size: 12px; }"
     "QLineEdit:focus { border-color: rgba(128,128,128,0.55); }"
 )
 TEXTAREA_QSS = (
-    f"QPlainTextEdit {{ color: palette(text); background: palette(base); border: 1px solid {HAIRLINE};"
+    f"QPlainTextEdit {{ color: {PANEL_TEXT}; background: {PANEL_BASE}; border: 1px solid {HAIRLINE};"
     " border-radius: 8px; padding: 6px 8px; font-size: 12px; }"
     "QPlainTextEdit:focus { border-color: rgba(128,128,128,0.55); }"
 )
 SEGMENT_QSS = (
-    "QPushButton { background: transparent; color: palette(text); border: none;"
+    "QPushButton { background: transparent; color: " + PANEL_TEXT + "; border: none;"
     " border-radius: 6px; padding: 4px 12px; font-size: 12px; }"
     f"QPushButton:hover {{ background: {ACCENT_TINT}; }}"
     f"QPushButton:checked {{ background: {ACCENT_TINT_ON}; font-weight: 600; }}"
@@ -443,12 +447,14 @@ class NoteRow(QFrame):
         words.setContentsMargins(0, 0, 0, 0)
         words.setSpacing(1)
         body = QLabel(text, self)
-        body.setStyleSheet("font-size: 12px; color: palette(text); background: transparent;")
+
+        body.setTextFormat(Qt.TextFormat.PlainText)
+        body.setStyleSheet("font-size: 12px; color: " + PANEL_TEXT + "; background: transparent;")
         body.setWordWrap(True)
         body.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
         body.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignLeft)
 
-        body.setToolTip(text)
+        body.setToolTip(plain_tip(text))
         words.addWidget(body)
         self._body = body
         self._field = None
@@ -458,12 +464,12 @@ class NoteRow(QFrame):
             meta.setStyleSheet(ROW_NOTE_QSS)
             words.addWidget(meta)
         row.addLayout(words, 1)
-        pencil = IconButton(self, "pencil", 12, "")
+        pencil = IconButton(self, "pencil", 12, self.tr("Edit this note"))
         pencil.setFixedSize(24, 24)
         pencil.clicked.connect(self.start_editing)
         row.addWidget(pencil, 0, Qt.AlignmentFlag.AlignTop)
         self.edit_button = pencil
-        close = IconButton(self, "close", 12, "")
+        close = IconButton(self, "close", 12, self.tr("Delete this note"))
         close.setFixedSize(24, 24)
         close.clicked.connect(lambda: self.removed.emit(self.note_id))
         row.addWidget(close, 0, Qt.AlignmentFlag.AlignTop)
@@ -511,7 +517,7 @@ class NoteRow(QFrame):
 PRO_LOCK_QSS = (
     f"QFrame#proLock {{ background: {FIELD}; border: none; border-radius: 8px; }}"
     f"QFrame#proLock QLabel {{ background: transparent; color: {INK_2}; font-size: 11px;"
-    " font-weight: 500; }"
+    f" font-weight: {WEIGHT_MEDIUM}; }}"
 )
 TEXT_LINK_QSS = (
     f"QPushButton {{ background: transparent; border: none; color: {ACCENT_INK};"
@@ -669,9 +675,11 @@ class Page(QWidget):
 
 USAGE_KEYS = ("runs_used", "runs_limit", "period_end", "reset_date", "is_subscriber", "is_free_tier")
 
+
+
 PROGRESS_QSS = (
     "QProgressBar { background: rgba(128,128,128,0.18); border: none; border-radius: 2px;"
-    " max-height: 4px; min-height: 4px; }"
+    " height: 4px; max-height: 4px; min-height: 4px; }"
     f"QProgressBar::chunk {{ background: {ACCENT}; border-radius: 2px; }}"
 )
 

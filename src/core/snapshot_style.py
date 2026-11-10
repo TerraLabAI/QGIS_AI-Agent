@@ -121,7 +121,12 @@ def _read_style_digest(layer) -> str | None:
     try:
         style = QgsMapLayerStyle()
         style.readFromLayer(layer)
-        return hashlib.sha1(style.xmlData().encode("utf-8")).hexdigest()[:16]  # nosec B324
+
+
+
+        lines = style.xmlData().replace("/>", " />").replace(">", " >").splitlines()
+        text = "\n".join(" ".join(sorted(line.split())) for line in lines)
+        return hashlib.sha1(text.encode("utf-8")).hexdigest()[:16]  # nosec B324
     except Exception:  # nosec B110
         return None
 

@@ -53,7 +53,7 @@ from ..core.logger import log_warning
 from ..core.policy import create_managed_temp_dir
 from ..core.qt_compat import enum_member
 from .child_python import environment as _environment
-from .child_python import python_for_child
+from .child_python import python_for_child, start_refused
 from .processing_paths import _short_path, unsafe_path
 
 _WORKER = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "workers",
@@ -264,8 +264,10 @@ class ChildRun(QgsTask):
         started = time.monotonic()
         python = python_for_child()
         if not python:
-            self.report = {"ok": False, "error": "The Python interpreter shipped with QGIS was not found, "
-                                                 "so no separate QGIS could run the algorithm."}
+
+            self.report = {"ok": False, "unavailable": True, "parameters": self.job["parameters"],
+                           "error": "The Python interpreter shipped with QGIS cannot be started, "
+                                    "so no separate QGIS could run the algorithm."}
             return False
         work_dir = create_managed_temp_dir("processing-child")
         safe = _safe_spelling(work_dir)
@@ -282,10 +284,15 @@ class ChildRun(QgsTask):
         else:
             kwargs["start_new_session"] = True
         with open(paths["worker.log"], "wb") as log_handle:
-            process = subprocess.Popen(  # nosec B603
-                [python, "-s", _WORKER, paths["job.json"], paths["status.json"], paths["progress.txt"]],
-                cwd=safe, env=_environment(python, safe), stdin=subprocess.DEVNULL,
-                stdout=log_handle, stderr=subprocess.STDOUT, **kwargs)
+            try:
+                process = subprocess.Popen(  # nosec B603
+                    [python, "-s", _WORKER, paths["job.json"], paths["status.json"], paths["progress.txt"]],
+                    cwd=safe, env=_environment(python, safe), stdin=subprocess.DEVNULL,
+                    stdout=log_handle, stderr=subprocess.STDOUT, **kwargs)
+            except OSError as exc:
+                self.report = {"ok": False, "unavailable": True, "parameters": self.job["parameters"],
+                               "error": start_refused(exc), "work_dir": work_dir}
+                return False
             while process.poll() is None:
                 if self.isCanceled():
                     _end(process)

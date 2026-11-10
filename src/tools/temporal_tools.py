@@ -269,8 +269,6 @@ def _plan(args: dict) -> dict:
     if fps is not None and (isinstance(fps, bool) or not isinstance(fps, (int, float))
                             or not math.isfinite(fps) or fps <= 0):
         return tool_error("fps must be a positive number.", "INVALID_ARGS", hint="temporal_fps_value")
-    if args.get("loop") is not None and not isinstance(args["loop"], bool):
-        return tool_error("loop must be a boolean.", "INVALID_ARGS", hint="temporal_loop_value")
     if duration is not None:
         if not (isinstance(duration, (int, float)) and duration > 0 and math.isfinite(duration)):
             return tool_error("duration must be a positive number.", "INVALID_ARGS", hint="temporal_duration_value")

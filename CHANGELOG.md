@@ -9,6 +9,48 @@ is what the QGIS Plugin Manager renders.
 
 ## [Unreleased]
 
+## [1.9.5] - 2026-11-10
+
+### Added
+
+- An opened step links to the QGIS window where its work can be checked; joins and zonal
+  statistics open their Processing dialog, and 3D calls open on what they did.
+- A removed row of the queue offers Undo; Ctrl+Enter sends a feedback.
+- An example's files show under its prompt, and Try in chat attaches them. A dataset with a
+  thumbnail shows it on its source page and in the search results.
+- The header buttons, the + and the two chips are reached with Tab; the permissions sheet takes
+  the arrow keys.
+
+### Changed
+
+- Question cards show their choices as tiles, the chosen one in the accent tint, with
+  Recommended as a chip on the label's line and the card's progress as bars.
+- An opened step is one card: what came back first, the chosen settings before QGIS's defaults,
+  a layer's QGIS icon, a colour's swatch, a failure as a tinted note and sources that open.
+- Data sources by country sort by continent, then country, then kind of publisher; a source that
+  covers several countries sits above them.
+- After the first good run, a panel you closed opens once more.
+- On Windows the sign-in key is sealed for your Windows user and never kept in QGIS's
+  authentication database.
+- Small targets take 24 px, card buttons show a keyboard focus ring, and placeholders and
+  warnings read clearly in both themes.
+
+### Fixed
+
+- Undo returns a file an earlier run made and a later run replaced, says so when QGIS was killed
+  mid-restore, and changes nothing when a file is held or read-only.
+- Two QGIS windows of one user keep their own drafts, answers, messages and sessions.
+- Fewer freezes: behind a silent proxy (PAC) host, when Windows asks which app opens a link, while
+  a 3D view loads, and on GDAL's lookups of another install's projection database.
+- A run cut by a plugin update or disable says so, instead of saying QGIS closed.
+- More files load: a CSV in a folder with an accent on QGIS 3.28, a shapefile with a wrong
+  encoding, a ZIP holding a point cloud or an .xyz grid, a folder of shapefiles in several code
+  pages, TMS basemaps with {-y}.
+- The chat signs in through a proxy that uses the Windows session, and GDAL trusts the Windows
+  certificate store.
+- Closing QGIS no longer stops on "Active Tasks" for the plugin's own requests, and "More from
+  TerraLab" no longer closes QGIS.
+
 ## [1.9.4] - 2026-11-06
 
 ### Added

@@ -65,6 +65,9 @@ from .settings_pages import (
     combo_qss,
     set_section_locked,
 )
+from .style import WEIGHT_MEDIUM
+from .styles import PANEL_TEXT
+from .widgets import placeholder_ink
 
 _TEXTAREA_H = 64
 
@@ -227,7 +230,7 @@ class PersonalisationPageMixin:
             card, self.tr("Instructions"),
             self.tr("Always answer in French, never delete a layer without asking"),
             self._store.profile_instructions, "instructions")
-        note = self._pro_note(card, self.tr("Pro reads both before every run."))
+        note = self._pro_note(card, self.tr("Pro reads both before every run."), "personalisation")
         boxes = (self._about_edit, self._about_count, self._instructions_edit, self._instructions_count)
         self._plan_sections.append((note, boxes))
         note.setVisible(locked)
@@ -253,6 +256,7 @@ class PersonalisationPageMixin:
         edit = QLineEdit(text, host)
         edit.setStyleSheet(INPUT_QSS)
         edit.setPlaceholderText(placeholder)
+        placeholder_ink(edit)
         edit.setMaxLength(PROFILE_LINE_MAX_CHARS)
         col.addWidget(edit)
         line.addLayout(col, 1)
@@ -296,10 +300,10 @@ class PersonalisationPageMixin:
         self._show_saved()
         self._emit_profile()
 
-    def _pro_note(self, host: SectionCard, reason: str) -> ProNote:
+    def _pro_note(self, host: SectionCard, reason: str, surface: str) -> ProNote:
 
         note = ProNote(reason)
-        note.upgrade_requested.connect(self._on_upgrade)
+        note.upgrade_requested.connect(lambda: self._on_upgrade(surface))
         host.add(note)
         self._pro_notes.append(note)
         self._sync_pro_notes()
@@ -327,6 +331,7 @@ class PersonalisationPageMixin:
         edit = QPlainTextEdit(box)
         edit.setStyleSheet(TEXTAREA_QSS)
         edit.setPlaceholderText(placeholder)
+        placeholder_ink(edit)
         edit.setPlainText(text or "")
         edit.setFixedHeight(scale_px_length(_TEXTAREA_H))
         edit.setTabChangesFocus(True)
@@ -401,7 +406,7 @@ class PersonalisationPageMixin:
         self._notes_label = QLabel(card)
         self._notes_label.setObjectName("memoryNotesLabel")
         self._notes_label.setStyleSheet(
-            f"font-size: 11px; font-weight: 500; color: {MUTED}; background: transparent;")
+            f"font-size: 11px; font-weight: {WEIGHT_MEDIUM}; color: {MUTED}; background: transparent;")
         self._notes_label.setContentsMargins(14, 6, 14, 0)
         card.add(self._notes_label)
         self._notes_group = SettingGroup(card, flat=True)
@@ -415,8 +420,8 @@ class PersonalisationPageMixin:
         self._add_note_btn.setObjectName("memoryAddNote")
         self._add_note_btn.setStyleSheet(
             f"QPushButton {{ background: transparent; border: none; color: {MUTED};"
-            " font-size: 12px; font-weight: 500; padding: 4px 2px; text-align: left; }"
-            " QPushButton:hover { color: palette(text); }")
+            f" font-size: 12px; font-weight: {WEIGHT_MEDIUM}; padding: 4px 2px; text-align: left; }}"
+            " QPushButton:hover { color: " + PANEL_TEXT + "; }")
         self._add_note_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         self._add_note_btn.setAutoDefault(False)
         self._add_note_btn.clicked.connect(self._open_add_note)
@@ -428,7 +433,7 @@ class PersonalisationPageMixin:
         self._clear_notes_btn.setObjectName("memoryClearNotes")
         self._clear_notes_btn.setStyleSheet(
             f"QPushButton {{ background: transparent; border: none; color: {MUTED};"
-            " font-size: 12px; padding: 4px 2px; } QPushButton:hover { color: palette(text); }")
+            " font-size: 12px; padding: 4px 2px; } QPushButton:hover { color: " + PANEL_TEXT + "; }")
         self._clear_notes_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         self._clear_notes_btn.setAutoDefault(False)
         self._clear_notes_btn.clicked.connect(self._on_clear_notes)
@@ -441,6 +446,7 @@ class PersonalisationPageMixin:
         self._note_edit = _NoteField(self._add_row)
         self._note_edit.setStyleSheet(INPUT_QSS)
         self._note_edit.setPlaceholderText(self.tr("e.g. I work in EPSG:2154"))
+        placeholder_ink(self._note_edit)
         self._note_edit.setMaxLength(MEMORY_NOTE_MAX_CHARS)
         self._note_edit.returnPressed.connect(self._on_add_note)
         self._note_edit.escaped.connect(self._close_add_note)
@@ -477,7 +483,7 @@ class PersonalisationPageMixin:
         folder_btn.setObjectName("memoryFolderOpen")
         folder_btn.setStyleSheet(
             f"QPushButton {{ background: transparent; border: none; color: {MUTED}; font-size: 11px;"
-            " text-decoration: underline; padding: 0; } QPushButton:hover { color: palette(text); }")
+            " text-decoration: underline; padding: 0; } QPushButton:hover { color: " + PANEL_TEXT + "; }")
         folder_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         folder_btn.setAutoDefault(False)
         folder_btn.clicked.connect(self._on_open_memory_folder)
@@ -486,7 +492,7 @@ class PersonalisationPageMixin:
         folder_lay.addStretch(1)
 
         card.add(folder)
-        pro = self._pro_note(card, self.tr("Pro reads your notes at the start of every conversation."))
+        pro = self._pro_note(card, self.tr("Pro reads your notes at the start of every conversation."), "memory")
         pro.setContentsMargins(12, 0, 12, 0)
         pro.setVisible(locked)
         self._fill_notes()
@@ -494,6 +500,29 @@ class PersonalisationPageMixin:
 
         self._plan_sections.append((pro, (group, self._notes_label, self._notes_group, add_host, folder)))
         set_section_locked(group, self._notes_label, self._notes_group, add_host, folder, locked=locked)
+
+    def _build_project_memory(self, page: Page) -> None:
+
+
+
+        page.add_group_title(self.tr("Project memory"))
+        mem = SectionCard(page)
+        page.add(mem)
+        buttons = QWidget(mem)
+        blay = QHBoxLayout(buttons)
+        blay.setContentsMargins(0, 0, 0, 0)
+        blay.setSpacing(8)
+        for label, action in ((self.tr("Show project memory"), "show"),
+                              (self.tr("Clear project memory"), "clear")):
+            button = QPushButton(label, buttons)
+            button.setObjectName(f"projectMemory_{action}")
+            button.setStyleSheet(GHOST_BTN_QSS)
+            button.setCursor(Qt.CursorShape.PointingHandCursor)
+            button.setAutoDefault(False)
+            button.clicked.connect(lambda _checked=False, a=action: self.project_memory_requested.emit(a))
+            blay.addWidget(button, 0)
+        blay.addStretch(1)
+        mem.add(buttons)
 
     def _open_add_note(self) -> None:
         self._add_note_btn.hide()
@@ -581,7 +610,8 @@ class PersonalisationPageMixin:
             return
         answer = QMessageBox.question(
             self, self.tr("Delete all notes"),
-            self.tr("Delete all {n} notes? The AI will not add them back.").format(n=count),
+            self.tr("Delete this note? The AI will not add it back.") if count == 1
+            else self.tr("Delete all {n} notes? The AI will not add them back.").format(n=count),
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.Cancel,
             QMessageBox.StandardButton.Cancel)
         if answer != QMessageBox.StandardButton.Yes:

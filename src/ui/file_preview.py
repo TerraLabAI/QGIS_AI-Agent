@@ -57,7 +57,7 @@ from .font_scale import scale_qss_font_px, widget_pixel_ratio
 from .icons import pixmap_for
 from .image_preview import open_image_preview
 from .style import FONT_BASE, FONT_HINT, INK, INK_2, LINE, SURFACE, with_platform_font
-from .widgets import ElidedLabel, IconButton
+from .widgets import ElidedLabel, IconButton, break_anywhere
 
 
 
@@ -133,10 +133,13 @@ def _read_text(path: str) -> tuple[str, bool] | None:
             data = handle.read(PREVIEW_TEXT_BYTES + 1)
     except OSError:
         return None
-    if b"\x00" in data[:8192]:
-        return None
     cut = len(data) > PREVIEW_TEXT_BYTES
     data = data[:PREVIEW_TEXT_BYTES]
+    if data.startswith((codecs.BOM_UTF16_LE, codecs.BOM_UTF16_BE)):
+
+        return codecs.getincrementaldecoder("utf-16")().decode(data, final=not cut), cut
+    if b"\x00" in data[:8192]:
+        return None
 
 
 
@@ -145,9 +148,9 @@ def _read_text(path: str) -> tuple[str, bool] | None:
     except UnicodeDecodeError:
 
 
-        from ..core.text_encoding import ansi_encoding
+        from ..core.text_encoding import ansi_encoding, python_codec
 
-        text = data.decode(ansi_encoding(), errors="replace")
+        text = data.decode(python_codec(ansi_encoding()), errors="replace")
     return text, cut
 
 
@@ -504,7 +507,9 @@ class FilePreview(QDialog):
         tile.setPixmap(glyph)
         tile.setStyleSheet(f"QLabel {{ background: {color}; border-radius: 14px; }}")
         col.addWidget(tile, 0, Qt.AlignmentFlag.AlignHCenter)
-        note = QLabel(words, box)
+
+        note = QLabel(break_anywhere(words), box)
+        note.setTextFormat(Qt.TextFormat.PlainText)
         note.setObjectName("filePreviewNote")
         note.setWordWrap(True)
         note.setAlignment(Qt.AlignmentFlag.AlignHCenter)

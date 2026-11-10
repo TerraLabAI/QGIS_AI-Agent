@@ -443,7 +443,16 @@ def float_labels(layer) -> dict:
         if expression is not None:
             expression.prepare(context)
     points, fids = [], []
-    for feature in layer.getFeatures(QgsFeatureRequest()):
+
+
+    request = QgsFeatureRequest()
+    request.setExpressionContext(context)
+    if shown is not None:
+        request.setFilterExpression(show.expressionString())
+    wanted = set(label.referencedColumns()) | (set(shown.referencedColumns()) if shown is not None else set())
+    if QgsFeatureRequest.ALL_ATTRIBUTES not in wanted:
+        request.setSubsetOfAttributes(sorted(wanted), layer.fields())
+    for feature in layer.getFeatures(request):
         context.setFeature(feature)
         if shown is not None and not shown.evaluate(context):
             continue

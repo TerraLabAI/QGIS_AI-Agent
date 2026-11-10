@@ -649,11 +649,6 @@ def hard_cap_km2(name: str, args: dict) -> float:
 
 
 
-FIT_MARGIN = limits.FIT_MARGIN
-
-
-
-
 
 NEAR_MISS = 1.5
 
@@ -673,7 +668,7 @@ def clamp_to_cap(name: str, args: dict) -> dict:
     area, hard = zone_km2(args), hard_cap_km2(name, args)
     if area is None or hard <= 0 or area <= hard or area > hard * NEAR_MISS:
         return {}
-    fitted = largest_fitting_bbox(box, hard)
+    fitted = limits.shrink_bbox(box, hard)
     if fitted is None:
         return {}
     south, west, north, east = fitted
@@ -694,17 +689,12 @@ def clamp_to_cap(name: str, args: dict) -> dict:
             "note_next_hint": "bbox_clamped_rest"}
 
 
-def largest_fitting_bbox(box, hard: float):
-
-    return limits.shrink_bbox(box, hard, FIT_MARGIN)
-
-
 def fitting_zone(args: dict, hard: float) -> dict:
 
 
 
     box = bbox_of(args) or (_canvas_bbox() if args.get("use_canvas_extent") else None)
-    fitted = largest_fitting_bbox(box, hard) if box else None
+    fitted = limits.shrink_bbox(box, hard) if box else None
     if fitted is None:
         return {}
     south, west, north, east = fitted

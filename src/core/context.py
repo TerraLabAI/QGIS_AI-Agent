@@ -191,18 +191,30 @@ def _home_relative_dir(text: str) -> str:
 MAX_SUBFOLDERS = 20
 
 
+
+
+
+
+_subfolders_seen: tuple = ("", 0, [])
+
+
 def _project_subfolders(project_dir: str) -> list[str]:
 
+    global _subfolders_seen
     if not project_dir:
         return []
     try:
+        changed = os.stat(project_dir).st_mtime_ns
+        if _subfolders_seen[:2] == (project_dir, changed):
+            return list(_subfolders_seen[2])
         with os.scandir(project_dir) as entries:
             names = sorted((entry.name for entry in entries
                             if not entry.name.startswith(".") and entry.is_dir(follow_symlinks=False)),
                            key=str.casefold)
     except OSError:
         return []
-    return names[:MAX_SUBFOLDERS]
+    _subfolders_seen = (project_dir, changed, names[:MAX_SUBFOLDERS])
+    return list(_subfolders_seen[2])
 
 
 def _layout_names(project) -> list[str] | None:
@@ -502,10 +514,7 @@ def _add_machine(context: dict) -> None:
                               ("MAX_RENDER_WIDTH_PX", "max_render_width_px"),
                               ("MAX_RENDER_HEIGHT_PX", "max_render_height_px"),
                               ("MAX_DOWNLOAD_BYTES", "max_download_bytes")):
-                try:
-                    caps[key] = limits.current(name)
-                except Exception:  # noqa: BLE001  # nosec B112
-                    continue
+                caps[key] = limits.current(name)
             if caps:
                 context["limits"] = caps
     except Exception:  # nosec B110

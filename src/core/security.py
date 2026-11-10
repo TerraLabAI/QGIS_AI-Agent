@@ -1066,6 +1066,10 @@ def unwrap_vsi(path: str) -> tuple[str, str]:
         if matched is None:
             return ("unknown" if _VSI_ANY_RE.match(text) else "local"), text
         text = text[len(matched):]
+        if text.startswith("{") and "}" in text:
+
+            archive, _, member = text[1:].partition("}")
+            text = archive + member
     return "local", text
 
 

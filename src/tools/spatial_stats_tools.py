@@ -140,13 +140,7 @@ def register_spatial_stats_tools(registry: ToolRegistry):
 
 def _check_args(args: dict) -> dict | None:
     method = str(args.get("method") or "")
-    if method not in METHODS:
-        return tool_error(f"method {method!r} is not one this tool runs.", "INVALID_ARGS",
-                          hint="spatial_stats_method", method=method)
     neighbours = str(args.get("neighbours") or "")
-    if neighbours and neighbours not in NEIGHBOURS:
-        return tool_error(f"neighbours {neighbours!r} is not one this tool knows.", "INVALID_ARGS",
-                          hint="spatial_stats_neighbours_kinds")
     if method != "standard_deviational_ellipse" and not str(args.get("field") or "").strip():
         return tool_error(f"{method} needs the numeric field it tests.", "INVALID_ARGS",
                           hint="spatial_stats_field_needed", method=method)
@@ -155,8 +149,6 @@ def _check_args(args: dict) -> dict | None:
             return tool_error("std_devs or confidence, not both.", "INVALID_ARGS",
                               hint="spatial_stats_ellipse_spread", std_devs=args.get("std_devs"),
                               confidence=args.get("confidence"))
-        if args.get("std_devs") is not None and args.get("std_devs") not in (1, 2, 3):
-            return tool_error("std_devs is 1, 2 or 3.", "INVALID_ARGS", hint="spatial_stats_std_devs_values")
         confidence = args.get("confidence")
         if confidence is not None and not (isinstance(confidence, (int, float)) and 0 < confidence < 1):
             return tool_error("confidence is a share between 0 and 1.", "INVALID_ARGS",
@@ -173,9 +165,6 @@ def _check_args(args: dict) -> dict | None:
         except (TypeError, ValueError):
             return tool_error("distance is a positive number of metres.", "INVALID_ARGS",
                               hint="spatial_stats_distance_default", distance=str(args.get("distance")))
-    if args.get("k") is not None and (not isinstance(args["k"], int) or args["k"] < 1):
-        return tool_error("k is a whole number of neighbours, 1 or more.", "INVALID_ARGS",
-                          hint="spatial_stats_k_default")
     return None
 
 
@@ -187,10 +176,6 @@ def _geometry_kind(layer) -> str:
     return ""
 
 
-def _numeric(field) -> bool:
-    return bool(field.isNumeric())
-
-
 def _field(layer, name: str, role: str, numeric: bool):
 
     index = layer.fields().indexOf(name)
@@ -199,7 +184,7 @@ def _field(layer, name: str, role: str, numeric: bool):
     if index < 0:
         return None, _field_not_found_error(layer, name)
     field = layer.fields().at(index)
-    if numeric and not _numeric(field):
+    if numeric and not field.isNumeric():
         return None, tool_error(
             f"{field.name()!r} of {layer.name()} is {field.typeName()}, and the {role} must be a number.",
             "INVALID_ARGS", hint="spatial_stats_field_not_numeric", layer=layer.name(), field=field.name(),

@@ -30,7 +30,7 @@ from ..core.host_platform import IS_WINDOWS
 from ..core.policy import create_managed_temp_dir
 from ..core.snapshot_project import _paths_absolute, _signals_blocked
 from .child_python import environment as _environment
-from .child_python import python_for_child
+from .child_python import python_for_child, start_refused
 
 _WORKER = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "workers",
                        "layout_export_worker.py")
@@ -181,10 +181,14 @@ def run(job: dict, stopped, budget_s: float) -> dict:
     else:
         kwargs["start_new_session"] = True
     with open(log_path, "wb") as log_handle:
-        process = subprocess.Popen(  # nosec B603
-            [python, "-s", _WORKER, job_path, status_path],
-            cwd=folder, env=environment, stdin=subprocess.DEVNULL,
-            stdout=log_handle, stderr=subprocess.STDOUT, **kwargs)
+        try:
+            process = subprocess.Popen(  # nosec B603
+                [python, "-s", _WORKER, job_path, status_path],
+                cwd=folder, env=environment, stdin=subprocess.DEVNULL,
+                stdout=log_handle, stderr=subprocess.STDOUT, **kwargs)
+        except OSError as exc:
+
+            return {"ok": False, "error": start_refused(exc), "wall_s": round(time.monotonic() - started, 2)}
         while process.poll() is None:
             if (stopped is not None and stopped()) or time.monotonic() - started > budget_s:
                 process.kill()

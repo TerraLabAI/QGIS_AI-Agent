@@ -53,9 +53,11 @@ from qgis.PyQt.QtWidgets import (
     QWidget,
 )
 
+from ..core.host_platform import prefers_reduced_motion
+from ..core.i18n import words_locale
 from ..core.numbers import as_float
 from ..core.qt_compat import one_shot
-from .card_base import reduced_motion
+from .card_base import on_screen
 from .confirm_dialog import ask_confirm
 from .font_scale import scale_qss_font_px
 from .icons import pixmap_for
@@ -74,11 +76,12 @@ from .style import (
     RADIUS_CHIP,
     RED,
     SURFACE,
+    WEIGHT_MEDIUM,
     hover_pill,
     paint_shadow,
     qcolor,
 )
-from .widgets import IconButton
+from .widgets import IconButton, placeholder_ink, plain_tip
 
 
 
@@ -107,8 +110,8 @@ _SHEET_QSS = scale_qss_font_px(
     f" padding: 0; font-size: {FONT_BASE}px; color: {INK};"
     f" selection-background-color: {LINE_STRONG}; }}"
     f"QFrame#historyRule {{ background: {LINE}; border: none; max-height: 1px; min-height: 1px; }}"
-    f"QLabel#historySection {{ font-size: {FONT_MICRO}px; font-weight: 500; color: {INK_3};"
-    " padding: 5px 8px 6px 8px; background: transparent; }"
+    f"QLabel#historySection {{ font-size: {FONT_MICRO}px; font-weight: {WEIGHT_MEDIUM}; color: {INK_3};"
+    f" padding: 5px {_ROW_PAD_X}px 6px {_ROW_PAD_X}px; background: transparent; }}"
     f"QLabel#historyEmpty {{ font-size: {FONT_BASE}px; color: {INK_3};"
     " padding: 22px 8px; background: transparent; }"
     f"QLabel#historyTitle {{ font-size: {FONT_BASE}px; color: {INK}; background: transparent; }}"
@@ -183,7 +186,9 @@ def row_time(iso: str, now: QDateTime | None = None) -> str:
     if days <= 0:
         return locale.toString(stamp.time(), QLocale.FormatType.ShortFormat)
     if days < 7:
-        return locale.dayName(stamp.date().dayOfWeek(), QLocale.FormatType.ShortFormat)
+
+
+        return words_locale().dayName(stamp.date().dayOfWeek(), QLocale.FormatType.ShortFormat)
     return locale.toString(stamp.date(), QLocale.FormatType.ShortFormat)
 
 
@@ -260,25 +265,12 @@ def _project_name(path: str) -> str:
     return str(path or "").replace("\\", "/").rstrip("/").split("/")[-1]
 
 
-def filter_threads(items: list, query: str, text_of=None) -> list:
-
-
+def filter_threads(items: list, query: str) -> list:
 
     query = (query or "").strip().lower()
     if not query:
         return list(items)
-    by_title, by_text = [], []
-    for item in items:
-        if query in str(item.get("title") or "").lower():
-            by_title.append(item)
-        elif text_of is not None:
-            try:
-                text = text_of(str(item.get("id") or ""))
-            except Exception:  # noqa: BLE001
-                text = ""
-            if query in str(text or "").lower():
-                by_text.append(item)
-    return by_title + by_text
+    return [item for item in items if query in str(item.get("title") or "").lower()]
 
 
 def group_threads(items: list, current_project: str, now=None) -> list:
@@ -315,6 +307,7 @@ class _Row(QWidget):
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         self.setFixedHeight(ROW_HEIGHT)
         self._hover = False
+        self._down = False
         self._selected = False
 
         self._current = False
@@ -376,8 +369,10 @@ class _Row(QWidget):
             meta_width = _BIN_PX - 4
         elif self._full_meta:
             meta_width = min(_META_MAX_PX, self._meta.fontMetrics().horizontalAdvance(self._full_meta) + 4)
+
+
             self._meta.setText(self._meta.fontMetrics().elidedText(
-                self._full_meta, Qt.TextElideMode.ElideRight, max(24, meta_width)))
+                self._full_meta, Qt.TextElideMode.ElideMiddle, max(24, meta_width)))
         width = self.width() - 2 * _ROW_PAD_X - meta_width - (8 if meta_width else 0)
         metrics = self._title.fontMetrics()
         self._title.setText(metrics.elidedText(self._full_title, Qt.TextElideMode.ElideRight, max(40, width)))
@@ -398,7 +393,16 @@ class _Row(QWidget):
         self.update()
         super().leaveEvent(event)
 
+    def mousePressEvent(self, event):  # noqa: N802
+
+        if event.button() == Qt.MouseButton.LeftButton:
+            self._down = True
+            self.update()
+        super().mousePressEvent(event)
+
     def mouseReleaseEvent(self, event):  # noqa: N802
+        self._down = False
+        self.update()
         if event.button() == Qt.MouseButton.LeftButton and self.rect().contains(event_pos(event)):
             self.clicked.emit()
         super().mouseReleaseEvent(event)
@@ -412,7 +416,7 @@ class _Row(QWidget):
             try:
                 painter.setRenderHint(QPainter.RenderHint.Antialiasing, True)
                 painter.setPen(Qt.PenStyle.NoPen)
-                ground = qcolor(HOVER_ON) if self._current else hover_pill()
+                ground = qcolor(HOVER_ON) if self._current or self._down else hover_pill()
                 painter.setBrush(QBrush(ground))
                 painter.drawRoundedRect(QRectF(self.rect()).adjusted(0.5, 0.5, -0.5, -0.5),
                                         _ROW_RADIUS, _ROW_RADIUS)
@@ -438,8 +442,6 @@ class HistoryPopup(QWidget):
         self._threads: list = []
         self._current_project = ""
         self._current_thread = ""
-        self._text_provider = None
-        self._text_cache: dict = {}
         self._rows: list = []
         self._built_key = None
         self._selected = -1
@@ -474,6 +476,7 @@ class HistoryPopup(QWidget):
         self._search = QLineEdit(head_host)
         self._search.setObjectName("historySearch")
         self._search.setPlaceholderText(self.tr("Search chats..."))
+        placeholder_ink(self._search)
         self._search.setClearButtonEnabled(False)
         self._search.textChanged.connect(self._on_query)
         self._search.installEventFilter(self)
@@ -499,15 +502,15 @@ class HistoryPopup(QWidget):
 
         self._pop = QVariantAnimation(self)
         self._pop.setDuration(MOTION_POP_MS)
-        self._pop.setEasingCurve(QEasingCurve.Type.OutCubic)
+        self._pop.setEasingCurve(QEasingCurve.Type.OutQuint)
         self._pop.valueChanged.connect(self._on_pop)
+        self._rise = _POP_RISE
         self._rebuild()
 
     def set_threads(self, items, current_project_path: str | None = None) -> None:
         self._threads = [i for i in (items or []) if isinstance(i, dict) and i.get("id")]
         if current_project_path is not None:
             self._current_project = str(current_project_path or "")
-        self._text_cache.clear()
 
 
 
@@ -523,12 +526,6 @@ class HistoryPopup(QWidget):
         self._current_thread = str(thread_id or "")
         self._rebuild()
 
-    def set_thread_text_provider(self, provider) -> None:
-
-
-        self._text_provider = provider
-        self._text_cache.clear()
-
     def threads(self) -> list:
         return list(self._threads)
 
@@ -536,7 +533,6 @@ class HistoryPopup(QWidget):
 
         width = max(SHEET_MIN_WIDTH, panel.width() - SHEET_MARGIN)
         self._search.clear()
-        self._text_cache.clear()
         self._limit = _MAX_ROWS
         self._rebuild()
         self.setFixedWidth(width + 2 * _SHADOW)
@@ -568,10 +564,12 @@ class HistoryPopup(QWidget):
 
     def _pop_in(self, panel: QWidget) -> None:
 
+
         self._pop.stop()
-        if not panel.isVisible() or reduced_motion(panel):
+        if not on_screen(panel):
             self.setWindowOpacity(1.0)
             return
+        self._rise = 0 if prefers_reduced_motion() else _POP_RISE
         self.setWindowOpacity(0.0)
         self._pop.setStartValue(0.0)
         self._pop.setEndValue(1.0)
@@ -584,7 +582,7 @@ class HistoryPopup(QWidget):
     def _on_pop(self, value) -> None:
         progress = as_float(value, 1.0)
         self.setWindowOpacity(progress)
-        self.move(QPoint(self._final.x(), self._final.y() + int(_POP_RISE * (1.0 - progress))))
+        self.move(QPoint(self._final.x(), self._final.y() + int(self._rise * (1.0 - progress))))
 
     def hideEvent(self, event):  # noqa: N802
         self._pop.stop()
@@ -607,13 +605,6 @@ class HistoryPopup(QWidget):
                 widget.hide()
                 widget.setParent(None)
                 widget.deleteLater()
-
-    def _text_of(self, thread_id: str) -> str:
-        if self._text_provider is None:
-            return ""
-        if thread_id not in self._text_cache:
-            self._text_cache[thread_id] = str(self._text_provider(thread_id) or "")
-        return self._text_cache[thread_id]
 
     def _on_query(self, _text: str) -> None:
 
@@ -640,7 +631,7 @@ class HistoryPopup(QWidget):
             return
         self._clear_rows()
         self._built_key = key
-        threads = filter_threads(self._threads, query, self._text_of)
+        threads = filter_threads(self._threads, query)
 
         if not self._threads:
             self._list.addWidget(self._empty(self.tr("No chats yet")))
@@ -679,7 +670,7 @@ class HistoryPopup(QWidget):
         if total <= self._limit:
             return
         row = _Row(self.tr("Show older chats"), False, self._content,
-                   meta=str(total - self._limit))
+                   meta=QLocale().toString(total - self._limit))
         row.clicked.connect(self._show_more)
         self._add_row(row)
 
@@ -694,6 +685,7 @@ class HistoryPopup(QWidget):
 
         label = QLabel(text, self._content)
         label.setObjectName("historySection")
+        label.setIndent(0)
         return label
 
     def _empty(self, text: str) -> QLabel:
@@ -718,7 +710,8 @@ class HistoryPopup(QWidget):
         else:
             meta = row_time(str(item.get("updated_at") or item.get("updated_at_iso") or "")) if mine else project
         row = _Row(title, True, self._content, meta=meta)
-        row.setToolTip("\n".join(p for p in (title, "  ·  ".join(q for q in (when, project) if q)) if p))
+
+        row.setToolTip("<br>".join(plain_tip(p) for p in (title, "  ·  ".join(q for q in (when, project) if q)) if p))
         row.set_current(thread_id == self._current_thread)
         row.clicked.connect(lambda t=thread_id: self._on_pick(t))
         row.delete_clicked.connect(lambda t=thread_id: self._on_delete(t))
@@ -808,7 +801,6 @@ class HistoryPopup(QWidget):
             self._search.setFocus(Qt.FocusReason.PopupFocusReason)
             return
         self._threads = [t for t in self._threads if str(t.get("id") or "") != thread_id]
-        self._text_cache.pop(thread_id, None)
         self._rebuild()
         self.thread_delete_requested.emit(thread_id)
 

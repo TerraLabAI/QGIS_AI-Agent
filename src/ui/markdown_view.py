@@ -31,13 +31,14 @@ import math
 import re
 import time
 
-from qgis.PyQt.QtCore import QEvent, QObject, QRect, QRectF, QSize, QSizeF, Qt, QUrl, pyqtSignal
+from qgis.PyQt.QtCore import QEvent, QObject, QRectF, QSize, QSizeF, Qt, QUrl, pyqtSignal
 from qgis.PyQt.QtGui import (
     QBrush,
     QColor,
     QFont,
     QFontDatabase,
     QFontInfo,
+    QFontMetricsF,
     QPainter,
     QPen,
     QPixmap,
@@ -142,7 +143,10 @@ _MARKDOWN_FEATURES = _probe_markdown_features(_markdown_features())
 
 
 _BODY_PX = FONT_PROSE
-_LINE_HEIGHT_PERCENT = 150
+
+
+
+_LINE_HEIGHT_PERCENT = 155
 
 
 _PARAGRAPH_GAP = 12
@@ -231,8 +235,6 @@ class MarkdownView(QTextBrowser):
 
 
     link_activated = pyqtSignal(str)
-    passage_selected = pyqtSignal(str, object)
-    passage_cleared = pyqtSignal()
 
 
 
@@ -248,7 +250,6 @@ class MarkdownView(QTextBrowser):
 
         self._stream = None
         self._holding = False
-        self._had_selection = False
         self.setObjectName("monoText" if mono else "chatText")
         self.setReadOnly(True)
         self.setFrameShape(QFrame.Shape.NoFrame)
@@ -296,15 +297,32 @@ class MarkdownView(QTextBrowser):
             self._apply_body_font()
         doc.documentLayout().documentSizeChanged.connect(self._on_document_size)
         doc.contentsChanged.connect(self._sync_height)
-        self.selectionChanged.connect(self._on_selection_changed)
         self._sync_height()
 
     def set_markdown(self, text: str) -> None:
+
+
+
+
+        text = text or ""
+        if self._stream is not None and text.startswith(self._stream.text):
+            if text != self._stream.text:
+                self.stream_markdown(text)
+            return
+        self._set_whole(text)
+
+    def _set_whole(self, text: str) -> None:
         cursor_state = self._cursor_state()
         self._stream = None
         doc = self.document()
-        _import_markdown(doc, text or "")
-        self._decorate()
+
+
+        held, self._holding = self._holding, True
+        try:
+            _import_markdown(doc, text or "")
+            self._decorate()
+        finally:
+            self._holding = held
         self._sync_height()
         self._restore_cursor(cursor_state)
 
@@ -438,7 +456,7 @@ class MarkdownView(QTextBrowser):
             finally:
                 self._holding = False
         if not incremental or state.broken:
-            self.set_markdown(text)
+            self._set_whole(text)
             state.stable = 0
         self._stream = state
         self._sync_height()
@@ -585,11 +603,13 @@ class MarkdownView(QTextBrowser):
                 it += 1
             block = block.next()
         base_px = self._body_px()
+        natural = QFontMetricsF(doc.defaultFont()).lineSpacing() or float(base_px)
+        line_percent = max(100, int(round(_LINE_HEIGHT_PERCENT * base_px / natural)))
         cursor = QTextCursor(doc)
         cursor.beginEditBlock()
         for position, is_item, is_last in prose:
             fmt = QTextBlockFormat()
-            fmt.setLineHeight(_LINE_HEIGHT_PERCENT, _proportional_height())
+            fmt.setLineHeight(line_percent, _proportional_height())
             fmt.setTopMargin(0)
             fmt.setBottomMargin(0 if is_last else (_ITEM_GAP if is_item else _PARAGRAPH_GAP))
             cursor.setPosition(position)
@@ -755,18 +775,27 @@ class MarkdownView(QTextBrowser):
 
 
         doc = self.document()
-        for frame in _frames(doc.rootFrame()):
-            if not hasattr(frame, "columns") or frame.lastPosition() < start:
-                continue
-            fmt = QTextTableFormat(frame.format())
-            fmt.setBorder(0)
-            fmt.setCellPadding(_TABLE_CELL_PAD)
-            fmt.setCellSpacing(0)
-            fmt.setTopMargin(2)
-            fmt.setBottomMargin(_PARAGRAPH_GAP)
-            fmt.setWidth(QTextLength(QTextLength.Type.PercentageLength, 100))
-            frame.setFormat(fmt)
-            _style_table(frame)
+        tables = [frame for frame in _frames(doc.rootFrame())
+                  if hasattr(frame, "columns") and frame.lastPosition() >= start]
+        if not tables:
+            return
+
+
+        edit = QTextCursor(doc)
+        edit.beginEditBlock()
+        try:
+            for frame in tables:
+                fmt = QTextTableFormat(frame.format())
+                fmt.setBorder(0)
+                fmt.setCellPadding(_TABLE_CELL_PAD)
+                fmt.setCellSpacing(0)
+                fmt.setTopMargin(2)
+                fmt.setBottomMargin(_PARAGRAPH_GAP)
+                fmt.setWidth(QTextLength(QTextLength.Type.PercentageLength, 100))
+                frame.setFormat(fmt)
+                _style_table(frame)
+        finally:
+            edit.endEditBlock()
 
     def _body_px(self) -> int:
         px = self.document().defaultFont().pixelSize()
@@ -846,36 +875,6 @@ class MarkdownView(QTextBrowser):
         self.setTextCursor(cursor)
         self.horizontalScrollBar().setValue(horizontal)
         self.verticalScrollBar().setValue(vertical)
-
-    def selected_text(self) -> str:
-        return self.textCursor().selectedText().replace("\u2029", "\n")
-
-    def selection_rect(self) -> QRect:
-
-        cursor = self.textCursor()
-        start = QTextCursor(cursor)
-        start.setPosition(cursor.selectionStart())
-        end = QTextCursor(cursor)
-        end.setPosition(cursor.selectionEnd())
-        rect = self.cursorRect(start).united(self.cursorRect(end))
-        if rect.height() > self.cursorRect(start).height():
-            rect.setLeft(0)
-            rect.setRight(self.viewport().width())
-        return QRect(self.viewport().mapToGlobal(rect.topLeft()), rect.size())
-
-    def _on_selection_changed(self) -> None:
-        has = self.textCursor().hasSelection() and bool(self.selected_text().strip())
-        if self._had_selection and not has:
-            self.passage_cleared.emit()
-        self._had_selection = has
-
-    def mouseReleaseEvent(self, event):  # noqa: N802
-        super().mouseReleaseEvent(event)
-        if event.button() != Qt.MouseButton.LeftButton or self._mono:
-            return
-        text = self.selected_text()
-        if self.textCursor().hasSelection() and text.strip():
-            self.passage_selected.emit(text, self.selection_rect())
 
     def _panel_rects(self) -> tuple:
 

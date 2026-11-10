@@ -21,7 +21,7 @@ from qgis.PyQt.QtWidgets import QFrame, QHBoxLayout, QLabel, QVBoxLayout, QWidge
 
 from .icons import pixmap_for
 from .shared import event_pos
-from .style import _BTN_THUMB_CLOSE, HAIRLINE_STRONG, HOVER, repolish
+from .style import _BTN_THUMB_CLOSE, HAIRLINE_STRONG, HIT_PX, HOVER, repolish
 from .widgets import ElidedLabel, IconButton
 
 CARD_RADIUS = 12
@@ -36,6 +36,11 @@ NAME_MIN_WIDTH = 80
 
 CLOSE_SIZE = 18
 CLOSE_OVERHANG = 6
+
+
+CLOSE_HIT = HIT_PX
+CLOSE_QSS = _BTN_THUMB_CLOSE + (
+    f"QToolButton {{ margin: 0 0 {CLOSE_HIT - CLOSE_SIZE}px {CLOSE_HIT - CLOSE_SIZE}px; }}")
 
 
 
@@ -156,9 +161,9 @@ class AttachCard(QWidget):
         self._close = None
         self._reveal = None
         if self._closable:
-            self._close = IconButton(self, None, 10, self.tr("Remove"), _BTN_THUMB_CLOSE)
+            self._close = IconButton(self, None, 10, self.tr("Remove"), CLOSE_QSS)
             self._close.set_icon("close", 10, QColor(255, 255, 255))
-            self._close.setFixedSize(CLOSE_SIZE, CLOSE_SIZE)
+            self._close.setFixedSize(CLOSE_HIT, CLOSE_HIT)
             self._close.clicked.connect(self.removed.emit)
             self._close.raise_()
 
@@ -213,7 +218,7 @@ class AttachCard(QWidget):
     def resizeEvent(self, event):  # noqa: N802
         super().resizeEvent(event)
         if self._close is not None:
-            self._close.move(self.width() - CLOSE_SIZE, 0)
+            self._close.move(self.width() - CLOSE_HIT, 0)
             self._close.raise_()
 
     def set_kind(self, kind: str) -> None:

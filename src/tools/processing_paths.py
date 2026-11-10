@@ -34,7 +34,7 @@ from ..core.logger import log_warning
 from ..core.output_paths import gpkg_sink_uri, gpkg_table_target
 from ..core.policy import create_managed_temp_dir
 from ..core.security import fits_path
-from ..core.text_encoding import ansi_encoding
+from ..core.text_encoding import ansi_encoding, python_codec
 from ..core.tool_registry import tool_error
 
 
@@ -136,7 +136,7 @@ def narrow_open_path(path: str) -> tuple[str, str]:
     if not IS_WINDOWS or not str(path or "").lower().endswith(tool_rules.names("paths", "narrow_open_suffixes")):
         return path, ""
 
-    page = ansi_encoding()
+    page = python_codec(ansi_encoding())
 
     def fits(text: str) -> bool:
         try:

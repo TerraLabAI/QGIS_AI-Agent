@@ -9,7 +9,7 @@ import os
 
 from qgis.core import QgsProject, QgsTask, QgsVectorLayer
 
-from ..core import geodata_rules, layer_order, limits, net
+from ..core import background, geodata_rules, layer_order, limits, net
 from ..core.background import run_on_main_thread
 from ..core.host_platform import remove_quietly, remove_tree
 from ..core.layer_release import register_task
@@ -441,7 +441,7 @@ def _osm_class_fields(theme: str) -> tuple:
     return ordered + ((cover,) if cover in published and cover not in keys else ())
 
 
-def _class_of(get, theme: str, osm_fields: tuple) -> str:
+def _class_of(get, osm_fields: tuple, class_fields: tuple) -> str:
 
     if osm_fields:
         for field in osm_fields:
@@ -449,7 +449,7 @@ def _class_of(get, theme: str, osm_fields: tuple) -> str:
             if value not in (None, ""):
                 return f"{field}={value}"
         return "untagged"
-    values = [get(field) for field in geodata_rules.rule("overture_extract", "class_fields")]
+    values = [get(field) for field in class_fields]
     return "/".join(str(value) for value in values if value not in (None, "")) or "unclassified"
 
 
@@ -459,10 +459,14 @@ class _ClassCounter:
     def __init__(self, theme: str):
         self.theme = theme
         self.osm_fields = _osm_class_fields(theme) if theme in _osm_themes() else ()
+        self.class_fields: tuple | None = None
         self.counts: dict = {}
 
     def add(self, get, count: int = 1) -> None:
-        label = _class_of(get, self.theme, self.osm_fields)
+        if self.class_fields is None:
+            self.class_fields = () if self.osm_fields else tuple(
+                geodata_rules.rule("overture_extract", "class_fields"))
+        label = _class_of(get, self.osm_fields, self.class_fields)
         self.counts[label] = self.counts.get(label, 0) + count
 
     def result(self) -> dict:
@@ -1138,6 +1142,8 @@ class _ExtractRead:
 
         several = len(self.tables) > 1
         added = []
+        if not background.still_awaited():
+            return added
         for family in _LIFTED_FAMILIES:
             if family not in self.tables or family in self.layer_ids:
                 continue

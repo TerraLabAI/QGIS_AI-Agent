@@ -16,42 +16,35 @@
 from __future__ import annotations
 
 from qgis.PyQt.QtCore import Qt, pyqtSignal
-from qgis.PyQt.QtGui import QIcon
 from qgis.PyQt.QtWidgets import (
-    QFrame,
     QHBoxLayout,
     QLabel,
     QLineEdit,
     QPushButton,
-    QToolButton,
     QVBoxLayout,
     QWidget,
 )
 
-from ..font_scale import scale_px_length, scale_qss_font_px
-from ..header import letter_badge
+from ..font_scale import scale_qss_font_px
 from ..style import (
-    _BTN_AVATAR,
     _BTN_DANGER_GHOST,
     _BTN_GHOST,
     _BTN_PRIMARY_WIDE,
-    _BTN_QUIET,
     BTN_PILL_PX,
     BTN_PRIMARY_WIDE_PX,
     FONT_BASE,
     FONT_HINT,
-    HAIRLINE,
     INK_2,
     MUTED,
-    RADIUS_CARD,
     SPACE_CARD,
     SPACE_OUTER,
+    keyboard_ring,
 )
-from ..styles import _msg_label_qss
-from ..widgets import Spinner
+from ..styles import PANEL_TEXT, _msg_label_qss
+from ..widgets import Spinner, placeholder_ink
 
 
-_TITLE_QSS = (scale_qss_font_px(f"font-weight: 600; font-size: {FONT_BASE + 3}px; color: palette(text);"
+_TITLE_QSS = (scale_qss_font_px(f"font-weight: 600; font-size: {FONT_BASE + 3}px; color: {PANEL_TEXT};"
               " background: transparent; border: none;"))
 _PITCH_QSS = scale_qss_font_px(
     f"font-size: {FONT_BASE}px; color: {INK_2}; background: transparent; border: none;")
@@ -70,7 +63,6 @@ class ActivationCard(QWidget):
     pairing_cancel_requested = pyqtSignal()
 
     pairing_code_submitted = pyqtSignal(str)
-    account_clicked = pyqtSignal()
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -125,6 +117,7 @@ class ActivationCard(QWidget):
         self._connect_btn.setFixedHeight(BTN_PRIMARY_WIDE_PX)
         self._connect_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         self._connect_btn.setStyleSheet(_BTN_PRIMARY_WIDE)
+        keyboard_ring(self._connect_btn)
         self._connect_btn.setAutoDefault(False)
         self._connect_btn.clicked.connect(self.sign_in_requested.emit)
         connect_col.addWidget(self._connect_btn)
@@ -148,8 +141,10 @@ class ActivationCard(QWidget):
         self._spinner = Spinner(16, parent=self._wait_section)
         status_row.addWidget(self._spinner, 0, Qt.AlignmentFlag.AlignVCenter)
         self._wait_status = QLabel(self.tr("Waiting for your browser sign-in..."), self._wait_section)
-        self._wait_status.setStyleSheet(scale_qss_font_px("font-size: 12px; color: palette(text);"))
-        status_row.addWidget(self._wait_status, 0, Qt.AlignmentFlag.AlignVCenter)
+        self._wait_status.setStyleSheet(scale_qss_font_px("font-size: 12px; color: " + PANEL_TEXT + ";"))
+
+        self._wait_status.setWordWrap(True)
+        status_row.addWidget(self._wait_status, 0)
         status_row.addStretch(1)
         wait_col.addLayout(status_row)
         btn_row = QHBoxLayout()
@@ -159,6 +154,7 @@ class ActivationCard(QWidget):
         self._reopen_btn.setFixedHeight(BTN_PILL_PX)
         self._reopen_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         self._reopen_btn.setStyleSheet(_BTN_GHOST)
+        keyboard_ring(self._reopen_btn)
         self._reopen_btn.setAutoDefault(False)
         self._reopen_btn.clicked.connect(self.pairing_reopen_requested.emit)
         btn_row.addWidget(self._reopen_btn)
@@ -166,6 +162,7 @@ class ActivationCard(QWidget):
         self._cancel_btn.setFixedHeight(BTN_PILL_PX)
         self._cancel_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         self._cancel_btn.setStyleSheet(_BTN_DANGER_GHOST)
+        keyboard_ring(self._cancel_btn)
         self._cancel_btn.setAutoDefault(False)
         self._cancel_btn.clicked.connect(self._on_cancel)
         btn_row.addWidget(self._cancel_btn)
@@ -179,13 +176,14 @@ class ActivationCard(QWidget):
         code_label = QLabel(self.tr("Type the code shown in your browser:"), self._code_section)
         code_label.setWordWrap(True)
         code_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        code_label.setStyleSheet(scale_qss_font_px("font-size: 12px; color: palette(text);"))
+        code_label.setStyleSheet(scale_qss_font_px("font-size: 12px; color: " + PANEL_TEXT + ";"))
         code_col.addWidget(code_label)
         code_row = QHBoxLayout()
         code_row.setSpacing(SPACE_CARD)
         self._code_input = QLineEdit(self._code_section)
         self._code_input.setMaxLength(9)
         self._code_input.setPlaceholderText("K7P-4QX")
+        placeholder_ink(self._code_input)
         self._code_input.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self._code_input.setFixedHeight(BTN_PILL_PX)
         self._code_input.returnPressed.connect(self._submit_code)
@@ -194,6 +192,7 @@ class ActivationCard(QWidget):
         self._code_btn.setFixedHeight(BTN_PILL_PX)
         self._code_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         self._code_btn.setStyleSheet(_BTN_GHOST)
+        keyboard_ring(self._code_btn)
         self._code_btn.setAutoDefault(False)
         self._code_btn.clicked.connect(self._submit_code)
         code_row.addWidget(self._code_btn)
@@ -208,45 +207,6 @@ class ActivationCard(QWidget):
         wait_col.addWidget(self._code_section)
         self._wait_section.hide()
         col.addWidget(self._wait_section)
-
-        self._account_section = QFrame(self)
-        self._account_section.setObjectName("accountChip")
-        self._account_section.setStyleSheet(
-            f"QFrame#accountChip {{ background: palette(base);"
-            f" border: 1px solid {HAIRLINE}; border-radius: {RADIUS_CARD}px; }}"
-            "QLabel { background: transparent; border: none; }")
-        chip_row = QHBoxLayout(self._account_section)
-        chip_row.setContentsMargins(12, 10, 12, 10)
-        chip_row.setSpacing(11)
-        self._avatar_btn = QToolButton(self._account_section)
-        self._avatar_btn.setStyleSheet(_BTN_AVATAR)
-        diameter = scale_px_length(32)
-        self._avatar_diameter = diameter
-        self._avatar_btn.setFixedSize(diameter + 4, diameter + 4)
-        self._avatar_btn.setIconSize(self._avatar_btn.size())
-        self._avatar_btn.setCursor(Qt.CursorShape.PointingHandCursor)
-        self._avatar_btn.setToolTip(self.tr("Account"))
-        self._avatar_btn.setAccessibleName(self.tr("Account"))
-        self._avatar_btn.clicked.connect(self.account_clicked.emit)
-        chip_row.addWidget(self._avatar_btn, 0, Qt.AlignmentFlag.AlignVCenter)
-        id_col = QVBoxLayout()
-        id_col.setSpacing(2)
-        self._email_label = QLabel(self._account_section)
-        self._email_label.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
-        self._email_label.setStyleSheet(scale_qss_font_px("font-size: 13px; font-weight: 600; color: palette(text);"))
-        id_col.addWidget(self._email_label)
-        connected = QLabel("✓ " + self.tr("Connected"), self._account_section)
-        connected.setStyleSheet(scale_qss_font_px(f"font-size: 11px; color: {MUTED};"))
-        id_col.addWidget(connected)
-        chip_row.addLayout(id_col, 1)
-        account_btn = QPushButton(self.tr("Account"), self._account_section)
-        account_btn.setStyleSheet(_BTN_QUIET)
-        account_btn.setCursor(Qt.CursorShape.PointingHandCursor)
-        account_btn.setAutoDefault(False)
-        account_btn.clicked.connect(self.account_clicked.emit)
-        chip_row.addWidget(account_btn, 0, Qt.AlignmentFlag.AlignVCenter)
-        self._account_section.hide()
-        col.addWidget(self._account_section)
 
         self._message = QLabel(self)
         self._message.setWordWrap(True)
@@ -267,7 +227,6 @@ class ActivationCard(QWidget):
         self._spinner.stop()
         self._wait_section.hide()
         self._hide_code_input()
-        self._account_section.hide()
         self._connect_section.show()
         self._set_subtitle("")
         self.clear_message()
@@ -285,7 +244,6 @@ class ActivationCard(QWidget):
         self.state = "pairing"
         self._connect_section.hide()
         self._pitch.hide()
-        self._account_section.hide()
         self._message.hide()
         self._wait_section.show()
         self._spinner.start()
@@ -325,26 +283,6 @@ class ActivationCard(QWidget):
 
         if self.state == "pairing":
             self.show_signed_out()
-
-    def show_activated(self, email: str, avatar_url: str = "") -> None:
-        self.state = "activated"
-        self._spinner.stop()
-        self._connect_section.hide()
-        self._pitch.hide()
-        self._wait_section.hide()
-        self._message.hide()
-        self._email_label.setText(email or "")
-        letter = (email or "?").strip()[:1].upper() or "?"
-        self._avatar_btn.setIcon(QIcon(letter_badge(self, letter, self._avatar_diameter)))
-        if avatar_url:
-            from ..account_avatar import cached_avatar_pixmap, is_avatar_url_usable
-
-            if is_avatar_url_usable(avatar_url):
-                pixmap = cached_avatar_pixmap(avatar_url, self._avatar_diameter)
-                if pixmap is not None:
-                    self._avatar_btn.setIcon(QIcon(pixmap))
-        self._account_section.show()
-        self._set_subtitle(self.tr("You are signed in."))
 
     def _set_subtitle(self, text: str) -> None:
         self._subtitle.setText(text)

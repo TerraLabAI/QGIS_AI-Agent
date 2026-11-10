@@ -68,7 +68,8 @@ import time
 from collections import namedtuple
 
 from . import net_link
-from .host_platform import IS_MACOS, IS_WINDOWS
+from .host_platform import IS_MACOS, IS_WINDOWS, in_synced_folder
+from .output_paths import standard_folder
 
 IS_LINUX = sys.platform.startswith("linux")
 
@@ -673,6 +674,41 @@ def sample(force: bool = False) -> Sample:
     return fresh
 
 
+def desk_classes(widget=None) -> dict:
+
+
+
+
+
+
+
+    facts: dict = {}
+    try:
+        facts["screen_scale_pct"] = int(round(float(widget.devicePixelRatioF()) * 4)) * 25
+    except Exception:  # nosec B110
+        pass
+    try:
+        free_mb = sample().available_mb
+        if free_mb is not None:
+            facts["free_memory"] = next((name for limit, name in ((2048, "lt2gb"), (4096, "lt4gb"), (8192, "lt8gb"))
+                                         if free_mb < limit), "gte8gb")
+    except Exception:  # nosec B110
+        pass
+    try:
+        facts["documents_synced"] = in_synced_folder(standard_folder("documents"))
+    except Exception:  # nosec B110
+        pass
+    if IS_WINDOWS:
+        try:
+            user32 = ctypes.WinDLL("user32", use_last_error=True)
+            user32.GetSystemMetrics.argtypes = [ctypes.c_int]
+            user32.GetSystemMetrics.restype = ctypes.c_int
+            facts["remote_session"] = bool(user32.GetSystemMetrics(0x1000))
+        except Exception:  # nosec B110
+            pass
+    return facts
+
+
 def note_freeze(seconds: float, _who: str = "") -> None:
 
 
@@ -820,10 +856,7 @@ def factor() -> float:
 
 def link_factor() -> float:
 
-    try:
-        return net_link.link_factor()
-    except Exception:  # noqa: BLE001
-        return 1.0
+    return net_link.link_factor()
 
 
 def clock_stretch() -> float:

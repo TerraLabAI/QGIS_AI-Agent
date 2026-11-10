@@ -39,6 +39,7 @@
 
 from __future__ import annotations
 
+import re
 import sys
 
 from qgis.PyQt.QtCore import QEvent, QRectF, QSize, Qt, pyqtSignal
@@ -48,8 +49,21 @@ from qgis.PyQt.QtWidgets import QDockWidget, QFrame, QPlainTextEdit, QWidget
 from .icons import icon_for
 from .mention_search import FILES, LAYER, PLUGIN, SOURCE, layer_rows, live_mentions, sheet_rows
 from .mention_sheet import MentionSheet, popup_keys
-from .paste_text import clean_pasted_text
-from .style import _SCROLL_AREA_QSS, ACCENT_INK, ACCENT_TINT, RADIUS_CHIP, accent_color, qcolor
+from .style import _SCROLL_AREA_QSS, ACCENT_INK, ACCENT_TINT, RADIUS_CHIP, accent_color, medium_font_weight, qcolor
+from .widgets import placeholder_ink
+
+
+
+
+
+
+
+
+_PASTE_SEPARATORS = str.maketrans({"\u2029": "\n", "\u2028": "\n", "\u00a0": " "})
+_PASTE_NEWLINES = re.compile(r"\r\n?")
+_PASTE_BULLETS = re.compile(r"^[ \t]*[•‣▪○◦⁃⁌⁍∙][ \t]*", re.MULTILINE)
+_PASTE_TRAILING_SPACE = re.compile(r"[ \t]+$", re.MULTILINE)
+_PASTE_BLANK_RUN = re.compile(r"\n{3,}")
 
 MIN_LINES = 1
 
@@ -288,7 +302,7 @@ class ComposerInput(QPlainTextEdit):
         self.setTextCursor(cursor)
         self.setCurrentCharFormat(QTextCharFormat())
         self.setFocus(Qt.FocusReason.OtherFocusReason)
-        self._update_completion()
+        self._update_completion(pop=True)
 
     def has_layers(self) -> bool:
 
@@ -325,7 +339,7 @@ class ComposerInput(QPlainTextEdit):
             return None
         return cursor.position() - len(word) - 1, word
 
-    def _update_completion(self) -> None:
+    def _update_completion(self, pop: bool = False) -> None:
         found = self._mention_prefix()
         if found is None:
             self._close_sheet()
@@ -335,7 +349,7 @@ class ComposerInput(QPlainTextEdit):
         if self._sheet.row_count() == 0:
             self._close_sheet()
             return
-        self._sheet.open_above(self._anchor if self._anchor is not None else self)
+        self._sheet.open_above(self._anchor if self._anchor is not None else self, pop)
 
     def _close_sheet(self) -> None:
 
@@ -390,7 +404,7 @@ class ComposerInput(QPlainTextEdit):
         body.setProperty(_CHIP_LABEL, label)
         body.setProperty(_CHIP_GLYPH_NAME, str(data.get("glyph") or ""))
         body.setForeground(qcolor(ACCENT_INK))
-        body.setFontWeight(QFont.Weight.Medium)
+        body.setFontWeight(medium_font_weight())
         cursor.insertText("@", self._mark_format(body, data))
         cursor.insertText(label, body)
         cursor.insertText(" ", QTextCharFormat())
@@ -559,7 +573,11 @@ class ComposerInput(QPlainTextEdit):
 
 
 
-        text = clean_pasted_text(source.text())
+        text = source.text() or ""
+        text = _PASTE_NEWLINES.sub("\n", text).translate(_PASTE_SEPARATORS)
+        text = _PASTE_BULLETS.sub("", text)
+        text = _PASTE_TRAILING_SPACE.sub("", text)
+        text = _PASTE_BLANK_RUN.sub("\n\n", text).strip()
         if text:
             self.insertPlainText(text)
 
@@ -770,6 +788,7 @@ class ComposerInput(QPlainTextEdit):
 
 
         super().setPlaceholderText(text)
+        placeholder_ink(self)
         self._sync_height()
 
     def _placeholder_lines(self) -> int:

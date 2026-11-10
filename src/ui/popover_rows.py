@@ -23,6 +23,7 @@ from .style import (
     FONT_BODY,
     FONT_HINT,
     FONT_MICRO,
+    HOVER_ON,
     INK,
     INK_2,
     INK_3,
@@ -32,6 +33,7 @@ from .style import (
     RADIUS_CONTROL,
     SURFACE,
     hover_pill,
+    qcolor,
 )
 
 _ROW_RADIUS = RADIUS_CONTROL
@@ -84,6 +86,7 @@ class _Row(QWidget):
         self.setCursor(Qt.CursorShape.PointingHandCursor)
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         self._hover = False
+        self._down = False
         self._focused = False
 
 
@@ -153,7 +156,16 @@ class _Row(QWidget):
         self.update()
         super().leaveEvent(event)
 
+    def mousePressEvent(self, event):  # noqa: N802
+
+        if event.button() == Qt.MouseButton.LeftButton:
+            self._down = True
+            self.update()
+        super().mousePressEvent(event)
+
     def mouseReleaseEvent(self, event):  # noqa: N802
+        self._down = False
+        self.update()
         if event.button() == Qt.MouseButton.LeftButton and self.rect().contains(event_pos(event)):
             self.clicked.emit()
         super().mouseReleaseEvent(event)
@@ -164,7 +176,7 @@ class _Row(QWidget):
             try:
                 painter.setRenderHint(QPainter.RenderHint.Antialiasing, True)
                 painter.setPen(Qt.PenStyle.NoPen)
-                painter.setBrush(QBrush(hover_pill()))
+                painter.setBrush(QBrush(qcolor(HOVER_ON) if self._down else hover_pill()))
                 painter.drawRoundedRect(QRectF(self.rect()).adjusted(0.5, 0.5, -0.5, -0.5),
                                         _ROW_RADIUS, _ROW_RADIUS)
             finally:

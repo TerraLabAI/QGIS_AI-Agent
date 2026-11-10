@@ -44,6 +44,7 @@ from .style import (
     _BTN_PRIMARY,
     _BTN_QUIET,
     ACCENT,
+    ACCENT_INK,
     BTN_SMALL_PX,
     FIELD,
     FONT_BASE,
@@ -63,6 +64,8 @@ from .style import (
     RADIUS_CONTROL,
     SPACE_CARD,
     SURFACE,
+    WEIGHT_MEDIUM,
+    _focus_ring,
     qcolor,
     repolish,
 )
@@ -77,7 +80,7 @@ _PROPOSAL_MAX_PX = 380
 _ASK_DONE_QSS = "QWidget#{name} { background: transparent; border: none; }"
 
 _ASK_TEXT_QSS = scale_qss_font_px(
-    f"QLabel {{ font-size: {FONT_BASE}px; font-weight: 500; color: {INK};"
+    f"QLabel {{ font-size: {FONT_BASE}px; font-weight: {WEIGHT_MEDIUM}; color: {INK};"
     " background: transparent; border: none; }"
 )
 _ASK_LABEL_QSS = scale_qss_font_px(
@@ -102,7 +105,16 @@ _PAGER_QSS = scale_qss_font_px(
 _PILL_PX = BTN_SMALL_PX
 _BTN_PRIMARY_PILL = _BTN_PRIMARY.replace("padding: 0 12px", "padding: 0 14px")
 _BTN_GHOST_PILL = _BTN_GHOST
-_BTN_QUIET_LINK = _BTN_QUIET
+
+
+
+_BTN_QUIET_LINK = (
+    _BTN_QUIET
+    + "QPushButton { text-align: left; padding: 4px 2px; }"
+    + f"QPushButton:hover {{ background: transparent; color: {INK}; text-decoration: underline; }}"
+    + f"QPushButton:pressed {{ background: transparent; color: {INK_2}; text-decoration: underline; }}"
+    + _focus_ring(ACCENT_INK, "2px 0px")
+)
 
 
 
@@ -343,7 +355,7 @@ class FoldMixin:
             return
         fold = QVariantAnimation(self)
         fold.setDuration(MOTION_FOLD_MS)
-        fold.setEasingCurve(QEasingCurve.Type.OutCubic)
+        fold.setEasingCurve(QEasingCurve.Type.OutQuint)
         fold.setStartValue(int(start))
         fold.setEndValue(0)
         fold.valueChanged.connect(lambda value: self._fold_step(body, value))

@@ -55,7 +55,7 @@ from qgis.PyQt.QtWidgets import QDialog, QHBoxLayout, QLabel, QProgressBar, QPus
 
 from ..core import background
 from ..core.layer_release import PROCESSING_TASKS, let_go, watch_removals
-from ..core.qt_compat import disconnect_quietly, enum_member
+from ..core.qt_compat import disconnect_quietly, enum_member, task_flags
 from . import code_clock, code_runtime
 
 
@@ -191,7 +191,7 @@ def _run_in_task(alg, parameters: dict, call_context) -> dict:
     ok, message = alg.checkParameterValues(parameters, context)
     if not ok:
         raise QgsProcessingException(Processing.tr("Unable to execute algorithm\n{0}").format(message))
-    task = QgsProcessingAlgRunnerTask(alg, parameters, context, feedback, background._task_flags(QgsTask, True))
+    task = QgsProcessingAlgRunnerTask(alg, parameters, context, feedback, task_flags(QgsTask, True))
     if task.isCanceled():
 
         raise QgsProcessingException(feedback.errors[-1] if feedback.errors

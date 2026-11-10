@@ -919,7 +919,7 @@ def _zoom_range(args: dict) -> tuple[int, int]:
 
 
 def _looks_like_xyz_url(source: str) -> bool:
-    return "{z}" in source and "{x}" in source and "{y}" in source
+    return "{z}" in source and "{x}" in source and ("{y}" in source or "{-y}" in source)
 
 
 

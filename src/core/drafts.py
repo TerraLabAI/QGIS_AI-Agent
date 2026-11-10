@@ -34,14 +34,22 @@ _writer: WriteBehind | None = None
 _drafts: dict[str, dict] = {}
 
 
+
+_changed: dict[str, dict] = {}
+
+
 def _path(tag: str) -> str:
     return os.path.join(state_dir(), "accounts", tag, _FILE)
 
 
 def _load(tag: str) -> dict:
     drafts = _drafts.get(tag)
-    if drafts is not None:
-        return drafts
+    if drafts is None:
+        drafts = _drafts[tag] = _read(tag)
+    return drafts
+
+
+def _read(tag: str) -> dict:
     drafts = {}
     try:
         with open(_path(tag), encoding="utf-8") as fh:
@@ -53,7 +61,6 @@ def _load(tag: str) -> dict:
                 drafts[str(key)] = {"text": entry["text"], "t": float(entry.get("t", 0))}
     except (OSError, ValueError, AttributeError, TypeError):
         pass
-    _drafts[tag] = drafts
     return drafts
 
 
@@ -70,13 +77,12 @@ def put(tag: str, key: str, text: str) -> None:
     if not text.strip():
         if drafts.pop(key, None) is None:
             return
+        _changed.setdefault(tag, {})[key] = None
     else:
         entry = drafts.get(key)
         if entry is not None and entry["text"] == text:
             return
-        drafts[key] = {"text": text, "t": time.time()}
-        while len(drafts) > MAX_DRAFTS:
-            drafts.pop(min(drafts, key=lambda k: drafts[k]["t"]))
+        drafts[key] = _changed.setdefault(tag, {})[key] = {"text": text, "t": time.time()}
     _schedule(tag)
 
 
@@ -92,7 +98,16 @@ def _schedule(tag: str) -> None:
         except OSError as exc:
             log_warning(f"Draft folder not writable: {exc}")
             return None
-        return json.dumps({"v": 1, "drafts": _drafts.get(tag, {})}, ensure_ascii=False)
+        drafts = _read(tag)
+        for key, entry in _changed.pop(tag, {}).items():
+            if entry is None:
+                drafts.pop(key, None)
+            else:
+                drafts[key] = entry
+        while len(drafts) > MAX_DRAFTS:
+            drafts.pop(min(drafts, key=lambda k: drafts[k]["t"]))
+        _drafts[tag] = drafts
+        return json.dumps({"v": 1, "drafts": drafts}, ensure_ascii=False)
 
     _writer.schedule(path, produce)
 

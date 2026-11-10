@@ -129,7 +129,9 @@ class MessageList(QScrollArea):
         self._pill.setFixedSize(_PILL_PX, _PILL_PX)
         self._pill.setCursor(Qt.CursorShape.PointingHandCursor)
         self._pill.setFocusPolicy(Qt.FocusPolicy.NoFocus)
-        self._pill.clicked.connect(self.scroll_to_bottom)
+
+
+        self._pill.clicked.connect(lambda _checked=False: self.scroll_to_bottom())
         self._pill.hide()
 
     def _build_content(self) -> None:
@@ -221,7 +223,7 @@ class MessageList(QScrollArea):
             fade.setDuration(_FADE_MS)
             fade.setStartValue(0.0)
             fade.setEndValue(1.0)
-            fade.setEasingCurve(QEasingCurve.Type.OutCubic)
+            fade.setEasingCurve(QEasingCurve.Type.OutQuint)
             fade.finished.connect(lambda: self._drop_effect(widget))
 
 
@@ -390,7 +392,7 @@ class MessageList(QScrollArea):
         ride.setDuration(_SCROLL_MS)
         ride.setStartValue(bar.value())
         ride.setEndValue(target)
-        ride.setEasingCurve(QEasingCurve.Type.OutCubic)
+        ride.setEasingCurve(QEasingCurve.Type.OutQuint)
         ride.valueChanged.connect(lambda value: bar.setValue(int(value)))
 
 

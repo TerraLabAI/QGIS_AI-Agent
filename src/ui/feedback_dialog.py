@@ -20,7 +20,7 @@ from __future__ import annotations
 import sys
 
 from qgis.core import QgsApplication, QgsTask
-from qgis.PyQt.QtCore import Qt
+from qgis.PyQt.QtCore import QEvent, Qt
 from qgis.PyQt.QtWidgets import QDialog, QHBoxLayout, QLabel, QPlainTextEdit, QPushButton, QVBoxLayout
 
 from ..api.terralab_client import TerraLabClient
@@ -42,9 +42,11 @@ from .style import (
     INK_3,
     MUTED,
     RED,
+    keyboard_ring,
     with_platform_font,
 )
 from .transcript import redact_signed_urls
+from .widgets import placeholder_ink
 
 
 def _report_email() -> str:
@@ -208,8 +210,10 @@ class FeedbackDialog(QDialog):
 
         self._text = QPlainTextEdit(self)
         self._text.setPlaceholderText(tr("Example: the buffer came out in degrees instead of metres."))
+        placeholder_ink(self._text)
         self._text.setStyleSheet(scale_qss_font_px(TEXTAREA_QSS))
         self._text.setTabChangesFocus(True)
+        self._text.installEventFilter(self)
         self._text.setFixedHeight(scale_px_length(120))
         self._text.textChanged.connect(self._sync_send)
         layout.addWidget(self._text)
@@ -229,13 +233,17 @@ class FeedbackDialog(QDialog):
         row.setSpacing(8)
         row.addStretch(1)
         self._cancel = QPushButton(tr("Cancel"), self)
+        self._cancel.setCursor(Qt.CursorShape.PointingHandCursor)
         self._cancel.setStyleSheet(_BTN_GHOST)
+        keyboard_ring(self._cancel)
         self._cancel.setFixedHeight(scale_px_length(BTN_PILL_PX))
         self._cancel.setAutoDefault(False)
         self._cancel.clicked.connect(self.reject)
         row.addWidget(self._cancel)
         self._send = QPushButton(tr("Send"), self)
+        self._send.setCursor(Qt.CursorShape.PointingHandCursor)
         self._send.setStyleSheet(_BTN_PRIMARY)
+        keyboard_ring(self._send)
         self._send.setFixedHeight(scale_px_length(BTN_PILL_PX))
         self._send.setMinimumWidth(scale_px_length(72))
         self._send.clicked.connect(self._on_send)
@@ -257,6 +265,15 @@ class FeedbackDialog(QDialog):
                 email=_report_email())
         return tr("This report includes your description and the current conversation. "
                   "We use it to fix issues and improve AI Agent.")
+
+    def eventFilter(self, obj, event):  # noqa: N802
+
+        if obj is self._text and event.type() == QEvent.Type.KeyPress \
+                and event.key() in (Qt.Key.Key_Return, Qt.Key.Key_Enter) \
+                and event.modifiers() & (Qt.KeyboardModifier.ControlModifier | Qt.KeyboardModifier.MetaModifier):
+            self._on_send()
+            return True
+        return super().eventFilter(obj, event)
 
     def _sync_send(self) -> None:
         self._send.setEnabled(bool(self._text.toPlainText().strip()) and self._task is None

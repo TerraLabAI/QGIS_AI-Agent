@@ -64,7 +64,7 @@ from ..core.serialization import cut_string
 from ..core.tool_registry import tool_error
 from . import code_guard, code_guard_runtime, code_hints, code_namespace, code_runtime, code_split, code_tripwire
 from .child_python import environment as _environment
-from .child_python import python_for_child
+from .child_python import python_for_child, start_refused
 
 _PLUGIN_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 _WORKER = os.path.join(_PLUGIN_ROOT, "src", "workers", "isolated_code_worker.py")
@@ -868,7 +868,10 @@ def run_child(code: str, planned: dict, python: str, cancel_check, timeout_s: fl
                 _stop(process)
                 process = None
         if process is None:
-            process = _spawn(python, work_dir, [job_path, status_path], subprocess.DEVNULL)
+            try:
+                process = _spawn(python, work_dir, [job_path, status_path], subprocess.DEVNULL)
+            except OSError as exc:
+                return {"_fallback": "setup", "detail": start_refused(exc)}
         if needs_qgis:
             _start_spare_soon(python)
         try:

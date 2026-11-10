@@ -32,7 +32,7 @@ from typing import Callable
 
 from qgis.PyQt.QtCore import QCoreApplication, QObject, QTimer, pyqtSignal
 
-from . import crash_note, data_access, protocol, stalls, tuning, tuning_frame
+from . import crash_note, data_access, protocol, stalls, trace, tuning, tuning_frame
 from .host_platform import remove_quietly, retry_file_op
 from .logger import log, log_warning
 from .policy import state_dir
@@ -116,11 +116,19 @@ USER_SIDE_FAILURES = frozenset({"dns", "proxy_auth", "proxy_refused", "proxy_unr
 
 
 
+SAID_AT_ONCE = frozenset({"proxy_auth"})
+
+
+
 INTERNET_DOWN_FAILURES = frozenset({"dns", "no_route"})
 
 
 
 DOWN_BACKOFF_MAX_S = 8.0
+
+
+
+NEVER_SENT_FAILURES = INTERNET_DOWN_FAILURES | {"proxy_unreachable"}
 RESTART_QUICK_TRIES = 3
 RESTART_JITTER_S = 0.3
 
@@ -305,6 +313,16 @@ def _analytics_session() -> str:
         return ""
 
 
+
+
+
+NOT_HELD = ""
+HELD_KEY_REFUSED = "key_refused"
+HELD_UPDATE_REQUIRED = "update_required"
+HELD_CLOSED = "closed"
+_HOLD_ORDER = (NOT_HELD, HELD_KEY_REFUSED, HELD_UPDATE_REQUIRED, HELD_CLOSED)
+
+
 class AgentSession(QObject):
     session_started = pyqtSignal(object)
     token = pyqtSignal(str, str)
@@ -358,7 +376,8 @@ class AgentSession(QObject):
         self._dial_host = ""
         self._dial_failures = 0
         self._ready_reported = False
-        self._run_open = False
+
+        self.run_open = lambda: False
         self._heartbeat = QTimer(self)
         self._heartbeat.setInterval(int(socket_clocks()["heartbeat_s"] * 1000))
         self._heartbeat.timeout.connect(self._on_heartbeat)
@@ -383,10 +402,8 @@ class AgentSession(QObject):
         self._awaiting_pongs = 0
         self._beat_at = 0.0
         self._sent_at = 0.0
-        self._user_closed = True
-        self._auth_failed = False
-        self._auth_message = ""
-        self._update_required = ""
+        self._held = HELD_CLOSED
+        self._held_detail = ""
         self._manifest_included = False
         self._manifest_retry = False
         self._resume_asked = False
@@ -458,17 +475,29 @@ class AgentSession(QObject):
         return self._model_label
 
     @property
+    def held(self) -> str:
+
+
+        return self._held
+
+    @property
+    def _user_closed(self) -> bool:
+        return self._held == HELD_CLOSED
+
+    @property
     def closed_on_purpose(self) -> bool:
 
         return self._user_closed
 
+    def _hold(self, reason: str, detail: str = "") -> None:
+
+        if _HOLD_ORDER.index(reason) >= _HOLD_ORDER.index(self._held):
+            self._held, self._held_detail = reason, detail
+
     def connect_to_server(self) -> None:
         if not self._session_id:
             self._claim_saved_session()
-        self._user_closed = False
-        self._auth_failed = False
-        self._auth_message = ""
-        self._update_required = ""
+        self._held, self._held_detail = NOT_HELD, ""
         self._attempt = 0
         self._last_failure = None
         self._reconnect.stop()
@@ -478,7 +507,7 @@ class AgentSession(QObject):
 
 
 
-        self._user_closed = True
+        self._hold(HELD_CLOSED)
         self._heartbeat.stop()
         self._hello_deadline.stop()
         self._reconnect.stop()
@@ -561,8 +590,10 @@ class AgentSession(QObject):
         tag = self._key_tag()
         if not (self._session_id and tag):
             return
-        self._write_saved(
-            f"{tag}|{self._session_id}|{int(self._last_seq)}|{int(time.time())}|{self._profile_tag()}")
+        import os
+
+        self._write_saved(f"{tag}|{self._session_id}|{int(self._last_seq)}|{int(time.time())}"
+                          f"|{self._profile_tag()}|{os.getpid()}")
 
     def keep_for_reopen(self) -> None:
 
@@ -585,9 +616,20 @@ class AgentSession(QObject):
         if not saved or not self._key_tag():
 
             return
-        self._write_saved("")
         parts = saved.split("|")
-        if len(parts) != 5 or not parts[0] or parts[0] != self._key_tag():
+
+
+
+        if len(parts) == 6 and parts[5].isdigit():
+            import os
+
+            from .crash_note import pid_alive
+
+            if int(parts[5]) != os.getpid() and pid_alive(int(parts[5])):
+                log("Saved session belongs to another QGIS window still running; opening a new one")
+                return
+        self._write_saved("")
+        if len(parts) not in (5, 6) or not parts[0] or parts[0] != self._key_tag():
             return
         if parts[4] != self._profile_tag():
             log("Saved session left by another QGIS profile; opening a new one")
@@ -605,16 +647,16 @@ class AgentSession(QObject):
         self._last_seq = max(0, last_seq)
         log(f"Resuming the session this profile left ({session_id[:8]})")
 
-    def set_run_open(self, open_: bool) -> None:
+    def refresh_heartbeat(self) -> None:
 
 
-        self._run_open = bool(open_)
+
         self._apply_heartbeat()
 
     def _apply_heartbeat(self) -> None:
 
         clocks = socket_clocks()
-        interval = int((clocks["run_heartbeat_s"] if self._run_open else clocks["heartbeat_s"]) * 1000)
+        interval = int((clocks["run_heartbeat_s"] if self.run_open() else clocks["heartbeat_s"]) * 1000)
         if interval == self._heartbeat.interval():
             return
         self._heartbeat.setInterval(interval)
@@ -931,10 +973,12 @@ class AgentSession(QObject):
             phases = protocol.take_phases(frame.get("tool_call_id"))
 
             def produce() -> str:
-                return protocol.encode(dict(frame, timing=protocol.call_timing(
-                    arrived, started, answered, time.perf_counter(), phases)))
+                timing = protocol.call_timing(arrived, started, answered, time.perf_counter(), phases)
+                trace.mark("out", kind=frame["type"], id=frame.get("tool_call_id"), timing=timing)
+                return protocol.encode(dict(frame, timing=timing))
         else:
             def produce() -> str:
+                trace.mark("out", kind=frame["type"])
                 return protocol.encode(frame)
         sender = getattr(self._ws, "send_lazy", None)
         if sender is None:
@@ -1119,16 +1163,16 @@ class AgentSession(QObject):
         if self._user_closed:
             self._set_state("offline", "")
             return
-        if self._update_required:
+        if self._held == HELD_UPDATE_REQUIRED:
 
 
-            self._set_state("offline", self._update_required)
+            self._set_state("offline", self._held_detail)
             return
-        if self._auth_failed:
+        if self._held == HELD_KEY_REFUSED:
 
 
 
-            self._set_state("signed_out", self._auth_message
+            self._set_state("signed_out", self._held_detail
                             or tr("Session expired. Sign in again to continue."))
             return
         log(f"WebSocket closed ({code}): {reason}")
@@ -1161,8 +1205,7 @@ class AgentSession(QObject):
 
 
 
-            self._auth_failed = True
-            self._auth_message = tr("Session expired. Sign in again to continue.")
+            self._hold(HELD_KEY_REFUSED, tr("Session expired. Sign in again to continue."))
 
     def _schedule_reconnect(self, code: int = 1006, reason: str = "") -> None:
 
@@ -1177,7 +1220,7 @@ class AgentSession(QObject):
 
         clocks = socket_clocks()
         base = min(clocks["backoff_max_s"], clocks["backoff_min_s"] * (2 ** min(self._attempt, 16)))
-        if (self._last_failure or ("",))[0] in INTERNET_DOWN_FAILURES:
+        if (self._last_failure or ("",))[0] in NEVER_SENT_FAILURES:
             base = min(base, DOWN_BACKOFF_MAX_S)
         delay = base * random.uniform(0.5, 1.0)  # nosec B311
         restart = code in RESTART_CODES and self._attempt < RESTART_QUICK_TRIES
@@ -1199,8 +1242,8 @@ class AgentSession(QObject):
                 self._report_failure(code)
         self._attempt += 1
         failing_for = time.monotonic() - self._failing_since if self._failed_streak else 0.0
-        said = self._panel_cause(code, reason) if failing_for >= CAUSE_AFTER_S else ""
         kind = (self._last_failure or ("",))[0]
+        said = self._panel_cause(code, reason) if failing_for >= CAUSE_AFTER_S or kind in SAID_AT_ONCE else ""
         self._link_cause = "internet" if kind in INTERNET_DOWN_FAILURES else "server"
         self._log_failure(code, reason)
         self._set_state("offline", said)
@@ -1354,6 +1397,7 @@ class AgentSession(QObject):
             self._awaiting_pongs = 0
             return
         kind = frame.get("type")
+        trace.mark("in", kind=kind, id=frame.get("tool_call_id"), arrived=getattr(self._ws, "arrived_at", 0.0))
         handler = getattr(self, f"_on_{kind}", None) if protocol.is_server_type(kind) else None
         if handler is None:
             self._note_bad_frame("unknown type", str(kind)[:60])
@@ -1606,14 +1650,13 @@ class AgentSession(QObject):
 
 
         if code == ServerErrorCode.AUTH_FAILED and frame.get("retryable") is not True:
-            self._auth_failed = True
-            self._auth_message = str(frame.get("message") or "")
+            self._hold(HELD_KEY_REFUSED, str(frame.get("message") or ""))
             self._heartbeat.stop()
             self._set_state("signed_out", str(frame.get("message") or ""))
             self._ws.close(1000, "auth failed")
         if code == ServerErrorCode.PLUGIN_UPDATE_REQUIRED:
-            self._update_required = str(frame.get("message") or "") or tr(
-                "This version of AI Agent is no longer supported. Update the plugin to continue.")
+            self._hold(HELD_UPDATE_REQUIRED, str(frame.get("message") or "") or tr(
+                "This version of AI Agent is no longer supported. Update the plugin to continue."))
             self._heartbeat.stop()
             self._ws.close(1000, "plugin update required")
         self.server_error.emit(frame)

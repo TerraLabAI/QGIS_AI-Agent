@@ -47,18 +47,6 @@
             <translation>1 katman</translation>
         </message>
         <message>
-            <source>1 layer added</source>
-            <translation>1 katman eklendi</translation>
-        </message>
-        <message>
-            <source>1 layer changed</source>
-            <translation>1 katman değiştirildi</translation>
-        </message>
-        <message>
-            <source>1 layer removed</source>
-            <translation>1 katman kaldırıldı</translation>
-        </message>
-        <message>
             <source>1 result</source>
             <translation>1 sonuç</translation>
         </message>
@@ -215,7 +203,7 @@
             <translation>{source} kaynağından geçerli görünümde {what} istendi</translation>
         </message>
         <message>
-            <source>Available when the agent finishes</source>
+            <source>Available when the AI agent finishes</source>
             <translation>Yapay zeka asistanı bitirdiğinde kullanılabilir</translation>
         </message>
         <message>
@@ -411,10 +399,6 @@
             <translation>E-posta adresini kopyala</translation>
         </message>
         <message>
-            <source>Copy report</source>
-            <translation>Raporu kopyala</translation>
-        </message>
-        <message>
             <source>Copy the address below and paste it into a browser.</source>
             <translation>Aşağıdaki adresi kopyalayıp bir tarayıcıya yapıştırın.</translation>
         </message>
@@ -425,10 +409,6 @@
         <message>
             <source>Copy the support address below into your email app.</source>
             <translation>Aşağıdaki destek adresini kopyalayıp e-posta uygulamanıza yapıştırın.</translation>
-        </message>
-        <message>
-            <source>Could not copy</source>
-            <translation>Kopyalanamadı</translation>
         </message>
         <message>
             <source>Count {POINTS} in each feature of {POLYGONS}</source>
@@ -505,10 +485,6 @@
         <message>
             <source>Edit the last queued message</source>
             <translation>Kuyruktaki son mesajı düzenle</translation>
-        </message>
-        <message>
-            <source>Email address copied</source>
-            <translation>E-posta adresi kopyalandı</translation>
         </message>
         <message>
             <source>Enlarge</source>
@@ -807,10 +783,6 @@
             <translation>Yeni satır</translation>
         </message>
         <message>
-            <source>Next</source>
-            <translation>Sonraki</translation>
-        </message>
-        <message>
             <source>No answer came back. Try again.</source>
             <translation>Yanıt gelmedi. Tekrar deneyin.</translation>
         </message>
@@ -877,10 +849,6 @@
         <message>
             <source>Preparing a summary…</source>
             <translation>Özet hazırlanıyor…</translation>
-        </message>
-        <message>
-            <source>Previous</source>
-            <translation>Önceki</translation>
         </message>
         <message>
             <source>Privacy Policy</source>
@@ -1003,10 +971,6 @@
             <translation>{layer_name} katmanının stilini oku</translation>
         </message>
         <message>
-            <source>Real tasks the AI agent does from one sentence. Open one to try it.</source>
-            <translation>Yapay zeka asistanının tek bir cümleden yaptığı gerçek görevler. Denemek için birini açın.</translation>
-        </message>
-        <message>
             <source>Remove one item from the layout {layout_name}</source>
             <translation>{layout_name} baskı düzeninden bir öğeyi kaldır</translation>
         </message>
@@ -1023,20 +987,8 @@
             <translation>{layer_name} içinde {old_name} adını {new_name} olarak değiştir</translation>
         </message>
         <message>
-            <source>Render the map</source>
-            <translation>Haritayı çiz</translation>
-        </message>
-        <message>
             <source>Reorder the layers</source>
             <translation>Katmanları yeniden sırala</translation>
-        </message>
-        <message>
-            <source>Report a problem</source>
-            <translation>Sorun bildir</translation>
-        </message>
-        <message>
-            <source>Report copied</source>
-            <translation>Rapor kopyalandı</translation>
         </message>
         <message>
             <source>Reproject {INPUT} to {TARGET_CRS}</source>
@@ -1159,10 +1111,6 @@
             <translation>Mesajı gönder</translation>
         </message>
         <message>
-            <source>Send us a report and we will look into it and fix it.</source>
-            <translation>Bize bir rapor gönderin, inceleyip düzeltelim.</translation>
-        </message>
-        <message>
             <source>Set NoData on {layer_name}</source>
             <translation>NoData ayarla: {layer_name}</translation>
         </message>
@@ -1271,10 +1219,6 @@
             <translation>Biçimlendir: {layer_name}</translation>
         </message>
         <message>
-            <source>Tell us what went wrong</source>
-            <translation>Neyin ters gittiğini bize söyleyin</translation>
-        </message>
-        <message>
             <source>Terms</source>
             <translation>Koşullar</translation>
         </message>
@@ -1295,7 +1239,7 @@
             <translation>Yapay zekâ ajanı aynı adımda takıldı.</translation>
         </message>
         <message>
-            <source>The agent reads it at its next step</source>
+            <source>The AI agent reads it at its next step</source>
             <translation>Asistan bunu bir sonraki adımında okur</translation>
         </message>
         <message>
@@ -1303,7 +1247,7 @@
             <translation>Yapay zekâ ajanı hizmeti bir adım sırasında iki kez yeniden başladı.</translation>
         </message>
         <message>
-            <source>The agent wants to run this action.</source>
+            <source>The AI agent wants to run this action.</source>
             <translation>Asistan bu eylemi çalıştırmak istiyor.</translation>
         </message>
         <message>
@@ -1355,10 +1299,6 @@
             <translation>Destek adresi panonuza kopyalandı: e-posta uygulamanıza yapıştırın.</translation>
         </message>
         <message>
-            <source>Then paste it into an email to:</source>
-            <translation>Sonra bir e-postaya yapıştırın, alıcı:</translation>
-        </message>
-        <message>
             <source>They help us fix bugs. You can switch them off in Settings whenever you want.</source>
             <translation>Hataları düzeltmemize yardımcı olurlar. İstediğiniz zaman Ayarlar'dan kapatabilirsiniz.</translation>
         </message>
@@ -1369,10 +1309,6 @@
         <message>
             <source>This conversation is too long.</source>
             <translation>Bu konuşma çok uzun.</translation>
-        </message>
-        <message>
-            <source>This conversation: your messages, each step the AI took and what it found, and technical details about QGIS and the plugin. Never your passwords, your sign-in or the contents of your files.</source>
-            <translation>Bu konuşma: mesajlarınız, yapay zekanın attığı her adım ve bulduğu şeyler, ayrıca QGIS ve eklenti hakkında teknik ayrıntılar. Parolalarınız, oturum açma bilginiz veya dosyalarınızın içeriği asla.</translation>
         </message>
         <message>
             <source>This layer is no longer in the project.</source>
@@ -1411,7 +1347,7 @@
             <translation>Onaylamak için bu adresi yazın.</translation>
         </message>
         <message>
-            <source>Undo the agent's last request</source>
+            <source>Undo the AI agent's last request</source>
             <translation>Asistanın son isteğini geri al</translation>
         </message>
         <message>
@@ -1599,10 +1535,6 @@ Silme, bekleme süresi bitince kesinleşir. O zamana kadar terra-lab.ai üzerind
             <translation>{minutes} dk {seconds} sn</translation>
         </message>
         <message>
-            <source>{names} and {n} more</source>
-            <translation>{names} ve {n} tane daha</translation>
-        </message>
-        <message>
             <source>{n} features</source>
             <translation>{n} nesne</translation>
         </message>
@@ -1619,20 +1551,8 @@ Silme, bekleme süresi bitince kesinleşir. O zamana kadar terra-lab.ai üzerind
             <translation>{n} katman</translation>
         </message>
         <message>
-            <source>{n} layers added</source>
-            <translation>{n} katman eklendi</translation>
-        </message>
-        <message>
             <source>{n} layers can't be restored</source>
             <translation>{n} katman geri yüklenemiyor</translation>
-        </message>
-        <message>
-            <source>{n} layers changed</source>
-            <translation>{n} katman değiştirildi</translation>
-        </message>
-        <message>
-            <source>{n} layers removed</source>
-            <translation>{n} katman kaldırıldı</translation>
         </message>
         <message>
             <source>{n} results</source>
@@ -1767,10 +1687,6 @@ Silme, bekleme süresi bitince kesinleşir. O zamana kadar terra-lab.ai üzerind
             <translation>Buradan geri bildirim göndermek için oturum açın ya da bize {email} adresinden yazın.</translation>
         </message>
         <message>
-            <source>We'll receive your message, this conversation and technical details (plugin and QGIS version, system, recent logs). Never your passwords or the contents of your files.</source>
-            <translation>Mesajınızı, bu konuşmayı ve teknik ayrıntıları (eklenti ve QGIS sürümü, sistem, son günlükler) alırız. Parolalarınızı veya dosyalarınızın içeriğini asla almayız.</translation>
-        </message>
-        <message>
             <source>You sent several reports in a short time. Try again in a few minutes.</source>
             <translation>Kısa sürede birkaç bildirim gönderdiniz. Birkaç dakika sonra tekrar deneyin.</translation>
         </message>
@@ -1793,18 +1709,6 @@ Silme, bekleme süresi bitince kesinleşir. O zamana kadar terra-lab.ai üzerind
         <message>
             <source>What you type</source>
             <translation>Yazdığın</translation>
-        </message>
-        <message>
-            <source>Expired on {day}.</source>
-            <translation>{day} tarihinde süresi doldu.</translation>
-        </message>
-        <message>
-            <source>Expires on {day}.</source>
-            <translation>Süresi {day} tarihinde doluyor.</translation>
-        </message>
-        <message>
-            <source>Private link: its signature stays on this computer. TerraLab and the AI agent see only the site and the file name.</source>
-            <translation>Özel bağlantı: imzası bu bilgisayarda kalır. TerraLab ve yapay zeka ajanı yalnızca siteyi ve dosya adını görür.</translation>
         </message>
         <message>
             <source>expired</source>
@@ -2028,15 +1932,15 @@ Silme, bekleme süresi bitince kesinleşir. O zamana kadar terra-lab.ai üzerind
             <translation>Hesabınızı görmek için oturum açın.</translation>
         </message>
         <message>
-            <source>The agent finished.</source>
+            <source>The AI agent finished.</source>
             <translation>Asistan bitirdi.</translation>
         </message>
         <message>
-            <source>The agent is waiting for your answer.</source>
+            <source>The AI agent is waiting for your answer.</source>
             <translation>Asistan yanıtınızı bekliyor.</translation>
         </message>
         <message>
-            <source>The agent stopped before finishing.</source>
+            <source>The AI agent stopped before finishing.</source>
             <translation>Asistan bitirmeden durdu.</translation>
         </message>
         <message>
@@ -2211,6 +2115,10 @@ Silme, bekleme süresi bitince kesinleşir. O zamana kadar terra-lab.ai üzerind
             <source>Your subscription is not active. Open your TerraLab dashboard, then try again.</source>
             <translation>Aboneliğiniz etkin değil. TerraLab panonuzu açın, sonra yeniden deneyin.</translation>
         </message>
+        <message>
+            <source>QGIS could not save your sign-in on this computer. Click Sign in to try again.</source>
+            <translation>QGIS bu bilgisayarda oturum açma bilgilerinizi kaydedemedi. Tekrar denemek için Oturum aç'a tıklayın.</translation>
+        </message>
     </context>
     <context>
         <name>ActivationCard</name>
@@ -2247,24 +2155,12 @@ Silme, bekleme süresi bitince kesinleşir. O zamana kadar terra-lab.ai üzerind
             <translation>Oturum aç</translation>
         </message>
         <message>
-            <source>Sign in / Sign up to start</source>
-            <translation>Başlamak için oturum açın veya kaydolun</translation>
-        </message>
-        <message>
             <source>Sign in again</source>
             <translation>Yeniden oturum aç</translation>
         </message>
         <message>
             <source>Sign in via your browser to start using AI Agent</source>
             <translation>AI Agent'ı kullanmaya başlamak için tarayıcınızdan oturum açın</translation>
-        </message>
-        <message>
-            <source>Signing up is free and takes 15 seconds, in your browser.</source>
-            <translation>Kaydolmak ücretsizdir ve tarayıcınızda 15 saniye sürer.</translation>
-        </message>
-        <message>
-            <source>Then ask the AI for anything: load data, style layers, run analyses, edit features.</source>
-            <translation>Sonra yapay zekadan istediğinizi isteyin: veri yükleme, katman biçimlendirme, analiz çalıştırma, nesne düzenleme.</translation>
         </message>
         <message>
             <source>Type the code shown in your browser:</source>
@@ -2388,14 +2284,6 @@ Silme, bekleme süresi bitince kesinleşir. O zamana kadar terra-lab.ai üzerind
         <message>
             <source>Querying the source</source>
             <translation>Kaynak sorgulanıyor</translation>
-        </message>
-        <message>
-            <source>{m} min {s} s</source>
-            <translation>{m} dk {s} sn</translation>
-        </message>
-        <message>
-            <source>{n} s</source>
-            <translation>{n} sn</translation>
         </message>
         <message>
             <source>{words} · {done} of {total}</source>
@@ -2692,10 +2580,6 @@ Silme, bekleme süresi bitince kesinleşir. O zamana kadar terra-lab.ai üzerind
             <translation>Bu mesaj artık yeniden gönderilemez.</translation>
         </message>
         <message>
-            <source>This plugin build cannot show that card.</source>
-            <translation>Bu eklenti sürümü o kartı gösteremiyor.</translation>
-        </message>
-        <message>
             <source>This point belongs to an unsaved project that was closed, so it cannot be restored here.</source>
             <translation>Bu nokta, kapatılmış kaydedilmemiş bir projeye ait, bu yüzden burada geri yüklenemez.</translation>
         </message>
@@ -2780,10 +2664,6 @@ Silme, bekleme süresi bitince kesinleşir. O zamana kadar terra-lab.ai üzerind
             <translation>geçici bir katman</translation>
         </message>
         <message>
-            <source>Not handled, the AI agent is offline: {0}</source>
-            <translation>İşlenmedi, yapay zeka ajanı çevrimdışı: {0}</translation>
-        </message>
-        <message>
             <source>Nothing is kept about this project yet.</source>
             <translation>Bu proje hakkında henüz hiçbir şey saklanmıyor.</translation>
         </message>
@@ -2796,14 +2676,6 @@ Silme, bekleme süresi bitince kesinleşir. O zamana kadar terra-lab.ai üzerind
             <translation>Proje belleği temizlendi.</translation>
         </message>
         <message>
-            <source>Watched folder: not handled, no answer from the server: {0}</source>
-            <translation>İzlenen klasör: işlenmedi, sunucudan yanıt yok: {0}</translation>
-        </message>
-        <message>
-            <source>Watched folder: not handled, the AI agent is offline: {0}</source>
-            <translation>İzlenen klasör: işlenmedi, yapay zeka ajanı çevrimdışı: {0}</translation>
-        </message>
-        <message>
             <source>Clear what the AI agent remembers about this project?</source>
             <translation>AI Agent'ın bu proje hakkında hatırladıkları silinsin mi?</translation>
         </message>
@@ -2814,6 +2686,30 @@ Silme, bekleme süresi bitince kesinleşir. O zamana kadar terra-lab.ai üzerind
         <message>
             <source>The AI agent is not connected. Try again in a moment.</source>
             <translation>AI Agent bağlı değil. Birazdan tekrar deneyin.</translation>
+        </message>
+        <message>
+            <source>Nothing was changed: the file of {layer} is read-only. Make it writable, then go back again.</source>
+            <translation>Hiçbir şey değişmedi: {layer} katmanının dosyası salt okunur. Yazılabilir yapın, sonra yeniden geri dönün.</translation>
+        </message>
+        <message>
+            <source>Nothing was changed: {layer} is in use by another program. Close it there, then go back again.</source>
+            <translation>Hiçbir şey değişmedi: {layer} katmanı başka bir program tarafından kullanılıyor. Orada kapatın, sonra yeniden geri dönün.</translation>
+        </message>
+        <message>
+            <source>Nothing was changed: {layer} is open in {program}. Close it there, then go back again.</source>
+            <translation>Hiçbir şey değişmedi: {layer} katmanı {program} içinde açık. Orada kapatın, sonra yeniden geri dönün.</translation>
+        </message>
+        <message>
+            <source>QGIS closed while going back to an earlier step: some files are at that step and others are not. Open Map history and go back to that step again to finish. It may list those files as your own changes: they are the unfinished step.</source>
+            <translation>QGIS, önceki bir adıma geri dönülürken kapandı: bazı dosyalar o adımda, bazıları değil. Tamamlamak için Harita geçmişi'ni açın ve o adıma yeniden geri dönün. Bu dosyaları kendi değişiklikleriniz olarak listeleyebilir: bunlar yarım kalan adımdır.</translation>
+        </message>
+        <message>
+            <source>{n} more files are in the same case.</source>
+            <translation>Aynı durumda {n} dosya daha var.</translation>
+        </message>
+        <message>
+            <source>Stopped: AI Agent was updated or turned off during this run.</source>
+            <translation>Durduruldu: AI Agent bu çalışma sırasında güncellendi veya kapatıldı.</translation>
         </message>
     </context>
     <context>
@@ -2962,7 +2858,7 @@ Silme, bekleme süresi bitince kesinleşir. O zamana kadar terra-lab.ai üzerind
     <context>
         <name>ChatPanel</name>
         <message>
-            <source>Add a few words: what should the agent do with it?</source>
+            <source>Add a few words: what should the AI agent do with it?</source>
             <translation>Birkaç söz ekleyin: asistan bununla ne yapsın?</translation>
         </message>
         <message>
@@ -2976,14 +2872,6 @@ Silme, bekleme süresi bitince kesinleşir. O zamana kadar terra-lab.ai üzerind
         <message>
             <source>Back to the project as this chat found it.</source>
             <translation>Projeyi bu sohbetin bulduğu hâline döndür.</translation>
-        </message>
-        <message>
-            <source>Brings back: {layers}</source>
-            <translation>Geri getirir: {layers}</translation>
-        </message>
-        <message>
-            <source>Brings this request's changes back</source>
-            <translation>Bu isteğin değişikliklerini geri getirir</translation>
         </message>
         <message>
             <source>Changed {0} to {1}</source>
@@ -3054,14 +2942,6 @@ Silme, bekleme süresi bitince kesinleşir. O zamana kadar terra-lab.ai üzerind
             <translation>Bellekten kaldırıldı</translation>
         </message>
         <message>
-            <source>Removes this request's changes from the map</source>
-            <translation>Bu isteğin değişikliklerini haritadan kaldırır</translation>
-        </message>
-        <message>
-            <source>Removes: {layers}</source>
-            <translation>Kaldırır: {layers}</translation>
-        </message>
-        <message>
             <source>Reply to the question...</source>
             <translation>Soruyu yanıtlayın...</translation>
         </message>
@@ -3086,7 +2966,7 @@ Silme, bekleme süresi bitince kesinleşir. O zamana kadar terra-lab.ai üzerind
             <translation>Durduruldu</translation>
         </message>
         <message>
-            <source>The agent now reads the earlier exchanges as a shorter record that keeps your requests and what it made.</source>
+            <source>The AI agent now reads the earlier exchanges as a shorter record that keeps your requests and what it made.</source>
             <translation>Asistan artık önceki konuşmaları, isteklerinizi ve yaptıklarını koruyan daha kısa bir kayıt olarak okuyor.</translation>
         </message>
         <message>
@@ -3150,11 +3030,11 @@ Silme, bekleme süresi bitince kesinleşir. O zamana kadar terra-lab.ai üzerind
             <translation>{layer}: {reason}</translation>
         </message>
         <message>
-            <source>{lead} · sent when the agent finishes</source>
+            <source>{lead} · sent when the AI agent finishes</source>
             <translation>{lead} · asistan bitirince gönderilir</translation>
         </message>
         <message>
-            <source>{lead} · the agent reads it at its next step</source>
+            <source>{lead} · the AI agent reads it at its next step</source>
             <translation>{lead} · asistan bir sonraki adımında okur</translation>
         </message>
         <message>
@@ -3216,6 +3096,10 @@ Silme, bekleme süresi bitince kesinleşir. O zamana kadar terra-lab.ai üzerind
         <message>
             <source>Task ended</source>
             <translation>Görev sona erdi</translation>
+        </message>
+        <message>
+            <source>Removed from the queue</source>
+            <translation>Kuyruktan kaldırıldı</translation>
         </message>
     </context>
     <context>
@@ -3413,7 +3297,7 @@ Silme, bekleme süresi bitince kesinleşir. O zamana kadar terra-lab.ai üzerind
             <translation>Sıraya al</translation>
         </message>
         <message>
-            <source>Queue it: the agent reads it at its next step (Enter)</source>
+            <source>Queue it: the AI agent reads it at its next step (Enter)</source>
             <translation>Sıraya alın: asistan bir sonraki adımında okur (Enter)</translation>
         </message>
         <message>
@@ -3579,10 +3463,6 @@ Silme, bekleme süresi bitince kesinleşir. O zamana kadar terra-lab.ai üzerind
             <translation>Yeniden dene</translation>
         </message>
         <message>
-            <source>See all %n examples</source>
-            <translation>Tüm %n örneği gör</translation>
-        </message>
-        <message>
             <source>The datasets could not be loaded.</source>
             <translation>Veri setleri yüklenemedi.</translation>
         </message>
@@ -3658,10 +3538,6 @@ Silme, bekleme süresi bitince kesinleşir. O zamana kadar terra-lab.ai üzerind
             <translation>Hiçbir veri kaynağı bu sözcüklerle eşleşmiyor. Asistan yine de veriyi bulabilir.</translation>
         </message>
         <message>
-            <source>Search data sources</source>
-            <translation>Veri kaynaklarında ara</translation>
-        </message>
-        <message>
             <source>See all</source>
             <translation>Tümünü gör</translation>
         </message>
@@ -3670,28 +3546,12 @@ Silme, bekleme süresi bitince kesinleşir. O zamana kadar terra-lab.ai üzerind
             <translation>Kaynaklar</translation>
         </message>
         <message>
-            <source>The library of data the AI agent can use. It finds and loads what it needs by itself.</source>
-            <translation>Asistanın kullanabileceği veri kütüphanesi. İhtiyacı olanı kendisi bulur ve yükler.</translation>
-        </message>
-        <message>
             <source>The list arrives when the panel connects.</source>
             <translation>Liste, panel bağlandığında gelir.</translation>
         </message>
         <message>
             <source>Try in chat</source>
             <translation>Sohbette dene</translation>
-        </message>
-        <message>
-            <source>countries</source>
-            <translation>ülke</translation>
-        </message>
-        <message>
-            <source>datasets</source>
-            <translation>veri seti</translation>
-        </message>
-        <message>
-            <source>sources</source>
-            <translation>kaynak</translation>
         </message>
         <message>
             <source>Search sources, datasets or a country</source>
@@ -3795,7 +3655,7 @@ Silme, bekleme süresi bitince kesinleşir. O zamana kadar terra-lab.ai üzerind
             <translation>Pro'ya geç</translation>
         </message>
         <message>
-            <source>How hard the agent works on the next message</source>
+            <source>How hard the AI agent works on the next message</source>
             <translation>Asistanın sonraki mesajda ne kadar çok çalışacağı</translation>
         </message>
         <message>
@@ -4182,14 +4042,6 @@ Katmanlar panelinde göstermek için tıklayın.</translation>
             <translation>Eğitimler, panel bağlandığında gelir.</translation>
         </message>
         <message>
-            <source>Tutorials</source>
-            <translation>Eğitimler</translation>
-        </message>
-        <message>
-            <source>Videos and guides to get started. They open in your browser.</source>
-            <translation>Başlamak için videolar ve kılavuzlar. Tarayıcınızda açılırlar.</translation>
-        </message>
-        <message>
             <source>Learn</source>
             <translation>Öğren</translation>
         </message>
@@ -4430,28 +4282,16 @@ Katmanlar panelinde göstermek için tıklayın.</translation>
             <translation>{n} tane daha göster</translation>
         </message>
         <message>
-            <source>The page links to sites the agent does not know: {hosts}.</source>
+            <source>The page links to sites the AI agent does not know: {hosts}.</source>
             <translation>Sayfa, asistanın tanımadığı sitelere bağlantı veriyor: {hosts}.</translation>
         </message>
         <message>
-            <source>The page links to {hosts}, a site the agent does not know.</source>
+            <source>The page links to {hosts}, a site the AI agent does not know.</source>
             <translation>Sayfa, asistanın tanımadığı bir siteye bağlantı veriyor: {hosts}.</translation>
-        </message>
-        <message>
-            <source>This data comes from a site outside the sources the agent knows.</source>
-            <translation>Bu veri, asistanın bildiği kaynakların dışındaki bir siteden geliyor.</translation>
-        </message>
-        <message>
-            <source>This data comes from sites outside the sources the agent knows.</source>
-            <translation>Bu veri, asistanın bildiği kaynakların dışındaki sitelerden geliyor.</translation>
         </message>
         <message>
             <source>View the code ({n} lines)</source>
             <translation>Kodu görüntüle ({n} satır)</translation>
-        </message>
-        <message>
-            <source>Your answer also counts for the next calls of this kind in this answer.</source>
-            <translation>Yanıtınız, bu yanıttaki bu türden sonraki çağrılar için de geçerli olur.</translation>
         </message>
         <message>
             <source>expression</source>
@@ -4618,10 +4458,6 @@ Katmanlar panelinde göstermek için tıklayın.</translation>
             <source>Get Pro</source>
             <translation>Pro'ya geç</translation>
         </message>
-        <message>
-            <source>What Pro adds</source>
-            <translation>Pro neler ekler</translation>
-        </message>
     </context>
     <context>
         <name>QuestionCard</name>
@@ -4656,6 +4492,10 @@ Katmanlar panelinde göstermek için tıklayın.</translation>
         <message>
             <source>skipped</source>
             <translation>atlandı</translation>
+        </message>
+        <message>
+            <source>Question {n} of {count}</source>
+            <translation>Soru {n} / {count}</translation>
         </message>
     </context>
     <context>
@@ -4853,6 +4693,18 @@ Katmanlar panelinde göstermek için tıklayın.</translation>
             <source>Your payment of {amount} failed</source>
             <translation>{amount} tutarındaki ödemeniz başarısız oldu</translation>
         </message>
+        <message>
+            <source>Free for 7 days, nothing to pay today, then monthly at your student price. Cancel in one click.</source>
+            <translation>7 gün ücretsiz, bugün ödeyeceğiniz bir şey yok, sonra öğrenci fiyatınızla aylık. Tek tıkla iptal edin.</translation>
+        </message>
+        <message>
+            <source>Free for 7 days, nothing to pay today, then {price}/month excl. VAT. Cancel in one click.</source>
+            <translation>7 gün ücretsiz, bugün ödeyeceğiniz bir şey yok, sonra ayda {price}, KDV hariç. Tek tıkla iptal edin.</translation>
+        </message>
+        <message>
+            <source>Medium effort now, High after the trial</source>
+            <translation>Şimdi Medium efor, denemeden sonra High</translation>
+        </message>
     </context>
     <context>
         <name>QuotaPauseCard</name>
@@ -5002,6 +4854,10 @@ Katmanlar panelinde göstermek için tıklayın.</translation>
             <source>{n} days</source>
             <translation>{n} gün</translation>
         </message>
+        <message>
+            <source>1 day</source>
+            <translation>1 gün</translation>
+        </message>
     </context>
     <context>
         <name>RunSummaryCard</name>
@@ -5041,10 +4897,6 @@ Katmanlar panelinde göstermek için tıklayın.</translation>
             <translation>Başarısız</translation>
         </message>
         <message>
-            <source>Failed after {time}</source>
-            <translation>{time} sonra başarısız oldu</translation>
-        </message>
-        <message>
             <source>QGIS closed before this finished</source>
             <translation>QGIS, bu bitmeden kapandı</translation>
         </message>
@@ -5053,24 +4905,12 @@ Katmanlar panelinde göstermek için tıklayın.</translation>
             <translation>Durduruldu</translation>
         </message>
         <message>
-            <source>Stopped after {time}</source>
-            <translation>{time} sonra durduruldu</translation>
-        </message>
-        <message>
             <source>Thinking</source>
             <translation>Düşünüyor</translation>
         </message>
         <message>
-            <source>Thought for {time}</source>
-            <translation>{time} düşündü</translation>
-        </message>
-        <message>
             <source>Waiting for you</source>
             <translation>Sizi bekliyor</translation>
-        </message>
-        <message>
-            <source>Worked for {time}</source>
-            <translation>{time} çalıştı</translation>
         </message>
         <message>
             <source>blocked</source>
@@ -5115,10 +4955,6 @@ Katmanlar panelinde göstermek için tıklayın.</translation>
             <translation>+ Not ekle</translation>
         </message>
         <message>
-            <source>A short summary of the changes once a task is done.</source>
-            <translation>Bir görev bittiğinde değişikliklerin kısa bir özeti.</translation>
-        </message>
-        <message>
             <source>AI Agent</source>
             <translation>AI Agent</translation>
         </message>
@@ -5147,10 +4983,6 @@ Katmanlar panelinde göstermek için tıklayın.</translation>
             <translation>Siz eklediniz</translation>
         </message>
         <message>
-            <source>Advanced</source>
-            <translation>Gelişmiş</translation>
-        </message>
-        <message>
             <source>Another project</source>
             <translation>Başka bir proje</translation>
         </message>
@@ -5161,10 +4993,6 @@ Katmanlar panelinde göstermek için tıklayın.</translation>
         <message>
             <source>Auto</source>
             <translation>Otomatik</translation>
-        </message>
-        <message>
-            <source>Back to defaults, memory notes included. You stay signed in.</source>
-            <translation>Varsayılanlara döner, hafıza notları dahil. Oturumunuz açık kalır.</translation>
         </message>
         <message>
             <source>Balanced</source>
@@ -5183,14 +5011,6 @@ Katmanlar panelinde göstermek için tıklayın.</translation>
             <translation>İnternet bağlantınızı kontrol edin, sonra tekrar deneyin.</translation>
         </message>
         <message>
-            <source>Commercial use and more tasks with Pro</source>
-            <translation>Pro ile ticari kullanım ve daha fazla görev</translation>
-        </message>
-        <message>
-            <source>Computer-style names</source>
-            <translation>Bilgisayar tarzı adlar</translation>
-        </message>
-        <message>
             <source>Concise</source>
             <translation>Öz</translation>
         </message>
@@ -5199,20 +5019,12 @@ Katmanlar panelinde göstermek için tıklayın.</translation>
             <translation>Bize ulaşın</translation>
         </message>
         <message>
-            <source>Context the AI reads at the start of every conversation, and the notes it keeps between them.</source>
-            <translation>Asistanın her sohbetin başında okuduğu bağlam ve sohbetler arasında tuttuğu notlar.</translation>
-        </message>
-        <message>
             <source>Could not load your account</source>
             <translation>Hesabınız yüklenemedi</translation>
         </message>
         <message>
             <source>Could not reach TerraLab</source>
             <translation>TerraLab'a ulaşılamadı</translation>
-        </message>
-        <message>
-            <source>Danger zone</source>
-            <translation>Tehlikeli bölge</translation>
         </message>
         <message>
             <source>Data sources</source>
@@ -5255,10 +5067,6 @@ Katmanlar panelinde göstermek için tıklayın.</translation>
             <translation>Uzman</translation>
         </message>
         <message>
-            <source>Explain what it did after each run</source>
-            <translation>Her çalıştırmadan sonra ne yaptığını açıkla</translation>
-        </message>
-        <message>
             <source>Free plan</source>
             <translation>Ücretsiz plan</translation>
         </message>
@@ -5279,10 +5087,6 @@ Katmanlar panelinde göstermek için tıklayın.</translation>
             <translation>Sohbet incelemesine izin ver</translation>
         </message>
         <message>
-            <source>How it should work. Example: always answer in French, name new layers in snake_case, never delete a layer without asking.</source>
-            <translation>Nasıl çalışması gerektiği. Örnek: her zaman Fransızca yanıt ver, yeni katmanları snake_case ile adlandır, sormadan hiçbir katmanı silme.</translation>
-        </message>
-        <message>
             <source>How much the AI explains.</source>
             <translation>Asistanın ne kadar açıklama yaptığı.</translation>
         </message>
@@ -5291,20 +5095,8 @@ Katmanlar panelinde göstermek için tıklayın.</translation>
             <translation>Asistanın harekete geçmeden önce ne sıklıkla sorduğu.</translation>
         </message>
         <message>
-            <source>How the AI names the layers it creates.</source>
-            <translation>Asistanın oluşturduğu katmanları nasıl adlandırdığı.</translation>
-        </message>
-        <message>
-            <source>How you work</source>
-            <translation>Nasıl çalışıyorsunuz</translation>
-        </message>
-        <message>
             <source>Imperial</source>
             <translation>İngiliz ölçüleri</translation>
-        </message>
-        <message>
-            <source>Instructions for the AI</source>
-            <translation>Asistan için talimatlar</translation>
         </message>
         <message>
             <source>Keyboard shortcuts</source>
@@ -5317,10 +5109,6 @@ Katmanlar panelinde göstermek için tıklayın.</translation>
         <message>
             <source>Language, style, permissions, your profile and your memory notes go back to their defaults. You stay signed in.</source>
             <translation>Dil, stil, izinler, profiliniz ve hafıza notlarınız varsayılanlara döner. Oturumunuz açık kalır.</translation>
-        </message>
-        <message>
-            <source>Layer names</source>
-            <translation>Katman adları</translation>
         </message>
         <message>
             <source>We may read a chat only to fix a bug, never to train AI. Chats are kept 30 days.</source>
@@ -5347,24 +5135,12 @@ Katmanlar panelinde göstermek için tıklayın.</translation>
             <translation>Hafıza</translation>
         </message>
         <message>
-            <source>Memory between conversations</source>
-            <translation>Sohbetler arası hafıza</translation>
-        </message>
-        <message>
-            <source>Metres and hectares, or feet, miles and acres.</source>
-            <translation>Metre ve hektar ya da fit, mil ve akre.</translation>
-        </message>
-        <message>
             <source>Metric</source>
             <translation>Metrik</translation>
         </message>
         <message>
             <source>More</source>
             <translation>Daha fazla</translation>
-        </message>
-        <message>
-            <source>More plugins</source>
-            <translation>Daha fazla eklenti</translation>
         </message>
         <message>
             <source>Move the map to what it changes</source>
@@ -5391,10 +5167,6 @@ Katmanlar panelinde göstermek için tıklayın.</translation>
             <translation>Aç</translation>
         </message>
         <message>
-            <source>Open terra-lab.ai</source>
-            <translation>terra-lab.ai'yi aç</translation>
-        </message>
-        <message>
             <source>Open the AI Agent page</source>
             <translation>AI Agent sayfasını aç</translation>
         </message>
@@ -5407,24 +5179,12 @@ Katmanlar panelinde göstermek için tıklayın.</translation>
             <translation>Kişiselleştirme</translation>
         </message>
         <message>
-            <source>Plain words</source>
-            <translation>Sade sözcükler</translation>
-        </message>
-        <message>
-            <source>Plus memory, your instructions and higher effort.</source>
-            <translation>Ayrıca hafıza, talimatlarınız ve daha yüksek çaba düzeyi.</translation>
-        </message>
-        <message>
             <source>Privacy</source>
             <translation>Gizlilik</translation>
         </message>
         <message>
             <source>Pro plan</source>
             <translation>Pro plan</translation>
-        </message>
-        <message>
-            <source>Pro reads who you are and your standing rules before every run: your job, your city, your usual CRS, the language it answers in, how it names layers and what it must never do without asking.</source>
-            <translation>Pro, her çalıştırmadan önce kim olduğunuzu ve kalıcı kurallarınızı okur: mesleğiniz, şehriniz, alışkın olduğunuz CRS, yanıt verdiği dil, katmanları nasıl adlandırdığı ve sormadan asla yapmaması gerekenler.</translation>
         </message>
         <message>
             <source>Pro reads your notes at the start of every conversation.</source>
@@ -5441,10 +5201,6 @@ Katmanlar panelinde göstermek için tıklayın.</translation>
         <message>
             <source>Regular</source>
             <translation>Orta</translation>
-        </message>
-        <message>
-            <source>Report a problem</source>
-            <translation>Sorun bildir</translation>
         </message>
         <message>
             <source>Reset</source>
@@ -5475,10 +5231,6 @@ Katmanlar panelinde göstermek için tıklayın.</translation>
             <translation>Tekrar dene</translation>
         </message>
         <message>
-            <source>SAVED NOTES · {n}</source>
-            <translation>KAYITLI NOTLAR · {n}</translation>
-        </message>
-        <message>
             <source>Same as QGIS</source>
             <translation>QGIS ile aynı</translation>
         </message>
@@ -5489,14 +5241,6 @@ Katmanlar panelinde göstermek için tıklayın.</translation>
         <message>
             <source>Share usage statistics</source>
             <translation>Kullanım istatistiklerini paylaş</translation>
-        </message>
-        <message>
-            <source>Short answers, a balance, or the full reasoning.</source>
-            <translation>Kısa yanıtlar, bir denge ya da tam gerekçe.</translation>
-        </message>
-        <message>
-            <source>Show the steps it takes</source>
-            <translation>Attığı adımları göster</translation>
         </message>
         <message>
             <source>Sign in</source>
@@ -5529,14 +5273,6 @@ Katmanlar panelinde göstermek için tıklayın.</translation>
         <message>
             <source>The AI saves notes on its own</source>
             <translation>Asistan notları kendiliğinden kaydeder</translation>
-        </message>
-        <message>
-            <source>The language the AI writes its answers in.</source>
-            <translation>Asistanın yanıtlarını yazdığı dil.</translation>
-        </message>
-        <message>
-            <source>The list of steps above each answer.</source>
-            <translation>Her yanıtın üstündeki adım listesi.</translation>
         </message>
         <message>
             <source>The shortcuts could not be listed.</source>
@@ -5575,10 +5311,6 @@ Katmanlar panelinde göstermek için tıklayın.</translation>
             <translation>İstediğiniz zaman kapatın, başka hiçbir etkisi olmaz.</translation>
         </message>
         <message>
-            <source>Tutorials</source>
-            <translation>Eğitimler</translation>
-        </message>
-        <message>
             <source>Units</source>
             <translation>Birimler</translation>
         </message>
@@ -5595,36 +5327,8 @@ Katmanlar panelinde göstermek için tıklayın.</translation>
             <translation>Şehir plancısı</translation>
         </message>
         <message>
-            <source>Used in its answers. Empty: it uses no name.</source>
-            <translation>Yanıtlarında kullanılır. Boşsa ad kullanmaz.</translation>
-        </message>
-        <message>
-            <source>What Pro unlocks, on the TerraLab website.</source>
-            <translation>Pro'nun neleri açtığı, TerraLab web sitesinde.</translation>
-        </message>
-        <message>
-            <source>What the AI should call you</source>
-            <translation>Asistanın size nasıl hitap etmesi gerektiği</translation>
-        </message>
-        <message>
-            <source>What you do</source>
-            <translation>Ne iş yapıyorsunuz</translation>
-        </message>
-        <message>
             <source>When needed</source>
             <translation>Gerektiğinde</translation>
-        </message>
-        <message>
-            <source>Who you are</source>
-            <translation>Kimsiniz</translation>
-        </message>
-        <message>
-            <source>Who you are and what you work on. Example: urban planner at the city of Lyon, I mostly work with cadastre and PLU layers in EPSG:2154.</source>
-            <translation>Kim olduğunuz ve üzerinde çalıştığınız konular. Örnek: Lyon belediyesinde şehir plancısıyım, çoğunlukla EPSG:2154'te kadastro ve PLU katmanlarıyla çalışırım.</translation>
-        </message>
-        <message>
-            <source>You can review or remove them here.</source>
-            <translation>Buradan gözden geçirebilir veya kaldırabilirsiniz.</translation>
         </message>
         <message>
             <source>You can sign back in anytime from QGIS.</source>
@@ -5639,10 +5343,6 @@ Katmanlar panelinde göstermek için tıklayın.</translation>
             <translation>Adınız</translation>
         </message>
         <message>
-            <source>Your job in a few words. It changes which data and which method it reaches for first.</source>
-            <translation>Mesleğiniz birkaç sözcükle. Hangi veriye ve hangi yönteme ilk önce başvuracağını değiştirir.</translation>
-        </message>
-        <message>
             <source>Your last payment may have failed</source>
             <translation>Son ödemeniz başarısız olmuş olabilir</translation>
         </message>
@@ -5653,10 +5353,6 @@ Katmanlar panelinde göstermek için tıklayın.</translation>
         <message>
             <source>Your plan, tasks and settings appear here once you sign in.</source>
             <translation>Planınız, görevleriniz ve ayarlarınız oturum açtığınızda burada görünür.</translation>
-        </message>
-        <message>
-            <source>Your profile and instructions, read before every run</source>
-            <translation>Profiliniz ve talimatlarınız, her çalıştırmadan önce okunur</translation>
         </message>
         <message>
             <source>Your sign-in, your plan and your privacy.</source>
@@ -5704,20 +5400,12 @@ Katmanlar panelinde göstermek için tıklayın.</translation>
             <translation>Her zaman Fransızca yanıtla, sormadan hiçbir katmanı silme</translation>
         </message>
         <message>
-            <source>Choose folder...</source>
-            <translation>Klasör seç...</translation>
-        </message>
-        <message>
             <source>Clear project memory</source>
             <translation>Proje belleğini temizle</translation>
         </message>
         <message>
             <source>Connected accounts</source>
             <translation>Bağlı hesaplar</translation>
-        </message>
-        <message>
-            <source>Folder to watch</source>
-            <translation>İzlenecek klasör</translation>
         </message>
         <message>
             <source>Instructions</source>
@@ -5736,16 +5424,8 @@ Katmanlar panelinde göstermek için tıklayın.</translation>
             <translation>Ad</translation>
         </message>
         <message>
-            <source>No folder chosen</source>
-            <translation>Klasör seçilmedi</translation>
-        </message>
-        <message>
             <source>Pro reads both before every run.</source>
             <translation>Pro, her çalıştırmadan önce ikisini de okur.</translation>
-        </message>
-        <message>
-            <source>Proactive triggers</source>
-            <translation>Proaktif tetikleyiciler</translation>
         </message>
         <message>
             <source>Project memory</source>
@@ -5764,16 +5444,8 @@ Katmanlar panelinde göstermek için tıklayın.</translation>
             <translation>Proje belleğini göster</translation>
         </message>
         <message>
-            <source>The AI agent looks at new data files in this folder and at the schedules you ask for, only while QGIS is open. Nothing runs when QGIS is closed.</source>
-            <translation>Yapay zeka ajanı bu klasördeki yeni veri dosyalarına ve istediğin zamanlamalara yalnızca QGIS açıkken bakar. QGIS kapalıyken hiçbir şey çalışmaz.</translation>
-        </message>
-        <message>
             <source>Urban planner at the city of Lyon, cadastre and PLU layers in EPSG:2154</source>
             <translation>Lyon şehrinde şehir plancısı, EPSG:2154'te kadastro ve PLU katmanları</translation>
-        </message>
-        <message>
-            <source>Watch a folder and run my schedules while QGIS is open</source>
-            <translation>Bir klasörü izle ve QGIS açıkken zamanlamalarımı çalıştır</translation>
         </message>
         <message>
             <source>What Pro adds: {points}</source>
@@ -5783,36 +5455,24 @@ Katmanlar panelinde göstermek için tıklayın.</translation>
             <source>commercial use, more tasks, memory, your instructions and higher effort</source>
             <translation>ticari kullanım, daha fazla görev, bellek, kendi talimatların ve daha yüksek efor</translation>
         </message>
+        <message>
+            <source>Delete this note? The AI will not add it back.</source>
+            <translation>Bu not silinsin mi? Yapay zeka onu geri eklemeyecek.</translation>
+        </message>
     </context>
     <context>
         <name>SiblingCard</name>
         <message>
-            <source>Install in QGIS</source>
-            <translation>QGIS'e kur</translation>
-        </message>
-        <message>
             <source>Installed</source>
             <translation>Kurulu</translation>
-        </message>
-        <message>
-            <source>Open in QGIS</source>
-            <translation>QGIS'te aç</translation>
         </message>
         <message>
             <source>Opens the QGIS plugin manager on this plugin.</source>
             <translation>QGIS eklenti yöneticisini bu eklentide açar.</translation>
         </message>
         <message>
-            <source>Read the guide</source>
-            <translation>Kılavuzu oku</translation>
-        </message>
-        <message>
             <source>Show the plugin's panel.</source>
             <translation>Eklentinin panelini göster.</translation>
-        </message>
-        <message>
-            <source>The written tutorial, on the TerraLab blog.</source>
-            <translation>Yazılı eğitim, TerraLab blogunda.</translation>
         </message>
     </context>
     <context>
@@ -5820,14 +5480,6 @@ Katmanlar panelinde göstermek için tıklayın.</translation>
         <message>
             <source>Edit your imagery with a single sentence.</source>
             <translation>Görüntülerinizi tek bir cümleyle düzenleyin.</translation>
-        </message>
-        <message>
-            <source>More plugins</source>
-            <translation>Daha fazla eklenti</translation>
-        </message>
-        <message>
-            <source>The two other TerraLab plugins for QGIS. They install from here.</source>
-            <translation>QGIS için diğer iki TerraLab eklentisi. Buradan kurulur.</translation>
         </message>
         <message>
             <source>Turn buildings, trees or water into polygons.</source>
@@ -5969,7 +5621,7 @@ Katmanlar panelinde göstermek için tıklayın.</translation>
     <context>
         <name>Toast</name>
         <message>
-            <source>Available when the agent finishes</source>
+            <source>Available when the AI agent finishes</source>
             <translation>Asistan işini bitirdiğinde kullanılabilir</translation>
         </message>
     </context>
@@ -6182,6 +5834,10 @@ Katmanlar panelinde göstermek için tıklayın.</translation>
             <source>Signed in</source>
             <translation>Oturum açıldı</translation>
         </message>
+        <message>
+            <source>could not be put back, so what it changed is still in the project</source>
+            <translation>geri konulamadı, bu nedenle yaptığı değişiklikler projede kalmaya devam ediyor</translation>
+        </message>
     </context>
     <context>
         <name>UpdateBanner</name>
@@ -6288,10 +5944,6 @@ Katmanlar panelinde göstermek için tıklayın.</translation>
             <translation>CRS</translation>
         </message>
         <message>
-            <source>Click to open it in QGIS.</source>
-            <translation>QGIS'te açmak için tıklayın.</translation>
-        </message>
-        <message>
             <source>Click to select it in the Layers panel.</source>
             <translation>Katmanlar panelinde seçmek için tıklayın.</translation>
         </message>
@@ -6308,16 +5960,8 @@ Katmanlar panelinde göstermek için tıklayın.</translation>
             <translation>Türetildiği kaynak: {value}</translation>
         </message>
         <message>
-            <source>Its CRS changed. Click to open it in QGIS.</source>
-            <translation>CRS'si değişti. QGIS'te açmak için tıklayın.</translation>
-        </message>
-        <message>
             <source>Its CRS changed. Click to select it in the Layers panel.</source>
             <translation>CRS'si değişti. Katmanlar panelinde seçmek için tıklayın.</translation>
-        </message>
-        <message>
-            <source>Its file was written on disk. Click to open it in QGIS.</source>
-            <translation>Dosyası diske yazıldı. QGIS'te açmak için tıklayın.</translation>
         </message>
         <message>
             <source>Its file was written on disk. Click to select it in the Layers panel.</source>
@@ -6338,10 +5982,6 @@ Katmanlar panelinde göstermek için tıklayın.</translation>
         <message>
             <source>New layer, 1 feature. Click to select it in the Layers panel.</source>
             <translation>Yeni katman, 1 nesne. Katmanlar panelinde seçmek için tıklayın.</translation>
-        </message>
-        <message>
-            <source>New layer. Click to open it in QGIS.</source>
-            <translation>Yeni katman. QGIS'te açmak için tıklayın.</translation>
         </message>
         <message>
             <source>New layer. Click to select it in the Layers panel.</source>
@@ -6400,16 +6040,8 @@ Katmanlar panelinde göstermek için tıklayın.</translation>
             <translation>stillendirildi</translation>
         </message>
         <message>
-            <source>{n:+d} feature. Click to open it in QGIS.</source>
-            <translation>{n:+d} nesne. QGIS'te açmak için tıklayın.</translation>
-        </message>
-        <message>
             <source>{n:+d} feature. Click to select it in the Layers panel.</source>
             <translation>{n:+d} nesne. Katmanlar panelinde seçmek için tıklayın.</translation>
-        </message>
-        <message>
-            <source>{n:+d} features. Click to open it in QGIS.</source>
-            <translation>{n:+d} nesne. QGIS'te açmak için tıklayın.</translation>
         </message>
         <message>
             <source>{n:+d} features. Click to select it in the Layers panel.</source>
@@ -6425,14 +6057,6 @@ Katmanlar panelinde göstermek için tıklayın.</translation>
         <message>
             <source>Layers affected</source>
             <translation>Etkilenen katmanlar</translation>
-        </message>
-        <message>
-            <source>Removed</source>
-            <translation>Kaldırıldı</translation>
-        </message>
-        <message>
-            <source>Restored</source>
-            <translation>Geri yüklendi</translation>
         </message>
         <message>
             <source>Put back as before</source>
@@ -6609,14 +6233,6 @@ Katmanlar panelinde göstermek için tıklayın.</translation>
             <translation>Gönder</translation>
         </message>
         <message>
-            <source>Sent with this conversation and your recent logs, to fix issues and improve AI Agent.</source>
-            <translation>Sorunları gidermek ve AI Agent'ı geliştirmek için bu konuşma ve son günlükleriniz ile birlikte gönderilir.</translation>
-        </message>
-        <message>
-            <source>Tell us more</source>
-            <translation>Bize biraz daha anlatın</translation>
-        </message>
-        <message>
             <source>Thanks for the feedback</source>
             <translation>Geri bildiriminiz için teşekkürler</translation>
         </message>
@@ -6658,6 +6274,18 @@ Katmanlar panelinde göstermek için tıklayın.</translation>
         <message>
             <source>{n} more</source>
             <translation>{n} tane daha</translation>
+        </message>
+        <message>
+            <source>No</source>
+            <translation>Hayır</translation>
+        </message>
+        <message>
+            <source>The algorithm's id, to find it in the Processing toolbox</source>
+            <translation>Algoritmanın kimliği, İşleme araç kutusunda bulmak için</translation>
+        </message>
+        <message>
+            <source>Yes</source>
+            <translation>Evet</translation>
         </message>
     </context>
     <context>
@@ -6898,10 +6526,6 @@ Katmanlar panelinde göstermek için tıklayın.</translation>
             <translation>Kaldır</translation>
         </message>
         <message>
-            <source>Remove the access to {host}</source>
-            <translation>{host} erişimini kaldır</translation>
-        </message>
-        <message>
             <source>S3 keys</source>
             <translation>S3 anahtarları</translation>
         </message>
@@ -6932,10 +6556,6 @@ Katmanlar panelinde göstermek için tıklayın.</translation>
         <message>
             <source>Change project…</source>
             <translation>Projeyi değiştir…</translation>
-        </message>
-        <message>
-            <source>Google sign-in</source>
-            <translation>Google ile oturum açma</translation>
         </message>
         <message>
             <source>Signed in with the browser</source>
@@ -7933,6 +7553,17 @@ Katmanlar panelinde göstermek için tıklayın.</translation>
         <message>
             <source>Your words are sent with this chat and recent logs.</source>
             <translation>Yazdıklarınız bu sohbet ve son günlüklerle birlikte gönderilir.</translation>
+        </message>
+    </context>
+    <context>
+        <name>NoteRow</name>
+        <message>
+            <source>Delete this note</source>
+            <translation>Bu notu sil</translation>
+        </message>
+        <message>
+            <source>Edit this note</source>
+            <translation>Bu notu düzenle</translation>
         </message>
     </context>
 </TS>

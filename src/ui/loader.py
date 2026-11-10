@@ -27,7 +27,7 @@ from qgis.PyQt.QtWidgets import QHBoxLayout, QLabel, QSizePolicy, QWidget
 from ..core.numbers import as_float
 from .card_base import tr
 from .font_scale import scale_point_size
-from .style import FONT_BODY, INK, INK_2, INK_3, qcolor
+from .style import FONT_BODY, INK, INK_2, INK_3, medium_font_weight, qcolor
 
 GRID_PX = 15
 _DOT_PX = 4.0
@@ -174,7 +174,7 @@ class ShimmerLabel(_Ticker):
         self._light = qcolor(INK)
         font = QFont(self.font())
         font.setPixelSize(scale_point_size(FONT_BODY))
-        font.setWeight(QFont.Weight.Medium)
+        font.setWeight(medium_font_weight())
         self.setFont(font)
         self.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Fixed)
         self.setFixedHeight(LINE_PX)

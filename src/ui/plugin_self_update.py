@@ -19,10 +19,12 @@
 from __future__ import annotations
 
 import contextlib
+import os
 
 from qgis.PyQt.QtCore import QObject, QTimer
 
 from ..core import telemetry, telemetry_events, tuning
+from ..core.host_platform import plugin_version
 from ..core.qt_compat import one_shot
 from .shared import tr
 
@@ -190,6 +192,33 @@ class PluginSelfUpdate(QObject):
         self.deleteLater()
 
 
+_TOLD_ON_DISK: list[str] = []
+
+
+def updated_on_disk_note() -> str:
+
+
+
+
+
+
+
+    root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    on_disk = ""
+    try:
+        with open(os.path.join(root, "metadata.txt"), encoding="utf-8") as handle:
+            for line in handle:
+                if line.strip().lower().startswith("version="):
+                    on_disk = line.split("=", 1)[1].strip()
+                    break
+    except OSError:
+        return ""
+    if not on_disk or on_disk == plugin_version() or on_disk in _TOLD_ON_DISK:
+        return ""
+    _TOLD_ON_DISK.append(on_disk)
+    return tr("AI Agent {version} is installed. Restart QGIS to use it.").format(version=on_disk)
+
+
 def _flush_telemetry() -> None:
 
     try:
@@ -216,6 +245,9 @@ def one_click_result_tracker(version: str):
 
 
 
+
+
+
     names = (telemetry.__name__, telemetry_events.__name__)
 
     def _send(result: str, installed_version: str = "") -> None:
@@ -225,7 +257,6 @@ def one_click_result_tracker(version: str):
         tel.track(events.PLUGIN_UPDATE_PROMPT_CLICKED,
                   {"offered_version": installed_version or version or "unknown",
                    "action": "one_click", "result": result})
-        tel.flush()
     return _send
 
 

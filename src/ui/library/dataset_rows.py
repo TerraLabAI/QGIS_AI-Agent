@@ -13,13 +13,15 @@ from __future__ import annotations
 from qgis.PyQt.QtCore import Qt
 from qgis.PyQt.QtWidgets import QHBoxLayout, QLabel, QSizePolicy, QVBoxLayout
 
+from ..widgets import plain_tip
 from . import common as C
 from .parts import label
-from .pictures import wear_square_mark
+from .pictures import wear_square_mark, wear_thumbnail
 from .pressable import Pressable, labels_through
 
 _HIT_MARK_PX = 36
 _HIT_H = 64
+_THUMB_W, _THUMB_H = 80, 45
 
 
 class DatasetHit(Pressable):
@@ -55,6 +57,10 @@ class DatasetHit(Pressable):
         text.addWidget(self._sub)
         text.addStretch(1)
         line.addLayout(text, 1)
+        if str(row.get("thumb_url") or ""):
+            picture = QLabel(self)
+            wear_thumbnail(picture, str(row["thumb_url"]), C.px(_THUMB_W), C.px(_THUMB_H))
+            line.addWidget(picture, 0, Qt.AlignmentFlag.AlignVCenter)
         labels_through(self)
         self.setAccessibleName(self._title)
         self._laid = -1
@@ -68,3 +74,6 @@ class DatasetHit(Pressable):
         room = max(1, width - C.px(_HIT_MARK_PX) - C.px(12) - 2 * C.px(C.EDGE))
         self._name.setText(self._name.fontMetrics().elidedText(self._title, Qt.TextElideMode.ElideRight, room))
         self._sub.setText(self._sub.fontMetrics().elidedText(self._note, Qt.TextElideMode.ElideRight, room))
+
+        trimmed = self._name.text() != self._title or self._sub.text() != self._note
+        self.setToolTip("<br>".join(plain_tip(t) for t in (self._title, self._note) if t) if trimmed else "")

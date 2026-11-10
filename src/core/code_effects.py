@@ -574,7 +574,10 @@ def _string_constants(tree: ast.AST) -> list[str]:
 
 
 _REMOTE_LITERAL_RE = re.compile(
-    r"(?i)(?:https?|ftps?)://|/vsi(?:curl|s3|gs|az|adls|oss|swift|hdfs|webhdfs)(?:_streaming)?[/?]")
+    r"(?i)(?:https?|ftps?)://|/vsi(?:curl|s3|gs|az|adls|oss|swift|hdfs|webhdfs)(?:_streaming)?[/?]"
+
+
+    r"|^\s*(?:file:)?[\\/]{2}[\w.$@-]+(?:[\\/]|$)")
 
 
 

@@ -32,11 +32,13 @@ from .style import (
     ACCENT_INK,
     ACCENT_TINT,
     FONT_BODY,
+    HIT_PX,
     INK,
     ORANGE,
     ORANGE_TINT,
     RADIUS_CARD,
     SPACE_CARD,
+    WEIGHT_MEDIUM,
 )
 from .widgets import IconButton, break_anywhere
 
@@ -67,7 +69,6 @@ _BAR_QSS = {
 }
 _TEXT_QSS = f"font-size: {FONT_BODY}px; color: {INK}; background: transparent;"
 _CLOSE_PX = 14
-_CLOSE_BOX = 22
 
 
 def dismissed_notice_ids(settings=None) -> list:
@@ -140,7 +141,7 @@ class NoticeBar(QWidget):
         row.addWidget(self._text, 1, Qt.AlignmentFlag.AlignVCenter)
         self._close = IconButton(self._bar, None, _CLOSE_PX, self.tr("Dismiss"), _BTN_CHIP_CLOSE)
         self._close.set_icon("close", _CLOSE_PX)
-        self._close.setFixedSize(_CLOSE_BOX, _CLOSE_BOX)
+        self._close.setFixedSize(HIT_PX, HIT_PX)
         self._close.clicked.connect(self._on_close)
         row.addWidget(self._close, 0, Qt.AlignmentFlag.AlignTop)
         outer.addWidget(self._bar)
@@ -180,7 +181,7 @@ class NoticeBar(QWidget):
         body = html.escape(break_anywhere(self._notice["text"]))
         if self._notice["url"]:
             body += (f' <a href="{html.escape(self._notice["url"], quote=True)}"'
-                     f' style="color: {ACCENT_INK}; text-decoration: none; font-weight: 500;">'
+                     f' style="color: {ACCENT_INK}; text-decoration: none; font-weight: {WEIGHT_MEDIUM};">'
                      f"{html.escape(self._notice['link_text'] or self.tr('Read more'))}</a>")
         self._text.setText(body)
         self._close.setAccessibleName(self.tr("Dismiss"))

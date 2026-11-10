@@ -68,7 +68,7 @@ from .library import common as C
 from .library.cards import has_picture
 from .library.common import escape
 from .library.dataset_rows import DatasetHit
-from .library.parts import Breadcrumb, EmptyState, PageHeader, SectionHead, label, search_pill, section_title
+from .library.parts import Breadcrumb, EmptyState, PageHeader, SectionHead, edge, label, search_pill, section_title
 from .library.pictures import watch_scroll, wear_square_mark
 from .library.pressable import Pressable, labels_through, mouse_through
 
@@ -247,6 +247,51 @@ def country_groups(rows: list) -> list:
                                                          str(r.get("name") or "").casefold()))
         out.append((labels.get(region, "") if has_regions else "", members))
     return out
+
+
+
+
+
+_COUNTRY_SPLIT_MIN = 6
+_GROUP_ORDER = ("national", "regional", "local")
+
+
+def _spans_countries(row: dict) -> bool:
+
+
+
+    named = [c for c in (row.get("countries") or []) if str(c).lower() != "global"]
+    return not str(row.get("country") or "") or len(named) >= 3
+
+
+def country_blocks(members: list) -> list:
+
+
+
+
+    several = [r for r in members if _spans_countries(r)]
+    by_country: dict = {}
+    for row in members:
+        code = str(row.get("country") or "").upper()
+        if code and not _spans_countries(row):
+            by_country.setdefault(code, []).append(row)
+    by_name = lambda r: str(r.get("name") or "").casefold()  # noqa: E731
+    blocks: list = []
+    if several:
+        blocks.append(("", [("", sorted(several, key=by_name))]))
+    for code in sorted(by_country, key=lambda c: country_name(c).casefold()):
+        rows = by_country[code]
+        kinds = {str(r.get("group") or "") for r in rows}
+        if len(rows) >= _COUNTRY_SPLIT_MIN and len(kinds) >= 2:
+            keys = [k for k in _GROUP_ORDER if k in kinds] + sorted(kinds - set(_GROUP_ORDER))
+            groups = []
+            for key in keys:
+                part = sorted((r for r in rows if str(r.get("group") or "") == key), key=by_name)
+                groups.append((str(part[0].get("group_label") or ""), part))
+        else:
+            groups = [("", sorted(rows, key=by_name))]
+        blocks.append((country_name(code), groups))
+    return blocks
 
 
 
@@ -602,16 +647,23 @@ class ConnectorsPage(QWidget):
     def _paint_countries(self, rows: list) -> None:
 
 
+
         for region, members in country_groups(rows):
             holder = self._holder()
             if region:
                 holder.layout().addWidget(section_title(holder, region))
-            host = QWidget(holder)
-            grid = self._grid_layout(host)
-            for index, row in enumerate(members):
-                self._add_card(grid, host, row, index, countries_line(row))
-            self._grids.append((grid, [grid.itemAt(i).widget() for i in range(grid.count())]))
-            holder.layout().addWidget(host)
+            for country, groups in country_blocks(members):
+                if country:
+                    holder.layout().addWidget(edge(label(holder, country, C.NAME_PX, C.T.text, C.MEDIUM)))
+                for text, group_rows in groups:
+                    if text:
+                        holder.layout().addWidget(edge(label(holder, text, C.BODY_PX, C.T.text_2, C.MEDIUM)))
+                    host = QWidget(holder)
+                    grid = self._grid_layout(host)
+                    for index, row in enumerate(group_rows):
+                        self._add_card(grid, host, row, index, None if country else countries_line(row))
+                    self._grids.append((grid, [grid.itemAt(i).widget() for i in range(grid.count())]))
+                    holder.layout().addWidget(host)
 
     def _add_card(self, grid, host, row: dict, index: int, note=None, words: tuple = ()) -> None:
         key = str(row.get("id") or "")

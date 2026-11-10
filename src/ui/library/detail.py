@@ -24,6 +24,8 @@
 
 
 
+
+
 from __future__ import annotations
 
 from qgis.PyQt.QtCore import QEvent, QSize, Qt, QTimer, pyqtSignal
@@ -45,7 +47,7 @@ from ..widgets import FlowLayout
 from . import common as C
 from .common import escape, link_html, source_rows
 from .parts import Breadcrumb, InfoTable, PageHeader, label, primary_button, section_title
-from .pictures import wear_square_mark
+from .pictures import PictureView, wear_square_mark
 from .pressable import Pressable, labels_through
 from .slider import SliderView
 
@@ -71,6 +73,8 @@ class SourceChip(Pressable):
 
 _CARD_SOURCES = 3
 
+_ATTACH_W = 120
+
 _HERO_RATIO = 0.5
 _COPIED_MS = 1500
 
@@ -80,7 +84,7 @@ class PromptCard(QFrame):
 
     connector_requested = pyqtSignal(str)
 
-    def __init__(self, prompt: str, sources: list, use: QPushButton, parent=None):
+    def __init__(self, prompt: str, sources: list, use: QPushButton, parent=None, attach=()):
         super().__init__(parent)
         self.setObjectName("promptCard")
         self.setStyleSheet(
@@ -94,6 +98,9 @@ class PromptCard(QFrame):
         text = label(self, self._prompt, C.READ_PX, C.T.text, wrap=True)
         text.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
         col.addWidget(text)
+        if attach:
+            col.addSpacing(C.px(4))
+            col.addWidget(self._attached(attach))
         col.addSpacing(C.px(4))
         row = QHBoxLayout()
         row.setContentsMargins(0, 0, 0, 0)
@@ -122,6 +129,26 @@ class PromptCard(QFrame):
         row.addWidget(use, 0, Qt.AlignmentFlag.AlignVCenter)
         col.addLayout(row)
 
+    def _attached(self, attach) -> QWidget:
+
+        host = QWidget(self)
+        lay = QHBoxLayout(host)
+        lay.setContentsMargins(0, 0, 0, 0)
+        lay.setSpacing(C.px(C.SPACE_1))
+        for sample in attach:
+            item = QWidget(host)
+            item.setToolTip(sample.licence or sample.name)
+            box = QVBoxLayout(item)
+            box.setContentsMargins(0, 0, 0, 0)
+            box.setSpacing(C.px(4))
+            picture = PictureView(sample.url, parent=item, full=True, radius=C.px(8), label=sample.name)
+            picture.setFixedSize(C.px(_ATTACH_W), round(C.px(_ATTACH_W) * 9 / 16))
+            box.addWidget(picture)
+            box.addWidget(label(item, sample.name, C.SMALL_PX, C.T.text_2))
+            lay.addWidget(item, 0, Qt.AlignmentFlag.AlignTop)
+        lay.addStretch(1)
+        return host
+
     def _set_copy_look(self, copied: bool) -> None:
 
         self._copy.setText(tr("Copied") if copied else tr("Copy"))
@@ -130,7 +157,13 @@ class PromptCard(QFrame):
     def _on_copy(self) -> None:
         QApplication.clipboard().setText(self._prompt)
         self._set_copy_look(True)
-        QTimer.singleShot(_COPIED_MS, self._reset_copy)
+
+        timer = getattr(self, "_copied_timer", None)
+        if timer is None:
+            timer = self._copied_timer = QTimer(self)
+            timer.setSingleShot(True)
+            timer.timeout.connect(self._reset_copy)
+        timer.start(_COPIED_MS)
 
     def _reset_copy(self) -> None:
         try:
@@ -249,7 +282,8 @@ class ExampleDetail(QWidget):
         self._col.addWidget(self._edged(self._hero))
         self._col.addSpacing(C.px(C.SPACE_2))
         sources = source_rows(case)
-        card = PromptCard(str(case.prompt or ""), sources, self._use, self._column)
+        card = PromptCard(str(case.prompt or ""), sources, self._use, self._column,
+                          attach=tuple(getattr(case, "attach", ()) or ()))
         card.connector_requested.connect(self.connector_requested.emit)
         self._use.show()
         self._col.addWidget(self._edged(card))
@@ -259,6 +293,10 @@ class ExampleDetail(QWidget):
             self._col.addWidget(section_title(self._column, tr("Information")))
             self._col.addSpacing(C.px(12))
             self._col.addWidget(self._edged(information))
+        else:
+
+            information.setParent(None)
+            information.deleteLater()
         self._centre()
         self._use.setFocus()
         self._hero.play_intro()

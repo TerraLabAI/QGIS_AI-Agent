@@ -133,7 +133,8 @@ def open_plans_from_settings(plugin, dialog) -> None:
     if account is not None:
 
         account.open_plans("plugin_settings", on_outcome=report,
-                           trial_surface="settings" if getattr(dialog, "trial_offered", False) else "")
+                           trial_surface=f"settings_{getattr(dialog, 'upgrade_surface', 'account')}"
+                           if getattr(dialog, "trial_offered", False) else "")
         return
     report("fallback")
     open_external_url(get_pricing_url(), parent=dialog)

@@ -19,18 +19,13 @@ from ..core import first_run_funnel
 from ..core.protocol import StopCode
 from . import style as S
 from .account_card import AccountCard
-from .cards import (
-    ErrorCard,
-    PermissionCard,
-    QuestionCard,
-    QuotaPauseCard,
-)
 from .cards_proposal import DiffTableCard, RecommendationCard
-from .cards_run import _NEW_CHAT, _NO_RETRY, InstallWaitCard, run_ending
+from .cards_question import QuestionCard
+from .cards_run import _NEW_CHAT, _NO_RETRY, ErrorCard, InstallWaitCard, PermissionCard, QuotaPauseCard, run_ending
 from .confirm_dialog import BADGE_PX, ROW_SPACING, SIDE_PAD, ConfirmDialog
 from .font_scale import scale_px_length, scale_qss_font_px
 from .icons import pixmap_for
-from .loader import ElapsedClock, ShimmerLabel, user_waiting
+from .loader import DotsLoader, ElapsedClock, ShimmerLabel, user_waiting
 from .plugin_self_update import one_click_result_tracker, start_plugin_self_update
 from .shared import PLUGIN_DIR
 from .terralab_menu import open_plugin_manager_updates
@@ -124,7 +119,7 @@ class _ChatPanelPrompts:
 
 
         held = self.__dict__.setdefault("_held_motion", [])
-        for kind in (Spinner, ShimmerLabel):
+        for kind in (Spinner, ShimmerLabel, DotsLoader):
             for part in block.findChildren(kind):
 
                 if not part.isHidden() and not any(part is h for h in held):

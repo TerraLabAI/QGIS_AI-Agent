@@ -13,7 +13,7 @@ import errno
 import os
 
 from ..core.security import anchor, note_own_paths, validate_path
-from ..core.text_encoding import detect_encoding
+from ..core.text_encoding import detect_encoding, python_codec
 
 _NO_FILE_CHANGE = "a snippet never removes, renames or overwrites a file, and writes a new file name instead."
 
@@ -71,7 +71,7 @@ def _read_encoding(file) -> str:
     except OSError:
         return "utf-8-sig"
     found = detect_encoding(head)
-    return "utf-8-sig" if found == "UTF-8" else found.lower()
+    return "utf-8-sig" if found == "UTF-8" else python_codec(found)
 
 
 def _guarded_open(file, mode="r", *args, **kwargs):

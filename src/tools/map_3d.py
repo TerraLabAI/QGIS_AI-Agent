@@ -48,6 +48,8 @@
 
 
 
+
+
 from __future__ import annotations
 
 import contextlib
@@ -66,7 +68,7 @@ from qgis.core import (
 from qgis.PyQt.QtCore import QT_TRANSLATE_NOOP
 from qgis.utils import iface
 
-from ..core import output_paths, security
+from ..core import output_paths, security, view3d_windows
 from ..core.tool_registry import Tool, ToolRegistry, tool_error
 from . import style_3d
 from ._compat import enum_value
@@ -110,6 +112,8 @@ def register_map_3d_tools(registry: ToolRegistry):
 
 
             "x-view-raised": True,
+
+            "x-view-at-run-end": True,
 
 
             "x-terrain-project-crs": True,
@@ -175,7 +179,9 @@ def _configure_3d_map_view(args: dict) -> dict:
     if views is None:
         return tool_error("QGIS could not enumerate its 3D map views.", "EXECUTION_FAILED",
                           hint="map3d_views_unavailable")
-    created = "view_index" not in args
+
+
+    created = "view_index" not in args or not views
     if created:
         refused = _opengl_refusal()
         if refused:
@@ -203,12 +209,15 @@ def _configure_3d_map_view(args: dict) -> dict:
                                   hint="map3d_views_open", open_views=len(views))
             return tool_error("QGIS did not create a 3D map view.", "EXECUTION_FAILED",
                               hint="map3d_open_failed")
+
+        window = view3d_windows.touched(canvas, True)
     else:
         index = int(args["view_index"])
         if index >= len(views):
-            return tool_error(f"view_index {index} out of range (open 3D views: {len(views)}).", "INVALID_ARGS",
+            return tool_error(f"There is no 3D view {index}: {len(views)} open, numbered from 0.", "INVALID_ARGS",
                               hint="map3d_view_index_out_of_range", view_index=index, open_views=len(views))
         canvas = views[index]
+        window = view3d_windows.touched(canvas, False)
 
     settings = canvas.mapSettings()
     if settings is None:
@@ -287,7 +296,7 @@ def _configure_3d_map_view(args: dict) -> dict:
         "terrain_ground_error": ground_error,
         "terrain_screen_error": screen_error,
         "open_3d_views": len(current_views) if current_views is not None else None,
-        "view": _view_facts(canvas, current_views),
+        "view": _view_facts(canvas, current_views, window),
         "layers_3d": [layer.name() for layer in settings.layers() if _has_3d_renderer(layer)][:20],
         "ground_layers": _ground_layers(settings)[:20],
     }
@@ -832,28 +841,14 @@ class _XmlTerrain:
         settings.resolveReferences(QgsProject.instance())
 
 
-def _view_facts(canvas, views) -> dict:
+def _view_facts(canvas, views, window) -> dict:
 
 
-
-
-    facts = {"index": next((i for i, view in enumerate(views or []) if view is canvas), None)}
-    holder = canvas.parent() if hasattr(canvas, "parent") else None
-    main = iface.mainWindow() if iface is not None else None
-    docked = holder is not None and main is not None and holder is main.windowHandle()
-    facts["docked"] = docked
-    if holder is None:
-        return facts
-    if not docked:
-        facts["name"] = holder.title()
-        from qgis.PyQt.QtGui import QWindow
-
-        if not holder.isVisible() or holder.visibility() == QWindow.Visibility.Minimized:
-            holder.showNormal()
-        holder.raise_()
-        holder.requestActivate()
-        facts["window"] = {"shown": bool(holder.isVisible()) and holder.visibility() != QWindow.Visibility.Minimized,
-                           "raised": True}
+    facts = {"index": next((i for i, view in enumerate(views or []) if view is canvas), None),
+             "docked": window is None and canvas.parent() is not None}
+    if window is not None:
+        facts["name"] = canvas.parent().title()
+        facts["window"] = window
     return facts
 
 

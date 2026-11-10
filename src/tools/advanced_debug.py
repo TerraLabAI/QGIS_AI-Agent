@@ -10,6 +10,7 @@ from qgis.core import QgsApplication
 
 from ..core.host_platform import IS_WINDOWS, os_info, os_label, peak_memory_mb
 from ..core.numbers import as_int
+from ..core.qt_compat import message_log_signal, message_log_signal_name
 from ..core.serialization import size_budget
 
 _LOG_BUFFER_SIZE = 5000
@@ -79,19 +80,21 @@ def _connect_message_log():
 
 
     app = QgsApplication.instance()
-    if app is not None and app.property(_MSG_CONNECTED):
-        return
     try:
-        msg_log = QgsApplication.messageLog()
-        if hasattr(msg_log, "messageReceived"):
-            msg_log.messageReceived.connect(_on_message_received)
-            if app is not None:
-                app.setProperty(_MSG_CONNECTED, True)
+
+
+        name = message_log_signal_name()
+        connected = app.property(_MSG_CONNECTED) if app is not None else None
+        if connected == name or (connected is True and name == "messageReceived"):
+            return
+        message_log_signal().connect(_on_message_received)
+        if app is not None:
+            app.setProperty(_MSG_CONNECTED, name)
     except Exception:  # nosec B110
         pass
 
 
-def _on_message_received(message, tag, level):
+def _on_message_received(message, tag, level, *_format):
 
     import time
     _LEVEL_MAP = {0: "info", 1: "warning", 2: "critical", 3: "success"}

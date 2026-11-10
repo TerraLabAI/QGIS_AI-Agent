@@ -116,7 +116,8 @@ _CONNECTOR_FIELDS = ("id", "name", "glyph", "url", "datasets", "kinds", "licence
                      "status", "status_label", "caveat", "prompts",
                      "tagline", "category", "category_label", "popular",
                      "country", "also_covers", "languages", "tools", "logo_url", "hosts",
-                     "countries", "key_held", "rank", "region", "region_label", "flags")
+                     "countries", "key_held", "rank", "region", "region_label", "flags",
+                     "group", "group_label", "stand_in")
 
 
 def _connector_store():
@@ -367,7 +368,6 @@ _hidden_plugins: list = []
 
 
 _hidden_state = {"received": False}
-_tool_names: list = []
 
 
 
@@ -493,27 +493,6 @@ def get_hidden_plugins() -> set:
             except Exception as exc:  # noqa: BLE001
                 _connector_warning(f"Hidden plugin cache not read: {exc}")
     return set(_hidden_plugins) or set(DEFAULT_HIDDEN_PLUGINS)
-
-
-def set_tool_names(names) -> None:
-
-
-
-
-
-
-
-    global _tool_names
-    _tool_names = sorted({str(name) for name in (names or []) if str(name or "").strip()})
-    if not _tool_names:
-        return
-    store = _connector_store()
-    if store is None:
-        return
-    try:
-        store.known_tool_names = _tool_names
-    except Exception as exc:  # noqa: BLE001
-        _connector_warning(f"Tool names not cached: {exc}")
 
 
 def _served_url(key: str, fallback: str) -> str:
@@ -733,7 +712,9 @@ def set_student_offer(raw) -> None:
         url = url.strip() if isinstance(url, str) and url.strip().startswith("https://") else ""
         if state in ("offer", "active") and isinstance(label, str) and label.strip():
             if state == "active" or url:
-                offer = {"state": state, "label": label.strip()[:120], "url": url}
+
+                offer = {"state": state, "label": label.strip()[:120], "url": url,
+                         "applied": raw.get("applied") is True}
     _STUDENT_OFFER[0] = offer
 
 

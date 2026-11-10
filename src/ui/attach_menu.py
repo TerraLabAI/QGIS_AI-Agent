@@ -26,7 +26,7 @@ from qgis.PyQt.QtWidgets import QFrame, QVBoxLayout, QWidget
 
 from .popover_rows import _POPOVER_QSS, _Row
 from .shared import keep_on_screen, paint_styled_ground, round_popup_corners, screen_area_at
-from .style import INK_3, LINE_STRONG, RADIUS_CARD, SURFACE
+from .style import INK_3, LINE_STRONG, RADIUS_CARD, SURFACE, WEIGHT_MEDIUM
 
 
 SHEET_WIDTH = 280
@@ -34,7 +34,7 @@ _MIN_WIDTH = 200
 _SHEET_QSS = _POPOVER_QSS + (
     f"QFrame#attachPopover {{ background: {SURFACE};"
     f" border: 1px solid {LINE_STRONG}; border-radius: {RADIUS_CARD}px; }}"
-    "QFrame#attachPopover QLabel#exampleTitle { font-weight: 500; }"
+    f"QFrame#attachPopover QLabel#exampleTitle {{ font-weight: {WEIGHT_MEDIUM}; }}"
     f"QFrame#attachPopover QLabel#exampleTitle:disabled {{ color: {INK_3}; }}"
 )
 

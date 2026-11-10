@@ -16,13 +16,15 @@ import time
 from qgis.PyQt.QtCore import QObject, QTimer, pyqtSignal
 
 from ..api.account import Account
-from ..core import first_run_funnel, telemetry
+from ..core import crash_note, first_run_funnel, telemetry, trace
 from ..core import telemetry_events as ev
 from ..core.context import mention_candidates
 from ..core.host_platform import os_label, plugin_version, qgis_version
 from ..core.logger import log, log_warning
+from ..core.machine import desk_classes
 from ..core.plan import autopilot_allowed, effort_allowed, efforts_stated
-from ..core.protocol import CANCEL_QGIS_CLOSED, Approval, Effort, RunStatus
+from ..core.project_identity import project_key
+from ..core.protocol import CANCEL_QGIS_CLOSED, Approval, Effort, RunStatus, project_memory_request
 from ..core.qt_compat import one_shot
 from ..core.run_state import RunMachine
 from ..core.session import AgentSession
@@ -32,7 +34,6 @@ from ..core.threads import ThreadStore
 from .controller_account import _ControllerAccount
 from .controller_actions import PanelActionsMixin, _project_path
 from .controller_frames import _ControllerFrames
-from .controller_memory import _ControllerMemory
 from .controller_offers import _ControllerOffers
 from .controller_projects import _ControllerProjects
 from .controller_runs import _ControllerRuns
@@ -44,11 +45,13 @@ from .controller_shared import (
     RUN_SILENCE_S,
     tr,
 )
-from .controller_tasks import _ControllerTasks
 from .executor import ToolExecutor
 
 
 __all__ = ["AgentController", "CANCEL_GRACE_MS", "RESUME_GRACE_S", "RUN_SILENCE_S"]
+
+
+_TASK_FINAL = ("done", "failed", "stopped")
 
 
 def _panel_deleted(panel) -> bool:
@@ -60,8 +63,13 @@ def _panel_deleted(panel) -> bool:
         return False
 
 
+def _message_box():
+    from qgis.PyQt.QtWidgets import QApplication, QMessageBox
+    return QApplication.activeWindow(), QMessageBox
+
+
 class AgentController(_ControllerRuns, _ControllerFrames, _ControllerProjects, _ControllerOffers,
-                      _ControllerMemory, _ControllerAccount, _ControllerTasks, PanelActionsMixin, QObject):
+                      _ControllerAccount, PanelActionsMixin, QObject):
     layer_action_requested = pyqtSignal(str, str)
     settings_requested = pyqtSignal()
     notice = pyqtSignal(str, str)
@@ -94,6 +102,7 @@ class AgentController(_ControllerRuns, _ControllerFrames, _ControllerProjects, _
         self._crashed_chat: tuple | None = None
 
         self._runs = RunMachine(RETRY_MEMORY)
+        self._session.run_open = self._runs.busy
         self._quota_tracked_run: str | None = None
         self._pairing_started: float | None = None
         self._last_run: dict | None = None
@@ -145,13 +154,17 @@ class AgentController(_ControllerRuns, _ControllerFrames, _ControllerProjects, _
 
         self._conn_lost_timer = one_shot(self, self._say_connection_lost, 15000)
         self._link_notice = ""
+
+
+        self._refusal_retried = False
         self._diff_timer = one_shot(self, self._refresh_run_changes, _DIFF_SETTLE_MS)
         self._pending_changed = 0
         self._wire_panel()
         self._wire_session()
         self._wire_executor()
         self._wire_account()
-        self._memory_init()
+        if hasattr(self._session, "project_memory"):
+            self._session.project_memory.connect(self._on_project_memory)
 
 
     def start(self) -> None:
@@ -211,7 +224,9 @@ class AgentController(_ControllerRuns, _ControllerFrames, _ControllerProjects, _
 
 
             props["open_to_typeable_ms"] = int((time.monotonic() - began) * 1000)
+        props.update(desk_classes(self._panel))
         telemetry.track(ev.PLUGIN_OPENED, props)
+        trace.mark("panel.open", **props)
 
     def _on_thread_index_ready(self) -> None:
 
@@ -263,7 +278,10 @@ class AgentController(_ControllerRuns, _ControllerFrames, _ControllerProjects, _
                 log_warning(f"Run {run['run_id'][:8]}: no cancel sent on unload: {exc}")
 
 
-            self._store_ending(run["run_id"], RunStatus.CANCELLED, tr("Stopped: QGIS closed during this run."), {})
+
+            ended = (tr("Stopped: QGIS closed during this run.") if crash_note.quitting()
+                     else tr("Stopped: AI Agent was updated or turned off during this run."))
+            self._store_ending(run["run_id"], RunStatus.CANCELLED, ended, {})
         try:
             self._account.stop_upgrade_watch()
         except Exception as exc:  # noqa: BLE001
@@ -516,6 +534,7 @@ class AgentController(_ControllerRuns, _ControllerFrames, _ControllerProjects, _
         a.notice.connect(self.notice)
         a.state_changed.connect(self._on_account_state)
         a.usage_refreshed.connect(self._on_website_usage)
+        a.usage_refreshed.connect(self._on_key_confirmed)
         a.checkout_not_finished.connect(lambda: self._panel_call("show_checkout_return"))
         a.checkout_not_finished.connect(lambda: telemetry.track(
             ev.CHECKOUT_RETURN_CHECKED, {"outcome": "not_finished", **telemetry.upsell_context()}))
@@ -556,3 +575,55 @@ class AgentController(_ControllerRuns, _ControllerFrames, _ControllerProjects, _
             log_warning(f"Reconnecting to {url}, which is not the default service")
         self._panel_call("set_connection_state", "connecting", "")
         self._session.connect_to_server()
+
+    def _on_task_update(self, frame: dict) -> None:
+
+
+
+        task_id = str(frame.get("task_id") or "")
+        status = str(frame.get("status") or "")
+        seen = self.__dict__.setdefault("_task_states", {})
+        before = seen.get(task_id)
+        if before is None and status not in _TASK_FINAL:
+            last = getattr(self, "_last_run", None) or {}
+            self._executor.begin_run(task_id, str(last.get("mode") or "agent"), str(last.get("approval") or "ask"),
+                                     self._thread_id or "", "")
+        elif before is not None and before not in _TASK_FINAL and status in _TASK_FINAL:
+            self._executor.end_run(task_id)
+        seen[task_id] = status
+        if status not in _TASK_FINAL:
+            keep = getattr(self._session, "keep_for_reopen", None)
+            if keep is not None:
+                keep()
+        self._panel_call("task_update", frame)
+
+    def _on_task_result(self, frame: dict) -> None:
+        self._panel_call("task_result", frame)
+
+    def _on_task_stop(self, task_id: str) -> None:
+        self._session.send_task_stop(task_id)
+
+    def request_project_memory(self, action: str) -> None:
+
+
+        if action not in ("show", "clear"):
+            return
+        parent, box = _message_box()
+        key = project_key()
+        if not key:
+            box.information(parent, tr("Project memory"),
+                            tr("Save the project first: its memory is kept under the project file."))
+            return
+        if action == "clear" and box.question(
+                parent, tr("Project memory"),
+                tr("Clear what the AI agent remembers about this project?")) != box.StandardButton.Yes:
+            return
+        if not (self._session.is_online and self._session.send_frame(project_memory_request(action, key))):
+            box.information(parent, tr("Project memory"),
+                            tr("The AI agent is not connected. Try again in a moment."))
+
+    def _on_project_memory(self, frame: dict) -> None:
+        parent, box = _message_box()
+        text = str(frame.get("text") or "") or (tr("Project memory cleared.") if frame.get("cleared")
+                                                 else tr("Nothing is kept about this project yet."))
+        box.information(parent, tr("Project memory"), text)

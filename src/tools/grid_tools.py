@@ -163,10 +163,6 @@ _OLC_GRID_WEIGHTS = tuple(
 )
 
 
-def _clip_latitude(latitude: float) -> float:
-    return min(90.0, max(-90.0, latitude))
-
-
 def _normalize_longitude(longitude: float) -> float:
     while longitude < -180:
         longitude += 360
@@ -195,7 +191,7 @@ def olc_encode(latitude: float, longitude: float, code_length: int = 10) -> str:
     if code_length < 2 or (code_length < _OLC_PAIR_LENGTH and code_length % 2 == 1):
         raise ValueError(f"invalid Open Location Code length: {code_length}")
     code_length = min(code_length, _OLC_MAX_DIGITS)
-    latitude = _clip_latitude(latitude)
+    latitude = min(90.0, max(-90.0, latitude))
     longitude = _normalize_longitude(longitude)
 
 

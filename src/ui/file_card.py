@@ -52,7 +52,7 @@ from .file_links import suffix_of
 from .icons import theme_pixmap
 from .layer_links import _MoreChip
 from .shared import event_pos
-from .style import FILE_BADGES, FONT_MICRO, HOVER, INK_2, RADIUS_CHIP, ROW_PX, repolish
+from .style import FILE_BADGES, FONT_MICRO, HOVER, INK_2, RADIUS_CHIP, ROW_PX
 from .widgets import ElidedLabel, IconButton
 
 ROW_PAD_X = 8
@@ -329,24 +329,6 @@ class FileOutputCard(QWidget):
             "{path}\nThis file is no longer where the run wrote it.").format(path=self.path)
         self.setAccessibleDescription(tip)
 
-    def follow_disk(self) -> None:
-
-
-        now = self._exists()
-        if now == self.on_disk:
-            return
-        self.on_disk = now
-        for widget in (self._frame, self._name_label):
-            widget.setProperty("gone", not now)
-            repolish(widget)
-        self._paint_badge()
-        self._actions.setEnabled(now)
-        if now:
-            self.setCursor(Qt.CursorShape.PointingHandCursor)
-        else:
-            self.unsetCursor()
-        self._set_tooltip()
-
     def keyPressEvent(self, event):  # noqa: N802
         if event.key() in (Qt.Key.Key_Return, Qt.Key.Key_Enter, Qt.Key.Key_Space):
             self._fire("open")
@@ -622,8 +604,3 @@ class FileCardStack(QWidget):
         if not live:
             self.setVisible(False)
         self.updateGeometry()
-
-    def follow_disk(self) -> None:
-
-        for card in self._cards:
-            card.follow_disk()

@@ -9,7 +9,7 @@ from __future__ import annotations
 import time
 import traceback
 
-from qgis.PyQt.QtCore import QCoreApplication, QTimer
+from qgis.PyQt.QtCore import QTimer
 
 from ..core import background, crash_note, net, protocol, security, stalls, tuning
 from ..core import code_effects as ce
@@ -21,7 +21,7 @@ from ..core.serialization import error_details
 from ..core.tool_registry import coded_fact
 from ..tools import code_runtime, isolated_code
 from ..tools._layers import pinned_layer_gone
-from .executor_code import CODE_TOOL
+from .executor_code import CODE_TOOL, tr
 
 
 _PROGRESS_MIN_BYTES = 1024 * 1024
@@ -48,14 +48,12 @@ CODE_CALL_CLOCK_S = 160.0
 CODE_MIN_RUN_S = 20.0
 
 
-def tr(text: str) -> str:
-    return QCoreApplication.translate("ToolExecutor", text)
-
-
 def _phase(call: dict, key: str, since: float) -> None:
 
+
+
     phases = call.setdefault("phase_ms", {})
-    phases[key] = phases.get(key, 0) + max(0, int(round((time.monotonic() - since) * 1000)))
+    phases[key] = phases.get(key, 0) + max(0, int(round((time.perf_counter() - since) * 1000)))
 
 
 class _ExecutorExecute:
@@ -106,10 +104,13 @@ class _ExecutorExecute:
         fresh = not getattr(self._snapshots.get(run_id), "captured", False)
         if name == CODE_TOOL:
             self._code_note_edit_sessions(call)
-        if danger != Danger.READ:
+
+
+        if danger != Danger.READ or call.get("own_backups"):
             try:
-                snapshot = self._prepare_snapshot(run_id, name, args, danger, call.get("overwrites") or [],
-                                                  (call.get("code_plan") or {}).get("granted", ce.ASK))
+                snapshot = self._prepare_snapshot(
+                    run_id, name, args, danger, (call.get("overwrites") or []) + (call.get("own_backups") or []),
+                    (call.get("code_plan") or {}).get("granted", ce.ASK))
             except OSError as exc:
 
 
@@ -129,7 +130,7 @@ class _ExecutorExecute:
         name = str(call.get("name") or "")
         tool_call_id = str(call.get("tool_call_id"))
         run_id = str(call.get("run_id") or "")
-        copy_from = time.monotonic()
+        copy_from = time.perf_counter()
 
         def done(_result, error_text: str):
             self._background.pop(tool_call_id, None)
@@ -190,7 +191,7 @@ class _ExecutorExecute:
             self._inflight.pop(tool_call_id, None)
             _phase(call, "backup_ms", copy_from)
             done, listed = (list(snapshot.copy_progress) + [0, 0])[:2]
-            seconds = round(time.monotonic() - copy_from)
+            seconds = round(time.perf_counter() - copy_from)
             log_warning(f"Backup before execute_code still running after {seconds}s ({done} of {listed}); "
                         "the snippet was not run")
             protocol.note_phases(tool_call_id, call.get("phase_ms") or {})
@@ -228,7 +229,7 @@ class _ExecutorExecute:
             return
         tool_call_id = str(call.get("tool_call_id"))
         run_id = str(call.get("run_id") or "")
-        prepare_from = time.monotonic()
+        prepare_from = time.perf_counter()
 
         def done(finish, error_text: str):
             self._background.pop(tool_call_id, None)
@@ -299,6 +300,7 @@ class _ExecutorExecute:
         self.tool_started.emit(call)
         log(f"RUN {name} danger={danger} args={self._args_digest(args)}")
         started = time.monotonic()
+        call["handler_from"] = time.perf_counter()
         tool_call_id = str(call.get("tool_call_id"))
 
 
@@ -344,7 +346,7 @@ class _ExecutorExecute:
             result = {"_error": f"{type(exc).__name__}: {exc}", "traceback": traceback.format_exc()[-2000:]}
         finally:
             crash_note.clear()
-            _phase(call, "handler_ms", started)
+            _phase(call, "handler_ms", call["handler_from"])
         if early:
             return
         if self._hold(call, result, started):
@@ -429,7 +431,7 @@ class _ExecutorExecute:
                     self._settle_late_layers(call, result)
                 settle_adopted(task_id, result, error_text)
                 return
-            _phase(call, "handler_ms", started)
+            _phase(call, "handler_ms", call["handler_from"])
             if error_text:
                 result = {"_error": error_text.split("\n", 1)[0], "traceback": error_text}
             try:

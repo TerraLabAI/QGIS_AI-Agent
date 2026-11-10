@@ -10,10 +10,6 @@
 
 
 
-
-
-
-
 from __future__ import annotations
 
 import secrets
@@ -36,17 +32,17 @@ from qgis.PyQt.QtGui import QDesktopServices, QGuiApplication
 from ..core import sibling_sign_in, telemetry
 from ..core import telemetry_events as ev
 from ..core.logger import log, log_warning
-from ..core.qt_compat import disconnect_quietly, one_shot
+from ..core.qt_compat import disconnect_quietly, one_shot, task_flags
 from ..core.served_state import get_dashboard_url as served_dashboard_url
 from ..core.served_state import get_payment_failed, get_upgrade_url, set_payment_failed
 from ..core.served_state import get_trial_checkout_url as served_trial_checkout_url
 from ..core.settings import KEY_RE, Settings, key_prefix, reset_account_tag_cache
+from . import account_state
 from .pairing_poll_task import PairingPollTask
 from .pairing_v2 import PairingV2
 from .terralab_client import HARD_CONNECTIVITY_CODES, PRODUCT_ID, TerraLabClient
 
 _UTM = f"utm_source=qgis&utm_medium=plugin&utm_campaign={PRODUCT_ID}"
-DASHBOARD_URL = f"https://terra-lab.ai/dashboard/{PRODUCT_ID}?{_UTM}&utm_content=dashboard"
 PLANS_URL_FALLBACK = "https://terra-lab.ai/pricing"
 _REVALIDATE_EVERY_S = 900.0
 
@@ -166,7 +162,8 @@ def get_dashboard_url() -> str:
 
 def get_plans_page_url(cta_source: str = "plugin") -> str:
     source = "".join(ch for ch in str(cta_source or "") if ch.isalnum() or ch == "_") or "plugin"
-    return get_upgrade_url() or f"{PLANS_URL_FALLBACK}?{_UTM}&utm_content={source}"
+    served = get_upgrade_url()
+    return _with_cta_source(served, source) if served else f"{PLANS_URL_FALLBACK}?{_UTM}&utm_content={source}"
 
 
 def get_device_platform() -> str:
@@ -206,13 +203,7 @@ class GenericRequestTask(QgsTask):
     failed = pyqtSignal(str, str)
 
     def __init__(self, description: str, request_fn: Callable[[], Any], hidden: bool = True):
-        flags = QgsTask.Flag.CanCancel
-        if hidden:
-            for name in ("Hidden", "Silent"):
-                extra = getattr(QgsTask.Flag, name, None)
-                if extra is not None:
-                    flags = flags | extra
-        super().__init__(description, flags)
+        super().__init__(description, task_flags(QgsTask, hidden))
         self._request_fn = request_fn
         self._result: Any = None
         self._failure: tuple[str, str] | None = None
@@ -276,7 +267,7 @@ class Account(QObject):
     checkout_not_finished = pyqtSignal()
     checkout_return_paid = pyqtSignal()
 
-    SIGNED_OUT, PAIRING, ACTIVATED, LOCKED, EXPIRED = "signed_out", "pairing", "activated", "locked", "expired"
+    SIGNED_OUT, PAIRING, ACTIVATED, LOCKED, EXPIRED = account_state.STATES
 
     def __init__(self, settings: Settings | None = None, parent=None):
         super().__init__(parent)
@@ -305,20 +296,53 @@ class Account(QObject):
         self._return_timer = one_shot(self, self._confirm_return)
 
         self.signed_in_from: tuple[str, str] | None = None
-        self._state = self._stored_state()
 
-    def _stored_state(self) -> str:
+        self._refused = False
+        self._state = account_state.resting(self._stored())
+
+        self._key_seen = self._state != self.SIGNED_OUT
+
+    def _stored(self) -> str:
         if self._settings.activation_key_is_locked():
-            return self.LOCKED
-        return self.ACTIVATED if self._settings.has_activation_key else self.SIGNED_OUT
+            return account_state.KEY_LOCKED
+        if self._settings.has_activation_key:
+            return account_state.KEY
+        return account_state.KEY_REFUSED if self._refused else account_state.NO_KEY
 
     @property
     def state(self) -> str:
         return self._state
 
-    def _set_state(self, state: str, message: str = "") -> None:
-        self._state = state
-        self.state_changed.emit(state, message)
+    def _move(self, event: str, message: str = "") -> bool:
+
+
+
+
+
+
+
+
+
+        before = self._state
+        stored = self._stored()
+        after = account_state.step(before, event, stored)
+        if after is None:
+            log_warning(f"Account: {event} refused in state {before}")
+            return False
+        self._state = after
+
+        kept_pairing = before == after == self.PAIRING and event != account_state.PAIR_START
+        if after != before or (message and not kept_pairing):
+            self.state_changed.emit(after, message)
+        if stored in (account_state.KEY, account_state.KEY_LOCKED):
+            self._key_seen, self._refused = True, False
+        elif self._key_seen and after in (self.SIGNED_OUT, self.EXPIRED):
+            self._key_seen = False
+            if event == account_state.SIGN_OUT:
+                self.signed_out.emit()
+            else:
+                self.session_expired.emit(tr("Session expired. Sign in again to continue."))
+        return True
 
     @property
     def activation_key(self) -> str:
@@ -376,7 +400,7 @@ class Account(QObject):
         v2.claimed.connect(self._on_pairing_succeeded)
         v2.failed.connect(self._on_pairing_failed)
         self._v2 = v2
-        self._set_state(self.PAIRING, tr("Waiting for the sign-in page in your browser..."))
+        self._move(account_state.PAIR_START, tr("Waiting for the sign-in page in your browser..."))
         self.pairing_started.emit("")
         v2.begin()
 
@@ -442,7 +466,7 @@ class Account(QObject):
         self._start_pairing_poll(code)
         url = self.connect_url(code)
         self._pairing_url = url
-        self._set_state(self.PAIRING, tr("Waiting for the sign-in page in your browser..."))
+        self._move(account_state.PAIR_START, tr("Waiting for the sign-in page in your browser..."))
         self.pairing_started.emit(url)
         if not QDesktopServices.openUrl(QUrl(url)):
             self._show_pairing_address(url)
@@ -497,7 +521,12 @@ class Account(QObject):
         self._pairing_url = ""
         self._last_key_validation_at = float("-inf")
         self._billing_warning_shown = False
-        self._set_state(self.ACTIVATED, tr("Signed in."))
+        if not self._move(account_state.PAIR_OK, tr("Signed in.")):
+
+
+            self._on_pairing_failed(tr("QGIS could not save your sign-in on this computer. "
+                                       "Click Sign in to try again."), "KEY_NOT_STORED")
+            return
         self.paired.emit(key_prefix(key))
         log("Pairing successful")
 
@@ -507,7 +536,8 @@ class Account(QObject):
         sibling_sign_in.start(PRODUCT_ID, self._client.base_url, self.device_hash, self._on_sibling_answer)
 
     def _on_sibling_answer(self, result: dict) -> None:
-        if not result.get("ok") or self.has_activation_key or self._state != self.SIGNED_OUT:
+        if (not result.get("ok") or self.has_activation_key
+                or account_state.step(self._state, account_state.SIBLING_KEY, account_state.KEY) is None):
             return
         key = str(result.get("key") or "")
         if not self.is_valid_key(key):
@@ -519,7 +549,9 @@ class Account(QObject):
         self.signed_in_from = (email, label)
         message = (tr("Signed in as {} (from {}).").format(email, label) if email
                    else tr("Signed in (from {}).").format(label))
-        self._set_state(self.ACTIVATED, message)
+        if not self._move(account_state.SIBLING_KEY, message):
+            self.signed_in_from = None
+            return
         self.paired.emit(key_prefix(key))
         log(f"Signed in with the account of {label}")
 
@@ -535,7 +567,7 @@ class Account(QObject):
         self._end_v2()
         self._stop_poll()
         self._pending_code = ""
-        self._set_state(self.SIGNED_OUT, message)
+        self._move(account_state.PAIR_END, message)
         self.pairing_failed.emit(message, code)
         log_warning(f"Pairing failed ({code})")
 
@@ -543,7 +575,7 @@ class Account(QObject):
         self._end_v2()
         self._pending_code = ""
         message = tr("Sign-in timed out. Click Sign in to try again.")
-        self._set_state(self.SIGNED_OUT, message)
+        self._move(account_state.PAIR_END, message)
         self.pairing_timeout.emit()
         log("Pairing timed out")
 
@@ -574,20 +606,19 @@ class Account(QObject):
                 tr("Cancelling sign-in"), lambda task, c=code: client.cancel_pairing(c))
             QgsApplication.taskManager().addTask(self._pairing_cancel_task)
         if self._state == self.PAIRING:
-            self._set_state(self._stored_state(), "")
+            self._move(account_state.PAIR_END)
         log("Pairing cancelled")
 
     def refresh_activation_async(self, force: bool = False) -> None:
 
 
         if self._settings.activation_key_is_locked():
-            self._set_state(self.LOCKED, tr("You are signed in on this computer, but QGIS cannot "
-                                            "read your sign-in until you enter its master password. "
-                                            "Click Sign in to enter it."))
+            self._move(account_state.LOCK, tr("You are signed in on this computer, but QGIS cannot "
+                                              "read your sign-in until you enter its master password. "
+                                              "Click Sign in to enter it."))
             return
         if not self.has_activation_key:
-            if self._state not in (self.PAIRING, self.SIGNED_OUT):
-                self._set_state(self.SIGNED_OUT, "")
+            self._move(account_state.KEY_GONE)
             return
 
 
@@ -632,8 +663,7 @@ class Account(QObject):
             return False
 
         reset_account_tag_cache()
-        self._set_state(self.ACTIVATED, "")
-        return True
+        return self._move(account_state.UNLOCK)
 
     def fetch_account_async(self) -> None:
 
@@ -687,9 +717,7 @@ class Account(QObject):
     def _on_account_failed(self, message: str, code: str) -> None:
         self._account_task = None
         if (code or "").strip().upper() == "INVALID_KEY":
-            self._settings.clear_activation_key()
-            self._set_state(self.SIGNED_OUT, "")
-            self.signed_out.emit()
+            self._key_refused_by_website()
         self.account_failed.emit(message, code)
 
     def delete_account_async(self, confirm: str) -> None:
@@ -789,8 +817,7 @@ class Account(QObject):
             self.stop_upgrade_watch()
             self._reset_return_check()
         self._last_key_validation_at = time.monotonic()
-        if self._state != self.ACTIVATED:
-            self._set_state(self.ACTIVATED, "")
+        self._move(account_state.KEY_OK)
         self.usage_refreshed.emit(usage if isinstance(usage, dict) else {})
         if not self._return_check_pending:
             return
@@ -836,11 +863,7 @@ class Account(QObject):
             self._reset_return_check()
         normalized = (code or "").strip().upper()
         if normalized == "INVALID_KEY":
-            self._settings.clear_activation_key()
-            self._last_key_validation_at = float("-inf")
-            expired = tr("Session expired. Sign in again to continue.")
-            self._set_state(self.EXPIRED, expired)
-            self.session_expired.emit(expired)
+            self._key_refused_by_website()
             log_warning("Stored key rejected on revalidation")
             return
 
@@ -863,6 +886,19 @@ class Account(QObject):
         self.notice.emit("warning", tr("Could not check your AI Agent account. If this lasts, "
                                        "sign out and sign in again."))
 
+    def _key_refused_by_website(self) -> None:
+
+
+
+
+
+
+
+        self._settings.clear_activation_key()
+        self._refused = True
+        self._last_key_validation_at = float("-inf")
+        self._move(account_state.KEY_DEAD, tr("Session expired. Sign in again to continue."))
+
     def _clear_local_session(self) -> None:
 
 
@@ -870,6 +906,7 @@ class Account(QObject):
 
 
 
+        self._key_seen = False
         self.cancel_pairing()
         self._reset_return_check()
         task = self._revalidate_task
@@ -896,12 +933,14 @@ class Account(QObject):
                         pass
             setattr(self, attr, None)
         self._settings.clear_activation_key()
+        self._refused = False
         self._last_key_validation_at = float("-inf")
         self._billing_warning_shown = False
         set_payment_failed(None)
         self.stop_upgrade_watch()
-        self._set_state(self.SIGNED_OUT, "")
-        self.signed_out.emit()
+        self._key_seen = True
+        if not self._move(account_state.SIGN_OUT):
+            self.signed_out.emit()
 
     def sign_out(self) -> None:
         self._clear_local_session()

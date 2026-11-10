@@ -11,14 +11,14 @@ builds the map. No code, and one click undoes anything it changed.
 
 AI Agent by TerraLab is an AI agent for QGIS. You describe the job in plain English and it works on your own layers, in the project you already have open, showing each step as it goes.
 
-- **Finds the data**: 73 open data connectors (OpenStreetMap, Copernicus, NASA, USGS, IGN, Overture, Planetary Computer and 66 more) and a catalog of 843 ready datasets from 174 countries and from EU-wide and global sources, each with its licence.
-- **Runs the analysis**: 253 tools to load and inspect data, run Processing algorithms and edit geometry.
+- **Finds the data**: 89 open data connectors (OpenStreetMap, Copernicus, NASA, USGS, IGN, Overture, Planetary Computer and 82 more) and a catalog of 2,838 ready datasets from 183 countries and from EU-wide and global sources, each with its licence.
+- **Runs the analysis**: 227 tools to load and inspect data, run Processing algorithms and edit geometry.
 - **Styles and lays out the map**: symbology, labels and print layouts.
 - **You stay in control**: you see every step before it runs, changes wait for your approval, and one click undoes anything it changed.
 - **Fits your habits**: one conversation per project. Attach files, layers, selections or the map view to a message.
 - **Works with** [AI Edit](https://github.com/TerraLabAI/QGIS_AI-Edit) and [AI Segmentation](https://github.com/TerraLabAI/QGIS_AI-Segmentation) when they are installed.
 - **Free tier with no card.** Pro starts with a 7-day free trial. Plans and limits: https://terra-lab.ai/pricing
-- **Platforms**: QGIS 3.28 to QGIS 4, on Windows, macOS and Linux. 12 languages.
+- **Platforms**: QGIS 3.28 to QGIS 4, on Windows, macOS and Linux. 18 languages.
 
 Answers come from an AI model and can be wrong. Review what it changes.
 

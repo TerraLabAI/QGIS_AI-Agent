@@ -132,6 +132,7 @@ def register_facade_tools(registry: ToolRegistry):
                 "crs": {
                     "type": "string",
                 },
+                "encoding": {"type": "string"},
                 "group": {
                     "type": "string",
                 },
@@ -375,10 +376,6 @@ def _extension(source: str) -> str:
     return os.path.splitext(source)[1].lower()
 
 
-def _pmtiles_url(source: str) -> bool:
-    return ".pmtiles" in source.lower()
-
-
 def _raster_tiles_only(path: str, ext: str) -> bool:
 
 
@@ -433,7 +430,7 @@ def deduce_kind(source: str, kind: str | None = None, open_file: bool = True) ->
             return "wms"
         if service == "wfs" or "/wfs" in lower:
             return "wfs"
-        if _pmtiles_url(text):
+        if ".pmtiles" in text.lower():
             return "pmtiles"
 
 
@@ -596,7 +593,8 @@ def _dispatch_add(kind: str, args: dict) -> dict:
             return data_inspect._add_vector_from_url({"url": source.replace("/vsicurl/", "", 1),
                                                       "layer_name": name, "layer": layer, "bbox": bbox, "crs": crs,
                                                       "full_extent": args.get("full_extent")})
-        return _layer_io._add_vector_layer({"path": source, "name": name, "crs": crs, "layer": layer})
+        return _layer_io._add_vector_layer({"path": source, "name": name, "crs": crs, "layer": layer,
+                                            "encoding": args.get("encoding")})
     if kind == "raster":
         if _is_url(source):
             if _arcgis_parse(source) is not None:
@@ -767,7 +765,11 @@ def _add_data_off_main(args: dict) -> bool:
     if _add_data_is_remote(args):
         return True
     source = str(args.get("source") or "").strip()
-    return bool(source) and deduce_kind(source, args.get("kind"), open_file=False) in _LOCAL_FILE_KINDS
+    if not source:
+        return False
+    kind = deduce_kind(source, args.get("kind"), open_file=False)
+
+    return kind in _LOCAL_FILE_KINDS or (kind == "xyz" and data_basemaps.add_xyz_runs_in_background(args))
 
 
 
@@ -933,6 +935,10 @@ def _finished_add(result: dict, kind: str, args: dict, source: str) -> dict:
             "description_fields",
 
             "scale_range",
+
+            "encoding",
+
+            "line_endings",
         ):
             if key in result:
                 described[key] = result[key]

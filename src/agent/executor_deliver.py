@@ -11,7 +11,6 @@ import os
 import time
 
 from qgis.core import QgsProject
-from qgis.PyQt.QtCore import QCoreApplication
 
 from ..core import (
     accounts,
@@ -46,7 +45,7 @@ from ..core.snapshot import RunSnapshot
 from ..core.snapshot_files import resolve_layers
 from ..core.tool_registry import main_budget, spec
 from ..tools import code_tripwire, guards
-from .executor_code import CODE_TOOL
+from .executor_code import CODE_TOOL, tr
 from .run_report import MAX_CALL_WARNINGS, MAX_OUTPUT_FILES, call_warnings, result_files, written_paths
 
 
@@ -119,10 +118,6 @@ def _resolved_layer_note(name: str, args: dict, result) -> str:
 
     said = " ".join(str(result.get(key) or "") for key in ("note", "_note", "message"))
     return "" if text in said else text
-
-
-def tr(text: str) -> str:
-    return QCoreApplication.translate("ToolExecutor", text)
 
 
 _CHECK_NOTE_CHARS = 90
@@ -439,7 +434,7 @@ class _ExecutorDeliver:
             if snapshot.captured and scope:
                 snapshot.record_layers(scope)
             started = time.monotonic()
-            if not snapshot.captured and snapshot.capture(layer_ids=scope):
+            if not snapshot.captured and snapshot.capture(layer_ids=scope, reuse=True):
                 self._note_capture(run_id, time.monotonic() - started)
                 thread_id = self._threads.get(run_id, "")
                 index = self.history.next_run_index(thread_id)
@@ -526,12 +521,9 @@ class _ExecutorDeliver:
                     parts.append(f"{key}: {str(result[key])[:60]}")
                 if len(parts) == 3:
                     break
-            if parts:
-                return ", ".join(parts)
-            return tr("done ({n} fields)").format(n=len(result))
-        if isinstance(result, list):
-            return tr("done ({n} items)").format(n=len(result))
-        return tr("done")
+
+            return ", ".join(parts)
+        return ""
 
     @staticmethod
     def _call_key(name: str, args: dict) -> str:

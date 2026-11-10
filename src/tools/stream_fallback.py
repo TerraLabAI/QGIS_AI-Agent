@@ -86,7 +86,7 @@ def _copy(layer_id: str, name: str, source: str, error: str, box: list) -> None:
 
     window = _read_window(source[len(_STREAMED):], box, name)
     if window.get("_error"):
-        run_on_main_thread(_say, name, tr("{name} could not be read online, and a local copy of the area on "
+        run_on_main_thread(_say, tr("{name} could not be read online, and a local copy of the area on "
                                           "view failed too: {reason}").format(name=name,
                                                                                 reason=window["_error"]),
                            timeout=10)
@@ -111,7 +111,7 @@ def _repoint(layer_id: str, source: str, path: str, error: str, box: list) -> No
     if not layer.isValid():
         layer.setDataSource(source, layer.name(), "gdal", options)
         layer.setMetadata(metadata)
-        _say(layer.name(), tr("{name} could not be read online, and its local copy did not open.").format(
+        _say(tr("{name} could not be read online, and its local copy did not open.").format(
             name=layer.name()))
         return
     if renderer is not None:
@@ -123,11 +123,11 @@ def _repoint(layer_id: str, source: str, path: str, error: str, box: list) -> No
         box=", ".join(f"{v:.4f}" for v in box), source=plain_source(source[len(_STREAMED):])))
     layer.setMetadata(metadata)
     layer.triggerRepaint()
-    _say(layer.name(), tr("{name} could not be read online: it now shows a local copy of the area on view.").format(
+    _say(tr("{name} could not be read online: it now shows a local copy of the area on view.").format(
         name=layer.name()), warning=False)
 
 
-def _say(name: str, text: str, warning: bool = True) -> None:
+def _say(text: str, warning: bool = True) -> None:
     log_warning(text)
     telemetry.track(ev.NOTICE_SHOWN, {"surface": "stream_fallback", "kind": "warning" if warning else "info"})
     iface = qgis_iface()

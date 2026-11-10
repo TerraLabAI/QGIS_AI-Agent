@@ -67,7 +67,7 @@ class DropOverlay(QWidget):
             fade.setDuration(_FADE_MS)
             fade.setStartValue(0.0)
             fade.setEndValue(1.0)
-            fade.setEasingCurve(QEasingCurve.Type.OutCubic)
+            fade.setEasingCurve(QEasingCurve.Type.OutQuint)
 
 
             self._fade_anim = fade

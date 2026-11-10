@@ -168,7 +168,7 @@ def _write_html_report(args: dict) -> dict:
         result["images_embedded"] = embedded["files_embedded"]
     if embedded["files_skipped"]:
         result["images_skipped"] = embedded["files_skipped"]
-    if not opened and args.get("open", True):
+    if not opened and args.get("open") is True:
         result["note"] = "The browser did not open the page; the path is above."
     return result
 

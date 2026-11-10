@@ -17,7 +17,9 @@ from __future__ import annotations
 import builtins as py_builtins
 import contextlib
 import io
+import ntpath
 import os
+import posixpath
 import re
 import shutil
 import types
@@ -27,7 +29,7 @@ from ..core import tuning
 from ..core.security import anchor, local_part, unwrap_vsi, validate_path, validate_read, workspace_dir
 from ..core.serialization import coded_like
 from . import code_tripwire
-from .code_guard_files import GUARDED_MODULES
+from .code_guard_files import GUARDED_MODULES, _probe
 from .code_guard_io import _NO_FILE_CHANGE, WRITTEN_FILES, _guarded_open, note_written, read_refusal
 
 DENIED_MODULES = frozenset({
@@ -38,6 +40,10 @@ DENIED_MODULES = frozenset({
     "_ctypes", "_posixsubprocess", "posix", "nt", "msvcrt", "fcntl", "mmap", "faulthandler", "sysconfig",
     "site", "setuptools", "pip", "ensurepip", "venv", "distutils", "requests", "urllib3", "httpx", "aiohttp",
     "http.client", "urllib.request", "fileinput", "linecache",
+
+
+
+    "ee",
 
 
 
@@ -121,7 +127,7 @@ DENIED_ATTRS = frozenset({
 
     "setValue", "activation_key", "clear_activation_key", "set_activation_key",
     "load_module", "import_module", "startDetached", "excepthook", "displayhook", "gi_frame", "f_globals",
-    "f_locals", "f_back", "tb_frame", "cr_frame", "ag_frame", "os", "genericpath",
+    "f_locals", "f_back", "tb_frame", "cr_frame", "ag_frame", "os", "genericpath", "ntpath", "posixpath",
 
 
     "sys", "builtins", "subprocess", "socket", "ctypes", "zipfile", "tempfile", "ctypeslib", "importlib", "CDLL",
@@ -564,9 +570,34 @@ def _guarded_walk(top=".", topdown=True, onerror=None, followlinks=False):
     return pruned() if topdown else iter(list(pruned())[::-1])
 
 
+
+
+
+_PATH_TESTS = ("exists", "lexists", "isfile", "isdir", "islink", "ismount", "isjunction", "isdevdrive")
+_PATH_READS = ("getsize", "getmtime", "getatime", "getctime", "realpath")
+
+
+def _safe_path_module(source: types.ModuleType) -> types.ModuleType:
+
+    module = types.ModuleType(source.__name__, f"{source.__name__} as exposed to execute_code")
+    for attr in source.__all__:
+        setattr(module, attr, getattr(source, attr))
+    for name in _PATH_TESTS:
+        if hasattr(source, name):
+            test = getattr(source, name)
+
+            setattr(module, name, lambda path, _test=test: bool(path) and _probe(path, _test))
+    for name in _PATH_READS:
+        setattr(module, name, _guarded_reader(getattr(source, name), scoped=False))
+    stat = _guarded_reader(os.stat, scoped=False)
+    module.samefile = lambda first, second: source.samestat(stat(first), stat(second))
+    return module
+
+
 def _safe_os() -> types.ModuleType:
 
     extra = {"makedirs": _guarded_makedirs, "mkdir": _guarded_makedirs, "walk": _guarded_walk,
+             "path": _safe_path_module(os.path),
 
              "getcwd": workspace_dir}
     for name in ("listdir", "scandir"):
@@ -1026,13 +1057,15 @@ _TRIMMED_MODULES = {
     "io": _safe_io,
     "base64": _safe_base64,
     "processing": _safe_processing,
+    "ntpath": lambda: _safe_path_module(ntpath),
+    "posixpath": lambda: _safe_path_module(posixpath),
 }
 
 
 
 _FROM_OS = {
     "os": lambda: _safe_os(),
-    "os.path": lambda: os.path,
+    "os.path": lambda: _safe_path_module(os.path),
 }
 
 

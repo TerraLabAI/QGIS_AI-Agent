@@ -33,17 +33,13 @@ def _project_path() -> str:
         return ""
 
 
-def _enabled(settings) -> bool:
-    return bool(getattr(settings, "memory_enabled", True))
-
-
 def _shown(note: dict) -> dict:
     return {"id": note["id"], "text": note["text"], "kind": note["kind"], "scope": note["scope"]}
 
 
 def _forget(args: dict) -> dict:
     settings = Settings()
-    if not _enabled(settings):
+    if not getattr(settings, "memory_enabled", True):
         return dict(_DISABLED)
     wanted = str(args.get("id") or args.get("text") or "").strip()
     notes = notes_for_project(settings, _project_path())

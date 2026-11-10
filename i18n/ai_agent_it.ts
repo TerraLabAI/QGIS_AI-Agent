@@ -40,54 +40,14 @@
             <translation>%n esempi</translation>
         </message>
         <message>
-            <location filename="src/ui/checkpoint_sheet.py" />
-            <source>%n layers changed</source>
-            <translation>%n layer modificati</translation>
-        </message>
-        <message>
-            <location filename="src/ui/connectors_page.py" />
-            <source>%n ready sources</source>
-            <translation>%n fonti pronte</translation>
-        </message>
-        <message>
             <location filename="src/ui/library/dialog.py" />
             <source>1 example</source>
             <translation>1 esempio</translation>
         </message>
         <message>
-            <location filename="src/ui/checkpoint_sheet.py" />
-            <source>1 layer changed</source>
-            <translation>1 layer modificato</translation>
-        </message>
-        <message>
-            <location filename="src/ui/connectors_page.py" />
-            <source>1 ready source</source>
-            <translation>1 sorgente pronta</translation>
-        </message>
-        <message>
-            <location filename="src/ui/error_report_dialog.py" />
-            <source>1. Copy diagnostics</source>
-            <translation>1. Copia la diagnostica</translation>
-        </message>
-        <message>
             <location filename="src/ui/privacy_notice_dialog.py" />
             <source>AI Agent and your data</source>
             <translation>AI Agent e i tuoi dati</translation>
-        </message>
-        <message>
-            <location filename="src/ui/dock/about.py" />
-            <source>Allow / Skip</source>
-            <translation>Consenti / Salta</translation>
-        </message>
-        <message>
-            <location filename="src/ui/use_cases.py" />
-            <source>Analyse</source>
-            <translation>Analizza</translation>
-        </message>
-        <message>
-            <location filename="src/ui/dock/about.py" />
-            <source>Answer a permission card</source>
-            <translation>Rispondi a una scheda di autorizzazione</translation>
         </message>
         <message>
             <location filename="src/ui/tool_describe.py" />
@@ -131,11 +91,6 @@
         </message>
         <message>
             <location filename="src/ui/dock/about.py" />
-            <source>Chats</source>
-            <translation>Chat</translation>
-        </message>
-        <message>
-            <location filename="src/ui/dock/about.py" />
             <source>Close the list, or stop the run</source>
             <translation>Chiudi l'elenco o interrompi l'esecuzione</translation>
         </message>
@@ -173,11 +128,6 @@
             <location filename="src/ui/external_links.py" />
             <source>Copy the address below and paste it into a browser.</source>
             <translation>Copia l'indirizzo qui sotto e incollalo in un browser.</translation>
-        </message>
-        <message>
-            <location filename="src/ui/error_report_dialog.py" />
-            <source>Copy the diagnostics, then send them to support.</source>
-            <translation>Copia la diagnostica, quindi inviala all'assistenza.</translation>
         </message>
         <message>
             <location filename="src/ui/external_links.py" />
@@ -220,29 +170,9 @@
             <translation>Esempi</translation>
         </message>
         <message>
-            <location filename="src/ui/use_cases.py" />
-            <source>Explore</source>
-            <translation>Esplora</translation>
-        </message>
-        <message>
-            <location filename="src/ui/dock/about.py" />
-            <source>Go back to an earlier state of your project</source>
-            <translation>Torna a uno stato precedente del tuo progetto</translation>
-        </message>
-        <message>
-            <location filename="src/ui/dock/about.py" />
-            <source>Go forward one step</source>
-            <translation>Vai avanti di un passaggio</translation>
-        </message>
-        <message>
             <location filename="src/ui/dock/about.py" />
             <source>History</source>
             <translation>Cronologia</translation>
-        </message>
-        <message>
-            <location filename="src/ui/dock/about.py" />
-            <source>History button</source>
-            <translation>Pulsante cronologia</translation>
         </message>
         <message>
             <location filename="src/ui/dock/about.py" />
@@ -255,39 +185,14 @@
             <translation>Scorciatoie da tastiera</translation>
         </message>
         <message>
-            <location filename="src/ui/use_cases.py" />
-            <source>Map</source>
-            <translation>Mappa</translation>
-        </message>
-        <message>
             <location filename="src/ui/terralab_menu.py" />
             <source>More from TerraLab...</source>
             <translation>Altro da TerraLab...</translation>
         </message>
         <message>
             <location filename="src/ui/dock/about.py" />
-            <source>New chat, history, settings</source>
-            <translation>Nuova chat, cronologia, impostazioni</translation>
-        </message>
-        <message>
-            <location filename="src/ui/dock/about.py" />
             <source>New line</source>
             <translation>Nuova riga</translation>
-        </message>
-        <message>
-            <location filename="src/ui/library/dialog.py" />
-            <source>No example matches that.</source>
-            <translation>Nessun esempio corrisponde.</translation>
-        </message>
-        <message>
-            <location filename="src/ui/checkpoint_sheet.py" />
-            <source>No longer available</source>
-            <translation>Non più disponibile</translation>
-        </message>
-        <message>
-            <location filename="src/ui/dock/about.py" />
-            <source>Open a recent chat</source>
-            <translation>Apri una chat recente</translation>
         </message>
         <message>
             <location filename="src/ui/external_links.py" />
@@ -301,11 +206,6 @@
         </message>
         <message>
             <location filename="src/ui/dock/about.py" />
-            <source>Open the command list</source>
-            <translation>Apri l'elenco dei comandi</translation>
-        </message>
-        <message>
-            <location filename="src/ui/dock/about.py" />
             <source>Or drag it from the Layers panel</source>
             <translation>Oppure trascinalo dal pannello Layer</translation>
         </message>
@@ -313,11 +213,6 @@
             <location filename="src/ui/dock/about.py" />
             <source>Panel</source>
             <translation>Pannello</translation>
-        </message>
-        <message>
-            <location filename="src/ui/dock/about.py" />
-            <source>Pencil button</source>
-            <translation>Pulsante matita</translation>
         </message>
         <message>
             <location filename="src/ui/privacy_notice_dialog.py" />
@@ -328,11 +223,6 @@
             <location filename="src/ui/privacy_notice_dialog.py" />
             <source>Pro</source>
             <translation>Pro</translation>
-        </message>
-        <message>
-            <location filename="src/ui/checkpoint_sheet.py" />
-            <source>Project changed</source>
-            <translation>Progetto modificato</translation>
         </message>
         <message>
             <location filename="src/ui/external_links.py" />
@@ -355,39 +245,9 @@
             <translation>Ha eseguito uno script Python (righe: {count})</translation>
         </message>
         <message>
-            <location filename="src/ui/tool_describe.py" />
-            <source>Ran a processing algorithm</source>
-            <translation>Ha eseguito un algoritmo di Processing</translation>
-        </message>
-        <message>
-            <location filename="src/ui/tool_describe.py" />
-            <source>Ran the {algorithm} algorithm</source>
-            <translation>Ha eseguito l'algoritmo {algorithm}</translation>
-        </message>
-        <message>
-            <location filename="src/ui/tool_describe.py" />
-            <source>Ran the {algorithm} algorithm on {layer}</source>
-            <translation>Ha eseguito l'algoritmo {algorithm} su {layer}</translation>
-        </message>
-        <message>
-            <location filename="src/ui/error_report_dialog.py" />
-            <source>Report a problem</source>
-            <translation>Segnala un problema</translation>
-        </message>
-        <message>
-            <location filename="src/ui/use_cases.py" />
-            <source>Report and share</source>
-            <translation>Report e condivisione</translation>
-        </message>
-        <message>
             <location filename="src/ui/privacy_notice_dialog.py" />
             <source>Runs in Europe, stored in France.</source>
             <translation>Eseguito in Europa, dati conservati in Francia.</translation>
-        </message>
-        <message>
-            <location filename="src/ui/library/dialog.py" />
-            <source>Search examples…</source>
-            <translation>Cerca negli esempi…</translation>
         </message>
         <message>
             <location filename="src/ui/dock/about.py" />
@@ -401,16 +261,6 @@
         </message>
         <message>
             <location filename="src/ui/dock/about.py" />
-            <source>Start a new chat</source>
-            <translation>Avvia una nuova chat</translation>
-        </message>
-        <message>
-            <location filename="src/ui/dock/about.py" />
-            <source>Stop button</source>
-            <translation>Pulsante Interrompi</translation>
-        </message>
-        <message>
-            <location filename="src/ui/dock/about.py" />
             <source>Stop the run</source>
             <translation>Interrompi l'esecuzione</translation>
         </message>
@@ -420,29 +270,19 @@
             <translation>Termini</translation>
         </message>
         <message>
-            <location filename="src/ui/use_cases.py" />
-            <source>Terrain and imagery</source>
-            <translation>Terreno e immagini</translation>
-        </message>
-        <message>
             <location filename="src/ui/external_links.py" />
             <source>The address is copied to your clipboard: paste it into a browser to continue.</source>
             <translation>L'indirizzo è copiato negli appunti: incollalo in un browser per continuare.</translation>
         </message>
         <message>
             <location filename="src/ui/cards_run.py" />
-            <source>The agent wants to run this action.</source>
+            <source>The AI agent wants to run this action.</source>
             <translation>L'agente vuole eseguire questa azione.</translation>
         </message>
         <message>
             <location filename="src/ui/external_links.py" />
             <source>The folder is copied to your clipboard: paste it into your file manager.</source>
             <translation>La cartella è copiata negli appunti: incollala nel tuo gestore file.</translation>
-        </message>
-        <message>
-            <location filename="src/ui/library/detail.py" />
-            <source>The prompt</source>
-            <translation>Il prompt</translation>
         </message>
         <message>
             <location filename="src/ui/external_links.py" />
@@ -465,19 +305,9 @@
             <translation>Le statistiche di utilizzo sono attive.</translation>
         </message>
         <message>
-            <location filename="src/ui/library/detail.py" />
-            <source>Use this prompt</source>
-            <translation>Usa questo prompt</translation>
-        </message>
-        <message>
             <location filename="src/ui/dock/about.py" />
             <source>We read every message.</source>
             <translation>Leggiamo ogni messaggio.</translation>
-        </message>
-        <message>
-            <location filename="src/ui/library/detail.py" />
-            <source>Where the data comes from</source>
-            <translation>Da dove vengono i dati</translation>
         </message>
         <message>
             <location filename="src/ui/privacy_notice_dialog.py" />
@@ -538,44 +368,12 @@ The erasure is final once the grace period ends. Until then you can cancel it by
 L'eliminazione diventa definitiva al termine del periodo di tolleranza. Fino ad allora puoi annullarla accedendo a terra-lab.ai.</translation>
         </message>
         <message>
-            <source>%n layers keep the data they have now</source>
-            <translation>%n layer mantengono i dati attuali</translation>
-        </message>
-        <message>
             <source>Add a layer from the project</source>
             <translation>Aggiungi un layer dal progetto</translation>
         </message>
         <message>
-            <source>Back to examples</source>
-            <translation>Torna agli esempi</translation>
-        </message>
-        <message>
             <source>Check for updates</source>
             <translation>Controlla aggiornamenti</translation>
-        </message>
-        <message>
-            <source>Go back one step in the agent's work</source>
-            <translation>Torna indietro di un passaggio nel lavoro dell'agente</translation>
-        </message>
-        <message>
-            <source>Restoring brings the project and every backed-up layer back.</source>
-            <translation>Il ripristino riporta indietro il progetto e ogni layer di backup.</translation>
-        </message>
-        <message>
-            <source>Run a panel command</source>
-            <translation>Esegui un comando del pannello</translation>
-        </message>
-        <message>
-            <source>Start of this chat</source>
-            <translation>Inizio di questa chat</translation>
-        </message>
-        <message>
-            <source>These layers keep the data they have now:</source>
-            <translation>Questi layer mantengono i dati attuali:</translation>
-        </message>
-        <message>
-            <source>backup failed</source>
-            <translation>backup non riuscito</translation>
         </message>
         <message>
             <source>it lives in a database or a service, not in a file</source>
@@ -602,42 +400,6 @@ L'eliminazione diventa definitiva al termine del periodo di tolleranza. Fino ad 
             <translation>troppo grande</translation>
         </message>
         <message>
-            <source>{layer} keeps the data it has now</source>
-            <translation>{layer} mantiene i dati attuali</translation>
-        </message>
-        <message>
-            <source>1. Copy the whole session</source>
-            <translation>1. Copia l'intera sessione</translation>
-        </message>
-        <message>
-            <source>2. Save it as a file</source>
-            <translation>2. Salvala come file</translation>
-        </message>
-        <message>
-            <source>Copied: {runs} runs, {calls} tool calls</source>
-            <translation>Copiato: {runs} esecuzioni, {calls} chiamate</translation>
-        </message>
-        <message>
-            <source>Could not copy</source>
-            <translation>Impossibile copiare</translation>
-        </message>
-        <message>
-            <source>Saved. Open {name}</source>
-            <translation>Salvato. Apri {name}</translation>
-        </message>
-        <message>
-            <source>The file could not be written</source>
-            <translation>Impossibile scrivere il file</translation>
-        </message>
-        <message>
-            <source>The report holds this whole session: your messages, every tool the agent ran with its arguments and what came back, the plan it followed and the recent log lines. Your activation key, your passwords and the contents of your files are never in it.</source>
-            <translation>Il report contiene l'intera sessione: i tuoi messaggi, ogni strumento eseguito dall'agente con argomenti e risultati, il piano seguito e le righe di log recenti. Chiave di attivazione, password e contenuti dei file non sono mai inclusi.</translation>
-        </message>
-        <message>
-            <source>There is no session to save</source>
-            <translation>Nessuna sessione da salvare</translation>
-        </message>
-        <message>
             <source>This link does not point to a web page, so it was not opened.</source>
             <translation>Questo link non punta a una pagina web, quindi non è stato aperto.</translation>
         </message>
@@ -646,96 +408,17 @@ L'eliminazione diventa definitiva al termine del periodo di tolleranza. Fino ad 
             <translation>Link non aperto</translation>
         </message>
         <message>
-            <source>{step}. Open an email to {email}</source>
-            <translation>{step}. Apri un'email a {email}</translation>
-        </message>
-        <message>
             <source>The message you send is the part that reaches us: we keep it 90 days to make AI Agent better. On {pro}, no copy at all.</source>
             <translation>Quello che ci arriva è il messaggio che invii: lo conserviamo 90 giorni per migliorare AI Agent. Con {pro}, nessuna copia.</translation>
-        </message>
-        <message>
-            <source>After this run</source>
-            <translation>Dopo questa esecuzione</translation>
-        </message>
-        <message>
-            <source>Before this run</source>
-            <translation>Prima di questa esecuzione</translation>
-        </message>
-        <message>
-            <source>Before you continued</source>
-            <translation>Prima che tu continuassi</translation>
-        </message>
-        <message>
-            <source>Made in QGIS, outside the agent</source>
-            <translation>Creato in QGIS, fuori dall'agente</translation>
-        </message>
-        <message>
-            <source>Nothing had been changed yet</source>
-            <translation>Non era ancora stato modificato nulla</translation>
         </message>
         <message>
             <source>Restore</source>
             <translation>Ripristina</translation>
         </message>
         <message>
-            <source>Run {n}</source>
-            <translation>Esecuzione {n}</translation>
-        </message>
-        <message>
-            <source>The first thing this chat did</source>
-            <translation>La prima cosa fatta da questa chat</translation>
-        </message>
-        <message>
-            <source>You are here</source>
-            <translation>Sei qui</translation>
-        </message>
-        <message>
-            <source>Your own changes</source>
-            <translation>Le tue modifiche</translation>
-        </message>
-        <message>
-            <source>Your own edits</source>
-            <translation>Le tue modifiche</translation>
-        </message>
-        <message>
             <location filename="src/ui/checkpoint_sheet.py" />
             <source>Belongs to a closed project</source>
             <translation>Appartiene a un progetto chiuso</translation>
-        </message>
-        <message>
-            <location filename="src/ui/checkpoint_sheet.py" />
-            <source>Belongs to {name}</source>
-            <translation>Appartiene a {name}</translation>
-        </message>
-        <message>
-            <location filename="src/ui/checkpoint_sheet.py" />
-            <source>Undo puts back: {changes}</source>
-            <translation>Annulla ripristina: {changes}</translation>
-        </message>
-        <message>
-            <location filename="src/ui/checkpoint_sheet.py" />
-            <source>What this run changed:</source>
-            <translation>Cosa ha modificato questa esecuzione:</translation>
-        </message>
-        <message>
-            <location filename="src/ui/checkpoint_sheet.py" />
-            <source>another project</source>
-            <translation>un altro progetto</translation>
-        </message>
-        <message>
-            <location filename="src/ui/checkpoint_sheet.py" />
-            <source>changed without a backup</source>
-            <translation>modificato senza backup</translation>
-        </message>
-        <message>
-            <location filename="src/ui/checkpoint_sheet.py" />
-            <source>earlier project file</source>
-            <translation>file di progetto precedente</translation>
-        </message>
-        <message>
-            <location filename="src/ui/checkpoint_sheet.py" />
-            <source>emptied by a restart</source>
-            <translation>svuotato da un riavvio</translation>
         </message>
         <message>
             <location filename="src/ui/checkpoint_sheet.py" />
@@ -754,11 +437,6 @@ L'eliminazione diventa definitiva al termine del periodo di tolleranza. Fino ad 
         </message>
         <message>
             <location filename="src/ui/checkpoint_sheet.py" />
-            <source>new file</source>
-            <translation>nuovo file</translation>
-        </message>
-        <message>
-            <location filename="src/ui/checkpoint_sheet.py" />
             <source>the project is saved under another file now, and a restore writes only that one</source>
             <translation>il progetto è ora salvato in un altro file, e un ripristino scrive solo quello</translation>
         </message>
@@ -768,115 +446,16 @@ L'eliminazione diventa definitiva al termine del periodo di tolleranza. Fino ad 
             <translation>l'esecuzione ha scritto questo file, e un ripristino non elimina alcun file</translation>
         </message>
         <message>
-            <location filename="src/ui/checkpoint_sheet.py" />
-            <source>{change}, not put back: {why}</source>
-            <translation>{change}, non ripristinato: {why}</translation>
-        </message>
-        <message>
-            <location filename="src/ui/checkpoint_sheet.py" />
-            <source>{name} added</source>
-            <translation>aggiunta di {name}</translation>
-        </message>
-        <message>
-            <location filename="src/ui/checkpoint_sheet.py" />
-            <source>{name} changed</source>
-            <translation>modifica di {name}</translation>
-        </message>
-        <message>
-            <location filename="src/ui/checkpoint_sheet.py" />
-            <source>{name} removed</source>
-            <translation>rimozione di {name}</translation>
-        </message>
-        <message>
-            <location filename="src/ui/checkpoint_sheet.py" />
-            <source>{name} written</source>
-            <translation>scrittura di {name}</translation>
-        </message>
-        <message>
-            <location filename="src/ui/checkpoint_sheet.py" />
-            <source>{name}: {before} to {after} features</source>
-            <translation>{name}: da {before} a {after} elementi</translation>
-        </message>
-        <message>
-            <location filename="src/ui/checkpoint_sheet.py" />
-            <source>{name}: {fields}</source>
-            <translation>{name}: {fields}</translation>
-        </message>
-        <message>
-            <source>Allow / Deny</source>
-            <translation>Consenti / Nega</translation>
-        </message>
-        <message>
-            <source>Before: {request}</source>
-            <translation>Prima: {request}</translation>
-        </message>
-        <message>
-            <source>Changed: {changes}</source>
-            <translation>Modifiche: {changes}</translation>
-        </message>
-        <message>
-            <source>Chat history button</source>
-            <translation>Pulsante Cronologia chat</translation>
-        </message>
-        <message>
-            <source>New chat button</source>
-            <translation>Pulsante Nuova chat</translation>
-        </message>
-        <message>
             <source>No examples match</source>
             <translation>Nessun esempio corrisponde</translation>
-        </message>
-        <message>
-            <source>Now</source>
-            <translation>Adesso</translation>
         </message>
         <message>
             <source>Request {n}</source>
             <translation>Richiesta {n}</translation>
         </message>
         <message>
-            <source>The project after this request</source>
-            <translation>Il progetto dopo questa richiesta</translation>
-        </message>
-        <message>
-            <source>The project before the first request</source>
-            <translation>Il progetto prima della prima richiesta</translation>
-        </message>
-        <message>
-            <source>The project before this request</source>
-            <translation>Il progetto prima di questa richiesta</translation>
-        </message>
-        <message>
             <source>This layer is no longer in the project.</source>
             <translation>Questo layer non è più nel progetto.</translation>
-        </message>
-        <message>
-            <source>after request {n}</source>
-            <translation>dopo la richiesta {n}</translation>
-        </message>
-        <message>
-            <source>after “{request}”</source>
-            <translation>dopo “{request}”</translation>
-        </message>
-        <message>
-            <source>before request {n}</source>
-            <translation>prima della richiesta {n}</translation>
-        </message>
-        <message>
-            <source>before “{request}”</source>
-            <translation>prima di “{request}”</translation>
-        </message>
-        <message>
-            <source>request {n}</source>
-            <translation>richiesta {n}</translation>
-        </message>
-        <message>
-            <source>the start of this chat</source>
-            <translation>l'inizio di questa chat</translation>
-        </message>
-        <message>
-            <source>your own changes</source>
-            <translation>le tue modifiche</translation>
         </message>
         <message>
             <source>AI Edit: {action}</source>
@@ -911,10 +490,6 @@ L'eliminazione diventa definitiva al termine del periodo di tolleranza. Fino ad 
             <translation>Aggiungi una barra di scala al layout</translation>
         </message>
         <message>
-            <source>Add an elevation profile to the layout</source>
-            <translation>Aggiungi un profilo elevazione al layout</translation>
-        </message>
-        <message>
             <source>Add features to {layer_name}</source>
             <translation>Aggiungi elementi a {layer_name}</translation>
         </message>
@@ -943,10 +518,6 @@ L'eliminazione diventa definitiva al termine del periodo di tolleranza. Fino ad 
             <translation>Aggiungi la mappa di base[ {name}]</translation>
         </message>
         <message>
-            <source>Add the bookmark {name}</source>
-            <translation>Aggiungi il segnalibro {name}</translation>
-        </message>
-        <message>
             <source>Add the field {field_name} to {layer_name}</source>
             <translation>Aggiungi il campo {field_name} a {layer_name}</translation>
         </message>
@@ -959,16 +530,8 @@ L'eliminazione diventa definitiva al termine del periodo di tolleranza. Fino ad 
             <translation>Aggiungi l'immagine satellitare[ {name}]</translation>
         </message>
         <message>
-            <source>Add the tiles[ {name}]</source>
-            <translation>Aggiungi i tile[ {name}]</translation>
-        </message>
-        <message>
             <source>Add {path}[ as {name}]</source>
             <translation>Aggiungi {path}[ come {name}]</translation>
-        </message>
-        <message>
-            <source>Add {source}[ as {name}]</source>
-            <translation>Aggiungi {source}[ come {name}]</translation>
         </message>
         <message>
             <source>Add {table} from {connection}</source>
@@ -1045,10 +608,6 @@ L'eliminazione diventa definitiva al termine del periodo di tolleranza. Fino ad 
         <message>
             <source>Compute the wetness index[ of {area}]</source>
             <translation>Calcola l'indice di umidità[ di {area}]</translation>
-        </message>
-        <message>
-            <source>Configure temporal layers and playback</source>
-            <translation>Configura i layer temporali e la riproduzione</translation>
         </message>
         <message>
             <source>Configure the attribute form of {layer_name}</source>
@@ -1135,16 +694,8 @@ L'eliminazione diventa definitiva al termine del periodo di tolleranza. Fino ad 
             <translation>Scarica le impronte degli edifici[ come {layer_name}]</translation>
         </message>
         <message>
-            <source>Filter the map by elevation</source>
-            <translation>Filtra la mappa per elevazione</translation>
-        </message>
-        <message>
             <source>Filter {layer_name}[: {filter}]</source>
             <translation>Filtra {layer_name}[: {filter}]</translation>
-        </message>
-        <message>
-            <source>Find duplicate project layers</source>
-            <translation>Trova i layer duplicati del progetto</translation>
         </message>
         <message>
             <source>Find the address at a point</source>
@@ -1167,10 +718,6 @@ L'eliminazione diventa definitiva al termine del periodo di tolleranza. Fino ad 
             <translation>La recensione di Hans van der Kwast, registrata in QGIS.</translation>
         </message>
         <message>
-            <source>Identify a CRS from WKT or a .prj file</source>
-            <translation>Identifica un SR da WKT o da un file .prj</translation>
-        </message>
-        <message>
             <source>Identify features at a point</source>
             <translation>Identifica gli elementi in un punto</translation>
         </message>
@@ -1183,20 +730,12 @@ L'eliminazione diventa definitiva al termine del periodo di tolleranza. Fino ad 
             <translation>Importa {layer_name} in PostGIS[, tabella {table}]</translation>
         </message>
         <message>
-            <source>Inspect or configure a mesh layer</source>
-            <translation>Ispeziona o configura un layer mesh</translation>
-        </message>
-        <message>
             <source>Inspect {layer_name}</source>
             <translation>Ispeziona {layer_name}</translation>
         </message>
         <message>
             <source>Inspect {url}</source>
             <translation>Ispeziona {url}</translation>
-        </message>
-        <message>
-            <source>Install {name}</source>
-            <translation>Installa {name}</translation>
         </message>
         <message>
             <source>Join a table to {layer_name}</source>
@@ -1237,10 +776,6 @@ L'eliminazione diventa definitiva al termine del periodo di tolleranza. Fino ad 
         <message>
             <source>Look at the QGIS window</source>
             <translation>Guarda la finestra di QGIS</translation>
-        </message>
-        <message>
-            <source>Look at the interface</source>
-            <translation>Guarda l'interfaccia</translation>
         </message>
         <message>
             <source>Look for data on this computer</source>
@@ -1307,10 +842,6 @@ L'eliminazione diventa definitiva al termine del periodo di tolleranza. Fino ad 
             <translation>Calcolo raster[ come {name}]</translation>
         </message>
         <message>
-            <source>Read a coordinate from the map</source>
-            <translation>Leggi una coordinata dalla mappa</translation>
-        </message>
-        <message>
             <source>Read features of {layer_name}</source>
             <translation>Leggi gli elementi di {layer_name}</translation>
         </message>
@@ -1319,20 +850,12 @@ L'eliminazione diventa definitiva al termine del periodo di tolleranza. Fino ad 
             <translation>Leggi l'SR di {layer_name}</translation>
         </message>
         <message>
-            <source>Read the Python errors</source>
-            <translation>Leggi gli errori Python</translation>
-        </message>
-        <message>
             <source>Read the extent of {layer_name}</source>
             <translation>Leggi l'estensione di {layer_name}</translation>
         </message>
         <message>
             <source>Read the help of {algorithm_id}</source>
             <translation>Leggi la guida di {algorithm_id}</translation>
-        </message>
-        <message>
-            <source>Read the interface</source>
-            <translation>Leggi l'interfaccia</translation>
         </message>
         <message>
             <source>Read the labels of {layer_name}</source>
@@ -1349,10 +872,6 @@ L'eliminazione diventa definitiva al termine del periodo di tolleranza. Fino ad 
         <message>
             <source>Read the map view</source>
             <translation>Leggi la vista della mappa</translation>
-        </message>
-        <message>
-            <source>Read the network log</source>
-            <translation>Leggi il log di rete</translation>
         </message>
         <message>
             <source>Read the project</source>
@@ -1379,10 +898,6 @@ L'eliminazione diventa definitiva al termine del periodo di tolleranza. Fino ad 
             <translation>Rinomina {old_name} in {new_name} in {layer_name}</translation>
         </message>
         <message>
-            <source>Render the map</source>
-            <translation>Esegui il rendering della mappa</translation>
-        </message>
-        <message>
             <source>Reorder the layers</source>
             <translation>Riordina i layer</translation>
         </message>
@@ -1399,20 +914,12 @@ L'eliminazione diventa definitiva al termine del periodo di tolleranza. Fino ad 
             <translation>Esegui una query SQL</translation>
         </message>
         <message>
-            <source>Run several commands</source>
-            <translation>Esegui diversi comandi</translation>
-        </message>
-        <message>
             <source>Sample several rasters at points</source>
             <translation>Campiona diversi raster in punti</translation>
         </message>
         <message>
             <source>Sample {layer_name} at a point</source>
             <translation>Campiona {layer_name} in un punto</translation>
-        </message>
-        <message>
-            <source>Save the Processing script {name}</source>
-            <translation>Salva lo script di Processing {name}</translation>
         </message>
         <message>
             <source>Save the custom CRS {name}</source>
@@ -1463,10 +970,6 @@ L'eliminazione diventa definitiva al termine del periodo di tolleranza. Fino ad 
             <translation>Seleziona in {layer_name} dove {field_name} {operator} {value}</translation>
         </message>
         <message>
-            <source>Select {layer_name} in the layer panel</source>
-            <translation>Seleziona {layer_name} nel pannello Layer</translation>
-        </message>
-        <message>
             <source>Set NoData on {layer_name}</source>
             <translation>Imposta NoData su {layer_name}</translation>
         </message>
@@ -1489,10 +992,6 @@ L'eliminazione diventa definitiva al termine del periodo di tolleranza. Fino ad 
         <message>
             <source>Set the project CRS to {crs}</source>
             <translation>Imposta l'SR del progetto su {crs}</translation>
-        </message>
-        <message>
-            <source>Set the raster attribute table on {layer_name}</source>
-            <translation>Imposta la tabella attributi raster su {layer_name}</translation>
         </message>
         <message>
             <source>Set {property} on {layer_name}</source>
@@ -1535,20 +1034,12 @@ L'eliminazione diventa definitiva al termine del periodo di tolleranza. Fino ad 
             <translation>Applica uno stile a {layer_name}</translation>
         </message>
         <message>
-            <source>Take a screenshot</source>
-            <translation>Cattura uno screenshot</translation>
-        </message>
-        <message>
             <source>The complete AI Agent guide</source>
             <translation>La guida completa ad AI Agent</translation>
         </message>
         <message>
             <source>The panel from the first prompt to the finished map.</source>
             <translation>Il pannello dal primo prompt alla mappa finita.</translation>
-        </message>
-        <message>
-            <source>Trim or extend a line endpoint</source>
-            <translation>Taglia o estendi l'estremità di una linea</translation>
         </message>
         <message>
             <source>Turn {frames_folder} into a GIF</source>
@@ -1569,10 +1060,6 @@ L'eliminazione diventa definitiva al termine del periodo di tolleranza. Fino ad 
         <message>
             <source>Zonal statistics of {raster_layer} in {polygon_layer}</source>
             <translation>Statistiche zonali di {raster_layer} in {polygon_layer}</translation>
-        </message>
-        <message>
-            <source>Zonal statistics with Earth Engine</source>
-            <translation>Statistiche zonali con Earth Engine</translation>
         </message>
         <message>
             <source>Area of interest[: {label}][ from {layer_name}]</source>
@@ -1656,36 +1143,16 @@ L'eliminazione diventa definitiva al termine del periodo di tolleranza. Fino ad 
             <translation>%n risultati</translation>
         </message>
         <message>
-            <source>1 layer won't come back: {names}</source>
-            <translation>1 layer non tornerà: {names}</translation>
-        </message>
-        <message>
             <source>1 result</source>
             <translation>1 risultato</translation>
-        </message>
-        <message>
-            <source>Categories</source>
-            <translation>Categorie</translation>
-        </message>
-        <message>
-            <source>Changes made in QGIS, outside the agent.</source>
-            <translation>Modifiche apportate in QGIS, al di fuori dell'agente.</translation>
         </message>
         <message>
             <source>Data sources</source>
             <translation>Sorgenti dati</translation>
         </message>
         <message>
-            <source>Data: {names}</source>
-            <translation>Dati: {names}</translation>
-        </message>
-        <message>
             <source>Go back to an earlier version of your project</source>
             <translation>Torna a una versione precedente del tuo progetto</translation>
-        </message>
-        <message>
-            <source>Going back brings the project and every backed-up layer back. These layers keep the data they have now:</source>
-            <translation>Tornare indietro riporta il progetto e ogni layer di cui è stato fatto il backup. Questi layer mantengono i dati che hanno ora:</translation>
         </message>
         <message>
             <source>Good to know</source>
@@ -1700,18 +1167,6 @@ L'eliminazione diventa definitiva al termine del periodo di tolleranza. Fino ad 
             <translation>Ispeziona {raster} per la georeferenziazione</translation>
         </message>
         <message>
-            <source>Next</source>
-            <translation>Avanti</translation>
-        </message>
-        <message>
-            <source>Previous</source>
-            <translation>Indietro</translation>
-        </message>
-        <message>
-            <source>Put back brings the project to where this request left it.</source>
-            <translation>Ripristina riporta il progetto allo stato in cui questa richiesta lo ha lasciato.</translation>
-        </message>
-        <message>
             <source>Put it back</source>
             <translation>Ripristinalo</translation>
         </message>
@@ -1722,18 +1177,6 @@ L'eliminazione diventa definitiva al termine del periodo di tolleranza. Fino ad 
         <message>
             <source>Read data from a web page</source>
             <translation>Leggi i dati da una pagina web</translation>
-        </message>
-        <message>
-            <source>Real tasks the agent runs from one sentence. Open one to see its prompt.</source>
-            <translation>Attività reali che l'agente esegue partendo da una singola frase. Aprine una per vedere il suo prompt.</translation>
-        </message>
-        <message>
-            <source>Restore puts the project back as this request left it.</source>
-            <translation>Torna qui riporta il progetto allo stato in cui questa richiesta lo ha lasciato.</translation>
-        </message>
-        <message>
-            <source>Sample data included</source>
-            <translation>Dati di esempio inclusi</translation>
         </message>
         <message>
             <source>Sample file</source>
@@ -1752,32 +1195,8 @@ L'eliminazione diventa definitiva al termine del periodo di tolleranza. Fino ad 
             <translation>Passaggi</translation>
         </message>
         <message>
-            <source>Undo puts the project back as it was before this request.</source>
-            <translation>Annulla riporta il progetto allo stato precedente a questa richiesta.</translation>
-        </message>
-        <message>
-            <source>Undo the agent's last request</source>
+            <source>Undo the AI agent's last request</source>
             <translation>Annulla l'ultima richiesta dell'agente</translation>
-        </message>
-        <message>
-            <source>Use this example</source>
-            <translation>Usa questo esempio</translation>
-        </message>
-        <message>
-            <source>Write the report {title}</source>
-            <translation>Scrivi il report {title}</translation>
-        </message>
-        <message>
-            <source>{layer} ({reason})</source>
-            <translation>{layer} ({reason})</translation>
-        </message>
-        <message>
-            <source>{n} layers won't come back: {names}</source>
-            <translation>{n} layer non torneranno: {names}</translation>
-        </message>
-        <message>
-            <source>• {layer}: {reason}</source>
-            <translation>• {layer}: {reason}</translation>
         </message>
         <message>
             <source>Change a label of the layout {layout_name}</source>
@@ -1810,10 +1229,6 @@ L'eliminazione diventa definitiva al termine del periodo di tolleranza. Fino ad 
         <message>
             <source>Remove one item from the layout {layout_name}</source>
             <translation>Rimuovi un oggetto dal layout {layout_name}</translation>
-        </message>
-        <message>
-            <source>Sends when the agent finishes</source>
-            <translation>Viene inviato quando l'agente ha finito</translation>
         </message>
         <message>
             <source>AI Agent {version} is installed.</source>
@@ -1863,10 +1278,6 @@ L'eliminazione diventa definitiva al termine del periodo di tolleranza. Fino ad 
             <translation>Aggiungi {name}[ da {source}]</translation>
         </message>
         <message>
-            <source>Bring back what this request changed.</source>
-            <translation>Ripristina ciò che questa richiesta ha modificato.</translation>
-        </message>
-        <message>
             <source>Buffer of {DISTANCE} around {INPUT}</source>
             <translation>Buffer di {DISTANCE} attorno a {INPUT}</translation>
         </message>
@@ -1897,14 +1308,6 @@ L'eliminazione diventa definitiva al termine del periodo di tolleranza. Fino ad 
         <message>
             <source>Contours of {INPUT}[ every {INTERVAL}]</source>
             <translation>Curve di livello di {INPUT}[ ogni {INTERVAL}]</translation>
-        </message>
-        <message>
-            <source>Copy a report of this problem, then paste it into an email to us.</source>
-            <translation>Copia una segnalazione di questo problema, poi incollala in un'email per noi.</translation>
-        </message>
-        <message>
-            <source>Copy report</source>
-            <translation>Copia segnalazione</translation>
         </message>
         <message>
             <source>Count {POINTS} in each feature of {POLYGONS}</source>
@@ -1959,20 +1362,12 @@ L'eliminazione diventa definitiva al termine del periodo di tolleranza. Fino ad 
             <translation>Unisci {LAYERS} in un solo layer</translation>
         </message>
         <message>
-            <source>Open an email</source>
-            <translation>Apri un'email</translation>
-        </message>
-        <message>
             <source>Polygonize {INPUT}</source>
             <translation>Poligonizza {INPUT}</translation>
         </message>
         <message>
             <source>Rasterize {INPUT}</source>
             <translation>Rasterizza {INPUT}</translation>
-        </message>
-        <message>
-            <source>Remove what this request changed on the map.</source>
-            <translation>Rimuovi dalla mappa ciò che questa richiesta ha modificato.</translation>
         </message>
         <message>
             <source>Remove {OVERLAY} from {INPUT}</source>
@@ -1989,10 +1384,6 @@ L'eliminazione diventa definitiva al termine del periodo di tolleranza. Fino ad 
         <message>
             <source>Run processing</source>
             <translation>Esegui elaborazione</translation>
-        </message>
-        <message>
-            <source>Save it as a file</source>
-            <translation>Salvalo come file</translation>
         </message>
         <message>
             <source>Simplify {INPUT}[ with a tolerance of {TOLERANCE}]</source>
@@ -2015,12 +1406,8 @@ L'eliminazione diventa definitiva al termine del periodo di tolleranza. Fino ad 
             <translation>Statistiche di {INPUT_RASTER} in ogni elemento di {INPUT}</translation>
         </message>
         <message>
-            <source>The agent reads it at its next step</source>
+            <source>The AI agent reads it at its next step</source>
             <translation>L'agente lo legge al passaggio successivo</translation>
-        </message>
-        <message>
-            <source>This conversation: your messages, each step the AI took and what it found, and technical details about QGIS and the plugin. Never your passwords, your sign-in or the contents of your files.</source>
-            <translation>Questa conversazione: i tuoi messaggi, ogni passaggio compiuto dall'IA e ciò che ha trovato, più dettagli tecnici su QGIS e sul plugin. Mai le tue password, il tuo accesso o il contenuto dei tuoi file.</translation>
         </message>
         <message>
             <source>Turn {INPUT} into lines</source>
@@ -2033,10 +1420,6 @@ L'eliminazione diventa definitiva al termine del periodo di tolleranza. Fino ad 
         <message>
             <source>Voronoi polygons of {INPUT}</source>
             <translation>Poligoni di Voronoi di {INPUT}</translation>
-        </message>
-        <message>
-            <source>What is included</source>
-            <translation>Cosa è incluso</translation>
         </message>
         <message>
             <source>{algorithm} on {layer}</source>
@@ -2071,48 +1454,12 @@ L'eliminazione diventa definitiva al termine del periodo di tolleranza. Fino ad 
             <translation>{tool} su {layer}</translation>
         </message>
         <message>
-            <source>1 layer added</source>
-            <translation>1 layer aggiunto</translation>
-        </message>
-        <message>
-            <source>1 layer removed</source>
-            <translation>1 layer rimosso</translation>
-        </message>
-        <message>
-            <source>Available when the agent finishes</source>
+            <source>Available when the AI agent finishes</source>
             <translation>Disponibile quando l'agente ha finito</translation>
         </message>
         <message>
             <source>Changes made in QGIS</source>
             <translation>Modifiche fatte in QGIS</translation>
-        </message>
-        <message>
-            <source>Email address copied</source>
-            <translation>Indirizzo email copiato</translation>
-        </message>
-        <message>
-            <source>Hide categories</source>
-            <translation>Nascondi categorie</translation>
-        </message>
-        <message>
-            <source>Report copied</source>
-            <translation>Segnalazione copiata</translation>
-        </message>
-        <message>
-            <source>Send us a report and we will look into it and fix it.</source>
-            <translation>Inviaci una segnalazione: la esamineremo e correggeremo il problema.</translation>
-        </message>
-        <message>
-            <source>Show categories</source>
-            <translation>Mostra categorie</translation>
-        </message>
-        <message>
-            <source>Tell us what went wrong</source>
-            <translation>Raccontaci cosa è andato storto</translation>
-        </message>
-        <message>
-            <source>Then paste it into an email to:</source>
-            <translation>Poi incollala in un'email a:</translation>
         </message>
         <message>
             <source>file the run wrote</source>
@@ -2135,34 +1482,13 @@ L'eliminazione diventa definitiva al termine del periodo di tolleranza. Fino ad 
             <translation>{layer} non può essere ripristinato ({reason})</translation>
         </message>
         <message>
-            <source>{names} and {n} more</source>
-            <translation>{names} e altri {n}</translation>
-        </message>
-        <message>
-            <source>{n} layers added</source>
-            <translation>{n} layer aggiunti</translation>
-        </message>
-        <message>
             <source>{n} layers can't be restored</source>
             <translation>{n} layer non possono essere ripristinati</translation>
-        </message>
-        <message>
-            <source>{n} layers changed</source>
-            <translation>{n} layer modificati</translation>
-        </message>
-        <message>
-            <source>{n} layers removed</source>
-            <translation>{n} layer rimossi</translation>
         </message>
         <message>
             <location filename="src/ui/library/pictures.py" />
             <source>After</source>
             <translation>Dopo</translation>
-        </message>
-        <message>
-            <location filename="src/ui/library/home.py" />
-            <source>Ask the agent</source>
-            <translation>Chiedi all'agente</translation>
         </message>
         <message>
             <location filename="src/ui/library/pictures.py" />
@@ -2193,11 +1519,6 @@ L'eliminazione diventa definitiva al termine del periodo di tolleranza. Fino ad 
             <location filename="src/ui/library/slider.py" />
             <source>Enlarge</source>
             <translation>Ingrandisci</translation>
-        </message>
-        <message>
-            <location filename="src/ui/library/home.py" />
-            <source>No example matches these words. The agent may still do it.</source>
-            <translation>Nessun esempio corrisponde a queste parole. L'agente potrebbe comunque riuscirci.</translation>
         </message>
         <message>
             <location filename="src/ui/library/parts.py" />
@@ -2335,10 +1656,6 @@ L'eliminazione diventa definitiva al termine del periodo di tolleranza. Fino ad 
             <translation>Nessun esempio corrisponde a queste parole. L'assistente AI potrebbe comunque farlo.</translation>
         </message>
         <message>
-            <source>Real tasks the AI agent does from one sentence. Open one to try it.</source>
-            <translation>Attività reali che l'assistente AI svolge a partire da una sola frase. Aprine una per provarla.</translation>
-        </message>
-        <message>
             <source>Save the report {title}</source>
             <translation>Salva il report {title}</translation>
         </message>
@@ -2471,10 +1788,6 @@ L'eliminazione diventa definitiva al termine del periodo di tolleranza. Fino ad 
             <translation>Accedi per inviare un feedback da qui, oppure scrivici a {email}.</translation>
         </message>
         <message>
-            <source>We'll receive your message, this conversation and technical details (plugin and QGIS version, system, recent logs). Never your passwords or the contents of your files.</source>
-            <translation>Riceveremo il tuo messaggio, questa conversazione e alcuni dettagli tecnici (versione del plugin e di QGIS, sistema, log recenti). Mai le tue password né il contenuto dei tuoi file.</translation>
-        </message>
-        <message>
             <source>You sent several reports in a short time. Try again in a few minutes.</source>
             <translation>Hai inviato diverse segnalazioni in poco tempo. Riprova tra qualche minuto.</translation>
         </message>
@@ -2499,18 +1812,6 @@ L'eliminazione diventa definitiva al termine del periodo di tolleranza. Fino ad 
             <translation>Cosa scrivi</translation>
         </message>
         <message>
-            <source>Expired on {day}.</source>
-            <translation>Scaduto il {day}.</translation>
-        </message>
-        <message>
-            <source>Expires on {day}.</source>
-            <translation>Scade il {day}.</translation>
-        </message>
-        <message>
-            <source>Private link: its signature stays on this computer. TerraLab and the AI agent see only the site and the file name.</source>
-            <translation>Link privato: la firma resta su questo computer. TerraLab e l'AI agent vedono solo il sito e il nome del file.</translation>
-        </message>
-        <message>
             <source>expired</source>
             <translation>scaduto</translation>
         </message>
@@ -2519,88 +1820,13 @@ L'eliminazione diventa definitiva al termine del periodo di tolleranza. Fino ad 
         <name>AIAgentContext</name>
         <message>
             <location filename="src/core/context.py" />
-            <source>Add an OpenStreetMap basemap</source>
-            <translation>Aggiungi una mappa di base OpenStreetMap</translation>
-        </message>
-        <message>
-            <location filename="src/core/context.py" />
-            <source>Buffer {layer} by 100 m into a new layer</source>
-            <translation>Crea un buffer di 100 m di {layer} in un nuovo layer</translation>
-        </message>
-        <message>
-            <location filename="src/core/context.py" />
-            <source>Check the geometry validity of {layer}</source>
-            <translation>Controlla la validità geometrica di {layer}</translation>
-        </message>
-        <message>
-            <location filename="src/core/context.py" />
-            <source>Clip {layer} to the selection</source>
-            <translation>Ritaglia {layer} sulla selezione</translation>
-        </message>
-        <message>
-            <location filename="src/core/context.py" />
-            <source>Count {points} per {polygons}</source>
-            <translation>Conta {points} per {polygons}</translation>
-        </message>
-        <message>
-            <location filename="src/core/context.py" />
-            <source>Describe the layers in this project</source>
-            <translation>Descrivi i layer di questo progetto</translation>
-        </message>
-        <message>
-            <location filename="src/core/context.py" />
-            <source>Describe the raster bands and their value range</source>
-            <translation>Descrivi le bande raster e il loro intervallo di valori</translation>
-        </message>
-        <message>
-            <location filename="src/core/context.py" />
-            <source>Detect buildings with AI Segmentation</source>
-            <translation>Rileva edifici con AI Segmentation</translation>
-        </message>
-        <message>
-            <location filename="src/core/context.py" />
-            <source>Export a map layout of the current view</source>
-            <translation>Esporta un layout di mappa della vista corrente</translation>
-        </message>
-        <message>
-            <location filename="src/core/context.py" />
-            <source>Load a dataset from a file or a URL</source>
-            <translation>Carica un dataset da un file o da un URL</translation>
-        </message>
-        <message>
-            <location filename="src/core/context.py" />
-            <source>Load a vector dataset to work with</source>
-            <translation>Carica un dataset vettoriale su cui lavorare</translation>
-        </message>
-        <message>
-            <location filename="src/core/context.py" />
             <source>Raster</source>
             <translation>Raster</translation>
         </message>
         <message>
             <location filename="src/core/context.py" />
-            <source>Sample the elevation at the selected points</source>
-            <translation>Campiona la quota nei punti selezionati</translation>
-        </message>
-        <message>
-            <location filename="src/core/context.py" />
-            <source>Style {layer} by {field}</source>
-            <translation>Stilizza {layer} per {field}</translation>
-        </message>
-        <message>
-            <location filename="src/core/context.py" />
-            <source>Style {layer} with a categorized renderer</source>
-            <translation>Stilizza {layer} con un renderer categorizzato</translation>
-        </message>
-        <message>
-            <location filename="src/core/context.py" />
             <source>Table</source>
             <translation>Tabella</translation>
-        </message>
-        <message>
-            <location filename="src/core/context.py" />
-            <source>What can you do in this project?</source>
-            <translation>Cosa puoi fare in questo progetto?</translation>
         </message>
         <message>
             <source>QGIS is not running</source>
@@ -2673,11 +1899,6 @@ L'eliminazione diventa definitiva al termine del periodo di tolleranza. Fino ad 
         </message>
         <message>
             <location filename="src/ui/options_page.py" />
-            <source>AI Agent by TerraLab drives QGIS in plain language: load data, style layers, run analyses, build layouts. It asks before risky changes and you can undo a run.</source>
-            <translation>AI Agent di TerraLab guida QGIS in linguaggio naturale: carica dati, stilizza i layer, esegui analisi, crea layout. Chiede conferma prima delle modifiche rischiose e puoi annullare un'esecuzione.</translation>
-        </message>
-        <message>
-            <location filename="src/ui/options_page.py" />
             <source>AI Agent settings...</source>
             <translation>Impostazioni di AI Agent...</translation>
         </message>
@@ -2685,11 +1906,6 @@ L'eliminazione diventa definitiva al termine del periodo di tolleranza. Fino ad 
             <location filename="src/ui/options_page.py" />
             <source>Open AI Agent</source>
             <translation>Apri AI Agent</translation>
-        </message>
-        <message>
-            <location filename="src/ui/options_page.py" />
-            <source>Open the panel with Ctrl+Alt+A, or type "ai" followed by a question in the locator bar (Ctrl+K). Right-click a layer, a feature or the map to ask about it.</source>
-            <translation>Apri il pannello con Ctrl+Alt+A, oppure digita “ai” seguito da una domanda nella barra del localizzatore (Ctrl+K). Fai clic con il tasto destro su un layer, un elemento o la mappa per chiedere informazioni all'AI.</translation>
         </message>
         <message>
             <source>AI Agent by TerraLab is your AI agent inside QGIS: it loads data, styles layers, runs analyses and builds layouts. It asks before risky changes and you can undo a run.</source>
@@ -2707,16 +1923,6 @@ L'eliminazione diventa definitiva al termine del periodo di tolleranza. Fino ad 
             <location filename="src/plugin.py" />
             <source>AI Agent could not open its panel: {error}</source>
             <translation>AI Agent non ha potuto aprire il suo pannello: {error}</translation>
-        </message>
-        <message>
-            <location filename="src/plugin.py" />
-            <source>Drive QGIS in plain language</source>
-            <translation>Usa QGIS in linguaggio semplice</translation>
-        </message>
-        <message>
-            <location filename="src/plugin.py" />
-            <source>Open the AI Agent panel and drive QGIS in plain language.</source>
-            <translation>Apri il pannello AI Agent e controlla QGIS in linguaggio naturale.</translation>
         </message>
         <message>
             <location filename="src/plugin.py" />
@@ -2759,23 +1965,19 @@ L'eliminazione diventa definitiva al termine del periodo di tolleranza. Fino ad 
             <translation>Mostra</translation>
         </message>
         <message>
-            <source>The agent is waiting for your approval.</source>
-            <translation>L'agente è in attesa della tua approvazione.</translation>
-        </message>
-        <message>
             <source>Your AI agent inside QGIS</source>
             <translation>Il tuo agente AI in QGIS</translation>
         </message>
         <message>
-            <source>The agent finished.</source>
+            <source>The AI agent finished.</source>
             <translation>L'agente ha finito.</translation>
         </message>
         <message>
-            <source>The agent is waiting for your answer.</source>
+            <source>The AI agent is waiting for your answer.</source>
             <translation>L'agente è in attesa della tua risposta.</translation>
         </message>
         <message>
-            <source>The agent stopped before finishing.</source>
+            <source>The AI agent stopped before finishing.</source>
             <translation>L'agente si è fermato prima di finire.</translation>
         </message>
     </context>
@@ -2855,11 +2057,6 @@ L'eliminazione diventa definitiva al termine del periodo di tolleranza. Fino ad 
         </message>
         <message>
             <location filename="src/api/account.py" />
-            <source>Still waiting for the sign-in page. If no browser opened, or the page shows an error, click Cancel and try again.</source>
-            <translation>Ancora in attesa della pagina di accesso. Se nessun browser si è aperto, o la pagina mostra un errore, fai clic su Annulla e riprova.</translation>
-        </message>
-        <message>
-            <location filename="src/api/account.py" />
             <source>That address does not match the account. Nothing was deleted.</source>
             <translation>Quell'indirizzo non corrisponde all'account. Nulla è stato eliminato.</translation>
         </message>
@@ -2905,18 +2102,6 @@ L'eliminazione diventa definitiva al termine del periodo di tolleranza. Fino ad 
         </message>
         <message>
             <location filename="src/api/account.py" />
-            <source>You are signed in on this computer, but QGIS cannot read your sign-in until you enter its master password.</source>
-            <translation>Hai effettuato laccesso su questo computer, ma QGIS non può leggere il tuo accesso finché non inserisci la sua master password.</translation>
-        </message>
-        <message>
-            <location filename="src/api/account.py" />
-            <source>You can also open this address by hand:
-{}</source>
-            <translation>Puoi anche aprire questo indirizzo a mano:
-{}</translation>
-        </message>
-        <message>
-            <location filename="src/api/account.py" />
             <source>Your account is scheduled for deletion. Everything is erased for good on {date}. Until then, sign in on terra-lab.ai to cancel it.</source>
             <translation>Il tuo account è programmato per l'eliminazione. Tutto verrà eliminato definitivamente il {date}. Fino ad allora, accedi su terra-lab.ai per annullare l'eliminazione.</translation>
         </message>
@@ -2949,20 +2134,12 @@ L'eliminazione diventa definitiva al termine del periodo di tolleranza. Fino ad 
             <translation>Sei connesso su questo computer, ma QGIS non riesce a leggere il tuo accesso finché non inserisci la master password. Fai clic su Accedi per inserirla.</translation>
         </message>
         <message>
-            <source>Opening the checkout</source>
-            <translation>Apertura del checkout</translation>
-        </message>
-        <message>
             <source>Signed in (from {}).</source>
             <translation>Connesso (da {}).</translation>
         </message>
         <message>
             <source>Signed in as {} (from {}).</source>
             <translation>Connesso come {} (da {}).</translation>
-        </message>
-        <message>
-            <source>No connection to terra-lab.ai. Still trying...</source>
-            <translation>Nessuna connessione a terra-lab.ai. Continuo a provare...</translation>
         </message>
         <message>
             <source>Can't reach TerraLab. Retrying.</source>
@@ -2976,19 +2153,13 @@ L'eliminazione diventa definitiva al termine del periodo di tolleranza. Fino ad 
             <source>Still waiting for the sign-in page. No browser? Click Open browser: it also copies the link, to paste in your browser.</source>
             <translation>Sto ancora aspettando la pagina di accesso. Nessun browser? Clicca Apri browser: copia anche il link, da incollare nel browser.</translation>
         </message>
+        <message>
+            <source>QGIS could not save your sign-in on this computer. Click Sign in to try again.</source>
+            <translation>QGIS non ha potuto salvare il tuo accesso su questo computer. Fai clic su Accedi per riprovare.</translation>
+        </message>
     </context>
     <context>
         <name>AccountSettingsDialog</name>
-        <message>
-            <location filename="src/ui/account_settings_dialog.py" />
-            <source>Account settings</source>
-            <translation>Impostazioni account</translation>
-        </message>
-        <message>
-            <location filename="src/ui/account_settings_dialog.py" />
-            <source>Book a call</source>
-            <translation>Prenota una chiamata</translation>
-        </message>
         <message>
             <location filename="src/ui/account_settings_dialog.py" />
             <source>Connected</source>
@@ -3006,26 +2177,6 @@ L'eliminazione diventa definitiva al termine del periodo di tolleranza. Fino ad 
         </message>
         <message>
             <location filename="src/ui/account_settings_dialog.py" />
-            <source>Could not load your account. Try again in a moment.</source>
-            <translation>Impossibile caricare il tuo account. Riprova tra un momento.</translation>
-        </message>
-        <message>
-            <location filename="src/ui/account_settings_dialog.py" />
-            <source>Could not reach TerraLab. Check your internet connection, then try again.</source>
-            <translation>Impossibile raggiungere TerraLab. Controlla la tua connessione internet, poi riprova.</translation>
-        </message>
-        <message>
-            <location filename="src/ui/account_settings_dialog.py" />
-            <source>Custom quota, team seats, invoices, or a custom AI solution.</source>
-            <translation>Quota personalizzata, posti team, fatture o una soluzione AI personalizzata.</translation>
-        </message>
-        <message>
-            <location filename="src/ui/account_settings_dialog.py" />
-            <source>Errors, versions and which features you use, linked to your account. Never your prompts, your layers, your coordinates or your files. On Pro, lifecycle and counts only, no content.</source>
-            <translation>Errori, versioni e quali funzionalità usi, collegati al tuo account. Mai i tuoi prompt, i tuoi layer, le tue coordinate o i tuoi file. Su Pro solo ciclo di vita e conteggi, nessun contenuto.</translation>
-        </message>
-        <message>
-            <location filename="src/ui/account_settings_dialog.py" />
             <source>Free plan</source>
             <translation>Piano gratuito</translation>
         </message>
@@ -3033,41 +2184,6 @@ L'eliminazione diventa definitiva al termine del periodo di tolleranza. Fino ad 
             <location filename="src/ui/account_settings_dialog.py" />
             <source>Loading account info...</source>
             <translation>Caricamento info account...</translation>
-        </message>
-        <message>
-            <location filename="src/ui/account_settings_dialog.py" />
-            <source>Manage account</source>
-            <translation>Gestisci account</translation>
-        </message>
-        <message>
-            <location filename="src/ui/account_settings_dialog.py" />
-            <source>Need more than Pro?</source>
-            <translation>Serve più di Pro?</translation>
-        </message>
-        <message>
-            <location filename="src/ui/account_settings_dialog.py" />
-            <source>Opens terra-lab.ai in your browser.</source>
-            <translation>Apre terra-lab.ai nel tuo browser.</translation>
-        </message>
-        <message>
-            <location filename="src/ui/account_settings_dialog.py" />
-            <source>Opens your terra-lab.ai account in the browser.</source>
-            <translation>Apre il tuo account terra-lab.ai nel browser.</translation>
-        </message>
-        <message>
-            <location filename="src/ui/account_settings_dialog.py" />
-            <source>Opens your terra-lab.ai dashboard in the browser.</source>
-            <translation>Apre la tua dashboard terra-lab.ai nel browser.</translation>
-        </message>
-        <message>
-            <location filename="src/ui/account_settings_dialog.py" />
-            <source>Opens your terra-lab.ai dashboard: your plan, your runs and your payment details.</source>
-            <translation>Apre la tua dashboard terra-lab.ai: il tuo piano, le tue esecuzioni e i tuoi dati di pagamento.</translation>
-        </message>
-        <message>
-            <location filename="src/ui/account_settings_dialog.py" />
-            <source>Personal, non-commercial use. A paid plan adds commercial use for one person.</source>
-            <translation>Uso personale, non commerciale. Un piano a pagamento aggiunge luso commerciale per una persona.</translation>
         </message>
         <message>
             <location filename="src/ui/account_settings_dialog.py" />
@@ -3091,11 +2207,6 @@ L'eliminazione diventa definitiva al termine del periodo di tolleranza. Fino ad 
         </message>
         <message>
             <location filename="src/ui/account_settings_dialog.py" />
-            <source>Share usage statistics with TerraLab</source>
-            <translation>Condividi statistiche di uso con TerraLab</translation>
-        </message>
-        <message>
-            <location filename="src/ui/account_settings_dialog.py" />
             <source>Sign out</source>
             <translation>Esci</translation>
         </message>
@@ -3111,38 +2222,13 @@ L'eliminazione diventa definitiva al termine del periodo di tolleranza. Fino ad 
         </message>
         <message>
             <location filename="src/ui/account_settings_dialog.py" />
-            <source>There's a problem with your subscription. Your last payment may have failed. Open your account to update your payment method or review your plan.</source>
-            <translation>Cè un problema con il tuo abbonamento. Lultimo pagamento potrebbe non essere riuscito. Apri il tuo account per aggiornare il metodo di pagamento o rivedere il tuo piano.</translation>
-        </message>
-        <message>
-            <location filename="src/ui/account_settings_dialog.py" />
-            <source>This computer is no longer signed in. Sign out, then sign in again to reconnect it.</source>
-            <translation>Questo computer non ha più effettuato laccesso. Esci, poi accedi di nuovo per ricollegarlo.</translation>
-        </message>
-        <message>
-            <location filename="src/ui/account_settings_dialog.py" />
             <source>Update payment method</source>
             <translation>Aggiorna metodo di pagamento</translation>
         </message>
         <message>
             <location filename="src/ui/account_settings_dialog.py" />
-            <source>Upgrade to Pro</source>
-            <translation>Passa a Pro</translation>
-        </message>
-        <message>
-            <location filename="src/ui/account_settings_dialog.py" />
-            <source>Working in a team?</source>
-            <translation>Lavori in team?</translation>
-        </message>
-        <message>
-            <location filename="src/ui/account_settings_dialog.py" />
             <source>You can sign back in anytime from QGIS.</source>
             <translation>Puoi accedere di nuovo in qualsiasi momento da QGIS.</translation>
-        </message>
-        <message>
-            <location filename="src/ui/account_settings_dialog.py" />
-            <source>{used} of {limit} runs used this month</source>
-            <translation>{used} di {limit} esecuzioni usate questo mese</translation>
         </message>
         <message>
             <location filename="src/ui/account_settings_dialog.py" />
@@ -3174,11 +2260,6 @@ L'eliminazione diventa definitiva al termine del periodo di tolleranza. Fino ad 
         </message>
         <message>
             <location filename="src/ui/dock/activation_state.py" />
-            <source>Drive QGIS in plain language</source>
-            <translation>Usa QGIS in linguaggio semplice</translation>
-        </message>
-        <message>
-            <location filename="src/ui/dock/activation_state.py" />
             <source>Finish the sign-in in your browser, then come back here.</source>
             <translation>Completa l'accesso nel tuo browser, poi torna qui.</translation>
         </message>
@@ -3186,11 +2267,6 @@ L'eliminazione diventa definitiva al termine del periodo di tolleranza. Fino ad 
             <location filename="src/ui/dock/activation_state.py" />
             <source>Open browser</source>
             <translation>Apri browser</translation>
-        </message>
-        <message>
-            <location filename="src/ui/dock/activation_state.py" />
-            <source>Sign in / Sign up to start</source>
-            <translation>Accedi / Registrati per iniziare</translation>
         </message>
         <message>
             <location filename="src/ui/dock/activation_state.py" />
@@ -3204,16 +2280,6 @@ L'eliminazione diventa definitiva al termine del periodo di tolleranza. Fino ad 
         </message>
         <message>
             <location filename="src/ui/dock/activation_state.py" />
-            <source>Then ask the AI for anything: load data, style layers, run analyses, edit features.</source>
-            <translation>Poi chiedi all'AI qualsiasi cosa: carica dati, applica stili ai layer, esegui analisi, modifica elementi.</translation>
-        </message>
-        <message>
-            <location filename="src/ui/dock/activation_state.py" />
-            <source>Type this code in the browser if it asks for one</source>
-            <translation>Digita questo codice nel browser se lo chiede</translation>
-        </message>
-        <message>
-            <location filename="src/ui/dock/activation_state.py" />
             <source>Waiting for your browser sign-in...</source>
             <translation>In attesa dell'accesso dal browser...</translation>
         </message>
@@ -3223,26 +2289,8 @@ L'eliminazione diventa definitiva al termine del periodo di tolleranza. Fino ad 
             <translation>Sei connesso.</translation>
         </message>
         <message>
-            <location filename="src/ui/dock/activation_state.py" />
-            <source>Your browser asks for this code.</source>
-            <translation>Il tuo browser chiede questo codice.</translation>
-        </message>
-        <message>
-            <location filename="src/ui/dock/activation_state.py" />
-            <source>Your sign-in is no longer valid on this computer.</source>
-            <translation>Il tuo accesso non è più valido su questo computer.</translation>
-        </message>
-        <message>
-            <source>Signing up is free and takes 15 seconds, in your browser.</source>
-            <translation>Registrarsi è gratis e richiede 15 secondi, nel browser.</translation>
-        </message>
-        <message>
             <source>Your AI agent inside QGIS</source>
             <translation>Il tuo agente AI dentro QGIS</translation>
-        </message>
-        <message>
-            <source>The browser page should show the code {code}</source>
-            <translation>La pagina del browser dovrebbe mostrare il codice {code}</translation>
         </message>
         <message>
             <source>Only type a code you see on terra-lab.ai, on a page you opened from this QGIS.</source>
@@ -3381,14 +2429,6 @@ L'eliminazione diventa definitiva al termine del periodo di tolleranza. Fino ad 
             <translation>Interrogazione della fonte</translation>
         </message>
         <message>
-            <source>{m} min {s} s</source>
-            <translation>{m} min {s} s</translation>
-        </message>
-        <message>
-            <source>{n} s</source>
-            <translation>{n} s</translation>
-        </message>
-        <message>
             <source>{words} · {done} of {total}</source>
             <translation>{words} · {done} di {total}</translation>
         </message>
@@ -3401,32 +2441,12 @@ L'eliminazione diventa definitiva al termine del periodo di tolleranza. Fino ad 
             <translation>Agente</translation>
         </message>
         <message>
-            <source>Undone</source>
-            <translation>Annullato</translation>
-        </message>
-        <message>
-            <source>Put back</source>
-            <translation>Ripristina</translation>
-        </message>
-        <message>
             <source>Undo</source>
             <translation>Annulla</translation>
         </message>
         <message>
             <source>Copy</source>
             <translation>Copia</translation>
-        </message>
-        <message>
-            <source>Also undoes the later request</source>
-            <translation>Annulla anche la richiesta successiva</translation>
-        </message>
-        <message>
-            <source>Also undoes the {n} later requests</source>
-            <translation>Annulla anche le {n} richieste successive</translation>
-        </message>
-        <message>
-            <source>Go back here</source>
-            <translation>Torna qui</translation>
         </message>
         <message>
             <source>Redo</source>
@@ -3521,26 +2541,6 @@ L'eliminazione diventa definitiva al termine del periodo di tolleranza. Fino ad 
         </message>
         <message>
             <location filename="src/core/controller_actions.py" />
-            <source>Back to after run {n}</source>
-            <translation>Torna a dopo l'esecuzione {n}</translation>
-        </message>
-        <message>
-            <location filename="src/core/controller_actions.py" />
-            <source>Back to before run {n}</source>
-            <translation>Torna a prima dell'esecuzione {n}</translation>
-        </message>
-        <message>
-            <location filename="src/core/controller_actions.py" />
-            <source>Back to your edits after run {n}</source>
-            <translation>Torna alle tue modifiche dopo l'esecuzione {n}</translation>
-        </message>
-        <message>
-            <location filename="src/core/controller.py" />
-            <source>Connection lost. Reconnecting...</source>
-            <translation>Connessione persa. Riconnessione in corso...</translation>
-        </message>
-        <message>
-            <location filename="src/core/controller_actions.py" />
             <source>Data files (*.gpkg *.geojson *.json *.shp *.csv *.tif *.tiff *.kml *.kmz *.zip);;All files (*)</source>
             <translation>File dati (*.gpkg *.geojson *.json *.shp *.csv *.tif *.tiff *.kml *.kmz *.zip);;Tutti i file (*)</translation>
         </message>
@@ -3553,11 +2553,6 @@ L'eliminazione diventa definitiva al termine del periodo di tolleranza. Fino ad 
             <location filename="src/core/snapshot_report.py" />
             <source>Layer order or groups changed</source>
             <translation>Ordine dei layer o gruppi modificato</translation>
-        </message>
-        <message>
-            <location filename="src/core/controller.py" />
-            <source>Not connected to the agent service yet. Reconnecting, retry in a moment.</source>
-            <translation>Non ancora connesso al servizio agente. Riconnessione in corso, riprova tra un momento.</translation>
         </message>
         <message>
             <location filename="src/core/controller_actions.py" />
@@ -3611,21 +2606,6 @@ L'eliminazione diventa definitiva al termine del periodo di tolleranza. Fino ad 
         </message>
         <message>
             <location filename="src/core/controller.py" />
-            <source>The agent service reported an error.</source>
-            <translation>Il servizio dell'agente ha segnalato un errore.</translation>
-        </message>
-        <message>
-            <location filename="src/core/controller.py" />
-            <source>The agent service stopped answering. The run was ended, you can retry it.</source>
-            <translation>Il servizio dell'agente ha smesso di rispondere. L'esecuzione è stata terminata, puoi riprovarla.</translation>
-        </message>
-        <message>
-            <location filename="src/core/controller.py" />
-            <source>The message could not be sent.</source>
-            <translation>Il messaggio non ha potuto essere inviato.</translation>
-        </message>
-        <message>
-            <location filename="src/core/controller.py" />
             <source>The user dismissed the proposal.</source>
             <translation>L'utente ha scartato la proposta.</translation>
         </message>
@@ -3636,54 +2616,12 @@ L'eliminazione diventa definitiva al termine del periodo di tolleranza. Fino ad 
         </message>
         <message>
             <location filename="src/core/controller.py" />
-            <source>This plugin build cannot show that card.</source>
-            <translation>Questa versione del plugin non può mostrare quella scheda.</translation>
-        </message>
-        <message>
-            <location filename="src/core/controller_actions.py" />
-            <source>This state is no longer available.</source>
-            <translation>Questo stato non è più disponibile.</translation>
-        </message>
-        <message>
-            <location filename="src/core/controller.py" />
             <source>You have used every task of this period.</source>
             <translation>Hai usato tutte le attività di questo periodo.</translation>
         </message>
         <message>
-            <source>Not connected to the agent service. Retry once the connection is back.</source>
-            <translation>Non connesso al servizio dell'agente. Riprova quando la connessione sarà ripristinata.</translation>
-        </message>
-        <message>
-            <source>Reconnected. Waiting for the agent service to resume the run...</source>
-            <translation>Riconnesso. In attesa che il servizio dell'agente riprenda l'esecuzione...</translation>
-        </message>
-        <message>
-            <source>The connection dropped and the agent service no longer has this run. You can retry it.</source>
-            <translation>La connessione si è interrotta e il servizio dell'agente non ha più questa esecuzione. Puoi riprovare.</translation>
-        </message>
-        <message>
-            <source>The run ended without a summary from the agent service.</source>
-            <translation>L'esecuzione è terminata senza un riepilogo da parte del servizio dell'agente.</translation>
-        </message>
-        <message>
             <source>{name} could not be loaded. Check the file and try again.</source>
             <translation>Impossibile caricare {name}. Controlla il file e riprova.</translation>
-        </message>
-        <message>
-            <source>Deleted 1 working layer</source>
-            <translation>Eliminato 1 layer di lavoro</translation>
-        </message>
-        <message>
-            <source>Deleted {n} working layers</source>
-            <translation>Eliminati {n} layer di lavoro</translation>
-        </message>
-        <message>
-            <source>Kept 1 working layer</source>
-            <translation>Mantenuto 1 layer di lavoro</translation>
-        </message>
-        <message>
-            <source>Kept {n} working layers</source>
-            <translation>Mantenuti {n} layer di lavoro</translation>
         </message>
         <message>
             <source>The service is updating. Resuming...</source>
@@ -3694,44 +2632,8 @@ L'eliminazione diventa definitiva al termine del periodo di tolleranza. Fino ad 
             <translation>Sto pensando...</translation>
         </message>
         <message>
-            <source>Tidied 1 working layer away</source>
-            <translation>Riordinato 1 layer di lavoro</translation>
-        </message>
-        <message>
-            <source>Tidied {n} working layers away</source>
-            <translation>Riordinati {n} layer di lavoro</translation>
-        </message>
-        <message>
             <source>Working layers</source>
             <translation>Layer di lavoro</translation>
-        </message>
-        <message>
-            <source>Basemaps here are limited without QuickMapServices.</source>
-            <translation>Le basemap qui sono limitate senza QuickMapServices.</translation>
-        </message>
-        <message>
-            <source>Install it</source>
-            <translation>Installalo</translation>
-        </message>
-        <message>
-            <source>It is the free QGIS plugin that carries the basemaps people mean by name, Google, Bing, Esri, CartoDB and about two hundred more. Installed, I use it on my own.</source>
-            <translation>È il plugin QGIS gratuito che porta le basemap che le persone chiamano per nome, Google, Bing, Esri, CartoDB e circa duecento altre. Una volta installato, lo uso da solo.</translation>
-        </message>
-        <message>
-            <source>Not now</source>
-            <translation>Non ora</translation>
-        </message>
-        <message>
-            <source>Opened the plugin manager</source>
-            <translation>Ho aperto il gestore dei plugin</translation>
-        </message>
-        <message>
-            <source>Opened the plugin's page</source>
-            <translation>Ho aperto la pagina del plugin</translation>
-        </message>
-        <message>
-            <source>The plugin manager would not open</source>
-            <translation>Il gestore dei plugin non si è aperto</translation>
         </message>
         <message>
             <source>Your changes since this point could not be saved, so nothing was restored. Save the project and try again.</source>
@@ -3740,16 +2642,6 @@ L'eliminazione diventa definitiva al termine del periodo di tolleranza. Fino ad 
         <message>
             <source>Reconnected. Checking how the run ended...</source>
             <translation>Riconnesso. Verifico come è terminata l'esecuzione...</translation>
-        </message>
-        <message>
-            <location filename="src/core/controller_frames.py" />
-            <source>QGIS stopped responding for a while during this run.</source>
-            <translation>QGIS ha smesso di rispondere per un po' durante questa esecuzione.</translation>
-        </message>
-        <message>
-            <location filename="src/core/controller_frames.py" />
-            <source>QGIS stopped responding for {n} seconds during this run.</source>
-            <translation>QGIS ha smesso di rispondere per {n} secondi durante questa esecuzione.</translation>
         </message>
         <message>
             <location filename="src/core/controller_runs.py" />
@@ -3778,11 +2670,6 @@ L'eliminazione diventa definitiva al termine del periodo di tolleranza. Fino ad 
         </message>
         <message>
             <location filename="src/core/controller_runs.py" />
-            <source>The connection to the agent service was lost and did not come back. The run was ended, you can retry it once you are online.</source>
-            <translation>La connessione al servizio dell'agente è stata persa e non è tornata. L'esecuzione è stata terminata, puoi riprovarla quando sei di nuovo online.</translation>
-        </message>
-        <message>
-            <location filename="src/core/controller_runs.py" />
             <source>The message could not be sent. Retry, or reload the plugin if it keeps failing.</source>
             <translation>Impossibile inviare il messaggio. Riprova, oppure ricarica il plugin se il problema persiste.</translation>
         </message>
@@ -3802,24 +2689,8 @@ L'eliminazione diventa definitiva al termine del periodo di tolleranza. Fino ad 
             <translation>Questo punto appartiene al progetto {name}. Apri quel progetto per tornarci.</translation>
         </message>
         <message>
-            <source>1 layer in the project</source>
-            <translation>1 layer nel progetto</translation>
-        </message>
-        <message>
-            <source>Back to {point}.</source>
-            <translation>Torna a {point}.</translation>
-        </message>
-        <message>
-            <source>Could not fully go back to {point}. {reason}</source>
-            <translation>Impossibile tornare completamente a {point}. {reason}</translation>
-        </message>
-        <message>
             <source>No results</source>
             <translation>Nessun risultato</translation>
-        </message>
-        <message>
-            <source>Not connected to the agent service, so nothing was sent. Reconnecting now: your message is kept, and Retry sends it once the connection is back.</source>
-            <translation>Non connesso al servizio dell'agente, quindi nulla è stato inviato. Riconnessione in corso: il tuo messaggio è conservato e Riprova lo invierà appena la connessione torna attiva.</translation>
         </message>
         <message>
             <source>Permission mode changed. It applies from the next action.</source>
@@ -3828,70 +2699,6 @@ L'eliminazione diventa definitiva al termine del periodo di tolleranza. Fino ad 
         <message>
             <source>Permission mode changed. It applies from the next action; the open card still needs your answer.</source>
             <translation>Modalità di autorizzazione modificata. Si applica dalla prossima azione; la scheda aperta ha ancora bisogno della tua risposta.</translation>
-        </message>
-        <message>
-            <source>The message could not be sent: the connection to the agent service is down.</source>
-            <translation>Il messaggio non può essere inviato: la connessione al servizio dell'agente è interrotta.</translation>
-        </message>
-        <message>
-            <source>after request {n}</source>
-            <translation>dopo la richiesta {n}</translation>
-        </message>
-        <message>
-            <source>after “{request}”</source>
-            <translation>dopo “{request}”</translation>
-        </message>
-        <message>
-            <source>before request {n}</source>
-            <translation>prima della richiesta {n}</translation>
-        </message>
-        <message>
-            <source>before “{request}”</source>
-            <translation>prima di “{request}”</translation>
-        </message>
-        <message>
-            <source>data put back in {files}</source>
-            <translation>dati ripristinati in {files}</translation>
-        </message>
-        <message>
-            <source>the start of this chat</source>
-            <translation>l'inizio di questa chat</translation>
-        </message>
-        <message>
-            <source>your own changes</source>
-            <translation>ciò che hai fatto tu</translation>
-        </message>
-        <message>
-            <source>{n} layers in the project</source>
-            <translation>{n} layer nel progetto</translation>
-        </message>
-        <message>
-            <source>Back to after “{request}”.</source>
-            <translation>Torna a dopo “{request}”.</translation>
-        </message>
-        <message>
-            <source>Back to before “{request}”.</source>
-            <translation>Torna a prima di “{request}”.</translation>
-        </message>
-        <message>
-            <source>Back to your own changes.</source>
-            <translation>Torna alle tue modifiche.</translation>
-        </message>
-        <message>
-            <source>Forward to after “{request}”.</source>
-            <translation>Avanti a dopo “{request}”.</translation>
-        </message>
-        <message>
-            <source>Forward to before “{request}”.</source>
-            <translation>Avanti a prima di “{request}”.</translation>
-        </message>
-        <message>
-            <source>Forward to your own changes.</source>
-            <translation>Avanti alle tue modifiche.</translation>
-        </message>
-        <message>
-            <source>Put back</source>
-            <translation>Ripristina</translation>
         </message>
         <message>
             <source>Signed in (from {}).</source>
@@ -3908,10 +2715,6 @@ L'eliminazione diventa definitiva al termine del periodo di tolleranza. Fino ad 
         <message>
             <source>Stopped. The run had not changed the project.</source>
             <translation>Interrotta. L'esecuzione non aveva modificato il progetto.</translation>
-        </message>
-        <message>
-            <source>Stopped. The version before this request is no longer kept, so nothing was put back.</source>
-            <translation>Interrotta. La versione precedente a questa richiesta non è più conservata, quindi non è stato ripristinato nulla.</translation>
         </message>
         <message>
             <source>This file is no longer where the run wrote it.</source>
@@ -3934,38 +2737,6 @@ L'eliminazione diventa definitiva al termine del periodo di tolleranza. Fino ad 
             <translation>Non è stato possibile copiare {layer} prima di salvare le sue modifiche in sospeso, quindi non è stato ripristinato nulla. Salva o scarta le modifiche in QGIS, poi riprova.</translation>
         </message>
         <message>
-            <source>request {n}</source>
-            <translation>richiesta {n}</translation>
-        </message>
-        <message>
-            <source>{names} and {n} more</source>
-            <translation>{names} e altri {n}</translation>
-        </message>
-        <message>
-            <source>{names} didn't come back ({reason}).</source>
-            <translation>Ripristino non riuscito per {names} ({reason}).</translation>
-        </message>
-        <message>
-            <source>{names} didn't come back.</source>
-            <translation>Ripristino non riuscito per {names}.</translation>
-        </message>
-        <message>
-            <source>Brought back everything up to “{request}”.</source>
-            <translation>Ripristinato tutto fino a “{request}”.</translation>
-        </message>
-        <message>
-            <source>Brought back what “{request}” changed.</source>
-            <translation>Ripristinato ciò che “{request}” ha modificato.</translation>
-        </message>
-        <message>
-            <source>Moved 1 layer into {group}</source>
-            <translation>1 layer spostato in {group}</translation>
-        </message>
-        <message>
-            <source>Moved {n} layers into {group}</source>
-            <translation>{n} layer spostati in {group}</translation>
-        </message>
-        <message>
             <source>No internet connection. Retrying.</source>
             <translation>Nessuna connessione a internet. Nuovo tentativo in corso.</translation>
         </message>
@@ -3984,14 +2755,6 @@ L'eliminazione diventa definitiva al termine del periodo di tolleranza. Fino ad 
         <message>
             <source>Redo</source>
             <translation>Ripeti</translation>
-        </message>
-        <message>
-            <source>Removed what came after “{request}”.</source>
-            <translation>Rimosso ciò che è venuto dopo “{request}”.</translation>
-        </message>
-        <message>
-            <source>Removed what “{request}” changed.</source>
-            <translation>Rimosso ciò che “{request}” ha modificato.</translation>
         </message>
         <message>
             <source>Stopped. The version before this request is no longer kept, so nothing was undone.</source>
@@ -4094,10 +2857,6 @@ L'eliminazione diventa definitiva al termine del periodo di tolleranza. Fino ad 
             <translation>un livello temporaneo</translation>
         </message>
         <message>
-            <source>Not handled, the AI agent is offline: {0}</source>
-            <translation>Non gestito, l'AI Agent è offline: {0}</translation>
-        </message>
-        <message>
             <source>Nothing is kept about this project yet.</source>
             <translation>Per ora non è salvato nulla su questo progetto.</translation>
         </message>
@@ -4108,14 +2867,6 @@ L'eliminazione diventa definitiva al termine del periodo di tolleranza. Fino ad 
         <message>
             <source>Project memory cleared.</source>
             <translation>Memoria del progetto cancellata.</translation>
-        </message>
-        <message>
-            <source>Watched folder: not handled, no answer from the server: {0}</source>
-            <translation>Cartella monitorata: non gestito, nessuna risposta dal server: {0}</translation>
-        </message>
-        <message>
-            <source>Watched folder: not handled, the AI agent is offline: {0}</source>
-            <translation>Cartella monitorata: non gestito, l'AI Agent è offline: {0}</translation>
         </message>
         <message>
             <source>Clear what the AI agent remembers about this project?</source>
@@ -4129,6 +2880,30 @@ L'eliminazione diventa definitiva al termine del periodo di tolleranza. Fino ad 
             <source>The AI agent is not connected. Try again in a moment.</source>
             <translation>L'agente AI non è connesso. Riprova tra un attimo.</translation>
         </message>
+        <message>
+            <source>Nothing was changed: the file of {layer} is read-only. Make it writable, then go back again.</source>
+            <translation>Non è stato modificato nulla: il file di {layer} è in sola lettura. Rendilo scrivibile, poi torna indietro di nuovo.</translation>
+        </message>
+        <message>
+            <source>Nothing was changed: {layer} is in use by another program. Close it there, then go back again.</source>
+            <translation>Non è stato modificato nulla: {layer} è in uso da un altro programma. Chiudilo lì, poi torna indietro di nuovo.</translation>
+        </message>
+        <message>
+            <source>Nothing was changed: {layer} is open in {program}. Close it there, then go back again.</source>
+            <translation>Non è stato modificato nulla: {layer} è aperto in {program}. Chiudilo lì, poi torna indietro di nuovo.</translation>
+        </message>
+        <message>
+            <source>QGIS closed while going back to an earlier step: some files are at that step and others are not. Open Map history and go back to that step again to finish. It may list those files as your own changes: they are the unfinished step.</source>
+            <translation>QGIS si è chiuso mentre tornavi a un passaggio precedente: alcuni file sono a quel passaggio e altri no. Apri la Cronologia della mappa e torna di nuovo a quel passaggio per finire. Potrebbe elencare quei file come tue modifiche: sono il passaggio incompleto.</translation>
+        </message>
+        <message>
+            <source>{n} more files are in the same case.</source>
+            <translation>Altri {n} file sono nello stesso caso.</translation>
+        </message>
+        <message>
+            <source>Stopped: AI Agent was updated or turned off during this run.</source>
+            <translation>Interrotto: AI Agent è stato aggiornato o disattivato durante questa esecuzione.</translation>
+        </message>
     </context>
     <context>
         <name>AgentSession</name>
@@ -4139,18 +2914,8 @@ L'eliminazione diventa definitiva al termine del periodo di tolleranza. Fino ad 
         </message>
         <message>
             <location filename="src/core/session.py" />
-            <source>The agent service is unavailable right now (HTTP {code}).</source>
-            <translation>Il servizio dell'agente non è disponibile al momento (HTTP {code}).</translation>
-        </message>
-        <message>
-            <location filename="src/core/session.py" />
             <source>The proxy asks for a login. Set the proxy user and password in QGIS (Settings &gt; Options &gt; Network).</source>
             <translation>Il proxy richiede l'autenticazione. Imposta l'utente e la password del proxy in QGIS (Impostazioni &gt; Opzioni &gt; Rete).</translation>
-        </message>
-        <message>
-            <location filename="src/core/session.py" />
-            <source>The proxy refused the connection to the agent service.</source>
-            <translation>Il proxy ha rifiutato la connessione al servizio dell'agente.</translation>
         </message>
         <message>
             <location filename="src/core/session.py" />
@@ -4196,10 +2961,6 @@ L'eliminazione diventa definitiva al termine del periodo di tolleranza. Fino ad 
             <translation>Questa versione di AI Agent non è più supportata. Aggiorna il plugin per continuare.</translation>
         </message>
         <message>
-            <source>TerraLab's server is not answering. Retrying.</source>
-            <translation>Il server di TerraLab non risponde. Nuovo tentativo.</translation>
-        </message>
-        <message>
             <source>Can't reach TerraLab. Retrying.</source>
             <translation>Impossibile raggiungere TerraLab. Nuovo tentativo in corso.</translation>
         </message>
@@ -4222,11 +2983,6 @@ L'eliminazione diventa definitiva al termine del periodo di tolleranza. Fino ad 
     </context>
     <context>
         <name>AttachPopover</name>
-        <message>
-            <location filename="src/ui/attach_menu.py" />
-            <source>Add photos &amp; files</source>
-            <translation>Aggiungi foto e file</translation>
-        </message>
         <message>
             <location filename="src/ui/attach_menu.py" />
             <source>Attach a layer of this project</source>
@@ -4264,10 +3020,6 @@ L'eliminazione diventa definitiva al termine del periodo di tolleranza. Fino ad 
         <message>
             <source>File</source>
             <translation>File</translation>
-        </message>
-        <message>
-            <source>Files and photos</source>
-            <translation>File e foto</translation>
         </message>
         <message>
             <source>Image</source>
@@ -4323,19 +3075,9 @@ L'eliminazione diventa definitiva al termine del periodo di tolleranza. Fino ad 
             <translation>Conversazione compattata</translation>
         </message>
         <message>
-            <location filename="src/ui/chat_panel_layout.py" />
-            <source>The agent keeps a summary of the earlier exchanges. Your messages stay visible.</source>
-            <translation>L'agente conserva un riepilogo degli scambi precedenti. I tuoi messaggi restano visibili.</translation>
-        </message>
-        <message>
             <location filename="src/ui/chat_panel.py" />
             <source>More tasks next month</source>
             <translation>Più attività il mese prossimo</translation>
-        </message>
-        <message>
-            <location filename="src/ui/chat_panel.py" />
-            <source>Noted for later: {0}. You can remove it in Settings &gt; Memory.</source>
-            <translation>Annotato per dopo: {0}. Puoi rimuoverlo in Impostazioni &gt; Memoria.</translation>
         </message>
         <message>
             <location filename="src/ui/chat_panel.py" />
@@ -4353,28 +3095,8 @@ L'eliminazione diventa definitiva al termine del periodo di tolleranza. Fino ad 
             <translation>Sto pensando...</translation>
         </message>
         <message>
-            <location filename="src/ui/chat_panel.py" />
-            <source>Upgrade to Pro to keep going</source>
-            <translation>Passa a Pro per continuare</translation>
-        </message>
-        <message>
-            <location filename="src/ui/chat_panel.py" />
-            <source>Waiting for your answer...</source>
-            <translation>In attesa della tua risposta...</translation>
-        </message>
-        <message>
-            <location filename="src/ui/chat_panel_runs.py" />
-            <source>%n runs left</source>
-            <translation>%n esecuzioni rimaste</translation>
-        </message>
-        <message>
-            <location filename="src/ui/chat_panel_runs.py" />
-            <source>1 run left</source>
-            <translation>1 esecuzione rimasta</translation>
-        </message>
-        <message>
             <location filename="src/ui/chat_panel_layout.py" />
-            <source>Add a few words: what should the agent do with it?</source>
+            <source>Add a few words: what should the AI agent do with it?</source>
             <translation>Aggiungi qualche parola: cosa deve farne l'agente?</translation>
         </message>
         <message>
@@ -4383,20 +3105,8 @@ L'eliminazione diventa definitiva al termine del periodo di tolleranza. Fino ad 
             <translation>Continua a lavorare con Pro</translation>
         </message>
         <message>
-            <source>%n steps</source>
-            <translation>%n passaggi</translation>
-        </message>
-        <message>
-            <source>1 step</source>
-            <translation>1 passaggio</translation>
-        </message>
-        <message>
             <source>Nothing could be added from that drop.</source>
             <translation>Non è stato possibile aggiungere nulla da quel trascinamento.</translation>
-        </message>
-        <message>
-            <source>Redo: forward to {point}</source>
-            <translation>Rifai: avanti fino a {point}</translation>
         </message>
         <message>
             <source>Stopped</source>
@@ -4407,38 +3117,6 @@ L'eliminazione diventa definitiva al termine del periodo di tolleranza. Fino ad 
             <translation>Non è stato possibile inviare il messaggio. È ancora qui: riprova.</translation>
         </message>
         <message>
-            <source>Undo: back to {point}</source>
-            <translation>Annulla: torna a {point}</translation>
-        </message>
-        <message>
-            <source>Waiting for your approval: Allow or Deny below.</source>
-            <translation>In attesa della tua approvazione: Consenti o Nega qui sotto.</translation>
-        </message>
-        <message>
-            <source>%n actions</source>
-            <translation>%n azioni</translation>
-        </message>
-        <message>
-            <source>1 action</source>
-            <translation>1 azione</translation>
-        </message>
-        <message>
-            <source>Back to before this request</source>
-            <translation>Torna a prima di questa richiesta</translation>
-        </message>
-        <message>
-            <source>Back to before “{request}”</source>
-            <translation>Torna a prima di “{request}”</translation>
-        </message>
-        <message>
-            <source>Forward to after this request</source>
-            <translation>Avanti a dopo questa richiesta</translation>
-        </message>
-        <message>
-            <source>Forward to after “{request}”</source>
-            <translation>Avanti a dopo “{request}”</translation>
-        </message>
-        <message>
             <source>Waiting for your approval</source>
             <translation>In attesa della tua approvazione</translation>
         </message>
@@ -4447,16 +3125,8 @@ L'eliminazione diventa definitiva al termine del periodo di tolleranza. Fino ad 
             <translation>Aggiunto alla memoria: {0}</translation>
         </message>
         <message>
-            <source>Editing your last message.</source>
-            <translation>Stai modificando il tuo ultimo messaggio.</translation>
-        </message>
-        <message>
             <source>Not answered</source>
             <translation>Senza risposta</translation>
-        </message>
-        <message>
-            <source>Not connected to the agent service. The message stays queued.</source>
-            <translation>Nessuna connessione al servizio dell'agente. Il messaggio resta in coda.</translation>
         </message>
         <message>
             <source>Paused · nothing is sent until you choose</source>
@@ -4471,19 +3141,15 @@ L'eliminazione diventa definitiva al termine del periodo di tolleranza. Fino ad 
             <translation>Invia questo messaggio ora</translation>
         </message>
         <message>
-            <source>The agent now reads the earlier exchanges as a shorter record that keeps your requests and what it made.</source>
+            <source>The AI agent now reads the earlier exchanges as a shorter record that keeps your requests and what it made.</source>
             <translation>L'agente ora legge gli scambi precedenti come un riepilogo più breve che conserva le tue richieste e ciò che ha realizzato.</translation>
         </message>
         <message>
-            <source>Undo what this message did</source>
-            <translation>Annulla gli effetti del messaggio</translation>
-        </message>
-        <message>
-            <source>{lead} · sent when the agent finishes</source>
+            <source>{lead} · sent when the AI agent finishes</source>
             <translation>{lead} · l'invio parte quando l'agente finisce</translation>
         </message>
         <message>
-            <source>{lead} · the agent reads it at its next step</source>
+            <source>{lead} · the AI agent reads it at its next step</source>
             <translation>{lead} · l'agente lo legge al suo prossimo passaggio</translation>
         </message>
         <message>
@@ -4491,24 +3157,12 @@ L'eliminazione diventa definitiva al termine del periodo di tolleranza. Fino ad 
             <translation>{n} in coda</translation>
         </message>
         <message>
-            <source>Bring back what this request changed</source>
-            <translation>Ripristina ciò che questa richiesta ha modificato</translation>
-        </message>
-        <message>
             <source>Not connected to TerraLab. The message stays queued.</source>
             <translation>Non connesso a TerraLab. Il messaggio resta in coda.</translation>
         </message>
         <message>
-            <source>Remove what this request changed on the map</source>
-            <translation>Rimuovi dalla mappa ciò che questa richiesta ha modificato</translation>
-        </message>
-        <message>
             <source>Waiting for your answer</source>
             <translation>In attesa della tua risposta</translation>
-        </message>
-        <message>
-            <source>1 layer couldn't be restored</source>
-            <translation>1 layer non è stato ripristinato</translation>
         </message>
         <message>
             <source>Back to the oldest version still kept.</source>
@@ -4517,14 +3171,6 @@ L'eliminazione diventa definitiva al termine del periodo di tolleranza. Fino ad 
         <message>
             <source>Back to the project as this chat found it.</source>
             <translation>Torna al progetto come l'ha trovato questa chat.</translation>
-        </message>
-        <message>
-            <source>Brings back: {layers}</source>
-            <translation>Ripristina: {layers}</translation>
-        </message>
-        <message>
-            <source>Brings this request's changes back</source>
-            <translation>Ripristina le modifiche di questa richiesta</translation>
         </message>
         <message>
             <source>Changes restored</source>
@@ -4545,14 +3191,6 @@ L'eliminazione diventa definitiva al termine del periodo di tolleranza. Fino ad 
         <message>
             <source>Redo</source>
             <translation>Ripeti</translation>
-        </message>
-        <message>
-            <source>Removes this request's changes from the map</source>
-            <translation>Rimuove dalla mappa le modifiche di questa richiesta</translation>
-        </message>
-        <message>
-            <source>Removes: {layers}</source>
-            <translation>Rimuove: {layers}</translation>
         </message>
         <message>
             <source>Restored to here</source>
@@ -4662,6 +3300,10 @@ L'eliminazione diventa definitiva al termine del periodo di tolleranza. Fino ad 
             <source>Task ended</source>
             <translation>Attività terminata</translation>
         </message>
+        <message>
+            <source>Removed from the queue</source>
+            <translation>Rimosso dalla coda</translation>
+        </message>
     </context>
     <context>
         <name>ChatSidebar</name>
@@ -4711,16 +3353,6 @@ L'eliminazione diventa definitiva al termine del periodo di tolleranza. Fino ad 
             <translation>Chat senza titolo</translation>
         </message>
         <message>
-            <location filename="src/ui/sidebar.py" />
-            <source>Upgrade</source>
-            <translation>Passa a Pro</translation>
-        </message>
-        <message>
-            <location filename="src/ui/sidebar.py" />
-            <source>Do more with Pro</source>
-            <translation>Fai di più con Pro</translation>
-        </message>
-        <message>
             <source>Get Pro</source>
             <translation>Passa a Pro</translation>
         </message>
@@ -4728,53 +3360,8 @@ L'eliminazione diventa definitiva al termine del periodo di tolleranza. Fino ad 
     <context>
         <name>CheckpointSheet</name>
         <message>
-            <location filename="src/ui/checkpoint_sheet.py" />
-            <source>Back to the project as it was before the first run</source>
-            <translation>Torna al progetto com'era prima della prima esecuzione</translation>
-        </message>
-        <message>
-            <source>Discard everything from this chat</source>
-            <translation>Scarta tutto da questa chat</translation>
-        </message>
-        <message>
-            <source>Back to the oldest state still kept</source>
-            <translation>Torna allo stato più vecchio ancora conservato</translation>
-        </message>
-        <message>
-            <source>Go back in this chat</source>
-            <translation>Torna indietro in questa chat</translation>
-        </message>
-        <message>
-            <source>Nothing is deleted. You can always come back.</source>
-            <translation>Nulla viene eliminato. Puoi sempre tornare indietro.</translation>
-        </message>
-        <message>
-            <source>Back to the project as it was before the first request</source>
-            <translation>Torna al progetto com'era prima della prima richiesta</translation>
-        </message>
-        <message>
-            <source>Back to the oldest version still kept</source>
-            <translation>Torna alla versione più vecchia ancora conservata</translation>
-        </message>
-        <message>
-            <source>Going back never deletes anything.</source>
-            <translation>Tornare indietro non elimina mai nulla.</translation>
-        </message>
-        <message>
-            <source>In a closed project</source>
-            <translation>In un progetto chiuso</translation>
-        </message>
-        <message>
-            <source>In {project}</source>
-            <translation>In {project}</translation>
-        </message>
-        <message>
             <source>No longer kept</source>
             <translation>Non più conservata</translation>
-        </message>
-        <message>
-            <source>Put back</source>
-            <translation>Ripristina</translation>
         </message>
         <message>
             <source>Request {n}</source>
@@ -4785,44 +3372,8 @@ L'eliminazione diventa definitiva al termine del periodo di tolleranza. Fino ad 
             <translation>Torna qui</translation>
         </message>
         <message>
-            <source>Stop and go back to before this request</source>
-            <translation>Interrompi e torna a prima di questa richiesta</translation>
-        </message>
-        <message>
-            <source>Stop and go back to before “{request}”</source>
-            <translation>Interrompi e torna a prima di “{request}”</translation>
-        </message>
-        <message>
-            <source>Stops the run, then puts the project back as it was before this request.</source>
-            <translation>Interrompe l'esecuzione, poi ripristina il progetto com'era prima di questa richiesta.</translation>
-        </message>
-        <message>
             <source>Undo</source>
             <translation>Annulla</translation>
-        </message>
-        <message>
-            <source>Undo everything in this chat</source>
-            <translation>Annulla tutto in questa chat</translation>
-        </message>
-        <message>
-            <source>Versions of this project</source>
-            <translation>Versioni di questo progetto</translation>
-        </message>
-        <message>
-            <source>Your own changes</source>
-            <translation>Le tue modifiche</translation>
-        </message>
-        <message>
-            <source>Also undoes 1 later request</source>
-            <translation>Annulla anche 1 richiesta successiva</translation>
-        </message>
-        <message>
-            <source>Also undoes {n} later requests</source>
-            <translation>Annulla anche {n} richieste successive</translation>
-        </message>
-        <message>
-            <source>Go back here</source>
-            <translation>Torna qui</translation>
         </message>
         <message>
             <source>Redo</source>
@@ -4882,16 +3433,6 @@ L'eliminazione diventa definitiva al termine del periodo di tolleranza. Fino ad 
             <translation>Copia</translation>
         </message>
         <message>
-            <location filename="src/ui/code_block.py" />
-            <source>No changes</source>
-            <translation>Nessuna modifica</translation>
-        </message>
-        <message>
-            <location filename="src/ui/code_block.py" />
-            <source>changes</source>
-            <translation>modifiche</translation>
-        </message>
-        <message>
             <source>Collapse</source>
             <translation>Comprimi</translation>
         </message>
@@ -4909,16 +3450,6 @@ L'eliminazione diventa definitiva al termine del periodo di tolleranza. Fino ad 
         </message>
         <message>
             <location filename="src/ui/composer.py" />
-            <source>Add files or photos</source>
-            <translation>Aggiungi file o foto</translation>
-        </message>
-        <message>
-            <location filename="src/ui/composer.py" />
-            <source>Add photos, files or one of this project's layers. A layer can also be dragged from the Layers panel; Ctrl+V pastes a picture.</source>
-            <translation>Aggiungi foto, file o uno dei layer di questo progetto. Un layer può anche essere trascinato dal pannello Layer; Ctrl+V incolla un'immagine.</translation>
-        </message>
-        <message>
-            <location filename="src/ui/composer.py" />
             <source>Give the AI agent a task in QGIS...</source>
             <translation>Assegna un'attività all'agente AI in QGIS...</translation>
         </message>
@@ -4926,11 +3457,6 @@ L'eliminazione diventa definitiva al termine del periodo di tolleranza. Fino ad 
             <location filename="src/ui/composer.py" />
             <source>No image in the clipboard.</source>
             <translation>Nessuna immagine negli appunti.</translation>
-        </message>
-        <message>
-            <location filename="src/ui/composer.py" />
-            <source>Offline. Reconnecting...</source>
-            <translation>Offline. Riconnessione...</translation>
         </message>
         <message>
             <location filename="src/ui/composer.py" />
@@ -4958,16 +3484,6 @@ L'eliminazione diventa definitiva al termine del periodo di tolleranza. Fino ad 
             <translation>Non sembra ancora un'attività. Spiega in una frase cosa vuoi.</translation>
         </message>
         <message>
-            <location filename="src/ui/composer.py" />
-            <source>This effort comes with Pro. See the plans.</source>
-            <translation>Questo livello di impegno è incluso in Pro. Vedi i piani.</translation>
-        </message>
-        <message>
-            <location filename="src/ui/composer.py" />
-            <source>Upgrade to Pro</source>
-            <translation>Passa a Pro</translation>
-        </message>
-        <message>
             <source>You can attach up to {n} items.</source>
             <translation>Puoi aggiungere fino a {n} allegati.</translation>
         </message>
@@ -4988,21 +3504,8 @@ L'eliminazione diventa definitiva al termine del periodo di tolleranza. Fino ad 
             <translation>non è stato possibile leggere: {names}</translation>
         </message>
         <message>
-            <source>not a supported file: {names}</source>
-            <translation>file non supportato: {names}</translation>
-        </message>
-        <message>
             <source>{n} left out, {total} at most</source>
             <translation>esclusi: {n}, massimo {total}</translation>
-        </message>
-        <message>
-            <source>{level} effort needs Pro. Pick Low, or upgrade.</source>
-            <translation>L'impegno {level} richiede Pro. Scegli Low oppure esegui l'upgrade.</translation>
-        </message>
-        <message>
-            <location filename="src/ui/composer.py" />
-            <source>Not connected to the agent service. Reconnecting now, your message is kept.</source>
-            <translation>Non connesso al servizio agente. Riconnessione in corso, il tuo messaggio viene conservato.</translation>
         </message>
         <message>
             <location filename="src/ui/composer.py" />
@@ -5044,40 +3547,8 @@ L'eliminazione diventa definitiva al termine del periodo di tolleranza. Fino ad 
             <translation>La connessione è tornata. Il tuo messaggio è stato inviato.</translation>
         </message>
         <message>
-            <source>Not connected to the agent service. Press to try again now; your message is kept.</source>
-            <translation>Non connesso al servizio dell'agente. Premi per riprovare ora; il tuo messaggio è conservato.</translation>
-        </message>
-        <message>
-            <source>Not connected to the agent service. Reconnecting now.</source>
-            <translation>Non connesso al servizio dell'agente. Riconnessione in corso.</translation>
-        </message>
-        <message>
-            <source>Not connected to the agent service. Reconnecting; type, it will be sent.</source>
-            <translation>Non connesso al servizio dell'agente. Riconnessione in corso; scrivi, verrà inviato.</translation>
-        </message>
-        <message>
-            <source>Not connected to the agent service. Your message stays here and goes out as soon as the connection is back.</source>
-            <translation>Non connesso al servizio dell'agente. Il tuo messaggio resta qui e verrà inviato appena la connessione torna attiva.</translation>
-        </message>
-        <message>
-            <source>Reconnecting to the agent service. Press to try again now; your message is kept.</source>
-            <translation>Riconnessione al servizio dell'agente in corso. Premi per riprovare ora; il tuo messaggio è conservato.</translation>
-        </message>
-        <message>
-            <source>Reconnecting to the agent service. Type, it will be sent.</source>
-            <translation>Riconnessione al servizio dell'agente in corso. Scrivi, verrà inviato.</translation>
-        </message>
-        <message>
-            <source>Reconnecting to the agent service. Your message stays here and goes out as soon as the connection is back.</source>
-            <translation>Riconnessione al servizio dell'agente in corso. Il tuo messaggio resta qui e verrà inviato appena la connessione torna attiva.</translation>
-        </message>
-        <message>
             <source>Retry the connection</source>
             <translation>Riprova la connessione</translation>
-        </message>
-        <message>
-            <source>Add photos &amp; files</source>
-            <translation>Aggiungi foto e file</translation>
         </message>
         <message>
             <source>a folder cannot be added, drop its files: {names}</source>
@@ -5092,7 +3563,7 @@ L'eliminazione diventa definitiva al termine del periodo di tolleranza. Fino ad 
             <translation>Accoda</translation>
         </message>
         <message>
-            <source>Queue it: the agent reads it at its next step (Enter)</source>
+            <source>Queue it: the AI agent reads it at its next step (Enter)</source>
             <translation>Mettilo in coda: l'agente lo legge al suo prossimo passaggio (Invio)</translation>
         </message>
         <message>
@@ -5140,11 +3611,6 @@ L'eliminazione diventa definitiva al termine del periodo di tolleranza. Fino ad 
         <name>ComposerInput</name>
         <message>
             <location filename="src/ui/composer_input.py" />
-            <source>Connectors</source>
-            <translation>Connettori</translation>
-        </message>
-        <message>
-            <location filename="src/ui/composer_input.py" />
             <source>QGIS plugins</source>
             <translation>Plugin QGIS</translation>
         </message>
@@ -5165,82 +3631,9 @@ L'eliminazione diventa definitiva al termine del periodo di tolleranza. Fino ad 
             <translation>Licenza e termini</translation>
         </message>
         <message>
-            <source>Open {host} in your browser</source>
-            <translation>Apri {host} nel browser</translation>
-        </message>
-        <message>
-            <source>Show more</source>
-            <translation>Mostra altro</translation>
-        </message>
-        <message>
-            <location filename="src/ui/connector_page.py" />
-            <source>%n commands the agent can run</source>
-            <translation>%n comandi che l'agente può eseguire</translation>
-        </message>
-        <message>
-            <location filename="src/ui/connector_page.py" />
-            <source>%n ready sources</source>
-            <translation>%n fonti pronte</translation>
-        </message>
-        <message>
-            <location filename="src/ui/connector_page.py" />
-            <source>1 command the agent can run</source>
-            <translation>1 comando che l'agente può eseguire</translation>
-        </message>
-        <message>
-            <location filename="src/ui/connector_page.py" />
-            <source>1 ready source</source>
-            <translation>1 sorgente pronta</translation>
-        </message>
-        <message>
             <location filename="src/ui/connector_page.py" />
             <source>Attribution</source>
             <translation>Attribuzione</translation>
-        </message>
-        <message>
-            <location filename="src/ui/connector_page.py" />
-            <source>Author</source>
-            <translation>Autore</translation>
-        </message>
-        <message>
-            <location filename="src/ui/connector_page.py" />
-            <source>Basemaps</source>
-            <translation>Mappe di base</translation>
-        </message>
-        <message>
-            <location filename="src/ui/connector_page.py" />
-            <source>Biodiversity</source>
-            <translation>Biodiversità</translation>
-        </message>
-        <message>
-            <location filename="src/ui/connector_page.py" />
-            <source>Boundaries</source>
-            <translation>Confini</translation>
-        </message>
-        <message>
-            <location filename="src/ui/connector_page.py" />
-            <source>Buildings</source>
-            <translation>Edifici</translation>
-        </message>
-        <message>
-            <location filename="src/ui/connector_page.py" />
-            <source>Cadastre</source>
-            <translation>Catasto</translation>
-        </message>
-        <message>
-            <location filename="src/ui/connector_page.py" />
-            <source>Category</source>
-            <translation>Categoria</translation>
-        </message>
-        <message>
-            <location filename="src/ui/connector_page.py" />
-            <source>Climate</source>
-            <translation>Clima</translation>
-        </message>
-        <message>
-            <location filename="src/ui/connector_page.py" />
-            <source>Connectors</source>
-            <translation>Connettori</translation>
         </message>
         <message>
             <location filename="src/ui/connector_page.py" />
@@ -5249,38 +3642,8 @@ L'eliminazione diventa definitiva al termine del periodo di tolleranza. Fino ad 
         </message>
         <message>
             <location filename="src/ui/connector_page.py" />
-            <source>Elevation</source>
-            <translation>Elevazione</translation>
-        </message>
-        <message>
-            <location filename="src/ui/connector_page.py" />
-            <source>Enable</source>
-            <translation>Abilita</translation>
-        </message>
-        <message>
-            <location filename="src/ui/connector_page.py" />
-            <source>Extracts</source>
-            <translation>Estratti</translation>
-        </message>
-        <message>
-            <location filename="src/ui/connector_page.py" />
-            <source>Folder</source>
-            <translation>Cartella</translation>
-        </message>
-        <message>
-            <location filename="src/ui/connector_page.py" />
             <source>Good to know</source>
             <translation>Da sapere</translation>
-        </message>
-        <message>
-            <location filename="src/ui/connector_page.py" />
-            <source>Hazards</source>
-            <translation>Pericoli</translation>
-        </message>
-        <message>
-            <location filename="src/ui/connector_page.py" />
-            <source>Imagery</source>
-            <translation>Immagini</translation>
         </message>
         <message>
             <location filename="src/ui/connector_page.py" />
@@ -5294,28 +3657,8 @@ L'eliminazione diventa definitiva al termine del periodo di tolleranza. Fino ad 
         </message>
         <message>
             <location filename="src/ui/connector_page.py" />
-            <source>Installed but switched off in the QGIS plugin manager</source>
-            <translation>Installato ma disattivato nel gestore plugin di QGIS</translation>
-        </message>
-        <message>
-            <location filename="src/ui/connector_page.py" />
-            <source>Land cover</source>
-            <translation>Copertura del suolo</translation>
-        </message>
-        <message>
-            <location filename="src/ui/connector_page.py" />
             <source>Licence</source>
             <translation>Licenza</translation>
-        </message>
-        <message>
-            <location filename="src/ui/connector_page.py" />
-            <source>No menu commands. The agent reads it but cannot drive it.</source>
-            <translation>Nessun comando di menu. L'agente lo legge ma non può utilizzarlo.</translation>
-        </message>
-        <message>
-            <location filename="src/ui/connector_page.py" />
-            <source>Not installed on this machine</source>
-            <translation>Non installato su questo computer</translation>
         </message>
         <message>
             <location filename="src/ui/connector_page.py" />
@@ -5324,53 +3667,8 @@ L'eliminazione diventa definitiva al termine del periodo di tolleranza. Fino ad 
         </message>
         <message>
             <location filename="src/ui/connector_page.py" />
-            <source>Points of interest</source>
-            <translation>Punti di interesse</translation>
-        </message>
-        <message>
-            <location filename="src/ui/connector_page.py" />
-            <source>Population</source>
-            <translation>Popolazione</translation>
-        </message>
-        <message>
-            <location filename="src/ui/connector_page.py" />
-            <source>Portals</source>
-            <translation>Portali</translation>
-        </message>
-        <message>
-            <location filename="src/ui/connector_page.py" />
-            <source>Ready sources</source>
-            <translation>Fonti pronte</translation>
-        </message>
-        <message>
-            <location filename="src/ui/connector_page.py" />
-            <source>Skills</source>
-            <translation>Competenze</translation>
-        </message>
-        <message>
-            <location filename="src/ui/connector_page.py" />
-            <source>Status</source>
-            <translation>Stato</translation>
-        </message>
-        <message>
-            <location filename="src/ui/connector_page.py" />
             <source>Terms</source>
             <translation>Termini</translation>
-        </message>
-        <message>
-            <location filename="src/ui/connector_page.py" />
-            <source>Transport</source>
-            <translation>Trasporti</translation>
-        </message>
-        <message>
-            <location filename="src/ui/connector_page.py" />
-            <source>Version</source>
-            <translation>Versione</translation>
-        </message>
-        <message>
-            <location filename="src/ui/connector_page.py" />
-            <source>Water</source>
-            <translation>Acqua</translation>
         </message>
         <message>
             <location filename="src/ui/connector_page.py" />
@@ -5379,18 +3677,8 @@ L'eliminazione diventa definitiva al termine del periodo di tolleranza. Fino ad 
         </message>
         <message>
             <location filename="src/ui/connector_page.py" />
-            <source>What is inside</source>
-            <translation>Cosa contiene</translation>
-        </message>
-        <message>
-            <location filename="src/ui/connector_page.py" />
             <source>What it needs</source>
             <translation>Cosa richiede</translation>
-        </message>
-        <message>
-            <location filename="src/ui/connector_page.py" />
-            <source>What the agent can trigger</source>
-            <translation>Cosa può attivare l'agente</translation>
         </message>
         <message>
             <location filename="src/ui/connector_page.py" />
@@ -5398,38 +3686,8 @@ L'eliminazione diventa definitiva al termine del periodo di tolleranza. Fino ad 
             <translation>Il tuo account presso il fornitore: ti chiederà una chiave.</translation>
         </message>
         <message>
-            <location filename="src/ui/connector_page.py" />
-            <source>and %n more</source>
-            <translation>e altri %n</translation>
-        </message>
-        <message>
-            <location filename="src/ui/connector_page.py" />
-            <source>and 1 more</source>
-            <translation>e 1 altro</translation>
-        </message>
-        <message>
-            <source>%s is not installed on this machine. Install it to send this example.</source>
-            <translation>%s non è installato su questo computer. Installalo per inviare questo esempio.</translation>
-        </message>
-        <message>
-            <source>%s is switched off in the QGIS plugin manager. Enable it to send this example.</source>
-            <translation>%s è disattivato nel gestore plugin di QGIS. Attivalo per inviare questo esempio.</translation>
-        </message>
-        <message>
             <source>Nothing, but it is run by volunteers. Expect it to be slower or stricter about how much you can ask for.</source>
             <translation>Nulla, ma è gestito da volontari. Metti in conto che sia più lento o più restrittivo su quanto puoi richiedere.</translation>
-        </message>
-        <message>
-            <source>%n ready datasets</source>
-            <translation>%n dataset pronti</translation>
-        </message>
-        <message>
-            <source>1 ready dataset</source>
-            <translation>1 dataset pronto</translation>
-        </message>
-        <message>
-            <source>About</source>
-            <translation>Info</translation>
         </message>
         <message>
             <source>Data sources</source>
@@ -5448,20 +3706,8 @@ L'eliminazione diventa definitiva al termine del periodo di tolleranza. Fino ad 
             <translation>Inserisce @{name} nella casella di chat, per una tua domanda.</translation>
         </message>
         <message>
-            <source>Show all %n examples</source>
-            <translation>Mostra tutti i %n esempi</translation>
-        </message>
-        <message>
-            <source>The logo belongs to its owner, who does not endorse AI Agent.</source>
-            <translation>Il logo appartiene al suo proprietario, che non avalla AI Agent.</translation>
-        </message>
-        <message>
             <source>Use in chat</source>
             <translation>Usa nella chat</translation>
-        </message>
-        <message>
-            <source>Fewer details</source>
-            <translation>Meno dettagli</translation>
         </message>
         <message>
             <source>More details</source>
@@ -5490,10 +3736,6 @@ L'eliminazione diventa definitiva al termine del periodo di tolleranza. Fino ad 
         <message>
             <source>Retry</source>
             <translation>Riprova</translation>
-        </message>
-        <message>
-            <source>See all %n examples</source>
-            <translation>Vedi tutti i %n esempi</translation>
         </message>
         <message>
             <source>The datasets could not be loaded.</source>
@@ -5531,62 +3773,14 @@ L'eliminazione diventa definitiva al termine del periodo di tolleranza. Fino ad 
     <context>
         <name>ConnectorsPage</name>
         <message>
-            <source> and {n} ready datasets</source>
-            <translation> e {n} dataset pronti</translation>
-        </message>
-        <message>
-            <source>Nothing to set up: just ask in the chat. The agent reaches these {reach} by itself, free, with no account or key.</source>
-            <translation>Nessuna configurazione: chiedi pure in chat. L'agente raggiunge questi {reach} da solo, gratis, senza account né chiave.</translation>
-        </message>
-        <message>
-            <location filename="src/ui/connectors_page.py" />
-            <source>All</source>
-            <translation>Tutti</translation>
-        </message>
-        <message>
-            <location filename="src/ui/connectors_page.py" />
-            <source>Connectors</source>
-            <translation>Connettori</translation>
-        </message>
-        <message>
             <location filename="src/ui/connectors_page.py" />
             <source>Data sources</source>
             <translation>Sorgenti dati</translation>
         </message>
         <message>
             <location filename="src/ui/connectors_page.py" />
-            <source>Inside QGIS</source>
-            <translation>Dentro QGIS</translation>
-        </message>
-        <message>
-            <location filename="src/ui/connectors_page.py" />
-            <source>Nothing matches that.</source>
-            <translation>Nessuna corrispondenza.</translation>
-        </message>
-        <message>
-            <location filename="src/ui/connectors_page.py" />
-            <source>On</source>
-            <translation>Attivo</translation>
-        </message>
-        <message>
-            <location filename="src/ui/connectors_page.py" />
-            <source>Popular</source>
-            <translation>Popolari</translation>
-        </message>
-        <message>
-            <location filename="src/ui/connectors_page.py" />
             <source>QGIS plugins</source>
             <translation>plugin QGIS</translation>
-        </message>
-        <message>
-            <location filename="src/ui/connectors_page.py" />
-            <source>Search connectors</source>
-            <translation>Cerca connettori</translation>
-        </message>
-        <message>
-            <location filename="src/ui/connectors_page.py" />
-            <source>Show all {total}</source>
-            <translation>Mostra tutti i {total}</translation>
         </message>
         <message>
             <location filename="src/ui/connectors_page.py" />
@@ -5599,68 +3793,13 @@ L'eliminazione diventa definitiva al termine del periodo di tolleranza. Fino ad 
             <translation>L'elenco arriva quando il pannello si connette.</translation>
         </message>
         <message>
-            <source>%n data sources</source>
-            <translation>%n sorgenti dati</translation>
-        </message>
-        <message>
-            <source>%n ready datasets</source>
-            <translation>%n dataset pronti</translation>
-        </message>
-        <message>
-            <source>, {n} ready datasets</source>
-            <translation>, dataset pronti: {n}</translation>
-        </message>
-        <message>
             <source>Install</source>
             <translation>Installa</translation>
-        </message>
-        <message>
-            <source>Not installed on this machine.</source>
-            <translation>Non installato su questo computer.</translation>
-        </message>
-        <message>
-            <source>Switched off in the QGIS plugin manager.</source>
-            <translation>Disattivato nel gestore plugin di QGIS.</translation>
-        </message>
-        <message>
-            <source>Enable</source>
-            <translation>Abilita</translation>
-        </message>
-        <message>
-            <source>No connectors match</source>
-            <translation>Nessun connettore corrisponde</translation>
-        </message>
-        <message>
-            <source>, free with no account or key</source>
-            <translation>, gratis senza account o chiave</translation>
-        </message>
-        <message>
-            <source>No data sources match</source>
-            <translation>Nessuna sorgente dati corrisponde</translation>
-        </message>
-        <message>
-            <source>Search data sources</source>
-            <translation>Cerca sorgenti dati</translation>
-        </message>
-        <message>
-            <location filename="src/ui/library/home.py" />
-            <source>Ask the agent</source>
-            <translation>Chiedi all'agente</translation>
-        </message>
-        <message>
-            <location filename="src/ui/connectors_page.py" />
-            <source>Browse Popular</source>
-            <translation>Sfoglia i più popolari</translation>
         </message>
         <message>
             <location filename="src/ui/library/home.py" />
             <source>Clear search</source>
             <translation>Cancella ricerca</translation>
-        </message>
-        <message>
-            <location filename="src/ui/connectors_page.py" />
-            <source>No data source matches these words. The agent may still find the data.</source>
-            <translation>Nessuna fonte di dati corrisponde a queste parole. L'agente potrebbe comunque trovare i dati.</translation>
         </message>
         <message>
             <source>%n sources</source>
@@ -5687,24 +3826,8 @@ L'eliminazione diventa definitiva al termine del periodo di tolleranza. Fino ad 
             <translation>Fonti</translation>
         </message>
         <message>
-            <source>The library of data the AI agent can use. It finds and loads what it needs by itself.</source>
-            <translation>La libreria di dati che l'assistente AI può usare. Trova e carica da solo ciò che gli serve.</translation>
-        </message>
-        <message>
             <source>Try in chat</source>
             <translation>Prova nella chat</translation>
-        </message>
-        <message>
-            <source>countries</source>
-            <translation>paesi</translation>
-        </message>
-        <message>
-            <source>datasets</source>
-            <translation>dataset</translation>
-        </message>
-        <message>
-            <source>sources</source>
-            <translation>fonti</translation>
         </message>
         <message>
             <source>Search sources, datasets or a country</source>
@@ -5786,15 +3909,6 @@ L'eliminazione diventa definitiva al termine del periodo di tolleranza. Fino ad 
     <context>
         <name>DropOverlay</name>
         <message>
-            <location filename="src/ui/drop_overlay.py" />
-            <source>Drop a layer or a file here</source>
-            <translation>Rilascia qui un layer o un file</translation>
-        </message>
-        <message>
-            <source>Add to the chat</source>
-            <translation>Aggiungi alla chat</translation>
-        </message>
-        <message>
             <source>Drop to add to the chat</source>
             <translation>Rilascia per allegare in chat</translation>
         </message>
@@ -5817,7 +3931,7 @@ L'eliminazione diventa definitiva al termine del periodo di tolleranza. Fino ad 
         </message>
         <message>
             <location filename="src/ui/effort_chip.py" />
-            <source>How hard the agent works on the next message</source>
+            <source>How hard the AI agent works on the next message</source>
             <translation>Quanto si impegna l'agente sul prossimo messaggio</translation>
         </message>
         <message>
@@ -5832,21 +3946,8 @@ L'eliminazione diventa definitiva al termine del periodo di tolleranza. Fino ad 
         </message>
         <message>
             <location filename="src/ui/effort_chip.py" />
-            <source>Upgrade to Pro</source>
-            <translation>Passa a Pro</translation>
-        </message>
-        <message>
-            <source>Pro only: this message runs on Low</source>
-            <translation>Solo Pro: questo messaggio viene eseguito su Low</translation>
-        </message>
-        <message>
-            <location filename="src/ui/effort_chip.py" />
             <source>Unlock with Pro</source>
             <translation>Sblocca con Pro</translation>
-        </message>
-        <message>
-            <source>Effort can be changed after this run ends</source>
-            <translation>Puoi cambiare l'impegno al termine di questa esecuzione</translation>
         </message>
         <message>
             <source>Get Pro</source>
@@ -5883,11 +3984,6 @@ L'eliminazione diventa definitiva al termine del periodo di tolleranza. Fino ad 
         <name>EmptyState</name>
         <message>
             <location filename="src/ui/empty_state.py" />
-            <source>Got it</source>
-            <translation>Capito</translation>
-        </message>
-        <message>
-            <location filename="src/ui/empty_state.py" />
             <source>What are we working on?</source>
             <translation>A cosa stiamo lavorando?</translation>
         </message>
@@ -5902,30 +3998,6 @@ L'eliminazione diventa definitiva al termine del periodo di tolleranza. Fino ad 
         <message>
             <source>AI can make mistakes. Check its changes.</source>
             <translation>L'IA può commettere errori. Controlla le sue modifiche.</translation>
-        </message>
-        <message>
-            <source>Asks before it acts.</source>
-            <translation>Chiede prima di agire.</translation>
-        </message>
-        <message>
-            <source>Deleting, overwriting or spending. One click undoes a run.</source>
-            <translation>Elimina, sovrascrive o spende. Un clic annulla un'esecuzione.</translation>
-        </message>
-        <message>
-            <source>Does the work.</source>
-            <translation>Fa il lavoro.</translation>
-        </message>
-        <message>
-            <source>Knows your project.</source>
-            <translation>Conosce il tuo progetto.</translation>
-        </message>
-        <message>
-            <source>Layers, fields, CRS, selection, view.</source>
-            <translation>Layer, campi, CRS, selezione, vista.</translation>
-        </message>
-        <message>
-            <source>Loads data, styles layers, runs analyses, builds maps.</source>
-            <translation>Carica dati, applica stili ai layer, esegue analisi, crea mappe.</translation>
         </message>
         <message>
             <source>Data</source>
@@ -6018,11 +4090,6 @@ L'eliminazione diventa definitiva al termine del periodo di tolleranza. Fino ad 
             <translation>Impostazioni</translation>
         </message>
         <message>
-            <location filename="src/ui/header.py" />
-            <source>Undo the agent's changes: back to an earlier state of this project</source>
-            <translation>Annulla le modifiche dell'agente: torna a uno stato precedente di questo progetto</translation>
-        </message>
-        <message>
             <source>Get Pro</source>
             <translation>Passa a Pro</translation>
         </message>
@@ -6033,10 +4100,6 @@ L'eliminazione diventa definitiva al termine del periodo di tolleranza. Fino ad 
         <message>
             <source>by TerraLab</source>
             <translation>di TerraLab</translation>
-        </message>
-        <message>
-            <source>Go back to an earlier version ({key})</source>
-            <translation>Torna a una versione precedente ({key})</translation>
         </message>
         <message>
             <source>Settings ({email})</source>
@@ -6248,14 +4311,6 @@ Fai clic per aprirne la pagina.</translation>
             <translation>I tutorial arrivano quando il pannello si connette.</translation>
         </message>
         <message>
-            <source>Tutorials</source>
-            <translation>Tutorial</translation>
-        </message>
-        <message>
-            <source>Videos and guides to get started. They open in your browser.</source>
-            <translation>Video e guide per iniziare. Si aprono nel browser.</translation>
-        </message>
-        <message>
             <source>Learn</source>
             <translation>Impara</translation>
         </message>
@@ -6337,11 +4392,6 @@ Fai clic per aprirne la pagina.</translation>
         </message>
         <message>
             <location filename="src/api/pairing_poll_task.py" />
-            <source>No connection to the sign-in service. Check your internet connection, then click Sign in to try again.</source>
-            <translation>Nessuna connessione al servizio di accesso. Controlla la tua connessione internet, poi fai clic su Accedi per riprovare.</translation>
-        </message>
-        <message>
-            <location filename="src/api/pairing_poll_task.py" />
             <source>Sign-in failed unexpectedly. Click Sign in to try again.</source>
             <translation>Accesso non riuscito per un errore imprevisto. Fai clic su Accedi per riprovare.</translation>
         </message>
@@ -6367,14 +4417,6 @@ Fai clic per aprirne la pagina.</translation>
     </context>
     <context>
         <name>PermissionCard</name>
-        <message>
-            <source>This data comes from a site outside the sources the agent knows.</source>
-            <translation>Questi dati arrivano da un sito fuori dalle fonti che l'agente conosce.</translation>
-        </message>
-        <message>
-            <source>This data comes from sites outside the sources the agent knows.</source>
-            <translation>Questi dati arrivano da siti fuori dalle fonti che l'agente conosce.</translation>
-        </message>
         <message>
             <location filename="src/ui/cards_run.py" />
             <source>Allow</source>
@@ -6420,10 +4462,6 @@ Fai clic per aprirne la pagina.</translation>
             <translation>Consentito</translation>
         </message>
         <message>
-            <source>Allowed for this project</source>
-            <translation>Consentito per questo progetto</translation>
-        </message>
-        <message>
             <source>Denied</source>
             <translation>Negato</translation>
         </message>
@@ -6442,10 +4480,6 @@ Fai clic per aprirne la pagina.</translation>
             <translation>espressione</translation>
         </message>
         <message>
-            <source>Allow file writes in this project</source>
-            <translation>Consenti scritture di file in questo progetto</translation>
-        </message>
-        <message>
             <source>Hide the address</source>
             <translation>Nascondi l'indirizzo</translation>
         </message>
@@ -6460,14 +4494,6 @@ Fai clic per aprirne la pagina.</translation>
         <message>
             <source>Show the {n} addresses</source>
             <translation>Mostra i {n} indirizzi</translation>
-        </message>
-        <message>
-            <source>{hosts} were not named by you or by a known catalog.</source>
-            <translation>{hosts} non sono stati nominati da te o da un catalogo noto.</translation>
-        </message>
-        <message>
-            <source>{host} was not named by you or by a known catalog.</source>
-            <translation>{host} non è stato nominato da te o da un catalogo noto.</translation>
         </message>
         <message>
             <source>Hide the code</source>
@@ -6486,49 +4512,19 @@ Fai clic per aprirne la pagina.</translation>
             <translation>{n} azioni in attesa della tua approvazione.</translation>
         </message>
         <message>
-            <source>Allow for this run</source>
-            <translation>Consenti per questa esecuzione</translation>
-        </message>
-        <message>
-            <source>Allowed for this run</source>
-            <translation>Consentito per questa esecuzione</translation>
-        </message>
-        <message>
-            <source>Your answer also counts for the next calls of this kind in this answer.</source>
-            <translation>La tua risposta vale anche per le prossime chiamate di questo tipo in questa risposta.</translation>
-        </message>
-        <message>
             <source>{action}, {n} times</source>
             <translation>{action}, {n} volte</translation>
-        </message>
-        <message>
-            <source>{hosts}: sites you did not name, in no known catalog</source>
-            <translation>{hosts}: siti che non hai indicato, in nessun catalogo noto</translation>
-        </message>
-        <message>
-            <source>{host}: a site you did not name, in no known catalog</source>
-            <translation>{host}: un sito che non hai indicato, in nessun catalogo noto</translation>
         </message>
         <message>
             <source>{n} actions</source>
             <translation>{n} azioni</translation>
         </message>
         <message>
-            <location filename="src/ui/cards_run.py" />
-            <source>Allow for this run also covers later scripts that make the same calls. Removing layers or features still asks.</source>
-            <translation>Consenti per questa esecuzione copre anche gli script successivi che fanno le stesse chiamate. La rimozione di layer o elementi richiede comunque conferma.</translation>
-        </message>
-        <message>
-            <location filename="src/ui/cards_run.py" />
-            <source>Allow for this run also covers later scripts using {libs}, including files they write or delete. Removing layers or features still asks.</source>
-            <translation>Consenti per questa esecuzione copre anche gli script successivi che usano {libs}, compresi i file che scrivono o eliminano. La rimozione di layer o elementi richiede comunque conferma.</translation>
-        </message>
-        <message>
-            <source>The page links to sites the agent does not know: {hosts}.</source>
+            <source>The page links to sites the AI agent does not know: {hosts}.</source>
             <translation>La pagina rimanda a siti che l'assistente non conosce: {hosts}.</translation>
         </message>
         <message>
-            <source>The page links to {hosts}, a site the agent does not know.</source>
+            <source>The page links to {hosts}, a site the AI agent does not know.</source>
             <translation>La pagina rimanda a {hosts}, un sito che l'assistente non conosce.</translation>
         </message>
         <message>
@@ -6586,11 +4582,6 @@ Fai clic per aprirne la pagina.</translation>
         </message>
         <message>
             <location filename="src/ui/permission_chip.py" />
-            <source>Asks before deleting or overwriting.</source>
-            <translation>Chiede prima di eliminare o sovrascrivere.</translation>
-        </message>
-        <message>
-            <location filename="src/ui/permission_chip.py" />
             <source>Asks your permission for every change.</source>
             <translation>Chiede la tua autorizzazione per ogni modifica.</translation>
         </message>
@@ -6611,46 +4602,12 @@ Fai clic per aprirne la pagina.</translation>
         </message>
         <message>
             <location filename="src/ui/permission_chip.py" />
-            <source>Never asks. Works on its own.</source>
-            <translation>Non chiede mai. Lavora da solo.</translation>
-        </message>
-        <message>
-            <location filename="src/ui/permission_chip.py" />
             <source>Permission mode</source>
             <translation>Modalità di autorizzazione</translation>
         </message>
         <message>
-            <location filename="src/ui/permission_chip.py" />
-            <source>Switch</source>
-            <translation>Cambia</translation>
-        </message>
-        <message>
-            <location filename="src/ui/permission_chip.py" />
-            <source>Switch to Autopilot?</source>
-            <translation>Passare ad Autopilot?</translation>
-        </message>
-        <message>
-            <location filename="src/ui/permission_chip.py" />
-            <source>Upgrade</source>
-            <translation>Fai l'upgrade</translation>
-        </message>
-        <message>
-            <source>AI Agent will delete layers and overwrite files without asking. Running code and anything that spends credits still ask. Undo covers the project, not every file on disk. The next chat starts in Balanced again.</source>
-            <translation>AI Agent può eliminare layer e sovrascrivere file senza chiedere. L'esecuzione di codice e tutto ciò che usa crediti richiede ancora conferma. Annulla copre il progetto, non ogni file sul disco. La prossima chat riparte in Bilanciato.</translation>
-        </message>
-        <message>
             <source>What AI Agent may do without asking</source>
             <translation>Cosa può fare AI Agent senza chiedere</translation>
-        </message>
-        <message>
-            <location filename="src/ui/permission_chip.py" />
-            <source>Deletes layers and overwrites files without asking.</source>
-            <translation>Elimina layer e sovrascrive file senza chiedere.</translation>
-        </message>
-        <message>
-            <location filename="src/ui/permission_chip.py" />
-            <source>Running code and spending credits still ask first.</source>
-            <translation>L'esecuzione di codice e l'uso di crediti richiedono ancora conferma.</translation>
         </message>
         <message>
             <location filename="src/ui/permission_chip.py" />
@@ -6673,25 +4630,12 @@ Fai clic per aprirne la pagina.</translation>
             <translation>Annulla vale per il progetto, non per ogni file sul disco.</translation>
         </message>
         <message>
-            <location filename="src/ui/permission_chip.py" />
-            <source>With Pro</source>
-            <translation>Con Pro</translation>
-        </message>
-        <message>
             <source>Asks before deleting, overwriting, installing or reaching an unknown site.</source>
             <translation>Chiede prima di eliminare, sovrascrivere, installare o raggiungere un sito sconosciuto.</translation>
         </message>
         <message>
             <source>Deletes layers, overwrites files and runs Python code without asking.</source>
             <translation>Elimina layer, sovrascrive file ed esegue codice Python senza chiedere.</translation>
-        </message>
-        <message>
-            <source>Spending credits still asks first.</source>
-            <translation>Spendere crediti chiede comunque prima.</translation>
-        </message>
-        <message>
-            <source>Works on its own. Asks only about credits, installs and other plugins.</source>
-            <translation>Lavora da solo. Chiede solo riguardo a crediti, installazioni e altri plugin.</translation>
         </message>
         <message>
             <source>Get Pro</source>
@@ -6733,17 +4677,8 @@ Fai clic per aprirne la pagina.</translation>
     <context>
         <name>ProCard</name>
         <message>
-            <location filename="src/ui/settings_pages.py" />
-            <source>PRO</source>
-            <translation>PRO</translation>
-        </message>
-        <message>
             <source>Get Pro</source>
             <translation>Passa a Pro</translation>
-        </message>
-        <message>
-            <source>What Pro adds</source>
-            <translation>Cosa aggiunge Pro</translation>
         </message>
     </context>
     <context>
@@ -6780,11 +4715,6 @@ Fai clic per aprirne la pagina.</translation>
         </message>
         <message>
             <location filename="src/ui/cards_question.py" />
-            <source>auto</source>
-            <translation>automatico</translation>
-        </message>
-        <message>
-            <location filename="src/ui/cards_question.py" />
             <source>pending</source>
             <translation>in attesa</translation>
         </message>
@@ -6792,6 +4722,10 @@ Fai clic per aprirne la pagina.</translation>
             <location filename="src/ui/cards_question.py" />
             <source>skipped</source>
             <translation>saltato</translation>
+        </message>
+        <message>
+            <source>Question {n} of {count}</source>
+            <translation>Domanda {n} di {count}</translation>
         </message>
     </context>
     <context>
@@ -6851,16 +4785,6 @@ Fai clic per aprirne la pagina.</translation>
         </message>
         <message>
             <location filename="src/ui/quota_card.py" />
-            <source>My company pays by quote</source>
-            <translation>My company pays by quote</translation>
-        </message>
-        <message>
-            <location filename="src/ui/quota_card.py" />
-            <source>1 free run left.</source>
-            <translation>Resta 1 esecuzione gratuita.</translation>
-        </message>
-        <message>
-            <location filename="src/ui/quota_card.py" />
             <source>Copied</source>
             <translation>Copiato</translation>
         </message>
@@ -6868,16 +4792,6 @@ Fai clic per aprirne la pagina.</translation>
             <location filename="src/ui/quota_card.py" />
             <source>Copy email</source>
             <translation>Copia email</translation>
-        </message>
-        <message>
-            <location filename="src/ui/quota_card.py" />
-            <source>Custom needs? Write to us: {email}</source>
-            <translation>Bisogni particolari? Scrivici: {email}</translation>
-        </message>
-        <message>
-            <location filename="src/ui/quota_card.py" />
-            <source>Keep the agent working on your projects.</source>
-            <translation>Mantieni l'agente al lavoro sui tuoi progetti.</translation>
         </message>
         <message>
             <location filename="src/ui/quota_card.py" />
@@ -6896,21 +4810,6 @@ Fai clic per aprirne la pagina.</translation>
         </message>
         <message>
             <location filename="src/ui/quota_card.py" />
-            <source>Upgrade to Pro</source>
-            <translation>Passa a Pro</translation>
-        </message>
-        <message>
-            <location filename="src/ui/quota_card.py" />
-            <source>You used all {n} free runs this month. They come back on your renewal date.</source>
-            <translation>Hai usato tutte le {n} esecuzioni gratuite di questo mese. Tornano alla data di rinnovo.</translation>
-        </message>
-        <message>
-            <location filename="src/ui/quota_card.py" />
-            <source>You used all {n} free runs this month. They come back on {date}.</source>
-            <translation>Hai usato tutte le {n} esecuzioni gratuite di questo mese. Tornano il {date}.</translation>
-        </message>
-        <message>
-            <location filename="src/ui/quota_card.py" />
             <source>Your free tasks for this month are used</source>
             <translation>Hai finito le attività gratuite</translation>
         </message>
@@ -6918,16 +4817,6 @@ Fai clic per aprirne la pagina.</translation>
             <location filename="src/ui/quota_card.py" />
             <source>Your tasks for this month are used</source>
             <translation>Hai finito le attività</translation>
-        </message>
-        <message>
-            <location filename="src/ui/quota_card.py" />
-            <source>a month</source>
-            <translation>al mese</translation>
-        </message>
-        <message>
-            <location filename="src/ui/quota_card.py" />
-            <source>{n} free runs left.</source>
-            <translation>{n} esecuzioni gratuite rimaste.</translation>
         </message>
         <message>
             <source>You used all {n} tasks this month.</source>
@@ -6939,38 +4828,16 @@ Fai clic per aprirne la pagina.</translation>
         </message>
         <message>
             <location filename="src/ui/quota_card.py" />
-            <source>Get more runs</source>
-            <translation>Ottieni più esecuzioni</translation>
-        </message>
-        <message>
-            <location filename="src/ui/quota_card.py" />
             <source>Keep working with Pro</source>
             <translation>Continua a lavorare con Pro</translation>
-        </message>
-        <message>
-            <location filename="src/ui/quota_card.py" />
-            <source>{n} runs a month, higher effort levels and Autopilot.</source>
-            <translation>{n} esecuzioni al mese, livelli di impegno più alti e Autopilot.</translation>
         </message>
         <message>
             <source>Get Pro</source>
             <translation>Passa a Pro</translation>
         </message>
         <message>
-            <source>{n} runs a month and higher effort levels.</source>
-            <translation>{n} esecuzioni al mese e livelli di sforzo più elevati.</translation>
-        </message>
-        <message>
             <source>Invoice for my company</source>
             <translation>Fattura per la mia azienda</translation>
-        </message>
-        <message>
-            <source>Pro gives you {n} runs a month for {amount}.</source>
-            <translation>Pro ti dà {n} esecuzioni al mese per {amount}.</translation>
-        </message>
-        <message>
-            <source>Pro gives you {n} runs a month.</source>
-            <translation>Pro ti dà {n} esecuzioni al mese.</translation>
         </message>
         <message>
             <source>Autopilot</source>
@@ -7003,10 +4870,6 @@ Fai clic per aprirne la pagina.</translation>
         <message>
             <source>Pro: {n} tasks a month and harder tasks</source>
             <translation>Pro: {n} attività al mese e attività più complesse</translation>
-        </message>
-        <message>
-            <source>You ran {n} tasks this month.</source>
-            <translation>Hai eseguito {n} attività questo mese.</translation>
         </message>
         <message>
             <source>{amount}/month</source>
@@ -7077,6 +4940,18 @@ Fai clic per aprirne la pagina.</translation>
             <source>Your payment of {amount} failed</source>
             <translation>Il tuo pagamento di {amount} non è riuscito</translation>
         </message>
+        <message>
+            <source>Free for 7 days, nothing to pay today, then monthly at your student price. Cancel in one click.</source>
+            <translation>Gratis per 7 giorni, niente da pagare oggi, poi mensile al prezzo studenti. Annulli con un clic.</translation>
+        </message>
+        <message>
+            <source>Free for 7 days, nothing to pay today, then {price}/month excl. VAT. Cancel in one click.</source>
+            <translation>Gratis per 7 giorni, niente da pagare oggi, poi {price}/mese, IVA esclusa. Annulli con un clic.</translation>
+        </message>
+        <message>
+            <source>Medium effort now, High after the trial</source>
+            <translation>Impegno Medium ora, High dopo la prova</translation>
+        </message>
     </context>
     <context>
         <name>QuotaPauseCard</name>
@@ -7084,11 +4959,6 @@ Fai clic per aprirne la pagina.</translation>
             <location filename="src/ui/cards_run.py" />
             <source>Paused</source>
             <translation>In pausa</translation>
-        </message>
-        <message>
-            <location filename="src/ui/cards_run.py" />
-            <source>Resume</source>
-            <translation>Riprendi</translation>
         </message>
         <message>
             <location filename="src/ui/cards_run.py" />
@@ -7172,75 +5042,12 @@ Fai clic per aprirne la pagina.</translation>
         </message>
         <message>
             <location filename="src/ui/cards_run.py" />
-            <source>Discard</source>
-            <translation>Scarta</translation>
-        </message>
-        <message>
-            <location filename="src/ui/cards_run.py" />
-            <source>Manual changes since this point will be lost.</source>
-            <translation>Le modifiche manuali da questo punto in poi andranno perse.</translation>
-        </message>
-        <message>
-            <location filename="src/ui/cards_run.py" />
             <source>Restore</source>
             <translation>Ripristina</translation>
-        </message>
-        <message>
-            <location filename="src/ui/cards_run.py" />
-            <source>This drops everything the agent did in this chat, and your own changes since.</source>
-            <translation>Questo elimina tutto ciò che l'agente ha fatto in questa chat, e le tue modifiche successive.</translation>
-        </message>
-        <message>
-            <location filename="src/ui/cards_run.py" />
-            <source>This drops everything the agent did in this chat.</source>
-            <translation>Questo elimina tutto ciò che l'agente ha fatto in questa chat.</translation>
-        </message>
-        <message>
-            <source>This goes back to the oldest state still kept, not to the very start: the earlier ones were cleared to save disk space.</source>
-            <translation>Torna allo stato più vecchio ancora conservato, non all'inizio assoluto: quelli precedenti sono stati eliminati per risparmiare spazio su disco.</translation>
-        </message>
-        <message>
-            <source>Go back to {point}? Your own changes since then will be lost.</source>
-            <translation>Torna a {point}? Le tue modifiche da allora andranno perse.</translation>
-        </message>
-        <message>
-            <source>Go back</source>
-            <translation>Torna indietro</translation>
-        </message>
-        <message>
-            <source>Go back to {point}? Your edits since then are kept as a version you can return to.</source>
-            <translation>Tornare a questo punto ({point})? Le tue modifiche successive sono conservate come una versione a cui puoi tornare.</translation>
-        </message>
-        <message>
-            <source>Go back? Your edits since then are kept as a version you can return to.</source>
-            <translation>Tornare indietro? Le tue modifiche successive sono conservate come una versione a cui puoi tornare.</translation>
-        </message>
-        <message>
-            <source>Undo everything the agent did in this chat, back to the oldest version still kept? You can put it back.</source>
-            <translation>Annullare tutto ciò che l'agente ha fatto in questa chat, fino alla versione più vecchia ancora conservata? Puoi ripristinare tutto.</translation>
-        </message>
-        <message>
-            <source>Undo everything the agent did in this chat? You can put it back.</source>
-            <translation>Annullare tutto ciò che l'agente ha fatto in questa chat? Puoi ripristinarlo.</translation>
         </message>
     </context>
     <context>
         <name>RunTrace</name>
-        <message>
-            <location filename="src/ui/trace.py" />
-            <source>%n failed</source>
-            <translation>%n non riusciti</translation>
-        </message>
-        <message>
-            <location filename="src/ui/trace.py" />
-            <source>%n steps</source>
-            <translation>%n passi</translation>
-        </message>
-        <message>
-            <location filename="src/ui/trace.py" />
-            <source>1 step</source>
-            <translation>1 passo</translation>
-        </message>
         <message>
             <location filename="src/ui/trace.py" />
             <source>Done</source>
@@ -7259,23 +5066,11 @@ Fai clic per aprirne la pagina.</translation>
         <message>
             <location filename="src/ui/trace.py" />
             <source>Thinking</source>
-            <translation>Sto pensando...</translation>
+            <translation>Sto pensando</translation>
         </message>
         <message>
             <source>%n earlier actions</source>
             <translation>%n azioni precedenti</translation>
-        </message>
-        <message>
-            <source>Failed after {time}</source>
-            <translation>Non riuscito dopo {time}</translation>
-        </message>
-        <message>
-            <source>Stopped after {time}</source>
-            <translation>Interrotto dopo {time}</translation>
-        </message>
-        <message>
-            <source>Thought for {time}</source>
-            <translation>Ha pensato per {time}</translation>
         </message>
         <message>
             <source>QGIS closed before this finished</source>
@@ -7286,16 +5081,8 @@ Fai clic per aprirne la pagina.</translation>
             <translation>negato</translation>
         </message>
         <message>
-            <source>{step} and {n} more</source>
-            <translation>{step} e altri {n}</translation>
-        </message>
-        <message>
             <source>Waiting for you</source>
             <translation>In attesa di te</translation>
-        </message>
-        <message>
-            <source>Worked for {time}</source>
-            <translation>Ha lavorato per {time}</translation>
         </message>
         <message>
             <source>blocked</source>
@@ -7329,32 +5116,8 @@ Fai clic per aprirne la pagina.</translation>
             <translation>L'AI salva le note da sola</translation>
         </message>
         <message>
-            <source>You can review or remove them here.</source>
-            <translation>Puoi rivederle o rimuoverle qui.</translation>
-        </message>
-        <message>
             <source>Your chats are kept 30 days so a conversation survives an update. Off, the team never reads them. 0 days of history stores nothing.</source>
             <translation>Le chat vengono conservate per 30 giorni, così una conversazione resta disponibile dopo un aggiornamento. Con l'opzione disattivata, il team non le legge mai. 0 giorni di cronologia non salva nulla.</translation>
-        </message>
-        <message>
-            <location filename="src/ui/settings_dialog.py" />
-            <source>1 minute</source>
-            <translation>1 minuto</translation>
-        </message>
-        <message>
-            <location filename="src/ui/settings_dialog.py" />
-            <source>2 minutes</source>
-            <translation>2 minuti</translation>
-        </message>
-        <message>
-            <location filename="src/ui/settings_dialog.py" />
-            <source>30 seconds</source>
-            <translation>30 secondi</translation>
-        </message>
-        <message>
-            <location filename="src/ui/settings_dialog.py" />
-            <source>A short summary of the changes once a task is done.</source>
-            <translation>Un breve riepilogo delle modifiche una volta completata un'attività.</translation>
         </message>
         <message>
             <location filename="src/ui/settings_dialog.py" />
@@ -7388,16 +5151,6 @@ Fai clic per aprirne la pagina.</translation>
         </message>
         <message>
             <location filename="src/ui/settings_dialog.py" />
-            <source>Advanced</source>
-            <translation>Avanzate</translation>
-        </message>
-        <message>
-            <location filename="src/ui/settings_dialog.py" />
-            <source>Answer a question for me after</source>
-            <translation>Rispondi a una domanda per me dopo</translation>
-        </message>
-        <message>
-            <location filename="src/ui/settings_dialog.py" />
             <source>Answers</source>
             <translation>Risposte</translation>
         </message>
@@ -7418,11 +5171,6 @@ Fai clic per aprirne la pagina.</translation>
         </message>
         <message>
             <location filename="src/ui/settings_dialog.py" />
-            <source>Billing</source>
-            <translation>Fatturazione</translation>
-        </message>
-        <message>
-            <location filename="src/ui/settings_dialog.py" />
             <source>Cancel</source>
             <translation>Annulla</translation>
         </message>
@@ -7433,33 +5181,8 @@ Fai clic per aprirne la pagina.</translation>
         </message>
         <message>
             <location filename="src/ui/settings_dialog.py" />
-            <source>Connectors</source>
-            <translation>Connettori</translation>
-        </message>
-        <message>
-            <location filename="src/ui/settings_dialog.py" />
             <source>Contact us</source>
             <translation>Contattaci</translation>
-        </message>
-        <message>
-            <location filename="src/ui/settings_dialog.py" />
-            <source>Context the AI reads at the start of every conversation, and the notes it keeps between them.</source>
-            <translation>Il contesto che l'AI legge all'inizio di ogni conversazione, e le note che conserva tra una e l'altra.</translation>
-        </message>
-        <message>
-            <location filename="src/ui/settings_dialog.py" />
-            <source>Could not load your account. Try again in a moment.</source>
-            <translation>Impossibile caricare il tuo account. Riprova tra un momento.</translation>
-        </message>
-        <message>
-            <location filename="src/ui/settings_dialog.py" />
-            <source>Could not reach TerraLab. Check your internet connection, then try again.</source>
-            <translation>Impossibile raggiungere TerraLab. Controlla la tua connessione internet, poi riprova.</translation>
-        </message>
-        <message>
-            <location filename="src/ui/settings_dialog.py" />
-            <source>Danger zone</source>
-            <translation>Zona pericolosa</translation>
         </message>
         <message>
             <location filename="src/ui/settings_dialog.py" />
@@ -7473,11 +5196,6 @@ Fai clic per aprirne la pagina.</translation>
         </message>
         <message>
             <location filename="src/ui/settings_dialog.py" />
-            <source>Each step with its inputs and results, under the answer.</source>
-            <translation>Ogni passaggio con i suoi input e risultati, sotto la risposta.</translation>
-        </message>
-        <message>
-            <location filename="src/ui/settings_dialog.py" />
             <source>Everything the panel does without leaving the keyboard.</source>
             <translation>Tutto ciò che puoi fare nel pannello senza lasciare la tastiera.</translation>
         </message>
@@ -7485,11 +5203,6 @@ Fai clic per aprirne la pagina.</translation>
             <location filename="src/ui/settings_dialog.py" />
             <source>Expert</source>
             <translation>Esperto</translation>
-        </message>
-        <message>
-            <location filename="src/ui/settings_dialog.py" />
-            <source>Explain what it did after each run</source>
-            <translation>Spiega cosa ha fatto dopo ogni esecuzione</translation>
         </message>
         <message>
             <location filename="src/ui/settings_dialog.py" />
@@ -7508,11 +5221,6 @@ Fai clic per aprirne la pagina.</translation>
         </message>
         <message>
             <location filename="src/ui/settings_dialog.py" />
-            <source>How it should work. Example: always answer in French, name new layers in snake_case, never delete a layer without asking.</source>
-            <translation>Come dovrebbe funzionare. Esempio: rispondi sempre in francese, nomina i nuovi layer in snake_case, non eliminare mai un layer senza chiedere.</translation>
-        </message>
-        <message>
-            <location filename="src/ui/settings_dialog.py" />
             <source>How much the AI explains.</source>
             <translation>Quanto spiega l'AI.</translation>
         </message>
@@ -7523,33 +5231,8 @@ Fai clic per aprirne la pagina.</translation>
         </message>
         <message>
             <location filename="src/ui/settings_dialog.py" />
-            <source>How the AI names the layers it creates.</source>
-            <translation>Come l'AI nomina i layer che crea.</translation>
-        </message>
-        <message>
-            <location filename="src/ui/settings_dialog.py" />
-            <source>How you work</source>
-            <translation>Come lavori</translation>
-        </message>
-        <message>
-            <location filename="src/ui/settings_dialog.py" />
-            <source>I work in EPSG:2154</source>
-            <translation>Lavoro in EPSG:2154</translation>
-        </message>
-        <message>
-            <location filename="src/ui/settings_dialog.py" />
             <source>Imperial</source>
             <translation>Imperiale</translation>
-        </message>
-        <message>
-            <location filename="src/ui/settings_dialog.py" />
-            <source>Included with Pro</source>
-            <translation>Incluso con Pro</translation>
-        </message>
-        <message>
-            <location filename="src/ui/settings_dialog.py" />
-            <source>Instructions for the AI</source>
-            <translation>Istruzioni per l'AI</translation>
         </message>
         <message>
             <location filename="src/ui/settings_dialog.py" />
@@ -7558,43 +5241,13 @@ Fai clic per aprirne la pagina.</translation>
         </message>
         <message>
             <location filename="src/ui/settings_dialog.py" />
-            <source>Layer names</source>
-            <translation>Nomi dei layer</translation>
-        </message>
-        <message>
-            <location filename="src/ui/settings_dialog.py" />
-            <source>Let the AI add its own notes</source>
-            <translation>Lascia che l'AI aggiunga le sue note</translation>
-        </message>
-        <message>
-            <location filename="src/ui/settings_dialog.py" />
             <source>Loading account info...</source>
             <translation>Caricamento informazioni account...</translation>
         </message>
         <message>
             <location filename="src/ui/settings_dialog.py" />
-            <source>Loading your plan...</source>
-            <translation>Caricamento del tuo piano...</translation>
-        </message>
-        <message>
-            <location filename="src/ui/settings_dialog.py" />
-            <source>Manage account</source>
-            <translation>Gestisci account</translation>
-        </message>
-        <message>
-            <location filename="src/ui/settings_dialog.py" />
-            <source>Manage account in browser</source>
-            <translation>Gestisci l'account nel browser</translation>
-        </message>
-        <message>
-            <location filename="src/ui/settings_dialog.py" />
             <source>Memory</source>
             <translation>Memoria</translation>
-        </message>
-        <message>
-            <location filename="src/ui/settings_dialog.py" />
-            <source>Metres and hectares, or feet, miles and acres.</source>
-            <translation>Metri ed ettari, oppure piedi, miglia e acri.</translation>
         </message>
         <message>
             <location filename="src/ui/settings_dialog.py" />
@@ -7613,23 +5266,8 @@ Fai clic per aprirne la pagina.</translation>
         </message>
         <message>
             <location filename="src/ui/settings_dialog.py" />
-            <source>No runs counted yet this month.</source>
-            <translation>Ancora nessuna esecuzione conteggiata questo mese.</translation>
-        </message>
-        <message>
-            <location filename="src/ui/settings_dialog.py" />
-            <source>Noted by the AI</source>
-            <translation>Annotato dall'AI</translation>
-        </message>
-        <message>
-            <location filename="src/ui/settings_dialog.py" />
             <source>Often</source>
             <translation>Spesso</translation>
-        </message>
-        <message>
-            <location filename="src/ui/settings_dialog.py" />
-            <source>Open terra-lab.ai</source>
-            <translation>Apri terra-lab.ai</translation>
         </message>
         <message>
             <location filename="src/ui/settings_dialog.py" />
@@ -7638,23 +5276,8 @@ Fai clic per aprirne la pagina.</translation>
         </message>
         <message>
             <location filename="src/ui/settings_dialog.py" />
-            <source>Opens the Billing page.</source>
-            <translation>Apre la pagina Fatturazione.</translation>
-        </message>
-        <message>
-            <location filename="src/ui/settings_dialog.py" />
-            <source>Personal, non-commercial use.</source>
-            <translation>Uso personale, non commerciale.</translation>
-        </message>
-        <message>
-            <location filename="src/ui/settings_dialog.py" />
             <source>Personalisation</source>
             <translation>Personalizzazione</translation>
-        </message>
-        <message>
-            <location filename="src/ui/settings_dialog.py" />
-            <source>Plain words</source>
-            <translation>Parole semplici</translation>
         </message>
         <message>
             <location filename="src/ui/settings_dialog.py" />
@@ -7663,18 +5286,8 @@ Fai clic per aprirne la pagina.</translation>
         </message>
         <message>
             <location filename="src/ui/settings_dialog.py" />
-            <source>Pro follows your standing rules in every run: the language it answers in, how it names layers, and what it must never do without asking.</source>
-            <translation>Pro segue le tue regole fisse in ogni esecuzione: la lingua in cui risponde, come nomina i layer e cosa non deve mai fare senza chiedere.</translation>
-        </message>
-        <message>
-            <location filename="src/ui/settings_dialog.py" />
             <source>Pro plan</source>
             <translation>Piano Pro</translation>
-        </message>
-        <message>
-            <location filename="src/ui/settings_dialog.py" />
-            <source>Pro reads this before every run, so your job, your city and your usual CRS do not have to be typed into each prompt.</source>
-            <translation>Pro lo legge prima di ogni esecuzione, così il tuo lavoro, la tua città e il tuo SR abituale non vanno digitati in ogni prompt.</translation>
         </message>
         <message>
             <location filename="src/ui/settings_dialog.py" />
@@ -7695,11 +5308,6 @@ Fai clic per aprirne la pagina.</translation>
             <location filename="src/ui/settings_dialog.py" />
             <source>Regular</source>
             <translation>Normale</translation>
-        </message>
-        <message>
-            <location filename="src/ui/settings_dialog.py" />
-            <source>Report a problem</source>
-            <translation>Segnala un problema</translation>
         </message>
         <message>
             <location filename="src/ui/settings_dialog.py" />
@@ -7748,26 +5356,6 @@ Fai clic per aprirne la pagina.</translation>
         </message>
         <message>
             <location filename="src/ui/settings_dialog.py" />
-            <source>Share usage statistics with TerraLab</source>
-            <translation>Condividi le statistiche di utilizzo con TerraLab</translation>
-        </message>
-        <message>
-            <location filename="src/ui/settings_dialog.py" />
-            <source>Short answers, a balance, or the full reasoning.</source>
-            <translation>Risposte brevi, una via di mezzo o il ragionamento completo.</translation>
-        </message>
-        <message>
-            <location filename="src/ui/settings_dialog.py" />
-            <source>Show tool details in the trace</source>
-            <translation>Mostra i dettagli degli strumenti nella traccia</translation>
-        </message>
-        <message>
-            <location filename="src/ui/settings_dialog.py" />
-            <source>Sign in first: deleting an account needs the address it was opened with.</source>
-            <translation>Accedi prima: per eliminare un account serve l'indirizzo con cui è stato creato.</translation>
-        </message>
-        <message>
-            <location filename="src/ui/settings_dialog.py" />
             <source>Sign in to see your account.</source>
             <translation>Accedi per vedere il tuo account.</translation>
         </message>
@@ -7798,43 +5386,13 @@ Fai clic per aprirne la pagina.</translation>
         </message>
         <message>
             <location filename="src/ui/settings_dialog.py" />
-            <source>The AI takes the option it recommended and carries on.</source>
-            <translation>L'AI prende l'opzione che ha consigliato e continua.</translation>
-        </message>
-        <message>
-            <location filename="src/ui/settings_dialog.py" />
-            <source>The language the AI writes its answers in.</source>
-            <translation>La lingua in cui l'AI scrive le sue risposte.</translation>
-        </message>
-        <message>
-            <location filename="src/ui/settings_dialog.py" />
-            <source>The plan this copy of QGIS is signed in on.</source>
-            <translation>Il piano a cui è connessa questa copia di QGIS.</translation>
-        </message>
-        <message>
-            <location filename="src/ui/settings_dialog.py" />
             <source>The shortcuts could not be listed.</source>
             <translation>Impossibile elencare le scorciatoie.</translation>
         </message>
         <message>
             <location filename="src/ui/settings_dialog.py" />
-            <source>This computer is no longer signed in. Sign out, then sign in again to reconnect it.</source>
-            <translation>Questo computer non è più connesso. Esci, poi accedi di nuovo per ricollegarlo.</translation>
-        </message>
-        <message>
-            <location filename="src/ui/settings_dialog.py" />
-            <source>This plugin would not start.</source>
-            <translation>Questo plugin non si è avviato.</translation>
-        </message>
-        <message>
-            <location filename="src/ui/settings_dialog.py" />
             <source>This project</source>
             <translation>Questo progetto</translation>
-        </message>
-        <message>
-            <location filename="src/ui/settings_dialog.py" />
-            <source>Tutorials</source>
-            <translation>Tutorial</translation>
         </message>
         <message>
             <location filename="src/ui/settings_dialog.py" />
@@ -7848,48 +5406,13 @@ Fai clic per aprirne la pagina.</translation>
         </message>
         <message>
             <location filename="src/ui/settings_dialog.py" />
-            <source>Upgrade to Pro</source>
-            <translation>Passa a Pro</translation>
-        </message>
-        <message>
-            <location filename="src/ui/settings_dialog.py" />
             <source>Urban planner</source>
             <translation>Urbanista</translation>
         </message>
         <message>
             <location filename="src/ui/settings_dialog.py" />
-            <source>Used in its answers. Empty: it uses no name.</source>
-            <translation>Usato nelle sue risposte. Vuoto: non usa nessun nome.</translation>
-        </message>
-        <message>
-            <location filename="src/ui/settings_dialog.py" />
-            <source>What the AI should call you</source>
-            <translation>Come l'AI deve chiamarti</translation>
-        </message>
-        <message>
-            <location filename="src/ui/settings_dialog.py" />
-            <source>What you do</source>
-            <translation>Cosa fai</translation>
-        </message>
-        <message>
-            <location filename="src/ui/settings_dialog.py" />
             <source>When needed</source>
             <translation>Se serve</translation>
-        </message>
-        <message>
-            <location filename="src/ui/settings_dialog.py" />
-            <source>Who is signed in, and how this copy of the plugin behaves.</source>
-            <translation>Chi ha effettuato l'accesso, e come si comporta questa copia del plugin.</translation>
-        </message>
-        <message>
-            <location filename="src/ui/settings_dialog.py" />
-            <source>Who you are</source>
-            <translation>Chi sei</translation>
-        </message>
-        <message>
-            <location filename="src/ui/settings_dialog.py" />
-            <source>Who you are and what you work on. Example: urban planner at the city of Lyon, I mostly work with cadastre and PLU layers in EPSG:2154.</source>
-            <translation>Chi sei e su cosa lavori. Esempio: urbanista presso la città di Lione, lavoro soprattutto con layer catastali e PLU in EPSG:2154.</translation>
         </message>
         <message>
             <location filename="src/ui/settings_dialog.py" />
@@ -7903,23 +5426,8 @@ Fai clic per aprirne la pagina.</translation>
         </message>
         <message>
             <location filename="src/ui/settings_dialog.py" />
-            <source>Your job in a few words. It changes which data and which method it reaches for first.</source>
-            <translation>Il tuo lavoro in poche parole. Influisce su quali dati e quale metodo l'AI sceglie per primi.</translation>
-        </message>
-        <message>
-            <location filename="src/ui/settings_dialog.py" />
             <source>by TerraLab</source>
             <translation>di TerraLab</translation>
-        </message>
-        <message>
-            <location filename="src/ui/settings_dialog.py" />
-            <source>runs left of {limit} this month</source>
-            <translation>esecuzioni rimaste su {limit} questo mese</translation>
-        </message>
-        <message>
-            <location filename="src/ui/settings_dialog.py" />
-            <source>runs this month</source>
-            <translation>esecuzioni questo mese</translation>
         </message>
         <message>
             <location filename="src/ui/settings_dialog.py" />
@@ -7932,76 +5440,8 @@ Fai clic per aprirne la pagina.</translation>
             <translation>{used} esecuzioni questo mese</translation>
         </message>
         <message>
-            <source>Always wait for me</source>
-            <translation>Aspetta sempre la mia risposta</translation>
-        </message>
-        <message>
-            <source>Compare plans</source>
-            <translation>Confronta i piani</translation>
-        </message>
-        <message>
-            <source>Computer-style names</source>
-            <translation>Nomi in stile computer</translation>
-        </message>
-        <message>
-            <source>Errors, versions and which features you use, linked to your account. Never your prompts, your layers, your coordinates or your files. On Pro, only that you used the app and when, never what you did in it.</source>
-            <translation>Errori, versioni e funzionalità usate, collegati al tuo account. Mai i tuoi prompt, layer, coordinate o file. Su Pro, solo che hai usato l'app e quando, mai cosa ci hai fatto.</translation>
-        </message>
-        <message>
             <source>Language, style, permissions, your profile and your memory notes go back to their defaults. You stay signed in.</source>
             <translation>Lingua, stile, autorizzazioni, profilo e note di memoria tornano ai valori predefiniti. Resti connesso.</translation>
-        </message>
-        <message>
-            <source>Lets us read a conversation only when we are fixing a wrong answer or something that broke. Turn it off any time, with no other effect.</source>
-            <translation>Ci permette di leggere una conversazione solo quando correggiamo una risposta errata o qualcosa che si è rotto. Disattivalo quando vuoi, senza altri effetti.</translation>
-        </message>
-        <message>
-            <source>Manage</source>
-            <translation>Gestisci</translation>
-        </message>
-        <message>
-            <source>More plugins</source>
-            <translation>Altri plugin</translation>
-        </message>
-        <message>
-            <source>Open the dashboard</source>
-            <translation>Apri la dashboard</translation>
-        </message>
-        <message>
-            <source>Payment happens on the TerraLab website, never inside QGIS. Your plan here updates on its own.</source>
-            <translation>Il pagamento avviene sul sito TerraLab, mai dentro QGIS. Il tuo piano qui si aggiorna automaticamente.</translation>
-        </message>
-        <message>
-            <source>Plans and prices, on the TerraLab website.</source>
-            <translation>Piani e prezzi, sul sito TerraLab.</translation>
-        </message>
-        <message>
-            <source>See pricing</source>
-            <translation>Vedi prezzi</translation>
-        </message>
-        <message>
-            <source>Short reminders it keeps between conversations.</source>
-            <translation>Brevi promemoria conservati tra le conversazioni.</translation>
-        </message>
-        <message>
-            <source>There's a problem with your subscription: your last payment may have failed. Update your payment method to fix it.</source>
-            <translation>C'è un problema con il tuo abbonamento: l'ultimo pagamento potrebbe non essere andato a buon fine. Aggiorna il metodo di pagamento per risolverlo.</translation>
-        </message>
-        <message>
-            <source>Your TerraLab account and its data are erased, and every TerraLab plugin stops working. To confirm, type your email address again.</source>
-            <translation>Il tuo account TerraLab e i relativi dati vengono cancellati e ogni plugin TerraLab smette di funzionare. Per confermare, inserisci di nuovo il tuo indirizzo email.</translation>
-        </message>
-        <message>
-            <source>Your plan already turns this off. What you write is never read to improve the product, no matter how this switch is set.</source>
-            <translation>Il tuo piano disattiva già questa opzione. Ciò che scrivi non viene mai letto per migliorare il prodotto, indipendentemente da questa impostazione.</translation>
-        </message>
-        <message>
-            <source>Your plan, payment method and invoices are on the TerraLab dashboard.</source>
-            <translation>Il tuo piano, il metodo di pagamento e le fatture sono nella dashboard TerraLab.</translation>
-        </message>
-        <message>
-            <source>{left} runs left of {limit} this month</source>
-            <translation>{left} esecuzioni su {limit} rimaste questo mese</translation>
         </message>
         <message>
             <source>Another project</source>
@@ -8016,21 +5456,8 @@ Fai clic per aprirne la pagina.</translation>
             <translation>La vista va su ogni modifica mentre avviene. Disattivato mantiene la vista dove l'hai messa.</translation>
         </message>
         <message>
-            <source>Memory folder</source>
-            <translation>Cartella della memoria</translation>
-        </message>
-        <message>
             <source>Open</source>
             <translation>Apri</translation>
-        </message>
-        <message>
-            <source>Your notes as Markdown files on this computer. Reword or delete one there and the next conversation follows.</source>
-            <translation>Le tue note come file Markdown su questo computer. Riformula o elimina una nota da lì e la conversazione successiva ne tiene conto.</translation>
-        </message>
-        <message>
-            <location filename="src/ui/settings_account.py" />
-            <source>Back to defaults, memory notes included. You stay signed in.</source>
-            <translation>Torna ai valori predefiniti, incluse le note di memoria. Rimani connesso.</translation>
         </message>
         <message>
             <location filename="src/ui/settings_account.py" />
@@ -8046,11 +5473,6 @@ Fai clic per aprirne la pagina.</translation>
             <location filename="src/ui/settings_account.py" />
             <source>Could not reach TerraLab</source>
             <translation>Impossibile raggiungere TerraLab</translation>
-        </message>
-        <message>
-            <location filename="src/ui/settings_dialog.py" />
-            <source>Do more with Pro</source>
-            <translation>Fai di più con Pro</translation>
         </message>
         <message>
             <location filename="src/ui/settings_account.py" />
@@ -8078,21 +5500,6 @@ Fai clic per aprirne la pagina.</translation>
             <translation>Mai i tuoi prompt, layer, coordinate o file.</translation>
         </message>
         <message>
-            <location filename="src/ui/settings_account.py" />
-            <source>Off on your plan: chats are never read to improve it.</source>
-            <translation>Disattivato sul tuo piano: le chat non vengono mai lette per migliorarlo.</translation>
-        </message>
-        <message>
-            <location filename="src/ui/settings_account.py" />
-            <source>Plus memory, your instructions and higher effort.</source>
-            <translation>Più memoria, le tue istruzioni e un impegno maggiore.</translation>
-        </message>
-        <message>
-            <location filename="src/ui/settings_account.py" />
-            <source>Pro: commercial use and more runs</source>
-            <translation>Pro: uso commerciale e più esecuzioni</translation>
-        </message>
-        <message>
             <location filename="src/ui/settings_billing.py" />
             <source>See what Pro unlocks</source>
             <translation>Scopri cosa sblocca Pro</translation>
@@ -8106,16 +5513,6 @@ Fai clic per aprirne la pagina.</translation>
             <location filename="src/ui/settings_account.py" />
             <source>Sign in first to delete your account.</source>
             <translation>Accedi prima per eliminare il tuo account.</translation>
-        </message>
-        <message>
-            <location filename="src/ui/settings_account.py" />
-            <source>Sign out, then sign in again.</source>
-            <translation>Esci, poi accedi di nuovo.</translation>
-        </message>
-        <message>
-            <location filename="src/ui/settings_account.py" />
-            <source>This computer is no longer signed in</source>
-            <translation>Questo computer non è più connesso</translation>
         </message>
         <message>
             <location filename="src/ui/settings_account.py" />
@@ -8143,16 +5540,6 @@ Fai clic per aprirne la pagina.</translation>
             <translation>Aggiorna il tuo metodo di pagamento per risolverlo.</translation>
         </message>
         <message>
-            <location filename="src/ui/settings_dialog.py" />
-            <source>What Pro unlocks, on the TerraLab website.</source>
-            <translation>Cosa sblocca Pro, sul sito TerraLab.</translation>
-        </message>
-        <message>
-            <location filename="src/ui/settings_account.py" />
-            <source>What you write is never read to improve the product, no matter how this switch is set.</source>
-            <translation>Ciò che scrivi non viene mai letto per migliorare il prodotto, indipendentemente da questa impostazione.</translation>
-        </message>
-        <message>
             <location filename="src/ui/settings_account.py" />
             <source>Your last payment may have failed</source>
             <translation>L'ultimo pagamento potrebbe non essere riuscito</translation>
@@ -8177,24 +5564,12 @@ Fai clic per aprirne la pagina.</translation>
             <translation>Elimina</translation>
         </message>
         <message>
-            <source>Upgrade</source>
-            <translation>Passa a Pro</translation>
-        </message>
-        <message>
-            <source>Commercial use and more tasks with Pro</source>
-            <translation>Uso commerciale e più attività con Pro</translation>
-        </message>
-        <message>
             <source>Get Pro</source>
             <translation>Passa a Pro</translation>
         </message>
         <message>
             <source>Manage plan</source>
             <translation>Gestisci piano</translation>
-        </message>
-        <message>
-            <source>Memory between conversations</source>
-            <translation>Memoria tra le conversazioni</translation>
         </message>
         <message>
             <source>More</source>
@@ -8205,24 +5580,12 @@ Fai clic per aprirne la pagina.</translation>
             <translation>Apre una finestra</translation>
         </message>
         <message>
-            <source>Pro reads who you are and your standing rules before every run: your job, your city, your usual CRS, the language it answers in, how it names layers and what it must never do without asking.</source>
-            <translation>Pro legge chi sei e le tue regole permanenti prima di ogni esecuzione: il tuo lavoro, la tua città, il tuo CRS abituale, la lingua in cui risponde, come nomina i layer e cosa non deve mai fare senza chiedere.</translation>
-        </message>
-        <message>
-            <source>Show the steps it takes</source>
-            <translation>Mostra i passaggi che compie</translation>
-        </message>
-        <message>
             <source>Sign in</source>
             <translation>Accedi</translation>
         </message>
         <message>
             <source>Sign in to see your account</source>
             <translation>Accedi per vedere il tuo account</translation>
-        </message>
-        <message>
-            <source>The list of steps above each answer.</source>
-            <translation>L'elenco dei passaggi sopra ogni risposta.</translation>
         </message>
         <message>
             <source>This computer was signed out</source>
@@ -8237,10 +5600,6 @@ Fai clic per aprirne la pagina.</translation>
             <translation>Il tuo piano, le attività e le impostazioni appaiono qui dopo l'accesso.</translation>
         </message>
         <message>
-            <source>Your profile and instructions, read before every run</source>
-            <translation>Il tuo profilo e le tue istruzioni, letti prima di ogni esecuzione</translation>
-        </message>
-        <message>
             <source>+ Add a note</source>
             <translation>+ Aggiungi una nota</translation>
         </message>
@@ -8249,20 +5608,8 @@ Fai clic per aprirne la pagina.</translation>
             <translation>Aggiunta dall'IA</translation>
         </message>
         <message>
-            <source>It asks before adding one.</source>
-            <translation>Chiede prima di aggiungerne una.</translation>
-        </message>
-        <message>
             <source>Markdown files on this computer</source>
             <translation>File Markdown su questo computer</translation>
-        </message>
-        <message>
-            <source>SAVED NOTES · {n}</source>
-            <translation>NOTE SALVATE · {n}</translation>
-        </message>
-        <message>
-            <source>The AI can suggest notes</source>
-            <translation>L'IA può suggerire note</translation>
         </message>
         <message>
             <source>e.g. I work in EPSG:2154</source>
@@ -8302,20 +5649,12 @@ Fai clic per aprirne la pagina.</translation>
             <translation>Rispondi sempre in francese, non eliminare mai un layer senza chiedere</translation>
         </message>
         <message>
-            <source>Choose folder...</source>
-            <translation>Scegli cartella...</translation>
-        </message>
-        <message>
             <source>Clear project memory</source>
             <translation>Cancella la memoria del progetto</translation>
         </message>
         <message>
             <source>Connected accounts</source>
             <translation>Account collegati</translation>
-        </message>
-        <message>
-            <source>Folder to watch</source>
-            <translation>Cartella da monitorare</translation>
         </message>
         <message>
             <source>Instructions</source>
@@ -8334,16 +5673,8 @@ Fai clic per aprirne la pagina.</translation>
             <translation>Nome</translation>
         </message>
         <message>
-            <source>No folder chosen</source>
-            <translation>Nessuna cartella scelta</translation>
-        </message>
-        <message>
             <source>Pro reads both before every run.</source>
             <translation>Pro legge entrambe prima di ogni esecuzione.</translation>
-        </message>
-        <message>
-            <source>Proactive triggers</source>
-            <translation>Attivatori proattivi</translation>
         </message>
         <message>
             <source>Project memory</source>
@@ -8362,16 +5693,8 @@ Fai clic per aprirne la pagina.</translation>
             <translation>Mostra la memoria del progetto</translation>
         </message>
         <message>
-            <source>The AI agent looks at new data files in this folder and at the schedules you ask for, only while QGIS is open. Nothing runs when QGIS is closed.</source>
-            <translation>L'AI Agent controlla i nuovi file di dati in questa cartella e le pianificazioni che chiedi, solo mentre QGIS è aperto. Non gira nulla quando QGIS è chiuso.</translation>
-        </message>
-        <message>
             <source>Urban planner at the city of Lyon, cadastre and PLU layers in EPSG:2154</source>
             <translation>Urbanista del comune di Lione, layer di catasto e PLU in EPSG:2154</translation>
-        </message>
-        <message>
-            <source>Watch a folder and run my schedules while QGIS is open</source>
-            <translation>Monitora una cartella ed esegui le mie pianificazioni mentre QGIS è aperto</translation>
         </message>
         <message>
             <source>What Pro adds: {points}</source>
@@ -8380,6 +5703,10 @@ Fai clic per aprirne la pagina.</translation>
         <message>
             <source>commercial use, more tasks, memory, your instructions and higher effort</source>
             <translation>uso commerciale, più attività, memoria, le tue istruzioni e sforzo maggiore</translation>
+        </message>
+        <message>
+            <source>Delete this note? The AI will not add it back.</source>
+            <translation>Eliminare questa nota? L'IA non la aggiungerà di nuovo.</translation>
         </message>
     </context>
     <context>
@@ -8471,14 +5798,6 @@ Fai clic per aprirne la pagina.</translation>
             <location filename="src/ui/bubbles.py" />
             <source>Thinking</source>
             <translation>Sto pensando</translation>
-        </message>
-    </context>
-    <context>
-        <name>StepLine</name>
-        <message>
-            <location filename="src/ui/bubbles.py" />
-            <source>for {n}s</source>
-            <translation>per {n}s</translation>
         </message>
     </context>
     <context>
@@ -8657,51 +5976,6 @@ Fai clic per aprirne la pagina.</translation>
     <context>
         <name>ToolExecutor</name>
         <message>
-            <source>{area} km²</source>
-            <translation>{area} km²</translation>
-        </message>
-        <message>
-            <source>{area} ha</source>
-            <translation>{area} ha</translation>
-        </message>
-        <message>
-            <source>{area} m²</source>
-            <translation>{area} m²</translation>
-        </message>
-        <message>
-            <source>the '{layer}' layer ({area})</source>
-            <translation>il layer '{layer}' ({area})</translation>
-        </message>
-        <message>
-            <source>Run {label} on {zone}. This spends your {label} credits.</source>
-            <translation>Esegui {label} su {zone}. Questo consuma i tuoi crediti {label}.</translation>
-        </message>
-        <message>
-            <source> at {resolution}</source>
-            <translation> a {resolution}</translation>
-        </message>
-        <message>
-            <source> at the panel's selected resolution</source>
-            <translation> alla risoluzione scelta nel pannello</translation>
-        </message>
-        <message>
-            <source>{price} credits per generation</source>
-            <translation>{price} crediti per generazione</translation>
-        </message>
-        <message>
-            <source>Run AI Edit{size}: {cost}. Image footprint: {zone}; billing is per generation.</source>
-            <translation>Esegui AI Edit{size}: {cost}. Area coperta dall'immagine: {zone}; l'addebito è per generazione.</translation>
-        </message>
-        <message>
-            <source>about {price} credits per generation (the 2K price; the live price was unavailable)</source>
-            <translation>circa {price} crediti per generazione (il prezzo 2K; il prezzo in tempo reale non era disponibile)</translation>
-        </message>
-        <message>
-            <location filename="src/core/executor.py" />
-            <source>Allowing also covers the other code this answer runs.</source>
-            <translation>Consentire copre anche l'altro codice che questa risposta esegue.</translation>
-        </message>
-        <message>
             <location filename="src/core/executor.py" />
             <source>Question mode is read only: {tool} would modify the project.</source>
             <translation>La modalità domanda è in sola lettura: {tool} modificherebbe il progetto.</translation>
@@ -8756,24 +6030,12 @@ Fai clic per aprirne la pagina.</translation>
             <translation>Questa esecuzione è terminata; la chiamata non è stata eseguita.</translation>
         </message>
         <message>
-            <source>Your answer covers the other code this answer runs.</source>
-            <translation>La tua risposta copre l'altro codice eseguito da questa risposta.</translation>
-        </message>
-        <message>
-            <source>Your answer covers the other {tool} calls this answer makes.</source>
-            <translation>La tua risposta copre le altre chiamate {tool} previste in questa risposta.</translation>
-        </message>
-        <message>
             <source>Question mode is read only: the snippet {what}.</source>
             <translation>La modalità domanda è in sola lettura: lo snippet {what}.</translation>
         </message>
         <message>
             <source>Run Python code</source>
             <translation>Esegui codice Python</translation>
-        </message>
-        <message>
-            <source>Run Python code that {what}.</source>
-            <translation>Esegui codice Python che {what}.</translation>
         </message>
         <message>
             <source>could not be saved first, so Undo could not take it back</source>
@@ -8839,47 +6101,9 @@ Fai clic per aprirne la pagina.</translation>
             <source>Signed in</source>
             <translation>Accesso effettuato</translation>
         </message>
-    </context>
-    <context>
-        <name>ToolGroup</name>
         <message>
-            <location filename="src/ui/tool_rows.py" />
-            <source>%n messages</source>
-            <translation>%n messaggi<numerusform>%n messaggio</numerusform>
-                <numerusform>%n messaggi</numerusform>
-            </translation>
-        </message>
-        <message>
-            <location filename="src/ui/tool_rows.py" />
-            <source>%n tools</source>
-            <translation>%n strumenti<numerusform>%n strumento</numerusform>
-                <numerusform>%n strumenti</numerusform>
-            </translation>
-        </message>
-        <message>
-            <location filename="src/ui/tool_rows.py" />
-            <source>1 message</source>
-            <translation>1 messaggio</translation>
-        </message>
-        <message>
-            <location filename="src/ui/tool_rows.py" />
-            <source>1 tool</source>
-            <translation>1 strumento</translation>
-        </message>
-    </context>
-    <context>
-        <name>ToolStack</name>
-        <message>
-            <location filename="src/ui/tool_rows.py" />
-            <source>%n calls</source>
-            <translation>%n chiamate<numerusform>%n chiamata</numerusform>
-                <numerusform>%n chiamate</numerusform>
-            </translation>
-        </message>
-        <message>
-            <location filename="src/ui/tool_rows.py" />
-            <source>1 call</source>
-            <translation>1 chiamata</translation>
+            <source>could not be put back, so what it changed is still in the project</source>
+            <translation>non è stato possibile ripristinarlo, quindi ciò che ha modificato è ancora nel progetto</translation>
         </message>
     </context>
     <context>
@@ -8937,10 +6161,6 @@ Fai clic per aprirne la pagina.</translation>
             <source>{name}. Click to open.</source>
             <translation>{name}. Fai clic per aprire.</translation>
         </message>
-        <message>
-            <source>Edit message</source>
-            <translation>Modifica messaggio</translation>
-        </message>
     </context>
     <context>
         <name>_LayerChip</name>
@@ -8948,26 +6168,6 @@ Fai clic per aprirne la pagina.</translation>
             <location filename="src/ui/layer_links.py" />
             <source>CRS</source>
             <translation>SR</translation>
-        </message>
-        <message>
-            <location filename="src/ui/layer_links.py" />
-            <source>Click to open it in QGIS.</source>
-            <translation>Fai clic per aprirlo in QGIS.</translation>
-        </message>
-        <message>
-            <location filename="src/ui/layer_links.py" />
-            <source>Its CRS changed. Click to open it in QGIS.</source>
-            <translation>Il suo SR è cambiato. Fai clic per aprirlo in QGIS.</translation>
-        </message>
-        <message>
-            <location filename="src/ui/layer_links.py" />
-            <source>Its file was written on disk. Click to open it in QGIS.</source>
-            <translation>Il suo file è stato scritto su disco. Fai clic per aprirlo in QGIS.</translation>
-        </message>
-        <message>
-            <location filename="src/ui/layer_links.py" />
-            <source>New layer. Click to open it in QGIS.</source>
-            <translation>Nuovo layer. Fai clic per aprirlo in QGIS.</translation>
         </message>
         <message>
             <location filename="src/ui/layer_links.py" />
@@ -9016,22 +6216,8 @@ Fai clic per aprirne la pagina.</translation>
         </message>
         <message>
             <location filename="src/ui/layer_links.py" />
-            <source>{n:+d} features. Click to open it in QGIS.</source>
-            <translation>{n:+d} elementi. Fai clic per aprirlo in QGIS.</translation>
-        </message>
-        <message>
-            <source>{n:+d} feature. Click to open it in QGIS.</source>
-            <translation>{n:+d} elemento. Fai clic per aprirlo in QGIS.</translation>
-        </message>
-        <message>
-            <location filename="src/ui/layer_links.py" />
             <source>Click to select it in the Layers panel.</source>
             <translation>Fai clic per selezionarlo nel pannello Layer.</translation>
-        </message>
-        <message>
-            <location filename="src/ui/layer_links.py" />
-            <source>Credit: {credit}</source>
-            <translation>Attribuzione: {credit}</translation>
         </message>
         <message>
             <location filename="src/ui/layer_links.py" />
@@ -9042,11 +6228,6 @@ Fai clic per aprirne la pagina.</translation>
             <location filename="src/ui/layer_links.py" />
             <source>Its file was written on disk. Click to select it in the Layers panel.</source>
             <translation>Il suo file è stato scritto su disco. Fai clic per selezionarlo nel pannello Layer.</translation>
-        </message>
-        <message>
-            <location filename="src/ui/layer_links.py" />
-            <source>Licence: {licence}</source>
-            <translation>Licenza: {licence}</translation>
         </message>
         <message>
             <location filename="src/ui/layer_links.py" />
@@ -9138,52 +6319,16 @@ Fai clic per aprirne la pagina.</translation>
         </message>
         <message>
             <location filename="src/ui/cards_question.py" />
-            <source>auto</source>
-            <translation>automatico</translation>
-        </message>
-        <message>
-            <location filename="src/ui/cards_question.py" />
             <source>skipped</source>
             <translation>saltato</translation>
-        </message>
-        <message>
-            <source>Something else</source>
-            <translation>Qualcos'altro</translation>
-        </message>
-        <message>
-            <location filename="src/ui/cards_question.py" />
-            <source>Answers itself in %n seconds</source>
-            <translation>Risposta automatica tra %n secondi</translation>
-        </message>
-        <message>
-            <location filename="src/ui/cards_question.py" />
-            <source>Answers itself in 1 second</source>
-            <translation>Risposta automatica tra 1 secondo</translation>
         </message>
     </context>
     <context>
         <name>_StepRow</name>
         <message>
             <location filename="src/ui/cards_tool.py" />
-            <source>%n tools</source>
-            <translation>%n strumenti<numerusform>%n strumento</numerusform>
-                <numerusform>%n strumenti</numerusform>
-            </translation>
-        </message>
-        <message>
-            <location filename="src/ui/cards_tool.py" />
-            <source>1 tool</source>
-            <translation>1 strumento</translation>
-        </message>
-        <message>
-            <location filename="src/ui/cards_tool.py" />
             <source>Failed</source>
             <translation>Non riuscito</translation>
-        </message>
-        <message>
-            <location filename="src/ui/cards_tool.py" />
-            <source>Running</source>
-            <translation>In esecuzione</translation>
         </message>
         <message>
             <source>Done</source>
@@ -9204,52 +6349,20 @@ Fai clic per aprirne la pagina.</translation>
     <context>
         <name>SiblingCard</name>
         <message>
-            <source>Install in QGIS</source>
-            <translation>Installa in QGIS</translation>
-        </message>
-        <message>
             <source>Installed</source>
             <translation>Installato</translation>
-        </message>
-        <message>
-            <source>Open in QGIS</source>
-            <translation>Apri in QGIS</translation>
         </message>
         <message>
             <source>Opens the QGIS plugin manager on this plugin.</source>
             <translation>Apre il gestore plugin di QGIS su questo plugin.</translation>
         </message>
         <message>
-            <source>Read the guide</source>
-            <translation>Leggi la guida</translation>
-        </message>
-        <message>
             <source>Show the plugin's panel.</source>
             <translation>Mostra il pannello del plugin.</translation>
-        </message>
-        <message>
-            <source>The written tutorial, on the TerraLab blog.</source>
-            <translation>Il tutorial scritto, sul blog TerraLab.</translation>
         </message>
     </context>
     <context>
         <name>SiblingsPage</name>
-        <message>
-            <source>Detect objects in a raster and get them back as real polygons: building footprints, trees, water, solar panels, anything you can point at. Runs on your machine or on our servers, and exports to GeoPackage, Shapefile or GeoJSON.</source>
-            <translation>Rileva oggetti in un raster e restituiscili come poligoni reali: impronte degli edifici, alberi, acqua, pannelli solari, tutto ciò che puoi indicare. Funziona sul tuo computer o sui nostri server ed esporta in GeoPackage, Shapefile o GeoJSON.</translation>
-        </message>
-        <message>
-            <source>Repaint the imagery you already have open, from a sentence: a redevelopment before it is built, a street planted with trees, a flood, an orthophoto redrawn as a clean site plan. The result comes back georeferenced, on the source's own extent and CRS.</source>
-            <translation>Ridipingi le immagini già aperte, a partire da una frase: una riqualificazione prima della costruzione, una strada alberata, un'alluvione, un'ortofoto ridisegnata come planimetria pulita. Il risultato torna georeferenziato, sull'estensione e nel CRS della sorgente.</translation>
-        </message>
-        <message>
-            <source>More plugins</source>
-            <translation>Altri plugin</translation>
-        </message>
-        <message>
-            <source>The two other TerraLab plugins for QGIS. They install from here.</source>
-            <translation>Gli altri due plugin TerraLab per QGIS. Si installano da qui.</translation>
-        </message>
         <message>
             <location filename="src/ui/siblings_page.py" />
             <source>Edit your imagery with a single sentence.</source>
@@ -9270,10 +6383,6 @@ Fai clic per aprirne la pagina.</translation>
         <message>
             <source>Update required</source>
             <translation>Da aggiornare</translation>
-        </message>
-        <message>
-            <source>Update to keep using {product}. It takes one click in the QGIS Plugin Manager; the plugin reloads on its own.</source>
-            <translation>Aggiorna per continuare a usare {product}. Basta un clic nel QGIS Plugin Manager; il plugin si ricarica da solo.</translation>
         </message>
         <message>
             <source>You have {installed}.</source>
@@ -9306,46 +6415,6 @@ Fai clic per aprirne la pagina.</translation>
             <translation>Elimina</translation>
         </message>
         <message>
-            <source>Deleted {n} working layer</source>
-            <translation>Eliminato {n} layer di lavoro</translation>
-        </message>
-        <message>
-            <source>Deleted {n} working layers</source>
-            <translation>Eliminati {n} layer di lavoro</translation>
-        </message>
-        <message>
-            <source>I left {n} working layer behind.</source>
-            <translation>Ho lasciato indietro {n} layer di lavoro.</translation>
-        </message>
-        <message>
-            <source>I left {n} working layers behind.</source>
-            <translation>Ho lasciato indietro {n} layer di lavoro.</translation>
-        </message>
-        <message>
-            <source>Keep them</source>
-            <translation>Tienili</translation>
-        </message>
-        <message>
-            <source>Kept {n} working layer</source>
-            <translation>Mantenuto {n} layer di lavoro</translation>
-        </message>
-        <message>
-            <source>Kept {n} working layers</source>
-            <translation>Mantenuti {n} layer di lavoro</translation>
-        </message>
-        <message>
-            <source>Tidied {n} working layer away</source>
-            <translation>Riordinato {n} layer di lavoro</translation>
-        </message>
-        <message>
-            <source>Tidied {n} working layers away</source>
-            <translation>Riordinati {n} layer di lavoro</translation>
-        </message>
-        <message>
-            <source>Tidy up</source>
-            <translation>Riordina</translation>
-        </message>
-        <message>
             <source>Working layers</source>
             <translation>Layer di lavoro</translation>
         </message>
@@ -9357,48 +6426,12 @@ Fai clic per aprirne la pagina.</translation>
             <source>pending</source>
             <translation>in attesa</translation>
         </message>
-        <message>
-            <source>Group and hide</source>
-            <translation>Raggruppa e nascondi</translation>
-        </message>
-        <message>
-            <source>Keep them where they are</source>
-            <translation>Lasciali dove sono</translation>
-        </message>
-        <message>
-            <source>Move them into a hidden, collapsed group named {group}</source>
-            <translation>Spostali in un gruppo nascosto e compresso chiamato {group}</translation>
-        </message>
-        <message>
-            <source>Moved {n} layer into {group}</source>
-            <translation>{n} layer spostato in {group}</translation>
-        </message>
-        <message>
-            <source>Moved {n} layers into {group}</source>
-            <translation>{n} layer spostati in {group}</translation>
-        </message>
-        <message>
-            <source>The agent left {n} working layer behind</source>
-            <translation>L'agente ha lasciato {n} layer di lavoro</translation>
-        </message>
-        <message>
-            <source>The agent left {n} working layers behind</source>
-            <translation>L'agente ha lasciato {n} layer di lavoro</translation>
-        </message>
     </context>
     <context>
         <name>PluginOfferCard</name>
         <message>
             <source>Install</source>
             <translation>Installa</translation>
-        </message>
-        <message>
-            <source>Not now</source>
-            <translation>Non ora</translation>
-        </message>
-        <message>
-            <source>Opened the plugin manager</source>
-            <translation>Ho aperto il gestore dei plugin</translation>
         </message>
         <message>
             <source>pending</source>
@@ -9442,37 +6475,7 @@ Fai clic per aprirne la pagina.</translation>
         </message>
     </context>
     <context>
-        <name>_FileChip</name>
-        <message>
-            <location filename="src/ui/layer_links.py" />
-            <source>Click to show it in its folder.</source>
-            <translation>Fai clic per mostrarlo nella sua cartella.</translation>
-        </message>
-    </context>
-    <context>
-        <name>_WarningsChip</name>
-        <message>
-            <location filename="src/ui/layer_links.py" />
-            <source>%n warnings</source>
-            <translation>%n avvisi</translation>
-        </message>
-        <message>
-            <location filename="src/ui/layer_links.py" />
-            <source>1 warning</source>
-            <translation>1 avviso</translation>
-        </message>
-        <message>
-            <location filename="src/ui/layer_links.py" />
-            <source>What QGIS found when it read the result back. Click to read it.</source>
-            <translation>Cosa ha trovato QGIS rileggendo il risultato. Fai clic per leggerlo.</translation>
-        </message>
-    </context>
-    <context>
         <name>AIAgentLicence</name>
-        <message>
-            <source>Dataset page</source>
-            <translation>Pagina del dataset</translation>
-        </message>
         <message>
             <source>Date unknown</source>
             <translation>Data sconosciuta</translation>
@@ -9480,14 +6483,6 @@ Fai clic per aprirne la pagina.</translation>
         <message>
             <source>Live, loaded {day}</source>
             <translation>Live, caricato il {day}</translation>
-        </message>
-        <message>
-            <source>Your own file</source>
-            <translation>Il tuo file</translation>
-        </message>
-        <message>
-            <source>Your own source</source>
-            <translation>La tua sorgente dati</translation>
         </message>
         <message>
             <source>Dataset page and licence terms</source>
@@ -9586,13 +6581,6 @@ Fai clic per aprirne la pagina.</translation>
         </message>
     </context>
     <context>
-        <name>_VerifyLink</name>
-        <message>
-            <source>Verify</source>
-            <translation>Verifica</translation>
-        </message>
-    </context>
-    <context>
         <name>ChatLabel</name>
         <message>
             <source>Copy</source>
@@ -9618,10 +6606,6 @@ Fai clic per aprirne la pagina.</translation>
             <translation>Immagine</translation>
         </message>
         <message>
-            <source>Not on disk any more</source>
-            <translation>Non più su disco</translation>
-        </message>
-        <message>
             <source>Open</source>
             <translation>Apri</translation>
         </message>
@@ -9630,28 +6614,12 @@ Fai clic per aprirne la pagina.</translation>
             <translation>Apri nel browser</translation>
         </message>
         <message>
-            <source>PDF</source>
-            <translation>PDF</translation>
-        </message>
-        <message>
-            <source>Raster data</source>
-            <translation>Dati raster</translation>
-        </message>
-        <message>
             <source>Show in folder</source>
             <translation>Mostra nella cartella</translation>
         </message>
         <message>
             <source>Table</source>
             <translation>Tabella</translation>
-        </message>
-        <message>
-            <source>Vector data</source>
-            <translation>Dati vettoriali</translation>
-        </message>
-        <message>
-            <source>Web page</source>
-            <translation>Pagina web</translation>
         </message>
         <message>
             <source>{path}
@@ -9710,20 +6678,8 @@ Questo file non è più dove l'esecuzione lo ha scritto.</translation>
             <translation>Passa a Pro</translation>
         </message>
         <message>
-            <source>Get more runs</source>
-            <translation>Ottieni più esecuzioni</translation>
-        </message>
-        <message>
             <source>{n} free tasks left</source>
             <translation>{n} attività gratuite rimaste</translation>
-        </message>
-        <message>
-            <source>{n} runs a month with Pro</source>
-            <translation>{n} esecuzioni al mese con Pro</translation>
-        </message>
-        <message>
-            <source>Get Pro for High effort</source>
-            <translation>Passa a Pro per l'impegno High</translation>
         </message>
         <message>
             <source>Pro: {n} tasks a month, Medium and High effort for harder work, Autopilot</source>
@@ -9746,18 +6702,7 @@ Questo file non è più dove l'esecuzione lo ha scritto.</translation>
         </message>
     </context>
     <context>
-        <name>_MoreRow</name>
-        <message>
-            <source>+%n more</source>
-            <translation>+%n altri</translation>
-        </message>
-    </context>
-    <context>
         <name>_NowLine</name>
-        <message>
-            <source>Now</source>
-            <translation>Adesso</translation>
-        </message>
         <message>
             <source>Current</source>
             <translation>Attuale</translation>
@@ -9770,24 +6715,12 @@ Questo file non è più dove l'esecuzione lo ha scritto.</translation>
             <translation>Chiudi</translation>
         </message>
         <message>
-            <source>Did not do what I asked</source>
-            <translation>Non ha fatto quanto chiesto</translation>
-        </message>
-        <message>
             <source>Send</source>
             <translation>Invia</translation>
         </message>
         <message>
-            <source>Thanks</source>
-            <translation>Grazie</translation>
-        </message>
-        <message>
             <source>Too slow</source>
             <translation>Poco veloce</translation>
-        </message>
-        <message>
-            <source>What went wrong? (optional)</source>
-            <translation>Cosa è andato storto? (facoltativo)</translation>
         </message>
         <message>
             <source>Wrong result</source>
@@ -9856,24 +6789,8 @@ Questo file non è più dove l'esecuzione lo ha scritto.</translation>
             <translation>Aggiungi</translation>
         </message>
         <message>
-            <source>Added to memory</source>
-            <translation>Aggiunto alla memoria</translation>
-        </message>
-        <message>
             <source>Memory</source>
             <translation>Memoria</translation>
-        </message>
-        <message>
-            <source>No thanks</source>
-            <translation>No, grazie</translation>
-        </message>
-        <message>
-            <source>Remember this for next time?</source>
-            <translation>Ricordarlo per la prossima volta?</translation>
-        </message>
-        <message>
-            <source>Replaces: {0}</source>
-            <translation>Sostituisce: {0}</translation>
         </message>
         <message>
             <source>Settings</source>
@@ -9883,15 +6800,11 @@ Questo file non è più dove l'esecuzione lo ha scritto.</translation>
             <source>Show less</source>
             <translation>Mostra meno</translation>
         </message>
-        <message>
-            <source>Show the whole note</source>
-            <translation>Mostra tutta la nota</translation>
-        </message>
     </context>
     <context>
         <name>Toast</name>
         <message>
-            <source>Available when the agent finishes</source>
+            <source>Available when the AI agent finishes</source>
             <translation>Disponibile quando l'agente ha finito</translation>
         </message>
     </context>
@@ -9904,14 +6817,6 @@ Questo file non è più dove l'esecuzione lo ha scritto.</translation>
         <message>
             <source>Layers affected</source>
             <translation>Layer interessati</translation>
-        </message>
-        <message>
-            <source>Removed</source>
-            <translation>Rimosso</translation>
-        </message>
-        <message>
-            <source>Restored</source>
-            <translation>Ripristinato</translation>
         </message>
         <message>
             <source>Put back as before</source>
@@ -9935,16 +6840,6 @@ Questo file non è più dove l'esecuzione lo ha scritto.</translation>
     </context>
     <context>
         <name>_WorkingMore</name>
-        <message>
-            <location filename="src/ui/file_card.py" />
-            <source>1 working file</source>
-            <translation>1 file di lavoro</translation>
-        </message>
-        <message>
-            <location filename="src/ui/file_card.py" />
-            <source>{n} working files</source>
-            <translation>{n} file di lavoro</translation>
-        </message>
         <message>
             <source>+{n} more</source>
             <translation>+{n} altri</translation>
@@ -10059,13 +6954,9 @@ Questo file non è più dove l'esecuzione lo ha scritto.</translation>
             <source>Continue</source>
             <translation>Continua</translation>
         </message>
-    </context>
-    <context>
-        <name>FileCardStack</name>
         <message>
-            <location filename="src/ui/file_card.py" />
-            <source>Working files</source>
-            <translation>File di lavoro</translation>
+            <source>1 day</source>
+            <translation>1 giorno</translation>
         </message>
     </context>
     <context>
@@ -10286,14 +7177,6 @@ Questo file non è più dove l'esecuzione lo ha scritto.</translation>
             <translation>Invia</translation>
         </message>
         <message>
-            <source>Sent with this conversation and your recent logs, to fix issues and improve AI Agent.</source>
-            <translation>Inviato insieme a questa conversazione e ai tuoi log recenti, per correggere i problemi e migliorare AI Agent.</translation>
-        </message>
-        <message>
-            <source>Tell us more</source>
-            <translation>Raccontaci di più</translation>
-        </message>
-        <message>
             <source>Thanks for the feedback</source>
             <translation>Grazie per il feedback</translation>
         </message>
@@ -10335,6 +7218,18 @@ Questo file non è più dove l'esecuzione lo ha scritto.</translation>
         <message>
             <source>{n} more</source>
             <translation>altri {n}</translation>
+        </message>
+        <message>
+            <source>No</source>
+            <translation>No</translation>
+        </message>
+        <message>
+            <source>The algorithm's id, to find it in the Processing toolbox</source>
+            <translation>L'ID dell'algoritmo, per trovarlo negli Strumenti di Processing</translation>
+        </message>
+        <message>
+            <source>Yes</source>
+            <translation>Sì</translation>
         </message>
     </context>
     <context>
@@ -10575,10 +7470,6 @@ Questo file non è più dove l'esecuzione lo ha scritto.</translation>
             <translation>Rimuovi</translation>
         </message>
         <message>
-            <source>Remove the access to {host}</source>
-            <translation>Rimuovi l'accesso a {host}</translation>
-        </message>
-        <message>
             <source>S3 keys</source>
             <translation>Chiavi S3</translation>
         </message>
@@ -10609,10 +7500,6 @@ Questo file non è più dove l'esecuzione lo ha scritto.</translation>
         <message>
             <source>Change project…</source>
             <translation>Cambia progetto…</translation>
-        </message>
-        <message>
-            <source>Google sign-in</source>
-            <translation>Accesso Google</translation>
         </message>
         <message>
             <source>Signed in with the browser</source>
@@ -11610,6 +8497,17 @@ Questo file non è più dove l'esecuzione lo ha scritto.</translation>
         <message>
             <source>Your words are sent with this chat and recent logs.</source>
             <translation>Le tue parole vengono inviate con questa chat e con i log recenti.</translation>
+        </message>
+    </context>
+    <context>
+        <name>NoteRow</name>
+        <message>
+            <source>Delete this note</source>
+            <translation>Elimina questa nota</translation>
+        </message>
+        <message>
+            <source>Edit this note</source>
+            <translation>Modifica questa nota</translation>
         </message>
     </context>
 </TS>

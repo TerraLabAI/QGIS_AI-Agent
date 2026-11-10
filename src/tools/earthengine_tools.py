@@ -318,10 +318,14 @@ def _resolve_source_image(args: dict, ee):
         from ._layers import resolve_layer
 
 
-        layer = run_on_main_thread(resolve_layer, layer_name)
-        if layer is None:
+        def _layer_id():
+            layer = resolve_layer(layer_name)
+            return layer.id() if layer is not None else None
+
+        layer_id = run_on_main_thread(_layer_id)
+        if layer_id is None:
             return None, tool_error(f"Layer '{layer_name}' not found or ambiguous", "LAYER_NOT_FOUND")
-        cached = _EE_LAYERS.get(run_on_main_thread(layer.id))
+        cached = _EE_LAYERS.get(layer_id)
         if cached is None:
             return None, tool_error(f"Layer '{layer_name}' is not an Earth Engine layer added in this session",
                                     "INVALID_ARGS", hint="gee_layer_not_ee")

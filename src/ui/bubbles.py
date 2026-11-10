@@ -8,7 +8,6 @@
 
 
 
-
 from __future__ import annotations
 
 import os
@@ -38,7 +37,7 @@ from qgis.PyQt.QtWidgets import (
     QWidget,
 )
 
-from ..core import openui
+from ..core import openui, trace
 from ..core.qt_compat import one_shot
 from .attach_card import AttachCard
 from .attachments import attachment_caption, attachment_kind, card_art, is_picture, tile_pixmap
@@ -61,6 +60,7 @@ from .style import (
     FONT_BODY,
     FONT_MICRO,
     GREEN,
+    HIT_PX,
     HOVER,
     HOVER_ON,
     INK,
@@ -68,7 +68,7 @@ from .style import (
     INK_3,
     LINE,
     LINE_STRONG,
-    MOTION_FADE_UP_MS,
+    MOTION_FADE_MS,
     RADIUS_CARD,
     RADIUS_CHIP,
     RADIUS_CONTROL,
@@ -77,9 +77,11 @@ from .style import (
     SPACE_STAGE,
     SPACE_TIGHT,
     SURFACE,
+    keyboard_ring,
+    medium_font_weight,
     qcolor,
 )
-from .widgets import FlowLayout, IconButton
+from .widgets import FlowLayout, IconButton, placeholder_ink
 
 _USER_BUBBLE_SHARE = 0.85
 
@@ -102,6 +104,14 @@ _BUBBLE_BORDER = 1
 _STREAM_INTERVAL_MS = 40
 _STREAM_INTERVAL_MAX_MS = 250
 _STREAM_DUTY = 4
+
+
+_STREAM_STATS: dict = {}
+_FRAME_MS = 16.7
+
+
+def take_stream_stats(run_id: str):
+    return _STREAM_STATS.pop(run_id, None)
 
 
 _AGENT_MAX_WIDTH = 720
@@ -215,7 +225,7 @@ class UserBubble(QWidget):
                    if str(c.get("kind") or "") == "source" and c.get("value") and c.get("label")]
         if not sources:
             return
-        from qgis.PyQt.QtGui import QFont, QTextCharFormat
+        from qgis.PyQt.QtGui import QTextCharFormat
 
         document = self._view.document()
         for label, value in sources:
@@ -225,7 +235,7 @@ class UserBubble(QWidget):
                 link.setAnchor(True)
                 link.setAnchorHref(SOURCE_PAGE_SCHEME + value)
                 link.setForeground(qcolor(ACCENT_INK))
-                link.setFontWeight(QFont.Weight.Medium)
+                link.setFontWeight(medium_font_weight())
                 cursor.mergeCharFormat(link)
                 cursor = document.find("@" + label, cursor.position())
 
@@ -360,7 +370,7 @@ class _Thumb(IconButton):
 
     def __init__(self, parent, name: str, tooltip: str, tone: str):
         super().__init__(parent, None, 14, tooltip)
-        self.setFixedSize(22, 22)
+        self.setFixedSize(HIT_PX, HIT_PX)
         self._name, self._tone, self._tooltip = name, tone, tooltip
         self.set_icon(self._name, 14, QColor(INK_3))
 
@@ -434,7 +444,7 @@ class RatingCard(QFrame):
         question.setWordWrap(True)
         head.addWidget(question, 1)
         self._close = IconButton(self, "lu.x", 14, self.tr("Close"))
-        self._close.setFixedSize(22, 22)
+        self._close.setFixedSize(HIT_PX, HIT_PX)
         self._close.setProperty("agentAction", "rating_close")
         self._close.clicked.connect(self.dismiss)
         head.addWidget(self._close, 0, Qt.AlignmentFlag.AlignTop)
@@ -459,6 +469,7 @@ class RatingCard(QFrame):
         self._field = QPlainTextEdit(self._body)
         self._field.setPlaceholderText(self.tr("Add details (optional)") if rating == "down"
                                        else self.tr("Tell us more (optional)"))
+        placeholder_ink(self._field)
         self._field.setTabChangesFocus(True)
         self._field.setFixedHeight(58)
         self._field.textChanged.connect(self._on_text)
@@ -475,6 +486,7 @@ class RatingCard(QFrame):
         foot.addWidget(self._note, 1, Qt.AlignmentFlag.AlignVCenter)
         self._send = QPushButton(self.tr("Send"), self._body)
         self._send.setStyleSheet(_BTN_PRIMARY)
+        keyboard_ring(self._send)
         self._send.setFixedHeight(BTN_SMALL_PX)
         self._send.setCursor(Qt.CursorShape.PointingHandCursor)
         self._send.setProperty("agentAction", "rating_send")
@@ -578,7 +590,8 @@ class RatingCard(QFrame):
             effect = QGraphicsOpacityEffect(self)
             self.setGraphicsEffect(effect)
             fade = QPropertyAnimation(effect, b"opacity", self)
-            fade.setDuration(MOTION_FADE_UP_MS)
+            fade.setDuration(MOTION_FADE_MS)
+            fade.setEasingCurve(QEasingCurve.Type.OutQuint)
             fade.setStartValue(1.0)
             fade.setEndValue(0.0)
             fade.finished.connect(self.finished.emit)
@@ -589,7 +602,6 @@ class RatingCard(QFrame):
 
 
 class AgentBubble(QWidget):
-
 
 
 
@@ -649,6 +661,7 @@ class AgentBubble(QWidget):
         self._report.setObjectName("answerReport")
         self._report.setProperty("agentAction", "report")
         self._report.setStyleSheet(_BTN_QUIET)
+        keyboard_ring(self._report)
         self._report.setIcon(icon_for(self._report, "lu.file-text", 14, QColor(INK_2)))
         self._report.setIconSize(QSize(14, 14))
         self._report.setToolTip(
@@ -667,6 +680,7 @@ class AgentBubble(QWidget):
         self._restore.setObjectName("answerRestore")
         self._restore.setProperty("agentAction", "restore")
         self._restore.setStyleSheet(_BTN_QUIET)
+        keyboard_ring(self._restore)
         self._restore.setCursor(Qt.CursorShape.PointingHandCursor)
         self._restore.setFocusPolicy(Qt.FocusPolicy.TabFocus)
         self._restore.clicked.connect(self.restore_clicked.emit)
@@ -699,16 +713,26 @@ class AgentBubble(QWidget):
         self._linked = False
         self._followed = ""
         self._timer = one_shot(self, self._flush_pending, _STREAM_INTERVAL_MS)
+        self._interval_ms = _STREAM_INTERVAL_MS
+        self._drawn_at = 0.0
         if text:
             self.set_text(text)
 
     def append_token(self, text: str) -> None:
 
+
+
+
         if not text or self._finished:
             return
         self._pending.append(text)
-        if not self._timer.isActive():
-            self._timer.start()
+        if self._timer.isActive():
+            return
+        waited_ms = (time.perf_counter() - self._drawn_at) * 1000.0
+        if waited_ms >= self._interval_ms:
+            self._flush_pending()
+        else:
+            self._timer.start(max(1, int(self._interval_ms - waited_ms)))
 
     def flush(self) -> None:
 
@@ -774,8 +798,14 @@ class AgentBubble(QWidget):
         self._linked = not streaming
         if streaming:
             spent_ms = (time.perf_counter() - started) * 1000.0
-            interval = int(min(_STREAM_INTERVAL_MAX_MS, max(_STREAM_INTERVAL_MS, spent_ms * _STREAM_DUTY)))
-            self._timer.setInterval(interval)
+            self._interval_ms = int(min(_STREAM_INTERVAL_MAX_MS, max(_STREAM_INTERVAL_MS, spent_ms * _STREAM_DUTY)))
+            if self.run_id:
+                stats = _STREAM_STATS.setdefault(self.run_id, [0, 0, 0.0, time.perf_counter()])
+                stats[0] += 1
+                stats[1] += spent_ms > _FRAME_MS
+                stats[2] = max(stats[2], spent_ms)
+        self._drawn_at = time.perf_counter()
+        trace.mark("render", s=time.perf_counter() - started, chars=len(self._text), streaming=streaming)
 
     def _render_parts(self, parts: list, streaming: bool, gone) -> None:
 
@@ -993,14 +1023,13 @@ class AgentBubble(QWidget):
 
 
 
-
         self._stop_fade()
         try:
             effect = QGraphicsOpacityEffect(widget)
             effect.setOpacity(0.0)
             widget.setGraphicsEffect(effect)
             fade = QPropertyAnimation(effect, b"opacity", widget)
-            fade.setDuration(MOTION_FADE_UP_MS)
+            fade.setDuration(MOTION_FADE_MS)
             fade.setStartValue(0.0)
             fade.setEndValue(1.0)
             fade.setEasingCurve(QEasingCurve.Type.OutQuint)

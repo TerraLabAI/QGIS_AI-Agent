@@ -15,8 +15,9 @@ from ..core import openui, telemetry
 from ..core import telemetry_events as ev
 from ..core.qt_compat import one_shot
 from ..core.snapshot_report import run_change_items
-from .bubbles import AgentBubble, StatusLine, UserBubble
-from .cards import RunSummaryCard, ToolCard
+from .bubbles import AgentBubble, StatusLine, UserBubble, take_stream_stats
+from .cards_run import RunSummaryCard
+from .cards_tool import ToolCard
 from .chat_panel_shared import _is_nothing_changed, _Run
 from .external_links import open_local_path
 from .feedback_dialog import send_answer_words
@@ -236,7 +237,9 @@ class _ChatPanelRuns:
         if run_id == self._current_run:
             self._sync_answer_restores()
         self._show_thread_surface()
-        QTimer.singleShot(0, self.message_list.scroll_to_bottom)
+
+
+        QTimer.singleShot(0, lambda: self.message_list.scroll_to_bottom(animate=False))
 
     def drop_turn(self, run_id: str) -> None:
 
@@ -282,6 +285,10 @@ class _ChatPanelRuns:
             return
         run.bubble.set_text("")
         run.segment_break = False
+
+    def take_stream_stats(self, run_id: str):
+
+        return take_stream_stats(run_id)
 
     def append_token(self, run_id: str, text: str) -> None:
         if not isinstance(text, str) or not text:
@@ -435,102 +442,106 @@ class _ChatPanelRuns:
         run = self._live_run(run_id)
         if run is None:
             return
-        self._schedule_queue_after_run(status)
-        if run is not None and run.bubble is not None:
-            run.bubble.flush()
-        usage = usage if isinstance(usage, dict) else {}
-        seconds = usage.get("duration_s", usage.get("elapsed_s"))
-        if seconds is None and run is not None:
-            seconds = time.monotonic() - run.started
+
+
         try:
-            seconds = max(0.0, float(seconds)) if seconds is not None else None
-        except (TypeError, ValueError, OverflowError):
-            seconds = time.monotonic() - run.started if run is not None else 0.0
-        if run is not None and seconds is not None:
-            user_waiting(False)
-            seconds = max(0.0, float(seconds) - waited_between(run.started))
-        blocks = self.message_list.traces_of(run_id)
-        streamed = run.bubble.text().strip() if run is not None and run.bubble is not None else ""
-        summary = (summary or "").strip()
-        if streamed:
-            summary = ""
-        elif summary and status == "done":
-            bubble = self._bubble_for(run_id)
-            self._wire_answer(bubble, run_id)
-            bubble.set_text(summary)
-            summary = ""
+            self._schedule_queue_after_run(status)
+            if run is not None and run.bubble is not None:
+                run.bubble.flush()
+            usage = usage if isinstance(usage, dict) else {}
+            seconds = usage.get("duration_s", usage.get("elapsed_s"))
+            if seconds is None and run is not None:
+                seconds = time.monotonic() - run.started
+            try:
+                seconds = max(0.0, float(seconds)) if seconds is not None else None
+            except (TypeError, ValueError, OverflowError):
+                seconds = time.monotonic() - run.started if run is not None else 0.0
+            if run is not None and seconds is not None:
+                user_waiting(False)
+                seconds = max(0.0, float(seconds) - waited_between(run.started))
+            blocks = self.message_list.traces_of(run_id)
+            streamed = run.bubble.text().strip() if run is not None and run.bubble is not None else ""
+            summary = (summary or "").strip()
+            if streamed:
+                summary = ""
+            elif summary and status == "done":
+                bubble = self._bubble_for(run_id)
+                self._wire_answer(bubble, run_id)
+                bubble.set_text(summary)
+                summary = ""
 
 
-        reason = "" if status == "done" else "stopped"
-        for block in blocks:
-            for card in block.tools:
-                if card.ok is None and not getattr(card, "ended", ""):
-                    card.mark_unfinished(reason)
+            reason = "" if status == "done" else "stopped"
+            for block in blocks:
+                for card in block.tools:
+                    if card.ok is None and not getattr(card, "ended", ""):
+                        card.mark_unfinished(reason)
 
 
-        ended = ("waiting" if status == "done" and run.handed_back and not run.produced
-                 and self._changed_count <= 0 else status)
-        for block in blocks:
+            ended = ("waiting" if status == "done" and run.handed_back and not run.produced
+                     and self._changed_count <= 0 else status)
+            for block in blocks:
 
 
-            if not block.is_empty():
-                block.finish(ended, seconds)
-        if run.plan is not None:
-            run.plan.finish(status)
-        if status == "failed":
-
-
-
-            for block in reversed(blocks):
-                if block.reveal_failure() or block.ended_well():
-                    break
-
-
-        lines = RunSummaryCard._verification_lines(verification, with_changes=self._changed_count <= 0)
-        if status == "done":
-            lines = [line for line in lines if not _is_nothing_changed(line)]
-        said = self._error_said.pop(run_id, "")
+                if not block.is_empty():
+                    block.finish(ended, seconds)
+            if run.plan is not None:
+                run.plan.finish(status)
+            if status == "failed":
 
 
 
+                for block in reversed(blocks):
+                    if block.reveal_failure() or block.ended_well():
+                        break
 
 
-        repeat = bool(said) and (said == (summary or "").strip() or not (summary or lines))
-
-
-
-
-        bare = not (summary or lines) and (status == "cancelled" or any(not block.is_empty() for block in blocks))
-        if not repeat and not bare and status != "done":
-            self._add(RunSummaryCard(status, summary, usage, {"lines": lines} if lines else None,
-                                     duration_s=seconds,
-                                     headed=any(not block.is_empty() for block in blocks)))
-        last = self.message_list.last_widget(ignore=self._status)
-        if run.bubble is not None and status != "done" and last is not run.bubble \
-                and last in blocks:
-
-
-
-            run.bubble.end_text()
-            run.bubble = None
-        if run.bubble is None and status != "done":
+            lines = RunSummaryCard._verification_lines(verification, with_changes=self._changed_count <= 0)
+            if status == "done":
+                lines = [line for line in lines if not _is_nothing_changed(line)]
+            said = self._error_said.pop(run_id, "")
 
 
 
 
-            run.bubble = self.answer_row(run_id)
-        if run is not None and run.bubble is not None:
-            run.bubble.finish_streaming()
-        self._add_layer_links(run_id)
-        if status == "done" and run.bubble is not None and _worth_a_report(run):
-            self._wire_answer(run.bubble, run_id)
-            run.bubble.set_report_offer(True)
-            _track(ev.AGENT_REPORT_OFFER_SHOWN, run_id)
-        self._mark_compaction(usage)
-        self._drop_status()
-        if self._current_run == run_id or self._current_run is None:
-            self._current_run = None
-            self.composer.set_running(False)
+
+            repeat = bool(said) and (said == (summary or "").strip() or not (summary or lines))
+
+
+
+
+            bare = not (summary or lines) and (status == "cancelled" or any(not block.is_empty() for block in blocks))
+            if not repeat and not bare and status != "done":
+                self._add(RunSummaryCard(status, summary, usage, {"lines": lines} if lines else None,
+                                         duration_s=seconds,
+                                         headed=any(not block.is_empty() for block in blocks)))
+            last = self.message_list.last_widget(ignore=self._status)
+            if run.bubble is not None and status != "done" and last is not run.bubble \
+                    and last in blocks:
+
+
+
+                run.bubble.end_text()
+                run.bubble = None
+            if run.bubble is None and status != "done":
+
+
+
+
+                run.bubble = self.answer_row(run_id)
+            if run is not None and run.bubble is not None:
+                run.bubble.finish_streaming()
+            self._add_layer_links(run_id)
+            if status == "done" and run.bubble is not None and _worth_a_report(run):
+                self._wire_answer(run.bubble, run_id)
+                run.bubble.set_report_offer(True)
+                _track(ev.AGENT_REPORT_OFFER_SHOWN, run_id)
+            self._mark_compaction(usage)
+        finally:
+            self._drop_status()
+            if self._current_run == run_id or self._current_run is None:
+                self._current_run = None
+                self.composer.set_running(False)
 
         self._sync_answer_restores()
 

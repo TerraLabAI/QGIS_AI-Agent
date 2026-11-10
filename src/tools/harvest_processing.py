@@ -44,8 +44,8 @@ from ..core.tool_registry import Tool, ToolRegistry, coded_fact, tool_error
 from ._compat import is_raster
 from ._layers import take_layer_name
 from .data_common import worker_options
-from .harvest_analysis import _expand, _field_error
-from .layer_lookup import require_raster, require_vector
+from .harvest_analysis import _expand
+from .layer_lookup import _field_not_found_error, require_raster, require_vector
 from .postconditions import compute_checks
 from .processing_decisions import calculator_inputs_on_grid, nodata_sentinel
 from .processing_guards import fitting_pixel_size
@@ -197,6 +197,27 @@ def register_harvest_processing_tools(registry: ToolRegistry):
         },
         handler=_find_processing_algorithm,
     ))
+
+
+def dialog_call(name: str, args) -> tuple[str, dict]:
+
+
+
+
+    args = args if isinstance(args, dict) else {}
+    if name == "zonal_statistics":
+        return "native:zonalstatisticsfb", {
+            "INPUT": args.get("polygon_layer"), "INPUT_RASTER": args.get("raster_layer"),
+            "RASTER_BAND": args.get("band") or 1, "COLUMN_PREFIX": args.get("prefix") or "_",
+            "STATISTICS": args.get("stats") or [0, 1, 2]}
+    if name == "spatial_join":
+        method = {"one_to_many": 0, "first_match": 1, "largest_overlap": 2}.get(
+            args.get("method", 1), args.get("method", 1))
+        return "native:joinattributesbylocation", {
+            "INPUT": args.get("target_layer"), "JOIN": args.get("join_layer"),
+            "PREDICATE": args.get("predicates") or [0], "JOIN_FIELDS": args.get("join_fields") or [],
+            "METHOD": method, "PREFIX": args.get("prefix", "")}
+    return "", {}
 
 
 def _run_alg(alg_id: str, params: dict):
@@ -424,7 +445,7 @@ def _spatial_join(args: dict) -> dict:
     join_fields = args.get("join_fields") or []
     missing = [f for f in join_fields if join.fields().indexOf(f) < 0]
     if missing:
-        return _field_error(join, missing[0])
+        return _field_not_found_error(join, missing[0])
     note = None
     if target.crs() != join.crs():
         note = (
@@ -1029,9 +1050,12 @@ def _source_texts(algorithms) -> dict:
 
 
 
-    from qgis.PyQt.QtCore import QCoreApplication, QEvent, QLocale, QTranslator
+    from qgis.PyQt.QtCore import QCoreApplication, QEvent, QTranslator
 
-    locale = str(QgsApplication.locale() or QLocale().name() or "")
+
+    from ..core.i18n import current_locale
+
+    locale = current_locale()
     if not locale or locale.lower().startswith("en"):
         return {}
 

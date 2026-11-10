@@ -39,7 +39,7 @@ from qgis.PyQt.QtCore import QT_TRANSLATE_NOOP
 from ..core import limits, net, output_paths, security, tuning
 from ..core.background import run_on_main_thread
 from ..core.context_layers import crs_units
-from ..core.host_platform import remove_quietly, retry_file_op
+from ..core.host_platform import remove_quietly
 from ..core.logger import log_warning
 from ..core.numbers import as_finite, as_float
 from ..core.qt_compat import enum_member
@@ -48,6 +48,7 @@ from ..core.tool_registry import Tool, ToolRegistry, tool_error
 from ..core.vsi import thread_options
 from ..core.writeback import write_atomic
 from ._layers import layer_not_found, resolve_layer
+from .layer_files import companions, swap_in
 
 
 
@@ -836,15 +837,16 @@ def _georeference_raster(args: dict) -> dict:
 
         gdal.Warp(part, gcp_vrt, options=options)
         _overviews(gdal, part, "NEAREST" if paletted else "AVERAGE", progress)
-        try:
-            retry_file_op(os.replace, part, target)
-        except PermissionError as exc:
+
+
+        refused = swap_in([(part, target)], companions(target))
+        if refused:
 
 
 
             failed = tool_error(
                 f"The georeferenced image was computed but could not replace {target}: the file is open, in this "
-                f"project or another program ({exc.strerror or exc}).", "EXECUTION_FAILED",
+                f"project or another program ({refused}).", "EXECUTION_FAILED",
                 hint="georef_output_locked", path=target)
         else:
             part = ""

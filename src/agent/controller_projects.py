@@ -7,7 +7,7 @@
 from __future__ import annotations
 
 from qgis.PyQt import sip
-from qgis.PyQt.QtCore import QCoreApplication, QTimer
+from qgis.PyQt.QtCore import QTimer
 
 from ..core import layer_removed
 from ..core.checkpoints import _in_snapshots, _open_project_file
@@ -16,10 +16,7 @@ from ..core.protocol import CANCEL_PROJECT_CLOSED, RunStatus
 from ..core.security import warm_layer_roots
 from ..core.snapshot import changed_layer_items
 from .controller_actions import _project_path
-
-
-def tr(text: str) -> str:
-    return QCoreApplication.translate("AgentController", text)
+from .controller_shared import tr
 
 
 class _ControllerProjects:
@@ -44,8 +41,9 @@ class _ControllerProjects:
                 (project.layersAdded, _warm_layer_roots),
                 (project.layerTreeRoot().addedChildren, self._schedule_scratch_marks),
                 (project.layersWillBeRemoved, self._on_layers_removing),
-                (project.aboutToBeCleared, layer_removed.on_clearing),
             ]
+            if hasattr(project, "aboutToBeCleared"):
+                self._project_connections.append((project.aboutToBeCleared, layer_removed.on_clearing))
             for signal, slot in self._project_connections:
                 signal.connect(slot)
         except Exception as exc:  # noqa: BLE001
@@ -79,6 +77,11 @@ class _ControllerProjects:
 
         self._executor.history.project_opened()
         self._on_project_opened(*_args)
+        if self._executor.history.interrupted_restore() is not None:
+            self.notice.emit("warning", tr(
+                "QGIS closed while going back to an earlier step: some files are at that step and others "
+                "are not. Open Map history and go back to that step again to finish. It may list those "
+                "files as your own changes: they are the unfinished step."))
 
     def _on_project_cleared(self, *_args) -> None:
 

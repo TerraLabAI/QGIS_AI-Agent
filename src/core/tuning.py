@@ -144,18 +144,18 @@ def subscribe(listener: Any) -> None:
 def limit(section: str, name: str, default: int) -> int:
 
     value = _DOC.get(section, {}).get(name)
-    return value if isinstance(value, int) and not isinstance(value, bool) else default
+    return default if value is None else value
 
 
 def number(section: str, name: str, default: float) -> float:
 
     value = _DOC.get(section, {}).get(name)
-    return value if isinstance(value, (int, float)) and not isinstance(value, bool) else default
+    return default if value is None else value
 
 
 def flag(section: str, name: str, default: bool) -> bool:
     value = _DOC.get(section, {}).get(name)
-    return value if isinstance(value, bool) else default
+    return default if value is None else value
 
 
 def socket_clocks(shipped: dict) -> dict:
@@ -247,7 +247,7 @@ def check_algs(key: str, shipped) -> frozenset:
 
 
     added = (_DOC.get("checks") or {}).get(key)
-    if not isinstance(added, list) or not added:
+    if not added:
         return frozenset(shipped)
     return frozenset(shipped) | frozenset(added)
 
@@ -260,7 +260,7 @@ def names(key: str, shipped):
 
 
     added = (_DOC.get("names") or {}).get(key)
-    if not isinstance(added, list) or not added:
+    if not added:
         return shipped
     if isinstance(shipped, tuple):
         return shipped + tuple(name for name in added if name not in shipped)

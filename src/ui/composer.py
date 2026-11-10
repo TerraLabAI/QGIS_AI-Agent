@@ -30,7 +30,7 @@ import os
 import sys
 import time
 
-from qgis.PyQt.QtCore import QEvent, QSize, Qt, QTimer, pyqtSignal
+from qgis.PyQt.QtCore import QEvent, QLocale, QSize, Qt, QTimer, pyqtSignal
 from qgis.PyQt.QtGui import QColor, QImage
 from qgis.PyQt.QtWidgets import (
     QFileDialog,
@@ -42,7 +42,7 @@ from qgis.PyQt.QtWidgets import (
     QWidget,
 )
 
-from ..core import drafts, first_run_funnel, limits
+from ..core import drafts, first_run_funnel, limits, trace
 from ..core.layer_mime import ChipRow, layer_chip, layer_ids_from_mime, live_layer_chips, mime_has_layers
 from ..core.prompt_quality import NOT_A_TASK, TOO_SHORT, check_prompt
 from ..core.qt_compat import one_shot
@@ -154,6 +154,7 @@ class _AttachButton(IconButton):
         self.setObjectName("attachButton")
         self.setStyleSheet(_ATTACH_BTN_QSS)
         self.setFixedSize(_ATTACH_PX, _ATTACH_PX)
+        self.ring_radius = _ATTACH_PX / 2
         self.paint_glyph(False)
 
     def paint_glyph(self, hovered: bool) -> None:
@@ -326,6 +327,11 @@ class Composer(QFrame):
         self._send_btn.setIconSize(QSize(_DISC_GLYPH, _DISC_GLYPH))
         self._send_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         self._send_btn.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+
+
+        QWidget.setTabOrder(self._input, self._attach_btn)
+        QWidget.setTabOrder(self._attach_btn, self._permission_chip)
+        QWidget.setTabOrder(self._permission_chip, self._effort_chip)
         self._send_btn.setProperty("running", False)
         self._send_btn.setProperty("queue", False)
 
@@ -773,6 +779,7 @@ class Composer(QFrame):
 
 
 
+
         mention = dict(chip) if isinstance(chip, dict) and chip.get("value") else None
         draft = self.text().strip()
         if mention is None:
@@ -787,6 +794,11 @@ class Composer(QFrame):
                 self._input.append_text("\n\n", at_end=True)
             self.pin_mention(mention)
             self.append_text(text)
+        files = chip.get("attach") if isinstance(chip, dict) else None
+        for path in files if isinstance(files, list) else ():
+            item = attachment_from_path(str(path))
+            if item:
+                self.add_attachment(item)
         self.focus_input()
 
     def attach_popover(self) -> AttachPopover:
@@ -1212,7 +1224,7 @@ class Composer(QFrame):
             self._send_btn.setIcon(icon_for(self._send_btn, "lu.corner-down-left", _DISC_GLYPH, qcolor(INK)))
             self._send_btn.setToolTip(
                 self.tr("The queue holds 5 messages. Send or remove one first.") if self._queue_full else
-                self.tr("Queue it: the agent reads it at its next step (Enter)"))
+                self.tr("Queue it: the AI agent reads it at its next step (Enter)"))
             self._send_btn.setAccessibleName(self.tr("Queue"))
         elif self._running:
 
@@ -1334,6 +1346,7 @@ class Composer(QFrame):
         self._last_sent = self.text()
         self._last_sent_items = [dict(item) for item in self._items]
         self._sent_at = time.monotonic()
+        trace.mark("send.click")
         self.send_clicked.emit()
 
     def _recall_last(self) -> None:
@@ -1385,7 +1398,7 @@ class Composer(QFrame):
         length = len(self.text().strip())
         if length > cap:
             return self.tr("This message is {n} characters long, over the {cap} one message can carry. "
-                           "Shorten it.").format(n=f"{length:,}", cap=f"{cap:,}")
+                           "Shorten it.").format(n=QLocale().toString(length), cap=QLocale().toString(cap))
         heaviest = self.attachments_over_budget()
         if heaviest is not None:
             return self.tr("These attachments are too large to send in one message. Remove {name} "

@@ -74,6 +74,7 @@ from .style import (
     RED,
     SPACE_CARD,
     SPACE_TIGHT,
+    medium_font_weight,
     qcolor,
 )
 
@@ -175,7 +176,7 @@ def _name_font(px: int = FONT_HINT, weight: int = 500):
 
 
 
-    font.setWeight(enum_member(QFont, "Weight", "Medium" if weight >= 500 else "Normal"))
+    font.setWeight(medium_font_weight() if weight >= 500 else enum_member(QFont, "Weight", "Normal"))
     return font
 
 

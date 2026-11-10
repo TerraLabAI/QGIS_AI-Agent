@@ -23,6 +23,7 @@ import io
 import os
 import random
 import re
+import ssl
 import threading
 import time
 import urllib.error
@@ -30,7 +31,7 @@ import urllib.parse
 import urllib.request
 import zlib
 
-from . import data_access, limits, read_clock, tuning
+from . import data_access, limits, missing_roots, read_clock, tuning
 from .host_platform import retry_file_op
 from .logger import log_warning
 from .net_failure import (
@@ -104,6 +105,7 @@ from .net_opener import (
     check_url,
     close_idle_connections,
     proxy_in_use,
+    reload_system_trust,
     set_proxy,
     set_trust,
     withdrawn_reason,
@@ -255,7 +257,15 @@ def open_url(request, timeout: float, connect_timeout: float | None = None):
     opener = _opener()
     _CONNECT_LOCAL.connect_timeout = connect_timeout or None
     try:
-        response = opener.open(request, timeout=timeout)  # nosec B310
+        try:
+            response = opener.open(request, timeout=timeout)  # nosec B310
+        except urllib.error.URLError as exc:
+
+
+            if not isinstance(exc.reason, ssl.SSLCertVerificationError) or not missing_roots.learn(url):
+                raise
+            reload_system_trust()
+            response = _opener().open(request, timeout=timeout)  # nosec B310
         timing = getattr(response, "timing", None)
         if isinstance(timing, dict):
             timing["dns_ms"] = looked_up
@@ -351,10 +361,7 @@ def read_bounded(response, max_bytes: int, deadline: float | None = None, cancel
 
 def _declared_length(headers) -> int | None:
 
-    try:
-        raw = headers.get("Content-Length") or headers.get("content-length")
-    except Exception:  # noqa: BLE001
-        return None
+    raw = headers.get("Content-Length") or headers.get("content-length")
     value = as_int(str(raw).strip())
     if value is None:
         return None
@@ -591,6 +598,7 @@ def report_timing(request, response, started: float, wire_bytes: int) -> None:
 
 
 
+
     sink = current_timing_sink()
     if sink is None:
         return
@@ -633,10 +641,7 @@ def _refusal_readable(exc: urllib.error.HTTPError) -> urllib.error.HTTPError:
 
 
     headers = getattr(exc, "headers", None)
-    try:
-        encoding = str(headers.get("Content-Encoding") or "") if headers is not None else ""
-    except Exception:  # noqa: BLE001
-        return exc
+    encoding = str(headers.get("Content-Encoding") or "") if headers is not None else ""
     kind = encoding.strip().lower().split(",")[0].strip()
     if kind not in ("gzip", "x-gzip", "deflate"):
         return _refusal_drained(exc, headers)
@@ -877,8 +882,9 @@ def _send_politely(request, url: str, method: str, timeout: float, max_bytes: in
             gate.free()
 
 
-    moved = urllib.request.Request(regional, data=request.data, headers=dict(request.header_items()),
-                                   method=method)
+
+    moved = urllib.request.Request(regional, data=request.data, method=method,
+                                   headers={k: v for k, v in request.header_items() if k.lower() != "host"})
     return _send_politely(moved, regional, method, timeout, max_bytes, deadline, cancel, budget,
                           connect_timeout, send)
 
@@ -964,6 +970,7 @@ def _send_to_file(request, path: str, timeout: float, max_bytes: int, deadline: 
 def _stream_once(request, path: str, part: str, timeout: float, max_bytes: int, deadline: float | None, cancel,
                  budget: float | None, connect_timeout: float | None) -> Streamed:
     extra = {"connect_timeout": connect_timeout} if connect_timeout else {}
+    started = time.perf_counter()
     try:
         with open_url(request, timeout=timeout, **extra) as response:
             promised = _declared_length(response.headers)
@@ -1028,6 +1035,7 @@ def _stream_once(request, path: str, part: str, timeout: float, max_bytes: int, 
                 raise PermissionError(
                     exc.errno, f"The download finished but could not replace {path}: another program holds "
                     f"that file open ({exc.strerror or exc}); another name avoids it.") from exc
+            report_timing(request, response, started, wire)
             return Streamed(path, inflater.written, wire, headers, response.geturl())
     except urllib.error.HTTPError as exc:
         exc = _refusal_readable(exc)
@@ -1116,6 +1124,8 @@ def race(attempts, *, workers: int | None = None, stagger: float | None = None):
         label, call = attempts[0]
         try:
             return label, call(), []
+        except FetchCancelled:
+            raise
         except Exception as exc:  # noqa: BLE001
             return None, None, [f"{label}: {exc}"]
 
@@ -1177,6 +1187,8 @@ def race(attempts, *, workers: int | None = None, stagger: float | None = None):
                 value = future.result()
             except _NotNeeded:
                 continue
+            except FetchCancelled:
+                raise
             except Exception as exc:  # noqa: BLE001
                 errors.append(f"{label}: {exc}")
                 continue

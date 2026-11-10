@@ -84,7 +84,7 @@ from ..core.tool_registry import Tool, ToolRegistry, coded_fact, tool_error
 from ._layers import layer_not_found, resolve_layer_note
 from .colour_text import hex_from_qcolor, qcolor_from_text
 from .layout_facts import _apply_scale, _layout_credits, _page_summary
-from .layout_reads import layout_reads
+from .layout_reads import layout_reads, legend_auto_updates
 from .report_read import report_summary
 
 
@@ -610,6 +610,31 @@ def _page_scale(layout) -> float:
         return 1.0
 
 
+def _points_unit():
+    points = enum_member(Qgis, "RenderUnit", "Points", None) if Qgis is not None else None
+    return points if points is not None else enum_member(QgsUnitTypes, "RenderUnit", "RenderPoints", None)
+
+
+def _font_into(text_format, font):
+
+
+    text_format.setFont(font)
+    points = _points_unit()
+    if font.pointSizeF() > 0 and points is not None:
+        text_format.setSize(font.pointSizeF())
+        text_format.setSizeUnit(points)
+    return text_format
+
+
+def _label_font(label):
+
+    return label.textFormat().toQFont()
+
+
+def _set_label_font(label, font) -> None:
+    label.setTextFormat(_font_into(label.textFormat(), font))
+
+
 def _legend_font(legend, member: str, size: float, bold: bool) -> None:
 
     from qgis.core import QgsLegendStyle
@@ -621,14 +646,11 @@ def _legend_font(legend, member: str, size: float, bold: bool) -> None:
     font = QFont()
     font.setPointSizeF(size)
     font.setBold(bold)
-    if hasattr(legend, "setStyleFont"):
-        legend.setStyleFont(component, font)
-        return
     style = legend.rstyle(component)
-    text_format = style.textFormat()
-    text_format.setFont(font)
-    text_format.setSize(size)
-    style.setTextFormat(text_format)
+    if hasattr(style, "setTextFormat"):
+        style.setTextFormat(_font_into(style.textFormat(), font))
+    else:
+        legend.setStyleFont(component, font)
 
 
 def _legend_entries(legend) -> list:
@@ -696,7 +718,7 @@ def _heading_hidden(node) -> bool:
         return False
 
 
-def _legend_manual(legend) -> None:
+def _legend_sync(legend, auto: bool) -> None:
 
 
 
@@ -704,22 +726,12 @@ def _legend_manual(legend) -> None:
 
 
 
-    mode = getattr(getattr(Qgis, "LegendSyncMode", None), "Manual", None) if Qgis is not None else None
-    if mode is not None and hasattr(legend, "setSyncMode"):
-        legend.setSyncMode(mode)
+
+    modes = getattr(Qgis, "LegendSyncMode", None) if Qgis is not None else None
+    if modes is not None and hasattr(legend, "setSyncMode"):
+        legend.setSyncMode(modes.AllProjectLayers if auto else modes.Manual)
     else:
-        legend.setAutoUpdateModel(False)
-
-
-def _auto_updates(legend) -> bool:
-
-    manual = getattr(getattr(Qgis, "LegendSyncMode", None), "Manual", None) if Qgis is not None else None
-    try:
-        if manual is not None and hasattr(legend, "syncMode"):
-            return legend.syncMode() != manual
-        return bool(legend.autoUpdateModel())
-    except (AttributeError, RuntimeError):
-        return False
+        legend.setAutoUpdateModel(auto)
 
 
 def _node_keys(node) -> set:
@@ -865,7 +877,7 @@ def _curate_legend(legend, args: dict) -> dict:
     order, labels, hide = args.get("order"), args.get("labels"), args.get("hide_headers")
     if not (order or labels or hide):
         return {}
-    _legend_manual(legend)
+    _legend_sync(legend, False)
     out, warnings = {}, []
 
 
@@ -1084,11 +1096,11 @@ def _default_curation(legend, args: dict) -> dict:
             model.refreshLayerLegend(node)
 
 
-    manual_anyway = not _auto_updates(legend) or any(args.get(key) for key in ("order", "labels", "hide_headers"))
+    manual_anyway = not legend_auto_updates(legend) or any(args.get(key) for key in ("order", "labels", "hide_headers"))
     if not (basemaps or renames or empty or band_heads or (capitals and manual_anyway)):
         return {"ramp_labels_rounded": rounded} if rounded else {}
     renames += capitals
-    _legend_manual(legend)
+    _legend_sync(legend, False)
 
     root = legend.model().rootGroup()
     out = {}
@@ -1154,7 +1166,7 @@ def _legend_pick_layers(legend, keep, drop) -> list:
         return []
     removed = []
     try:
-        _legend_manual(legend)
+        _legend_sync(legend, False)
         root = legend.model().rootGroup()
         for node in list(root.findLayers()):
             layer = node.layer()
@@ -1336,22 +1348,18 @@ def _apply_box_style(item, args: dict, text: bool = False):
         item.setBackgroundColor(colours["background_color"])
         applied["background_color"] = hex_from_qcolor(item.backgroundColor())
     if text and args.get("font_family"):
-        font = QFont(item.font())
+        font = _label_font(item)
         font.setFamily(str(args["font_family"]))
-        item.setFont(font)
+        _set_label_font(item, font)
         applied["font_family"] = QFontInfo(font).family()
         if applied["font_family"].casefold() != str(args["font_family"]).casefold():
             applied["font_family_note"] = (f"{str(args['font_family'])!r} is not installed here; "
                                            f"QGIS draws the text in {applied['font_family']!r}.")
     if "font_color" in colours:
-        if hasattr(item, "textFormat"):
-            text_format = item.textFormat()
-            text_format.setColor(colours["font_color"])
-            item.setTextFormat(text_format)
-            applied["font_color"] = hex_from_qcolor(item.textFormat().color())
-        else:
-            item.setFontColor(colours["font_color"])
-            applied["font_color"] = hex_from_qcolor(item.fontColor())
+        text_format = item.textFormat()
+        text_format.setColor(colours["font_color"])
+        item.setTextFormat(text_format)
+        applied["font_color"] = hex_from_qcolor(item.textFormat().color())
     return applied, None
 
 
@@ -1983,7 +1991,7 @@ def _layout_from_template(name: str, args: dict) -> dict:
                 except Exception as exc:
                     return tool_error(f"Could not bring the area into the template map's CRS "
                                       f"{map_crs.authid()}: {exc}", "INVALID_EXTENT")
-            map_item.zoomToExtent(rect)
+            _zoom_to(map_item, rect)
             zoomed = map_item.uuid()
     QgsProject.instance().layoutManager().addLayout(layout)
     result = _layout_summary(layout)
@@ -2078,7 +2086,7 @@ def _add_layout_map_in(layout, args: dict) -> dict:
             })
             adjustment["reason"] = "; ".join(part for part in (adjustment["reason"], fitted) if part)
             adjustment["actual"] = _item_geometry(map_item)
-    map_item.zoomToExtent(rect)
+    _zoom_to(map_item, rect)
 
     scale_note = ""
     wanted_scale = args.get("scale")
@@ -2213,7 +2221,7 @@ def _edit_layout_map(layout, args: dict) -> dict:
         return error
     placement = _edit_geometry(layout, map_item, args, resizable=True, inset=_is_inset(map_item))
     if subject is not None:
-        map_item.zoomToExtent(subject)
+        _zoom_to(map_item, subject)
     elif placement or any(args.get(key) is not None for key in ("width", "height")):
         map_item.zoomToExtent(shown)
     scale_note = ""
@@ -2296,6 +2304,25 @@ def _visible_layer_names() -> list:
         if node is not None and node.isVisible():
             names.append(layer.name())
     return names
+
+
+def _zoom_to(map_item, rect) -> None:
+
+
+
+
+
+
+    shown, frame = map_item.extent(), map_item.rect()
+    if (shown.width() > 0 and shown.height() > 0) or not (
+            rect.width() > 0 and rect.height() > 0 and frame.width() > 0 and frame.height() > 0):
+        map_item.zoomToExtent(rect)
+        return
+    shape = frame.width() / frame.height()
+    width, height = max(rect.width(), rect.height() * shape), max(rect.height(), rect.width() / shape)
+    centre = rect.center()
+    map_item.setExtent(QgsRectangle(centre.x() - width / 2, centre.y() - height / 2,
+                                    centre.x() + width / 2, centre.y() + height / 2))
 
 
 def _fit_frame_to(map_item, rect) -> str:
@@ -2394,7 +2421,7 @@ def _add_layout_label(args: dict) -> dict:
     font.setPointSizeF(float(args.get("font_size", 14)))
     if args.get("bold"):
         font.setBold(True)
-    label.setFont(font)
+    _set_label_font(label, font)
 
     _label_halign(label, args.get("halign"))
     style, error = _apply_box_style(label, args, text=True)
@@ -2441,15 +2468,12 @@ def _edit_layout_label(layout, args: dict) -> dict:
     if args.get("text") is not None:
         label.setText(str(args["text"]))
     if args.get("font_size") is not None or args.get("bold") is not None:
-        try:
-            font = QFont(label.font())
-        except (AttributeError, RuntimeError):
-            font = QFont()
+        font = _label_font(label)
         if args.get("font_size") is not None:
             font.setPointSizeF(float(args["font_size"]))
         if args.get("bold") is not None:
             font.setBold(bool(args["bold"]))
-        label.setFont(font)
+        _set_label_font(label, font)
     _label_halign(label, args.get("halign"))
     placement = _edit_geometry(layout, label, args, resizable=True)
     if placement or args.get("x") is not None or args.get("y") is not None:
@@ -2626,7 +2650,7 @@ def _add_layout_legend(args: dict) -> dict:
                 legend.setLegendFilterByMapEnabled(True)
             except (AttributeError, RuntimeError):
                 pass
-        legend.setAutoUpdateModel(True)
+        _legend_sync(legend, True)
 
 
 
@@ -2705,7 +2729,7 @@ def _add_layout_legend(args: dict) -> dict:
         result["curation"] = curation
     if defaults:
         result["default_curation"] = defaults
-    result["auto_update"] = _auto_updates(legend)
+    result["auto_update"] = legend_auto_updates(legend)
     if removed:
         result["removed_from_legend"] = removed
     if args.get("legend_mode"):
@@ -2892,8 +2916,10 @@ def _edit_layout_north_arrow(layout, args: dict) -> dict:
         map_item, error = _map_for(layout, args["map_id"])
         if error:
             return error
-    if map_item is not None and (args.get("map_id") or args.get("north")):
+    if map_item is not None and args.get("north"):
         _set_north(picture, map_item, "TrueNorth" if args.get("north") == "true" else "GridNorth")
+    elif map_item is not None and args.get("map_id"):
+        picture.setLinkedMap(map_item)
     result = _edited(layout, picture, _edit_geometry(layout, picture, args, resizable=True), args, _ARROW_READS)
     if map_item is not None:
         result["linked_map"] = map_item.uuid()
@@ -3056,9 +3082,7 @@ def _label_points(label) -> float:
     try:
         text_format = label.textFormat()
         units = text_format.sizeUnit()
-        points = enum_member(Qgis, "RenderUnit", "Points", None) if Qgis is not None else None
-        if points is None:
-            points = enum_member(QgsUnitTypes, "RenderUnit", "RenderPoints", None)
+        points = _points_unit()
         if points is None or units == points:
             return float(text_format.size())
     except (AttributeError, RuntimeError, TypeError):

@@ -19,9 +19,10 @@ from __future__ import annotations
 import re
 import zlib
 
-from qgis.PyQt.QtCore import QRectF, Qt, pyqtSignal
+from qgis.PyQt.QtCore import QRectF, QSize, Qt, pyqtSignal
 from qgis.PyQt.QtGui import QColor, QPainter
 from qgis.PyQt.QtWidgets import (
+    QBoxLayout,
     QGridLayout,
     QHBoxLayout,
     QLabel,
@@ -61,7 +62,7 @@ from .style import (
     FONT_HINT,
     GREEN,
     GREEN_TINT,
-    HOVER_ON,
+    HOVER,
     INK,
     INK_2,
     INK_3,
@@ -74,6 +75,8 @@ from .style import (
     RED_TINT,
     SPACE_CARD,
     SPACE_OUTER,
+    SURFACE,
+    WEIGHT_MEDIUM,
     qcolor,
 )
 from .widgets import ElidedLabel, FlowLayout
@@ -91,11 +94,11 @@ _ENTITY_CHIP_QSS = (
     "QLabel { background: transparent; border: none; }"
 )
 _ENTITY_NAME_QSS = scale_qss_font_px(
-    f"QLabel {{ font-size: {FONT_BODY}px; font-weight: 500; color: {INK};"
+    f"QLabel {{ font-size: {FONT_BODY}px; font-weight: {WEIGHT_MEDIUM}; color: {INK};"
     " background: transparent; border: none; }"
 )
 _CONFIDENCE_QSS = scale_qss_font_px(
-    f"QLabel {{ font-size: {FONT_BODY}px; font-weight: 500; color: {INK_2};"
+    f"QLabel {{ font-size: {FONT_BODY}px; font-weight: {WEIGHT_MEDIUM}; color: {INK_2};"
     " background: transparent; border: none; }"
 )
 _ALTERNATIVES_QSS = scale_qss_font_px(
@@ -133,9 +136,12 @@ _DIFF_KINDS = ("added", "removed", "unchanged")
 def _alpha(token: str, alpha: float) -> str:
 
 
-    colour = qcolor(token)
+
+    over, under = qcolor(token), qcolor(SURFACE)
     try:
-        return f"rgba({colour.red()}, {colour.green()}, {colour.blue()}, {alpha:.2f})"
+        mixed = [round(o * alpha + u * (1 - alpha)) for o, u in (
+            (over.red(), under.red()), (over.green(), under.green()), (over.blue(), under.blue()))]
+        return "#{:02x}{:02x}{:02x}".format(*mixed)
     except (AttributeError, TypeError, ValueError):
         return token
 
@@ -190,6 +196,14 @@ class _Meter(QWidget):
             painter.drawRoundedRect(QRectF(x, 0, _METER_BAR_W, _METER_BAR_H), 1.5, 1.5)
 
 
+class _Word(ElidedLabel):
+
+
+
+    def minimumSizeHint(self) -> QSize:  # noqa: N802
+        return QSize(1, super().minimumSizeHint().height())
+
+
 def _entity_chip(parent: QWidget, name: str) -> QWidget:
 
     chip = QWidget(parent)
@@ -213,7 +227,7 @@ def _value_pill(parent: QWidget, text: str) -> QLabel:
     pill.setStyleSheet(scale_qss_font_px(
         f"QLabel {{ background: {GREEN_TINT}; color: {GREEN};"
         f" border: 1px solid {_alpha(GREEN, 0.30)}; border-radius: {RADIUS_CHIP}px;"
-        f" padding: 0 6px; font-size: {FONT_BODY}px; font-weight: 500; }}"))
+        f" padding: 0 6px; font-size: {FONT_BODY}px; font-weight: {WEIGHT_MEDIUM}; }}"))
     pill.setFixedHeight(scale_px_length(CHIP_PX - 2))
     return pill
 
@@ -289,7 +303,7 @@ class RecommendationCard(_Card, FoldMixin):
                 if self.value:
                     flow.addWidget(_value_pill(host, self.value))
             else:
-                word = ElidedLabel(part, host)
+                word = _Word(part, host)
                 word.setStyleSheet(_PROPOSAL_WORD_QSS)
                 flow.addWidget(word)
         return host
@@ -399,12 +413,14 @@ _DIFF_HEAD_QSS = (
 _DIFF_HINT_QSS = _ASK_LABEL_QSS
 
 
+
+
 _DIFF_HEADER_BACK_QSS = (
-    "QWidget#{name} { background: " + HOVER_ON + "; border: none;"
+    "QWidget#{name} { background: " + HOVER + "; border: none;"
     " border-bottom: 1px solid " + LINE + "; }"
 )
 _DIFF_HEADER_CELL_QSS = scale_qss_font_px(
-    f"QLabel {{ font-size: {FONT_HINT}px; font-weight: 500; color: {INK_2};"
+    f"QLabel {{ font-size: {FONT_HINT}px; font-weight: {WEIGHT_MEDIUM}; color: {INK_2};"
     " background: transparent; border: none; }"
 )
 _DIFF_ROW_BACK_QSS = (
@@ -420,7 +436,7 @@ _DIFF_PILL_QSS = (
     "QLabel { background: transparent; border: none; }"
 )
 _DIFF_PILL_TEXT_QSS = scale_qss_font_px(
-    f"QLabel {{ font-size: {FONT_HINT}px; font-weight: 500; color: {INK_2};"
+    f"QLabel {{ font-size: {FONT_HINT}px; font-weight: {WEIGHT_MEDIUM}; color: {INK_2};"
     " background: transparent; border: none; }"
 )
 _DIFF_DOT_PX = 6
@@ -507,7 +523,7 @@ class _DiffRow:
         if self.changed:
             self.mark = _Mark("check", table, colour=self._colour(), glyph=_WHITE)
             self.mark.set_checked(True)
-            grid.addWidget(self.mark, index, ncols, Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+            grid.addWidget(self.mark, index, ncols, Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
         self._paint()
 
     def _colour(self) -> str:
@@ -577,6 +593,54 @@ class _DiffBody(QWidget):
         super().mouseReleaseEvent(event)
 
 
+class _DiffHead(QWidget):
+
+
+
+
+
+
+
+
+    def __init__(self, title: str, hint: str, parent=None):
+        super().__init__(parent)
+        self.setObjectName("diffHead")
+        self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
+        self.setStyleSheet(_DIFF_HEAD_QSS.replace("{name}", self.objectName()))
+        self.setMinimumHeight(scale_px_length(_DIFF_ROW_PX))
+        self._box = QBoxLayout(QBoxLayout.Direction.LeftToRight, self)
+        self._box.setContentsMargins(_DIFF_SIDE_PX, 0, _DIFF_SIDE_PX, 0)
+        self._title = ElidedLabel(title, self)
+        self._title.setStyleSheet(_ASK_TEXT_QSS)
+        self._box.addWidget(self._title, 1)
+        self._hint = ElidedLabel(hint, self)
+        self._hint.setStyleSheet(_DIFF_HINT_QSS)
+        self._box.addWidget(self._hint, 0)
+        self._stacked: bool | None = None
+        self._place(False)
+
+    def _place(self, stacked: bool) -> None:
+        if stacked == self._stacked:
+            return
+        self._stacked = stacked
+        pad = scale_px_length(8) if stacked else 0
+        self._box.setDirection(QBoxLayout.Direction.TopToBottom if stacked
+                               else QBoxLayout.Direction.LeftToRight)
+        self._box.setContentsMargins(_DIFF_SIDE_PX, pad, _DIFF_SIDE_PX, pad)
+        self._box.setSpacing(2 if stacked else SPACE_OUTER)
+        side = Qt.AlignmentFlag.AlignLeft if stacked else Qt.AlignmentFlag.AlignRight
+        self._hint.setAlignment(side | Qt.AlignmentFlag.AlignVCenter)
+        self._hint.setSizePolicy(QSizePolicy.Policy.Expanding if stacked else QSizePolicy.Policy.Maximum,
+                                 QSizePolicy.Policy.Preferred)
+
+    def resizeEvent(self, event):  # noqa: N802
+        super().resizeEvent(event)
+        for label in (self._title, self._hint):
+            label.ensurePolished()
+        room = self.width() - 2 * _DIFF_SIDE_PX
+        self._place(self._title.sizeHint().width() + SPACE_OUTER + self._hint.sizeHint().width() > room)
+
+
 class DiffTableCard(_Card, FoldMixin):
 
 
@@ -621,25 +685,7 @@ class DiffTableCard(_Card, FoldMixin):
         self._refresh()
 
     def _build_head(self) -> QWidget:
-        head = QWidget(self._body)
-        head.setObjectName("diffHead")
-        head.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
-        head.setStyleSheet(_DIFF_HEAD_QSS.replace("{name}", head.objectName()))
-        head.setFixedHeight(scale_px_length(_DIFF_ROW_PX))
-        lay = QHBoxLayout(head)
-        lay.setContentsMargins(_DIFF_SIDE_PX, 0, _DIFF_SIDE_PX, 0)
-        lay.setSpacing(SPACE_OUTER)
-
-
-        title = ElidedLabel(self.title, head)
-        title.setStyleSheet(_ASK_TEXT_QSS)
-        lay.addWidget(title, 1, Qt.AlignmentFlag.AlignVCenter)
-        hint = ElidedLabel(self.tr("Click changed rows to toggle"), head)
-        hint.setStyleSheet(_DIFF_HINT_QSS)
-        hint.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
-        hint.setSizePolicy(QSizePolicy.Policy.Maximum, QSizePolicy.Policy.Preferred)
-        lay.addWidget(hint, 0, Qt.AlignmentFlag.AlignVCenter)
-        return head
+        return _DiffHead(self.title, self.tr("Click changed rows to toggle"), self._body)
 
     def _build_table(self) -> _DiffBody:
         table = _DiffBody(self._body)
@@ -688,11 +734,15 @@ class DiffTableCard(_Card, FoldMixin):
 
 
         footer = AnswerFooter(self._body)
-        footer.setContentsMargins(_DIFF_SIDE_PX, 0, _DIFF_SIDE_PX, 0)
+        self._apply_btn = _pill(self._button("", _BTN_PRIMARY_PILL, self._apply))
+
+
+        pill = self._apply_btn.height()
+        pad = max(0, (scale_px_length(_DIFF_ROW_PX) - pill) // 2)
+        footer.setContentsMargins(_DIFF_SIDE_PX, pad, _DIFF_SIDE_PX, pad)
         self._count_label = ElidedLabel("", footer)
         self._count_label.setStyleSheet(_DIFF_FOOTER_QSS)
-        self._count_label.setMinimumHeight(scale_px_length(_DIFF_ROW_PX))
-        self._apply_btn = _pill(self._button("", _BTN_PRIMARY_PILL, self._apply))
+        self._count_label.setMinimumHeight(pill)
         self._apply_btn.setObjectName("agentEditsApply")
         self._apply_btn.setProperty("agentAction", "apply")
         self._apply_btn.setProperty("agentRequestId", self.run_id)

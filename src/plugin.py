@@ -81,6 +81,12 @@ def tr(text: str) -> str:
 _NEXT_TURN_MS = 1
 
 
+_IMPORT_SLICE_S = 0.04
+
+
+_PANEL_MODULES = ("ui.bubbles", "ui.chat_panel", "ui.dock", "agent.controller")
+
+
 class AIAgentPlugin:
     def __init__(self, iface):
         self.iface = iface
@@ -88,6 +94,10 @@ class AIAgentPlugin:
         from .core import crash_note
         crash_note.start()
         self.plugin_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+
+        from .core.host_platform import plugin_version
+        plugin_version()
         self.action = None
         self.dock = None
         self.controller = None
@@ -98,7 +108,6 @@ class AIAgentPlugin:
         self.terralab_toolbar = None
         self.terralab_menu = None
         self._settings = None
-        self._started = False
         self._unloading = False
         self._config_task = None
         self._shortcut_registered = False
@@ -107,6 +116,7 @@ class AIAgentPlugin:
         self._suppressed_update_versions: set[str] = set()
         self._update_refresh_requested = False
         self._update_no_repository = False
+        self._update_list_waits = 0
         self._update_refresh_timer = None
         self._released_version = ""
         self._release_reply = None
@@ -118,6 +128,11 @@ class AIAgentPlugin:
         self._dock_wired = False
 
         self._click_open_pending = False
+
+        self._ahead: list | None = None
+        self._ahead_then: list = []
+        self._ahead_tools_s = 0.0
+        self._ahead_panel_s = 0.0
         self._telemetry_started = False
         self._early_account = None
 
@@ -182,6 +197,10 @@ class AIAgentPlugin:
         icon_path = os.path.join(self.plugin_dir, "icons", "icon.png")
         try:
             icon = QIcon(icon_path) if os.path.exists(icon_path) else QgsApplication.getThemeIcon("/mActionOptions.svg")
+
+            large = os.path.join(self.plugin_dir, "icons", "icon@4x.png")
+            if os.path.exists(icon_path) and os.path.exists(large):
+                icon.addFile(large)
         except Exception as exc:  # noqa: BLE001
             log_warning(f"Plugin icon not loaded: {exc}")
             icon = QIcon()
@@ -387,7 +406,8 @@ class AIAgentPlugin:
 
         if self._unloading:
             return
-        if self.dock is None and not (self._settings or Settings()).dock_visible:
+        settings = self._settings or Settings()
+        if self.dock is None and not settings.dock_visible and not self._panel_returns(settings):
             self._start_hidden()
             return
         self._mark_open("startup")
@@ -395,13 +415,7 @@ class AIAgentPlugin:
 
 
 
-
-
-            try:
-                self.registry = self._build_registry()
-            except Exception as exc:  # noqa: BLE001
-                log_warning(f"Tool registry not built at startup: {exc}")
-            QTimer.singleShot(0, lambda: self._open_at_startup(True))
+            self._import_then(lambda: self._build_then(lambda: self._open_at_startup(True)))
             return
         created = self.dock is None
         self._ensure_dock()
@@ -413,6 +427,23 @@ class AIAgentPlugin:
         if created:
             self.dock.setVisible(settings.dock_visible)
         self._wire_dock()
+
+    @staticmethod
+    def _panel_returns(settings) -> bool:
+
+
+
+
+
+
+        until = settings.panel_return_until
+        if not until:
+            return False
+        settings.panel_return_until = 0
+        if time.time() > until:
+            return False
+        settings.dock_visible = True
+        return True
 
     def _start_hidden(self) -> None:
 
@@ -656,6 +687,12 @@ class AIAgentPlugin:
         snapshot_style.shutdown()
 
     @staticmethod
+    def _stop_snapshot_watch() -> None:
+        from .core import snapshot_watch
+
+        snapshot_watch.shutdown()
+
+    @staticmethod
     def _stop_code_runtime() -> None:
         from .tools import code_runtime
 
@@ -693,6 +730,8 @@ class AIAgentPlugin:
 
         ("layer removal watch", "core.layer_release", "watch_layer_removals", "stop_watching_layer_removals"),
         ("layout designer guard", "core.designer_guard", "install", "shutdown"),
+
+        ("project read watch", "core.project_read", "install", "shutdown"),
         ("streamed raster fallback", "tools.stream_fallback", "install", "shutdown"),
 
 
@@ -829,6 +868,7 @@ class AIAgentPlugin:
         ("stall profiler", "_stop_profiler"),
         ("snapshot jobs", "_stop_snapshot_jobs"),
         ("style watch", "_stop_style_watch"),
+        ("snapshot watch", "_stop_snapshot_watch"),
         ("host hooks", "_remove_host_hooks"),
         ("save and quit guard", "_stop_save_guard"),
         ("dependency installs", "_stop_dependency_installs"),
@@ -1092,11 +1132,7 @@ class AIAgentPlugin:
 
             self._mark_open("click")
             self._click_open_pending = True
-            try:
-                self.registry = self._build_registry()
-            except Exception as exc:  # noqa: BLE001
-                log_warning(f"Tool registry not built on the first click: {exc}")
-            QTimer.singleShot(_NEXT_TURN_MS, self._finish_click_open)
+            self._import_then(lambda: self._build_then(self._finish_click_open))
             return
         created = self.dock is None
         self._mark_open("click")
@@ -1123,29 +1159,89 @@ class AIAgentPlugin:
         self.dock.raise_()
         self._wire_dock()
 
+    def _import_then(self, then) -> None:
+
+
+
+
+
+
+
+
+
+
+
+
+        self._ahead_then.append(then)
+        if self._ahead is not None:
+            return
+        names: list = []
+        try:
+            from . import tools
+
+            names = tools.module_names(self._debug_tools())
+        except Exception as exc:  # noqa: BLE001
+            log_warning(f"Tool modules not listed ahead: {exc}")
+        self._ahead = [f"{__package__}.{name}" for name in reversed(_PANEL_MODULES)] + names[::-1]
+        self._import_slice()
+
+    def _import_slice(self) -> None:
+        if self._unloading or self._ahead is None:
+            return
+        began = time.perf_counter()
+        at = began
+        while self._ahead and at - began < _IMPORT_SLICE_S:
+            name = self._ahead.pop()
+            try:
+                importlib.import_module(name)
+            except Exception as exc:  # noqa: BLE001
+                log_warning(f"{name} not imported ahead: {exc}")
+            now = time.perf_counter()
+
+
+            if len(self._ahead) < len(_PANEL_MODULES):
+                self._ahead_panel_s += now - at
+            else:
+                self._ahead_tools_s += now - at
+            at = now
+        if self._ahead:
+            QTimer.singleShot(_NEXT_TURN_MS, self._import_slice)
+            return
+        self._ahead = None
+        thens, self._ahead_then = self._ahead_then, []
+        for then in thens:
+            then()
+
+    def _build_then(self, finish) -> None:
+
+        if self._unloading:
+            return
+        if self.registry is None:
+            try:
+                self.registry = self._build_registry()
+            except Exception as exc:  # noqa: BLE001
+                log_warning(f"Tool registry not built ahead of the panel: {exc}")
+        QTimer.singleShot(_NEXT_TURN_MS, finish)
+
+    @staticmethod
+    def _debug_tools() -> bool:
+
+
+
+
+
+        return dev_env("AI_AGENT_DEBUG_TOOLS", "1") != "0"
+
     def _build_registry(self):
         began = time.monotonic()
         from .tools import build_registry
 
-
-
-
-
-
-        include_debug = dev_env("AI_AGENT_DEBUG_TOOLS", "1") != "0"
+        include_debug = self._debug_tools()
         registry = build_registry(include_debug=include_debug)
-        self._open_facts["registry_ms"] = int((time.monotonic() - began) * 1000)
+
+        self._open_facts["registry_ms"] = int((time.monotonic() - began + self._ahead_tools_s) * 1000)
         log(f"Tool registry built: {len(registry.visible_names())} visible tools, "
             f"debug={include_debug}")
-
-
-
-        try:
-            from .core.served_state import set_tool_names
-
-            set_tool_names(registry.tool_names)
-        except Exception as exc:  # noqa: BLE001
-            log_warning(f"Tool names not cached: {exc}")
         return registry
 
     def _ensure_dock(self):
@@ -1162,7 +1258,7 @@ class AIAgentPlugin:
                 dock = AIAgentDock(self.iface.mainWindow())
             except TypeError:
                 dock = AIAgentDock()
-            self._open_facts["dock_ms"] = int((time.monotonic() - began) * 1000)
+            self._open_facts["dock_ms"] = int((time.monotonic() - began + self._ahead_panel_s) * 1000)
             began = time.monotonic()
             from .agent.controller import AgentController
 
@@ -1181,7 +1277,6 @@ class AIAgentPlugin:
             self._install_map_hooks()
 
 
-            self._started = True
             self.controller.start()
             self._open_facts["controller_ms"] = int((time.monotonic() - began) * 1000)
             if self._open_began:
@@ -1193,6 +1288,13 @@ class AIAgentPlugin:
             self._early_account = None
         except Exception as exc:  # noqa: BLE001
             log_warning(f"AI Agent could not open its panel: {exc}")
+            if self.dock is None and self.controller is not None:
+
+                try:
+                    self.controller.shutdown()
+                except Exception as stop_exc:  # noqa: BLE001
+                    log_warning(f"AI Agent's controller did not stop: {stop_exc}")
+                self.controller = None
             if self.dock is None and dock is not None:
 
 
@@ -1321,7 +1423,7 @@ class AIAgentPlugin:
             self._drop_bar_item("_approval_bar_item")
             return
         self._drop_bar_item("_finished_bar_item")
-        self._call_user("_approval_bar_item", tr("The agent is waiting for your answer."),
+        self._call_user("_approval_bar_item", tr("The AI agent is waiting for your answer."),
                         Qgis.MessageLevel.Warning)
 
     def _on_run_finished(self, status: str) -> None:
@@ -1335,9 +1437,9 @@ class AIAgentPlugin:
         if status == "cancelled":
             return
         if status == "done":
-            message, level = tr("The agent finished."), Qgis.MessageLevel.Success
+            message, level = tr("The AI agent finished."), Qgis.MessageLevel.Success
         else:
-            message, level = tr("The agent stopped before finishing."), Qgis.MessageLevel.Warning
+            message, level = tr("The AI agent stopped before finishing."), Qgis.MessageLevel.Warning
         self._call_user("_finished_bar_item", message, level)
 
     def _push(self, message: str, kind: str = "info"):
@@ -1358,6 +1460,8 @@ class AIAgentPlugin:
 
 
         try:
+            if self._unloading or self.dock is not dock:
+                return
             from .ui.shared import watch_screen_changes
 
             if watch_screen_changes(dock) or tries <= 0:

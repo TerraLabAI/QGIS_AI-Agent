@@ -35,7 +35,7 @@ from ..core import accounts, accounts_oauth, quiet_credentials, telemetry
 from ..core import telemetry_events as ev
 from . import style as S
 from .account_browser import BrowserWait, failure_text
-from .card_base import _Card, msg_kind_colour, reduced_motion
+from .card_base import _Card, msg_kind_colour, on_screen
 from .card_controls import (
     _ASK_CARD_QSS,
     _ASK_DONE_LINE_QSS,
@@ -54,7 +54,8 @@ from .icons import icon_for, pixmap_for
 from .settings_pages import GHOST_BTN_QSS, INPUT_QSS, PRIMARY_BTN_QSS
 from .shared import available_screen_rect, exec_dialog, resolve_qt_enum
 from .style import FONT_BASE, INK, INK_2, INK_3, MOTION_POP_MS, SPACE_CARD
-from .widgets import ChatLabel
+from .styles import PANEL_BASE, PANEL_TEXT
+from .widgets import ChatLabel, placeholder_ink
 
 _TITLE_QSS = scale_qss_font_px(
     f"QLabel {{ font-size: {FONT_BASE}px; font-weight: 600; color: {INK}; background: transparent; border: none; }}")
@@ -62,8 +63,8 @@ _SUB_QSS = scale_qss_font_px(
     f"QLabel {{ font-size: 12px; color: {INK_2}; background: transparent; border: none; }}")
 
 _SAVE_QSS = PRIMARY_BTN_QSS + f"QPushButton:disabled {{ background: {S.HOVER}; color: {INK_3}; }}"
-_SAVED_QSS = PRIMARY_BTN_QSS.replace("background: palette(text)", f"background: {S.GREEN}").replace(
-    "color: palette(base)", "color: #ffffff") + f"QPushButton:disabled {{ background: {S.GREEN}; color: #ffffff; }}"
+_SAVED_QSS = PRIMARY_BTN_QSS.replace("background: " + PANEL_TEXT, f"background: {S.GREEN}").replace(
+    "color: " + PANEL_BASE, "color: #ffffff") + f"QPushButton:disabled {{ background: {S.GREEN}; color: #ffffff; }}"
 _PRIVACY_QSS = scale_qss_font_px(
     f"QLabel {{ font-size: 11px; color: {INK_3}; background: transparent; border: none; }}")
 _STATUS_ATTR = resolve_qt_enum(QNetworkRequest, "Attribute", "HttpStatusCodeAttribute")
@@ -133,8 +134,10 @@ def _privacy_row(parent: QWidget, text: str, glyph: str = "lock") -> QWidget:
     line.setContentsMargins(0, 0, 0, 0)
     line.setSpacing(6)
     lock = QLabel(row)
-    lock.setPixmap(pixmap_for(row, glyph, scale_px_length(11), QColor(INK_3)))
-    lock.setFixedWidth(scale_px_length(12))
+    lock.setPixmap(pixmap_for(row, glyph, scale_px_length(13), QColor(INK_3)))
+    lock.setFixedWidth(scale_px_length(14))
+
+    lock.setContentsMargins(0, scale_px_length(2), 0, 0)
     line.addWidget(lock, 0, Qt.AlignmentFlag.AlignTop)
     label = ChatLabel(text, row, wrap=True, selectable=False)
     label.setObjectName("accountPrivacy")
@@ -145,11 +148,6 @@ def _privacy_row(parent: QWidget, text: str, glyph: str = "lock") -> QWidget:
 
 def _uses_keys(provider: str) -> bool:
     return (accounts.PROVIDERS.get(provider) or {}).get("keys") == accounts.S3
-
-
-def _uses_browser(provider: str) -> bool:
-
-    return accounts_oauth.browser_ready(provider)
 
 
 class AccountCard(_Card, FoldMixin):
@@ -195,7 +193,7 @@ class AccountCard(_Card, FoldMixin):
             return card_texts(self.need)
         keys = _uses_keys(self.provider)
         token = bool(self.need.get("token_header"))
-        browser = _uses_browser(self.provider)
+        browser = accounts_oauth.browser_ready(self.provider)
         if self.kind == "provider" and browser:
             return (self.tr("Continue with your {label} account").format(label=label)
                     if self.need.get("reason") == "shared_spent" else
@@ -293,7 +291,7 @@ class AccountCard(_Card, FoldMixin):
             no = _pill(self._button(self.tr("Skip"), _BTN_GHOST_PILL, lambda: self._answer("")))
             no.setObjectName("accountSkip")
             retry = self.kind == "retry"
-            browser = _uses_browser(self.provider)
+            browser = accounts_oauth.browser_ready(self.provider)
             if self.provider == "earthengine":
                 text = self._earthengine()[2]
             elif browser:
@@ -589,7 +587,7 @@ class SignInDialog(QDialog):
 
     def showEvent(self, event):  # noqa: N802
         super().showEvent(event)
-        if getattr(self, "_faded", False) or reduced_motion(self):
+        if getattr(self, "_faded", False) or not on_screen(self):
             return
         self._faded = True
         self.setWindowOpacity(0.0)
@@ -597,7 +595,7 @@ class SignInDialog(QDialog):
         fade.setDuration(MOTION_POP_MS)
         fade.setStartValue(0.0)
         fade.setEndValue(1.0)
-        fade.setEasingCurve(QEasingCurve.Type.OutCubic)
+        fade.setEasingCurve(QEasingCurve.Type.OutQuint)
         fade.start(QPropertyAnimation.DeletionPolicy.DeleteWhenStopped)
 
     def done(self, result) -> None:  # noqa: D401
@@ -724,15 +722,18 @@ class SignInDialog(QDialog):
         self._save.setStyleSheet(_SAVED_QSS)
         self._save.setText(self.tr("Connected"))
         self._save.setIcon(icon_for(self._save, "check", scale_px_length(14), QColor("#ffffff")))
-        if reduced_motion(self):
-            self.accept()
-        else:
+
+
+        if on_screen(self):
             QTimer.singleShot(450, self.accept)
+        else:
+            self.accept()
 
     def _field(self, label: str, into: QVBoxLayout, secret: bool = False, text: str = "") -> QLineEdit:
         edit = QLineEdit(text, self)
         edit.setStyleSheet(INPUT_QSS)
         edit.setPlaceholderText(label)
+        placeholder_ink(edit)
         edit.setAccessibleName(label)
         if secret:
             edit.setEchoMode(QLineEdit.EchoMode.Password)
@@ -818,6 +819,7 @@ class TokenDialog(SignInDialog):
                               else self.tr("Token for {host}").format(host=host))
         self._only(self._value)
         self._value.setPlaceholderText(self.tr("Paste your token"))
+        placeholder_ink(self._value)
         self._value.setAccessibleName(self.tr("Token"))
         page = info["token_page"]
         if page:
@@ -864,8 +866,10 @@ class KeysDialog(SignInDialog):
         self._heading.setText(self.tr("Connect {label}").format(label=info["label"]))
         self._only(self._user, self._password)
         self._user.setPlaceholderText(self.tr("Access key"))
+        placeholder_ink(self._user)
         self._user.setAccessibleName(self.tr("Access key"))
         self._password.setPlaceholderText(self.tr("Secret key"))
+        placeholder_ink(self._password)
         self._password.setAccessibleName(self.tr("Secret key"))
         self._set_where(self.tr("Sign in with a free account, add a credential and paste both keys here."))
         self._set_page(info["token_page"], self.tr("the S3 keys manager"))

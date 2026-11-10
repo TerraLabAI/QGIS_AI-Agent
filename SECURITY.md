@@ -31,11 +31,11 @@ table, and the guards fail closed.
 
 | What holds | Where to read it |
 |---|---|
-| The client decides the danger level, not the model | each tool's spec (`danger=` in `src/tools/*`), `src/tools/danger.py`, `src/core/executor.py` |
-| Ask mode refuses every write at the executor | `src/core/executor.py` |
+| The client decides the danger level, not the model | each tool's spec (`danger=` in `src/tools/*`), `src/tools/danger.py`, `src/agent/executor.py` |
+| Ask mode refuses every write at the executor | `src/agent/executor.py` |
 | Some tools ask at every level, whatever you approved before | each tool's spec (`always_confirm=`), read by `src/tools/guards.py` `always_confirm` |
 | Writes stay inside an allow-list of paths | `src/core/security.py` `validate_path` |
-| Reads and folder listings stay inside the project, its layers' folders and the files you attached or typed | `src/core/security.py` `validate_read`, `src/core/code_tripwire.py` |
+| Reads and folder listings stay inside the project, its layers' folders and the files you attached or typed | `src/core/security.py` `validate_read`, `src/tools/code_tripwire.py` |
 | Fetches pass one URL guard, redirects re-checked | `src/core/net_opener.py` `check_url` |
 | Your activation key never reaches the model or a result | `src/core/log_scrub.py` `scrub_result` |
 | Fetched text is labelled as data, never as instructions | `src/core/serialization.py` `_untrusted_text` |

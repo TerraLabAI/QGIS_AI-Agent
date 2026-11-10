@@ -86,6 +86,64 @@ def file_error_kind(exc: BaseException, path: str = "") -> tuple[str, int | None
 
 
 
+THIS_PROCESS = "this QGIS"
+
+
+def file_holders(paths) -> list[str]:
+
+
+
+
+
+
+    if not IS_WINDOWS:
+        return []
+    try:
+        import ctypes
+        from ctypes import wintypes
+
+        class _Process(ctypes.Structure):
+            _fields_ = [("pid", wintypes.DWORD), ("started", wintypes.FILETIME)]
+
+        class _Info(ctypes.Structure):
+            _fields_ = [("process", _Process), ("app", wintypes.WCHAR * 256), ("service", wintypes.WCHAR * 64),
+                        ("kind", ctypes.c_int), ("status", wintypes.ULONG), ("session", wintypes.DWORD),
+                        ("restartable", wintypes.BOOL)]
+
+        rm = ctypes.WinDLL("rstrtmgr", use_last_error=True)
+        rm.RmStartSession.argtypes = [ctypes.POINTER(wintypes.DWORD), wintypes.DWORD, wintypes.LPWSTR]
+        rm.RmRegisterResources.argtypes = [wintypes.DWORD, wintypes.UINT, ctypes.POINTER(wintypes.LPCWSTR),
+                                           wintypes.UINT, ctypes.c_void_p, wintypes.UINT, ctypes.c_void_p]
+        rm.RmGetList.argtypes = [wintypes.DWORD, ctypes.POINTER(wintypes.UINT), ctypes.POINTER(wintypes.UINT),
+                                 ctypes.POINTER(_Info), ctypes.POINTER(wintypes.DWORD)]
+        rm.RmEndSession.argtypes = [wintypes.DWORD]
+        for call in (rm.RmStartSession, rm.RmRegisterResources, rm.RmGetList, rm.RmEndSession):
+            call.restype = wintypes.DWORD
+        files = [os.path.abspath(str(path)) for path in ([paths] if isinstance(paths, str) else paths) if path]
+        session = wintypes.DWORD(0)
+        if not files or rm.RmStartSession(ctypes.byref(session), 0, ctypes.create_unicode_buffer(33)):
+            return []
+        try:
+            if rm.RmRegisterResources(session, len(files), (wintypes.LPCWSTR * len(files))(*files), 0, None, 0, None):
+                return []
+            needed, count, reasons = wintypes.UINT(0), wintypes.UINT(0), wintypes.DWORD(0)
+            code = rm.RmGetList(session, ctypes.byref(needed), ctypes.byref(count), None, ctypes.byref(reasons))
+            if code != 234 or not needed.value:
+                return []
+            infos = (_Info * needed.value)()
+            count = wintypes.UINT(needed.value)
+            if rm.RmGetList(session, ctypes.byref(needed), ctypes.byref(count), infos, ctypes.byref(reasons)):
+                return []
+            names = [THIS_PROCESS if info.process.pid == os.getpid() else (info.app or f"process {info.process.pid}")
+                     for info in infos[:count.value]]
+            return list(dict.fromkeys(names))
+        finally:
+            rm.RmEndSession(session)
+    except Exception:  # nosec B110
+        return []
+
+
+
 _SYNCED_FOLDERS = ("onedrive", "dropbox", "google drive", "googledrive", "my drive", "mon drive", "meu drive",
                    "mi unidad", "meine ablage", "il mio drive", "mój dysk", "icloud drive", "iclouddrive",
                    "com~apple~clouddocs")
@@ -329,6 +387,62 @@ def peak_memory_mb() -> float | None:
         return round(rss, 1)
     except Exception:
         return None
+
+
+
+_REDUCED_MOTION = [-10.0, False]
+_REDUCED_MOTION_TTL_S = 2.0
+
+
+def _read_reduced_motion() -> bool:
+    try:
+        import ctypes
+
+        if IS_WINDOWS:
+            import ctypes.wintypes as wintypes
+
+
+
+            user32 = ctypes.WinDLL("user32", use_last_error=True)
+            user32.SystemParametersInfoW.argtypes = [wintypes.UINT, wintypes.UINT, ctypes.c_void_p, wintypes.UINT]
+            user32.SystemParametersInfoW.restype = wintypes.BOOL
+            animated = wintypes.BOOL(1)
+            spi_getclientareaanimation = 0x1042
+            if not user32.SystemParametersInfoW(spi_getclientareaanimation, 0, ctypes.byref(animated), 0):
+                return False
+            return not animated.value
+        if IS_MACOS:
+            import ctypes.util
+
+            cf = ctypes.CDLL(ctypes.util.find_library("CoreFoundation"))
+            cf.CFStringCreateWithCString.restype = ctypes.c_void_p
+            cf.CFStringCreateWithCString.argtypes = [ctypes.c_void_p, ctypes.c_char_p, ctypes.c_uint32]
+            cf.CFPreferencesGetAppBooleanValue.restype = ctypes.c_ubyte
+            cf.CFPreferencesGetAppBooleanValue.argtypes = [ctypes.c_void_p, ctypes.c_void_p,
+                                                           ctypes.POINTER(ctypes.c_ubyte)]
+            cf.CFRelease.argtypes = [ctypes.c_void_p]
+            utf8 = 0x08000100
+            key = cf.CFStringCreateWithCString(None, b"reduceMotion", utf8)
+            domain = cf.CFStringCreateWithCString(None, b"com.apple.universalaccess", utf8)
+            try:
+                found = ctypes.c_ubyte(0)
+                value = cf.CFPreferencesGetAppBooleanValue(key, domain, ctypes.byref(found))
+                return bool(found.value and value)
+            finally:
+                cf.CFRelease(key)
+                cf.CFRelease(domain)
+    except Exception:
+        return False
+    return False
+
+
+def prefers_reduced_motion() -> bool:
+
+
+    now = time.monotonic()
+    if now - _REDUCED_MOTION[0] > _REDUCED_MOTION_TTL_S:
+        _REDUCED_MOTION[:] = [now, _read_reduced_motion()]
+    return _REDUCED_MOTION[1]
 
 
 _OS_INFO = None

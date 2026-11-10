@@ -25,6 +25,7 @@ import site
 import sys
 
 from ..core.host_platform import IS_WINDOWS
+from ..core.logger import log_warning
 from ..core.policy import AGENT_HOME
 
 
@@ -88,10 +89,18 @@ def _qgis_python() -> str:
     return ""
 
 
+
+
+
+
+
+_QT_PLATFORM = "windows" if IS_WINDOWS else "offscreen"
+
+
 def _child_environment(python_executable: str, work_dir: str) -> dict[str, str]:
     env = dict(os.environ)
     env.update({
-        "QT_QPA_PLATFORM": "offscreen",
+        "QT_QPA_PLATFORM": _QT_PLATFORM,
         "QGIS_CUSTOM_CONFIG_PATH": os.path.join(work_dir, "qgis-profile"),
         "QGIS_AI_AGENT_HOME": os.path.join(work_dir, "agent-home"),
         "TMPDIR": work_dir,
@@ -172,6 +181,18 @@ def python_for_child() -> str:
     return answer
 
 
+def start_refused(exc: OSError) -> str:
+
+
+
+
+
+
+    _PYTHON[:] = [""]
+    log_warning(f"This computer refused to start QGIS's Python, separate processes are off: {exc}")
+    return f"This computer refused to start the Python interpreter shipped with QGIS ({exc})."
+
+
 def _is_user_site(entry: str) -> bool:
 
 
@@ -205,7 +226,7 @@ def environment(python: str, work_dir: str) -> dict:
         environment = _child_environment(python, work_dir)
     else:
         environment = dict(os.environ)
-        environment["QT_QPA_PLATFORM"] = "offscreen"
+        environment["QT_QPA_PLATFORM"] = _QT_PLATFORM
     environment["QGIS_CUSTOM_CONFIG_PATH"] = os.path.join(work_dir, "qgis-profile")
     environment["QGIS_AI_AGENT_HOME"] = AGENT_HOME
     environment["PYTHONNOUSERSITE"] = "1"

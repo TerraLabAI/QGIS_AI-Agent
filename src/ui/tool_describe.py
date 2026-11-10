@@ -200,7 +200,8 @@ def _word(value) -> str:
     if "/" in text or "\\" in text:
         if "://" in text:
             return _short(_host(text))
-        base = os.path.basename(text.rstrip("/\\"))
+
+        base = os.path.basename(text.replace("\\", "/").rstrip("/"))
         if base:
             return _short(base)
     return _short(text)
@@ -474,10 +475,6 @@ def processing_parts(args: dict) -> tuple[str, str]:
     return sentence, name
 
 
-def _processing_line(args: dict) -> str:
-    return processing_parts(args)[0]
-
-
 _LAYER_KEYS = ("layer_name", "layer_id", "layer", "input", "target_layer", "polygon_layer",
                "raster_layer", "join_layer", "lrm_layer", "dem", "area", "raster")
 
@@ -567,7 +564,7 @@ def describe_tool_call(name: str, args, resolved: dict | None = None) -> str:
     args = resolved if resolved is not None else \
         (_with_layer_names(args) if isinstance(args, dict) else {})
     if _card(name) in _PROCESSING_CARDS:
-        return _processing_line(args)
+        return processing_parts(args)[0]
     template = _template_for(name, args)
     if template:
         line = _fill(template, args)
@@ -886,7 +883,6 @@ _TOOL_GLYPHS = {
     "qgis_arm_tool": ("mouse-pointer-click", G), "qgis_undo": ("undo-2", G), "qgis_redo": ("redo-2", G),
     "qgis_translate_feature": ("move", G), "raster_calculator": ("calculator", R),
     "raster_sample": ("pipette", R), "sample_rasters_at_points": ("pipette", R),
-    "schedule_prompt": ("calendar-clock", G),
     "split_parcel": ("split", G), "trigger_menu_action": ("menu", G), "verify_run": ("circle-check", R),
     "zone": ("square-dashed", S),
     "add_data": ("file-plus", G), "add_vector_layer": ("file-plus", G),
@@ -1403,7 +1399,8 @@ def group_number(value) -> str:
 
 
 EMPTY_SUMMARY_RE = re.compile(
-    r"^\s*(?:status\s*[:=]\s*)?(?:ok|okay|done|success|succeeded|true|completed)\.?\s*$",
+    r"^\s*(?:status\s*[:=]\s*)?"
+    r"(?:ok|okay|done(?:\s*\(\d+ (?:fields|items)\))?|success|succeeded|true|completed?)\.?\s*$",
     re.IGNORECASE)
 
 

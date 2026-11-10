@@ -10,6 +10,7 @@
 
 from __future__ import annotations
 
+import errno
 import hashlib
 import json
 import os
@@ -22,7 +23,7 @@ import urllib.parse
 from qgis.core import QgsProject
 
 from . import tuning
-from .host_platform import remove_quietly, remove_tree, resolved, retry_file_op
+from .host_platform import THIS_PROCESS, file_holders, remove_quietly, remove_tree, resolved, retry_file_op
 from .logger import log, log_warning
 from .security import MAX_PATH, fits_path, long_paths_ok
 from .snapshot_paths import (
@@ -414,6 +415,81 @@ def restore_group(pairs: list) -> None:
         remove_quietly(aside)
 
 
+
+_HOLD_WAIT_S = 1.5
+
+
+def _write_refusal(pairs: list):
+
+
+
+
+
+
+
+    in_place = len(pairs) < 2 or any(_is_sqlite_file(copy) for _original, copy in pairs)
+    for original, _copy in pairs:
+        if not os.path.isfile(original):
+            continue
+        if os.name == "nt" and in_place and not os.access(original, os.W_OK):
+            return PermissionError(errno.EACCES, "the file is read-only", original), []
+        if _is_sqlite_file(original):
+            try:
+                probe = sqlite3.connect(original, timeout=0.2)
+                try:
+                    probe.execute("BEGIN EXCLUSIVE")
+                    probe.execute("ROLLBACK")
+                finally:
+                    probe.close()
+                continue
+            except sqlite3.OperationalError as exc:
+                if "locked" not in str(exc).lower() and "busy" not in str(exc).lower():
+                    continue
+                refusal = exc
+            except sqlite3.DatabaseError:
+                continue
+        elif os.name == "nt":
+            try:
+                os.rename(original, original)
+                continue
+            except OSError as exc:
+
+                refusal = OSError(errno.EACCES, str(exc), original, 32)
+        else:
+            continue
+
+
+        others = [name for name in file_holders([original]) if name != THIS_PROCESS]
+        if others:
+            return refusal, others
+    return None, []
+
+
+def write_blockers(groups: list) -> list[tuple[list, BaseException, list]]:
+
+
+
+
+
+
+
+
+    def ask() -> list:
+        blocked = []
+        for pairs in groups:
+            changed = [(original, copy) for original, copy in pairs if not _same_content(copy, original)]
+            error, programs = _write_refusal(changed)
+            if error is not None:
+                blocked.append((pairs, error, programs))
+        return blocked
+
+    blocked = ask()
+    if any(programs for _pairs, _error, programs in blocked):
+        time.sleep(_HOLD_WAIT_S)
+        blocked = ask()
+    return blocked
+
+
 def _copy_files(folder: str, copies: list, label: str) -> str:
 
 
@@ -537,6 +613,10 @@ def prune_snapshots(protect: str = "", base: str = "", index_dir: str = "", disk
             chats = None
     for name in names:
         path = os.path.join(index_dir, name)
+        if name == "restore-pending.json":
+
+
+            continue
         if not name.endswith(".json"):
             leftover = name.endswith(".json.unreadable") and UNREADABLE_KEEP_SECONDS or (
                 name.startswith(".agent-") and name.endswith(".tmp") and ORPHAN_GRACE_SECONDS)

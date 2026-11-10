@@ -17,33 +17,61 @@
 
 from __future__ import annotations
 
+import os
+import time
+import traceback
 from collections import OrderedDict, deque
 
-from qgis.PyQt.QtCore import QObject, pyqtSignal
+from qgis.core import QgsApplication
+from qgis.PyQt.QtCore import QObject, QTimer, pyqtSignal
 
-from ..core import background, follow, layer_order, scratch, stalls
-from ..core.checkpoints import CheckpointHistory
-from ..core.snapshot import RunSnapshot
+from ..core import background, follow, layer_order, layer_removed, restore_guard, scratch, stalls, telemetry
+from ..core import telemetry_events as ev
+from ..core.checkpoints import KIND_BEFORE, CheckpointHistory
+from ..core.logger import log, log_warning
+from ..core.protocol import ClientErrorCode as Err
+from ..core.snapshot import RunSnapshot, diff_changed, unsaved_edit_layers
+from ..core.tool_registry import tool_error
 from ..core.watchdog import MainThreadWatchdog
 from .executor_accounts import _ExecutorAccounts
 from .executor_calls import _ExecutorCalls
-from .executor_code import _ExecutorCode
+from .executor_code import _ExecutorCode, tr
 from .executor_deliver import _ExecutorDeliver
 from .executor_execute import _ExecutorExecute
 from .executor_guards import _ExecutorGuards
-from .executor_hold import _ExecutorHold
 from .executor_idempotency import IdempotencyTable
 from .executor_install_wait import _ExecutorInstallWait
 from .executor_runs import _ExecutorRuns
-from .executor_undo import _ExecutorUndo
 
 
 __all__ = ["ToolExecutor", "background"]
 
 
+MAX_HOLD_S = 60.0
+
+
+def _differs(result: dict, seen) -> bool:
+
+    if not isinstance(seen, dict):
+        return False
+    for key, value in seen.items():
+        now = result.get(key)
+        if (now if isinstance(now, (str, int, float, bool)) else None) != value:
+            return True
+    return False
+
+
+def _moved(result, seen: dict, held_s: float, move_s: float) -> bool:
+
+    if not isinstance(result, dict) or "_error" in result:
+        return True
+    if _differs(result, seen.get("state")):
+        return True
+    return held_s >= move_s and _differs(result, seen.get("progress"))
+
+
 class ToolExecutor(_ExecutorAccounts, _ExecutorInstallWait, _ExecutorRuns, _ExecutorCalls, _ExecutorCode,
-                   _ExecutorUndo, _ExecutorExecute,
-                   _ExecutorDeliver, _ExecutorGuards, _ExecutorHold, QObject):
+                   _ExecutorExecute, _ExecutorDeliver, _ExecutorGuards, QObject):
     tool_started = pyqtSignal(object)
 
 
@@ -198,3 +226,193 @@ class ToolExecutor(_ExecutorAccounts, _ExecutorInstallWait, _ExecutorRuns, _Exec
 
         self.stacker.in_call = lambda: bool(self._inflight) or bool(self._handed_back)
         self._refresh_proxy()
+
+
+
+
+
+
+
+
+
+
+
+    def _hold(self, call: dict, result, started: float) -> bool:
+
+        wait = call.get("wait")
+        if call.get("poll") is not True or not isinstance(wait, dict):
+            return False
+        try:
+            max_s = min(MAX_HOLD_S, float(wait.get("max_s") or 0.0))
+            move_s = float(wait.get("move_s") or 0.0)
+        except (TypeError, ValueError):
+            return False
+        seen = wait.get("seen") if isinstance(wait.get("seen"), dict) else {}
+        if max_s <= 0.0 or _moved(result, seen, 0.0, move_s):
+            return False
+        tool_call_id = str(call.get("tool_call_id"))
+
+        self._inflight.pop(tool_call_id, None)
+        self._held[tool_call_id] = (call, started, max_s, move_s, seen)
+        self._listen_tasks(True)
+        return True
+
+    def _read_held(self) -> None:
+
+
+
+
+
+        if not self._closed:
+            self._when_main_free("held", None, self._read_held_now)
+
+    def _read_held_now(self) -> None:
+        if self._closed:
+            return
+        for tool_call_id, (call, started, max_s, move_s, seen) in list(self._held.items()):
+            if tool_call_id not in self._held:
+                continue
+            try:
+                result = self._registry.execute(str(call.get("name")), call.get("args") or {})
+            except Exception as exc:  # noqa: BLE001
+                result = {"_error": f"{type(exc).__name__}: {exc}", "traceback": traceback.format_exc()[-2000:]}
+            held_s = time.monotonic() - started
+            if held_s >= max_s or _moved(result, seen, held_s, move_s):
+                self._held.pop(tool_call_id, None)
+                self._deliver(call, result, started, held=True)
+        if not self._held:
+            self._listen_tasks(False)
+
+    def _drop_held(self, run_id: str = "") -> None:
+
+        for tool_call_id, entry in list(self._held.items()):
+            call = entry[0]
+            if run_id and str(call.get("run_id") or "") != run_id:
+                continue
+            self._held.pop(tool_call_id, None)
+            self._fail(call, Err.CANCELLED, tr("The run was cancelled by the user."), "The user stopped the run.")
+        if not self._held:
+            self._listen_tasks(False)
+
+    def _on_task_status(self, *_args) -> None:
+
+        QTimer.singleShot(0, self._read_held)
+
+    def _listen_tasks(self, on: bool) -> None:
+        if on == self._hold_listening:
+            return
+        manager = QgsApplication.taskManager()
+
+
+
+        background.listen_finished(self._on_task_status, on)
+        try:
+            if on:
+                manager.statusChanged.connect(self._on_task_status)
+            else:
+                manager.statusChanged.disconnect(self._on_task_status)
+            self._hold_listening = on
+        except (TypeError, RuntimeError) as exc:
+            log_warning(f"Task status signal not {'connected' if on else 'disconnected'}: {exc}")
+
+
+
+
+
+
+
+
+
+
+
+
+    def _own_unchanged_point(self, thread_id: str) -> frozenset:
+
+
+
+
+
+
+
+
+        current = self.history.current(thread_id) if thread_id else None
+        if current is None or current.kind != KIND_BEFORE or current.run_id not in getattr(self, "_threads", {}):
+            return frozenset()
+        entries = self.history.entries(thread_id)
+        index = next((i for i, e in enumerate(entries) if e.id == current.id), 0)
+        behind = entries[index - 1] if index > 0 else None
+        try:
+
+
+            if diff_changed(current.snapshot.diff()) or behind is None or behind.snapshot is None \
+                    or diff_changed(behind.snapshot.diff()):
+                return frozenset()
+            return frozenset({current.id})
+        except Exception as exc:  # noqa: BLE001
+            log(f"Own before point not compared: {exc}")
+            return frozenset()
+
+    def restore_previous(self, thread_id: str) -> dict:
+
+        history = self.history
+        entry = history.previous(thread_id, self._own_unchanged_point(thread_id)) if thread_id else None
+        if entry is None:
+            return tool_error("This chat has no earlier state to go back to.", hint="undo_no_earlier_state")
+        if not history.belongs_here(entry):
+            return tool_error("The earlier state belongs to another project.", hint="undo_other_project")
+
+
+        current = history.current(thread_id)
+        reference = current or next(iter(reversed(history.entries(thread_id))), None)
+        try:
+            changed = restore_guard.maybe_changed(history, thread_id, entry, reference)
+        except Exception as exc:  # noqa: BLE001
+            log(f"Hand-edit check for qgis_undo failed: {exc}")
+            return tool_error("Whether a file changed by hand since the AI agent's last step could not be "
+                              "read, so nothing was restored. The chat's Undo button asks the user first.",
+                              hint="undo_hand_changed")
+        if changed:
+            names = ", ".join(os.path.basename(path) for path in changed[:5])
+            return tool_error(f"{names} changed since the AI agent's last step, possibly by the user's hand; "
+                              "going back would write an older copy over it. Nothing was restored. The chat's "
+                              "Undo button asks the user and keeps their version first.",
+                              hint="undo_hand_changed")
+
+
+        editing = [str(layer.name()) for layer in unsaved_edit_layers()]
+        if editing:
+            return tool_error(f"{', '.join(editing[:5])} has unsaved edits in QGIS; going back would discard "
+                              "them. Nothing was restored. The user can save or discard them, or use the "
+                              "chat's Undo button, which saves them in the history first.",
+                              hint="undo_unsaved_edits")
+        started = time.monotonic()
+        history.restore_begins(entry)
+        try:
+            with layer_removed.undoing():
+                result = entry.snapshot.restore(file_name=entry.file_to_keep(),
+                                                extra_copies=history.file_versions(thread_id, entry),
+                                                own_saves=history.own_saves_after(thread_id, entry))
+        finally:
+            history.restore_ended()
+        history.project_restored()
+
+        telemetry.track(ev.AGENT_UNDO_USED, {
+            "ok": bool(result.get("ok")), "kind": "typed", "steps_back": 1, "run_id": entry.run_id,
+            "duration_ms": int((time.monotonic() - started) * 1000), "refused": bool(result.get("refused")),
+            "files_not_restored": len(result.get("file_restore_errors") or []),
+            "memory_incomplete": len(result.get("memory_layers_incomplete") or [])})
+        log(f"qgis_undo restored {entry.kind} run {entry.run_index}: {result.get('message') or result}")
+        if result.get("project_read"):
+
+            history.mark_current(entry)
+        if not result.get("ok"):
+            if not result.get("refused") or result.get("files_blocked"):
+                from ..core.telemetry_errors import track_restore_failure
+                track_restore_failure(result, "typed")
+            return tool_error(str(result.get("message") or "The earlier state could not be fully restored."),
+                              hint="" if result.get("refused") else "undo_partly_restored")
+        return {"undone": True, "restored_to": f"before request {entry.run_index}",
+                "request": str(entry.prompt or "")[:200],
+                "files_put_back": list(result.get("files_put_back") or result.get("files_restored") or [])[:20],
+                "note": ("The edit was already saved, so the whole project went back to before that request, "
+                         "as the chat's Undo arrow does; Redo brings it back.")}

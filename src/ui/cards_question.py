@@ -22,16 +22,19 @@
 
 from __future__ import annotations
 
+import re
+
 from qgis.PyQt.QtCore import (
     QAbstractAnimation,
     QEasingCurve,
     QEvent,
     QPointF,
+    QRectF,
     Qt,
     QVariantAnimation,
     pyqtSignal,
 )
-from qgis.PyQt.QtGui import QPalette
+from qgis.PyQt.QtGui import QPainter
 from qgis.PyQt.QtWidgets import (
     QFrame,
     QHBoxLayout,
@@ -54,7 +57,6 @@ from .card_controls import (
     _BTN_PRIMARY_PILL,
     _OPTION_ROW_QSS,
     _OPTION_TEXT_QSS,
-    _PAGER_QSS,
     _ROW_PX,
     AnswerFooter,
     FoldMixin,
@@ -68,7 +70,9 @@ from .font_scale import scale_px_length, scale_qss_font_px
 from .icons import icon_for
 from .style import (
     ACCENT,
+    ACCENT_BORDER,
     ACCENT_INK,
+    ACCENT_TINT,
     FIELD,
     FONT_BASE,
     FONT_HINT,
@@ -78,6 +82,7 @@ from .style import (
     INK,
     INK_2,
     INK_3,
+    RADIUS_CHIP,
     RADIUS_CONTROL,
     SPACE_CARD,
     SPACE_OUTER,
@@ -86,7 +91,7 @@ from .style import (
     qcolor,
     repolish,
 )
-from .widgets import ElidedLabel
+from .widgets import ElidedLabel, placeholder_ink
 
 
 
@@ -99,24 +104,24 @@ _FREE_TEXT_QSS = scale_qss_font_px(
 )
 
 
+
 _RECOMMENDED_QSS = scale_qss_font_px(
-    f"QLabel {{ font-size: {FONT_HINT}px; color: {ACCENT_INK}; background: transparent; border: none; }}"
-)
-
-
-_WHY_QSS = scale_qss_font_px(
-    f"QLabel {{ font-size: {FONT_HINT}px; color: {INK_2}; background: transparent; border: none; }}"
+    f"QLabel {{ font-size: {FONT_HINT}px; color: {ACCENT_INK}; background: {ACCENT_TINT}; border: none;"
+    f" border-radius: {RADIUS_CHIP}px; padding: 1px 6px; }}"
 )
 _ROW_STATES_QSS = (
+
+    "QWidget#{name} { border: 1px solid " + HAIRLINE + "; }"
+    'QWidget#{name}[on="true"] { border-color: ' + ACCENT_BORDER + "; }"
     "QWidget#{name}:hover { background: " + HOVER + "; }"
-    'QWidget#{name}[on="true"] { background: ' + HOVER_ON + "; }"
+
+    'QWidget#{name}[keyed="true"] { background: ' + HOVER + "; }"
+    'QWidget#{name}[on="true"] { background: ' + ACCENT_TINT + "; }"
     'QWidget#{name}[down="true"] { background: ' + HOVER_ON + "; }"
 )
 
 
 _CONTINUE_DISABLED_QSS = f"QPushButton:disabled {{ background: {HOVER_ON}; color: {INK_3}; }}"
-_RISE_PX = 6
-_RISE_MS = 180
 
 
 
@@ -139,13 +144,34 @@ def short_header(text) -> str:
 
 
 _HEADER_QSS = scale_qss_font_px(
-    f"QLabel {{ font-size: {FONT_HINT}px; color: {INK_3}; background: transparent; border: none; }}"
+    f"QLabel {{ font-size: {FONT_HINT}px; color: {INK_2}; background: {HOVER}; border: none;"
+    f" border-radius: {RADIUS_CHIP}px; padding: 1px 6px; }}"
 )
 
 
+_TAIL_NOTE = re.compile(r"^(.{2,}?)\s+\(([^()]{3,})\)$")
+_ICON_PX = 16
+
+
+def _layer_icon(name: str):
+
+    try:
+        from qgis.core import QgsIconUtils, QgsProject
+
+        found = QgsProject.instance().mapLayersByName(name)
+        if len(found) != 1:
+            return None
+        pixmap = QgsIconUtils.iconForLayer(found[0]).pixmap(_ICON_PX, _ICON_PX)
+    except Exception:  # noqa: BLE001
+        return None
+    return None if pixmap.isNull() else pixmap
+
+
+
+
 _SLIDE_PX = 24
-_SLIDE_MS = 360
-_ADVANCE_MS = 480
+_SLIDE_MS = 240
+_ADVANCE_MS = 320
 
 
 
@@ -243,12 +269,37 @@ def _as_options(options) -> list:
     return [str(o) for o in (options or [])]
 
 
+class _Steps(QWidget):
+
+
+
+    _BAR_W, _BAR_H, _GAP = 14, 4, 4
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self._current = 0
+        self._done: list = [False]
+        self.setFixedHeight(18)
+
+    def set_state(self, current: int, done: list) -> None:
+        self._current, self._done = current, list(done) or [False]
+        count = len(self._done)
+        self.setFixedWidth(count * self._BAR_W + (count - 1) * self._GAP)
+        self.update()
+
+    def paintEvent(self, event):  # noqa: N802
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        painter.setPen(Qt.PenStyle.NoPen)
+        top = (self.height() - self._BAR_H) / 2
+        for i, done in enumerate(self._done):
+            colour = INK if i == self._current else ACCENT if done else HAIRLINE
+            painter.setBrush(qcolor(colour))
+            painter.drawRoundedRect(QRectF(i * (self._BAR_W + self._GAP), top, self._BAR_W, self._BAR_H), 2, 2)
+        painter.end()
+
+
 class _OptionRow(_ClickRow):
-
-
-
-
-
 
 
 
@@ -278,18 +329,34 @@ class _OptionRow(_ClickRow):
         self.setAccessibleDescription(
             _tr_option("Checkbox") if kind == "check" else _tr_option("Radio button"))
         row = QHBoxLayout(self)
-        row.setContentsMargins(6, 7, 8, 7)
+        row.setContentsMargins(10, 8, 10, 8)
         row.setSpacing(SPACE_CARD)
         self.mark = _Mark(kind, self)
-        row.addWidget(self.mark, 0, Qt.AlignmentFlag.AlignVCenter)
+
+        row.addWidget(self.mark, 0, Qt.AlignmentFlag.AlignTop)
         lines = QVBoxLayout()
         lines.setContentsMargins(0, 0, 0, 0)
         lines.setSpacing(0)
-        label = plain_label(text, self)
+        shown = text
+        note = _TAIL_NOTE.match(text) if not detail else None
+        if note:
+            shown, detail = note.group(1), note.group(2)
+        label = plain_label(shown, self)
         label.setObjectName("optionText")
         label.setStyleSheet(_OPTION_TEXT_QSS)
         label.setWordWrap(True)
-        lines.addWidget(label)
+
+
+        named = QHBoxLayout()
+        named.setContentsMargins(0, 0, 0, 0)
+        named.setSpacing(6)
+        icon = _layer_icon(text)
+        if icon is not None:
+            lead = QLabel(self)
+            lead.setFixedSize(_ICON_PX, _ICON_PX)
+            lead.setPixmap(icon)
+            named.addWidget(lead, 0, Qt.AlignmentFlag.AlignTop)
+        named.addWidget(label, 1)
         if recommended:
 
 
@@ -297,20 +364,50 @@ class _OptionRow(_ClickRow):
             tag.setObjectName("optionRecommended")
             tag.setStyleSheet(_RECOMMENDED_QSS)
             tag.setTextFormat(Qt.TextFormat.PlainText)
-            lines.addWidget(tag)
+            tag.setToolTip(why)
+            self.setToolTip(why)
+            named.addWidget(tag, 0, Qt.AlignmentFlag.AlignTop)
+            self._tag, self._tag_beside = tag, True
+        self._label, self._named, self._lines = label, named, lines
+        self._has_icon = icon is not None
+        lines.addLayout(named)
         if detail:
             line = plain_label(detail, self)
             line.setObjectName("optionDetail")
             line.setStyleSheet(_ASK_LABEL_QSS)
             line.setWordWrap(True)
             lines.addWidget(line)
-        if why:
-            reason = plain_label(why, self)
-            reason.setObjectName("optionWhy")
-            reason.setStyleSheet(_WHY_QSS)
-            reason.setWordWrap(True)
-            lines.addWidget(reason)
         row.addLayout(lines, 1)
+
+    _tag = None
+
+    def resizeEvent(self, event):  # noqa: N802
+
+
+
+        super().resizeEvent(event)
+        tag = self._tag
+        if tag is None:
+            return
+        self._label.ensurePolished()
+        tag.ensurePolished()
+        margins = self.layout().contentsMargins()
+        spacing = self._named.spacing()
+        room = (self.width() - margins.left() - margins.right() - self.mark.width()
+                - self.layout().spacing())
+        if self._has_icon:
+            room -= _ICON_PX + spacing
+        words = self._label.fontMetrics().horizontalAdvance(self._label.text())
+        beside = words + spacing + tag.sizeHint().width() + 2 <= room
+        if beside == self._tag_beside:
+            return
+        self._tag_beside = beside
+        (self._lines if beside else self._named).removeWidget(tag)
+        tag.setStyleSheet(_RECOMMENDED_QSS + ("" if beside else "QLabel { margin-top: 4px; }"))
+        if beside:
+            self._named.addWidget(tag, 0, Qt.AlignmentFlag.AlignTop)
+        else:
+            self._lines.addWidget(tag, 0, Qt.AlignmentFlag.AlignLeft)
 
     def set_checked(self, on: bool) -> None:
         self.mark.set_checked(on)
@@ -345,6 +442,22 @@ class _OptionRow(_ClickRow):
     def leaveEvent(self, event):  # noqa: N802
         self._set_down(False)
         super().leaveEvent(event)
+
+    def _set_keyed(self, keyed: bool) -> None:
+        if bool(self.property("keyed")) != keyed:
+            self.setProperty("keyed", keyed)
+            repolish(self)
+
+    def focusInEvent(self, event):  # noqa: N802
+
+
+        self._set_keyed(event.reason() in (Qt.FocusReason.TabFocusReason,
+                                           Qt.FocusReason.BacktabFocusReason))
+        super().focusInEvent(event)
+
+    def focusOutEvent(self, event):  # noqa: N802
+        self._set_keyed(False)
+        super().focusOutEvent(event)
 
     def keyPressEvent(self, event):  # noqa: N802
 
@@ -383,12 +496,7 @@ class _FreeTextRow(QWidget):
             self.edit.addAction(pencil, QLineEdit.ActionPosition.LeadingPosition)
         except (RuntimeError, AttributeError, TypeError):
             pass
-        try:
-            palette = self.edit.palette()
-            palette.setColor(QPalette.ColorRole.PlaceholderText, qcolor(INK_3))
-            self.edit.setPalette(palette)
-        except (RuntimeError, AttributeError, TypeError):
-            pass
+        placeholder_ink(self.edit)
         lay.addWidget(self.edit, 1)
 
 
@@ -463,18 +571,26 @@ class _Page(QWidget):
         col.setContentsMargins(0, 0, 0, 0)
         col.setSpacing(SPACE_CARD)
 
+
+        above = QHBoxLayout()
+        above.setContentsMargins(0, 0, 0, 0)
+        above.setSpacing(SPACE_CARD)
         if self.header:
             label = plain_label(self.header, self)
             label.setObjectName("questionHeader")
             label.setStyleSheet(_HEADER_QSS)
-            col.addWidget(label)
-        self.head = ask_head(self, self.question)
-        col.addWidget(self.head)
+            above.addWidget(label)
         if self.multiple and self.options:
-            hint = plain_label(self.tr("Select all that apply"), self)
+            hint = ElidedLabel(self.tr("Select all that apply"), self)
             hint.setObjectName("questionHint")
             hint.setStyleSheet(_ASK_LABEL_QSS)
-            col.addWidget(hint)
+            above.addWidget(hint, 1)
+        else:
+            above.addStretch(1)
+        if above.count() > 1:
+            col.addLayout(above)
+        self.head = ask_head(self, self.question)
+        col.addWidget(self.head)
         if self.options:
             col.addWidget(self._build_options())
 
@@ -679,8 +795,7 @@ class QuestionCard(_Card, FoldMixin):
         self._prev_btn = _GlyphButton("chevron_up", 14, 18, self._pager, self.tr("Previous question"),
                                       focusable=True)
         self._prev_btn.clicked.connect(lambda: self._go(self._current - 1))
-        self._counter = QLabel("1/1", self._pager)
-        self._counter.setStyleSheet(_PAGER_QSS)
+        self._counter = _Steps(self._pager)
         self._next_btn = _GlyphButton("chevron_down", 14, 18, self._pager, self.tr("Next question"),
                                       focusable=True)
         self._next_btn.clicked.connect(lambda: self._go(self._current + 1))
@@ -721,32 +836,6 @@ class QuestionCard(_Card, FoldMixin):
         self._fit_policies()
         self._pager.setVisible(len(self._pages) > 1)
         self._refresh()
-
-    def showEvent(self, event):  # noqa: N802
-        super().showEvent(event)
-        if getattr(self, "_risen", False):
-            return
-        self._risen = True
-        if reduced_motion(self):
-            return
-        margins = self._col.contentsMargins()
-        rise = QVariantAnimation(self)
-        rise.setDuration(_RISE_MS)
-        rise.setEasingCurve(_ease_out())
-        rise.setStartValue(float(_RISE_PX))
-        rise.setEndValue(0.0)
-
-        def step(value, m=margins):
-            try:
-                r = int(round(float(value)))
-
-                self._col.setContentsMargins(m.left(), m.top() + r, m.right(), max(0, m.bottom() - r))
-            except (RuntimeError, TypeError):
-                pass
-
-        rise.valueChanged.connect(step)
-        self._rise = rise
-        rise.start(QAbstractAnimation.DeletionPolicy.KeepWhenStopped)
 
     def _page(self, tool_call_id: str = ""):
         for page in self._pages:
@@ -831,7 +920,10 @@ class QuestionCard(_Card, FoldMixin):
 
         page = self._current_page()
         count = len(self._pages)
-        self._counter.setText(f"{self._current + 1} / {count}")
+        self._counter.set_state(self._current, [p.answer is not None or p.skipped or p.is_answerable()
+                                                for p in self._pages])
+        self._counter.setToolTip(self.tr("Question {n} of {count}").format(n=self._current + 1, count=count))
+        self._counter.setAccessibleName(self._counter.toolTip())
         self._prev_btn.setEnabled(self._current > 0)
         self._next_btn.setEnabled(self._current < count - 1)
         self._next_btn.set_ring(self._current < count - 1 and page is not None

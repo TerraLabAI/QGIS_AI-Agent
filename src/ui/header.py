@@ -45,15 +45,14 @@
 
 
 
-
 from __future__ import annotations
 
-from qgis.PyQt.QtCore import QEvent, QRectF, QSize, Qt, pyqtSignal
-from qgis.PyQt.QtGui import QColor, QFont, QFontMetrics, QKeySequence, QPainter, QPixmap, QTextOption
+from qgis.PyQt.QtCore import QEvent, QSize, Qt, pyqtSignal
+from qgis.PyQt.QtGui import QKeySequence
 from qgis.PyQt.QtWidgets import QHBoxLayout, QLabel, QPushButton, QVBoxLayout, QWidget
 
 from .checkpoint_sheet import CheckpointSheet, history_rows, row_target
-from .font_scale import scale_px_length, widget_pixel_ratio
+from .font_scale import scale_px_length
 from .history_popup import HistoryPopup
 from .icons import logo_pixmap, logo_size
 from .quota_card import trial_cta
@@ -61,14 +60,11 @@ from .shared import CHECKPOINTS_KEYS
 from .style import (
     _BTN_PRO_PILL,
     _HEADER_QSS,
-    FONT_BODY,
-    FONT_HINT,
     PRO_PILL_PX,
     RADIUS_CONTROL,
     SPACE_CARD,
     repolish,
 )
-from .styles import BRAND_GREEN
 from .widgets import IconButton
 
 HEADER_HEIGHT = 36
@@ -77,32 +73,6 @@ HEADER_HEIGHT = 36
 
 _MARK = 20
 _MARK_GAP = 6
-_AVATAR_PX = 22
-
-
-def letter_badge(widget, letter: str, diameter: int = _AVATAR_PX) -> QPixmap:
-
-    ratio = widget_pixel_ratio(widget)
-    physical = max(1, int(round(diameter * ratio)))
-    pixmap = QPixmap(physical, physical)
-    pixmap.setDevicePixelRatio(ratio)
-    pixmap.fill(Qt.GlobalColor.transparent)
-    painter = QPainter(pixmap)
-    try:
-        painter.setRenderHint(QPainter.RenderHint.Antialiasing, True)
-        painter.setPen(Qt.PenStyle.NoPen)
-        painter.setBrush(QColor(BRAND_GREEN))
-        painter.drawEllipse(0, 0, diameter, diameter)
-        font = painter.font()
-        font.setPixelSize(max(9, int(diameter * 0.55)))
-        font.setBold(True)
-        painter.setFont(font)
-        painter.setPen(QColor("#14210A"))
-        painter.drawText(QRectF(0, 0, diameter, diameter), letter,
-                         QTextOption(Qt.AlignmentFlag.AlignCenter))
-    finally:
-        painter.end()
-    return pixmap
 
 
 class Header(QWidget):
@@ -187,7 +157,7 @@ class Header(QWidget):
         self._pro_pill.clicked.connect(self.pro_pill_clicked.emit)
         self._pro_pill.hide()
         self._pro_pill_wanted = False
-        self._pro_pill_full_width = self._full_pill_width()
+        self._pill_hints = {}
         row.addWidget(self._pro_pill, 0, Qt.AlignmentFlag.AlignVCenter)
 
 
@@ -256,7 +226,12 @@ class Header(QWidget):
         return QSize(super().sizeHint().width(), HEADER_HEIGHT)
 
     def minimumSizeHint(self) -> QSize:  # noqa: N802
-        return QSize(super().minimumSizeHint().width(), HEADER_HEIGHT)
+
+
+        width = super().minimumSizeHint().width()
+        if not self._pro_pill.isHidden():
+            width -= self._pro_pill.minimumSizeHint().width() + self.layout().spacing()
+        return QSize(width, HEADER_HEIGHT)
 
     def set_dock(self, dock) -> None:
 
@@ -281,7 +256,6 @@ class Header(QWidget):
         self._pro_pill.setText(label)
         self._pro_pill.setToolTip(tip)
         self._pro_pill.setAccessibleName(tip)
-        self._pro_pill_full_width = self._full_pill_width()
         self._fit_pro_pill()
 
     def resizeEvent(self, event):  # noqa: N802
@@ -305,26 +279,27 @@ class Header(QWidget):
         room = self.width() - used
 
 
-        word_only = self._compact_pill_width()
-        compact = room < self._pro_pill_full_width
-        self._pro_pill.setVisible(room >= word_only)
-        if bool(self._pro_pill.property("compact")) == compact:
-            return
-        self._pro_pill.setProperty("compact", compact)
-        repolish(self._pro_pill)
+        compact = room < self._pill_hint(False)
+        visible = room >= self._pill_hint(compact)
+        self._set_pill_compact(compact)
+        self._pro_pill.setVisible(visible)
 
-    def _full_pill_width(self) -> int:
+    def _set_pill_compact(self, compact: bool) -> None:
+        if bool(self._pro_pill.property("compact")) != compact:
+            self._pro_pill.setProperty("compact", compact)
+            repolish(self._pro_pill)
 
-        return QFontMetrics(self._pro_pill.font()).horizontalAdvance(self._pro_pill.text()) + 16
+    def _pill_hint(self, compact: bool) -> int:
 
-    def _compact_pill_width(self) -> int:
 
-        font = QFont(self._pro_pill.font())
-        if font.pixelSize() > 0:
-            font.setPixelSize(max(1, round(font.pixelSize() * FONT_HINT / FONT_BODY)))
-        else:
-            font.setPointSizeF(font.pointSizeF() * FONT_HINT / FONT_BODY)
-        return QFontMetrics(font).horizontalAdvance(self._pro_pill.text()) + 8
+
+
+
+        key = (self._pro_pill.text(), compact)
+        if key not in self._pill_hints:
+            self._set_pill_compact(compact)
+            self._pill_hints[key] = self._pro_pill.sizeHint().width()
+        return self._pill_hints[key]
 
     def _toggle_floating(self) -> None:
         if self._dock is not None:
@@ -356,11 +331,6 @@ class Header(QWidget):
         self._history_popup.set_current_thread(thread_id or "")
         if self._sidebar is not None:
             self._sidebar.set_current_thread(thread_id or "")
-
-    def set_thread_text_provider(self, provider) -> None:
-
-
-        self._history_popup.set_thread_text_provider(provider)
 
     def set_checkpoints(self, entries: list) -> None:
 
@@ -449,18 +419,6 @@ class Header(QWidget):
                     button.set_hovered(False)
                     button.set_active(False)
         return super().eventFilter(watched, event)
-
-    def set_account(self, email: str, avatar_url: str = "") -> None:
-
-
-        del avatar_url
-        tip = self.tr("Settings")
-        if email:
-            tip = self.tr("Settings ({email})").format(email=email)
-        self._settings_btn.setToolTip(tip)
-
-    def clear_account(self) -> None:
-        self._settings_btn.setToolTip(self.tr("Settings"))
 
     def set_title(self, text: str) -> None:
         self._title.setText(text)

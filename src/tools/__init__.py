@@ -35,18 +35,23 @@ _REGISTER = re.compile(r"register_\w+_tools")
 _COMPLETE = re.compile(r"complete_\w+_tools")
 
 
-def _tool_modules(include_debug: bool) -> list[ModuleType]:
+def module_names(include_debug: bool = True) -> list[str]:
+
     packages = [__name__, f"{__name__}.adapters"] + ([f"{__name__}.debug"] if include_debug else [])
-    modules = []
+    names = []
     for package in packages:
         try:
             path = importlib.import_module(package).__path__
         except ImportError as e:
             log_warning(f"Tools not available from {package}: {e}")
             continue
-        names = sorted(info.name for info in pkgutil.iter_modules(path) if not info.ispkg)
-        modules.extend(importlib.import_module(f"{package}.{name}") for name in names)
-    return modules
+        names.extend(f"{package}.{name}" for name in sorted(info.name for info in pkgutil.iter_modules(path)
+                                                         if not info.ispkg))
+    return names
+
+
+def _tool_modules(include_debug: bool) -> list[ModuleType]:
+    return [importlib.import_module(name) for name in module_names(include_debug)]
 
 
 def _entry_points(module: ModuleType, pattern: re.Pattern) -> list:

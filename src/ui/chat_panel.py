@@ -124,6 +124,10 @@ class ChatPanel(_ChatPanelRuns, _ChatPanelQueue, _ChatPanelPrompts, _ChatPanelTh
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setObjectName("chatPanel")
+
+
+
+        self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
         self.setMinimumWidth(MIN_PANEL_WIDTH)
         self.setStyleSheet(panel_qss())
         self.setAcceptDrops(True)
@@ -142,6 +146,9 @@ class ChatPanel(_ChatPanelRuns, _ChatPanelQueue, _ChatPanelPrompts, _ChatPanelTh
         self._upsell_seen: set = set()
         self._checkout_return = False
         self._return_view_pending = False
+
+        self._low_card_closed = False
+        self._quota_view = "hidden"
 
         self._pro_welcome = None
 
@@ -237,7 +244,7 @@ class ChatPanel(_ChatPanelRuns, _ChatPanelQueue, _ChatPanelPrompts, _ChatPanelTh
         self._col.addWidget(self._feedback_foot)
         self._center_anim = QVariantAnimation(self)
         self._center_anim.setDuration(_CENTER_MS)
-        self._center_anim.setEasingCurve(QEasingCurve.Type.OutCubic)
+        self._center_anim.setEasingCurve(QEasingCurve.Type.OutQuint)
         self._center_anim.valueChanged.connect(
             lambda value: self._center_spacer.setFixedHeight(max(0, int(value))))
         self._drop_overlay = DropOverlay(self)
@@ -252,7 +259,9 @@ class ChatPanel(_ChatPanelRuns, _ChatPanelQueue, _ChatPanelPrompts, _ChatPanelTh
         if task_id in self._task_cards and not self.tasks_panel.is_live(task_id):
 
             for card in self._task_cards.pop(task_id):
-                if card.is_open():
+                for _page in range(32):
+                    if not card.is_open():
+                        break
                     card.collapse(self.tr("Task ended"))
             self.composer.set_reply_placeholder("")
 
@@ -296,5 +305,4 @@ class ChatPanel(_ChatPanelRuns, _ChatPanelQueue, _ChatPanelPrompts, _ChatPanelTh
             pass
 
         self._layer_watch.close()
-        self.header.clear_account()
         self.composer.set_running(False)

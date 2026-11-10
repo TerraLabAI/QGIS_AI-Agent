@@ -502,10 +502,10 @@ class _ModelBuilder:
                 raise _SpecError(f"{label}: parent_layer must be a model input name")
             if parent not in by_name:
                 raise _SpecError(f"{label}: parent_layer '{parent}' is not a model input")
-            parent_kind = _canonical_type(by_name[parent].get("type"))
+            parent_kind = _canonical_type(str(by_name[parent].get("type") or "").lower())
             if parent_kind not in _LAYER_INPUT_KINDS:
                 raise _SpecError(f"{label}: parent_layer '{parent}' is not a layer input")
-            if spec.get("type") == "field" and parent_kind not in {"vector", "feature_source"}:
+            if str(spec.get("type") or "").lower() == "field" and parent_kind not in {"vector", "feature_source"}:
                 raise _SpecError(f"Field input '{spec['name']}' requires a vector parent_layer")
 
     def add_inputs(self, inputs: list) -> None:

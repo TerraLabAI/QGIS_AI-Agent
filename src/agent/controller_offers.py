@@ -6,19 +6,12 @@
 
 from __future__ import annotations
 
-from qgis.PyQt.QtCore import QCoreApplication
-
 from ..core.logger import log, log_warning
 from ..core.profile import REPLY_LANGUAGES, add_memory_note, load_memory_notes, record_forgotten, remove_memory_note
 from ..core.protocol import ClientErrorCode, Decision, RunStatus
 from ..core.scratch import MIN_TO_OFFER
 from ..core.scratch import group as group_scratch
-from .controller_shared import PROPOSAL_MAX_ROWS
-
-
-def tr(text: str) -> str:
-    return QCoreApplication.translate("AgentController", text)
-
+from .controller_shared import PROPOSAL_MAX_ROWS, tr
 
 
 

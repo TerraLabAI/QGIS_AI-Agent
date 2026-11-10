@@ -91,6 +91,17 @@ def close_designers() -> int:
     return closed
 
 
+def before_own_read() -> None:
+
+
+
+
+
+
+    if not _CONNECTED:
+        close_designers()
+
+
 def reopen(names) -> int:
 
     opened = 0

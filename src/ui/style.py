@@ -29,10 +29,25 @@
 
 from __future__ import annotations
 
+from qgis.PyQt.QtCore import QT_VERSION_STR
+
 from ..core.host_platform import IS_WINDOWS
 from . import tokens
 from .font_scale import scale_qss_font_px
 from .styles import BTN_GREEN, BTN_GREEN_HOVER, DARK_UI
+
+
+
+
+
+WEIGHT_MEDIUM = 600 if IS_WINDOWS and not QT_VERSION_STR.startswith("5.") else 500
+
+
+def medium_font_weight():
+
+    from qgis.PyQt.QtGui import QFont
+
+    return QFont.Weight.DemiBold if WEIGHT_MEDIUM == 600 else QFont.Weight.Medium
 
 
 def is_dark() -> bool:
@@ -109,7 +124,7 @@ _FILE_BADGES_LIGHT = {
     "vector": ("#e7f0fd", "#1f5fbf"),
     "raster": ("#f0eafc", "#6b3fc4"),
     "image": ("#e0f4f3", "#0f7b75"),
-    "web": ("#fdeee2", "#c2560a"),
+    "web": ("#fdeee2", "#ad4f00"),
     "other": ("#eef0f3", "#5b5f66"),
 }
 _FILE_BADGES_DARK = {
@@ -164,11 +179,15 @@ BTN_SMALL_PX = 28
 ROW_PX = 28
 CHIP_PX = 22
 
+HIT_PX = 24
+
+
+
 
 
 MOTION_HOVER_MS = 120
 MOTION_FOLD_MS = 300
-MOTION_FADE_UP_MS = 300
+MOTION_FADE_MS = 150
 MOTION_POP_MS = 160
 
 MIN_PANEL_WIDTH = 320
@@ -189,6 +208,10 @@ TINT_ON = HOVER_ON
 
 
 ACCENT = BTN_GREEN
+
+
+
+ACCENT_HOVER = "#388e3c"
 ACCENT_DARK = BTN_GREEN_HOVER
 ACCENT_TINT = "rgba(67, 160, 71, 0.10)"
 ACCENT_TINT_ON = "rgba(67, 160, 71, 0.20)"
@@ -259,6 +282,11 @@ def with_platform_font(widget) -> None:
 
 
     rule = platform_font_qss()
+
+
+
+    if widget.isWindow():
+        rule += f"QDialog {{ background: {PAGE}; }}"
     if rule and rule not in widget.styleSheet():
         widget.setStyleSheet(rule + widget.styleSheet())
 
@@ -294,7 +322,7 @@ _BTN_ICON = (
 _BTN_SEND = (
     f"QToolButton {{ background: {ACCENT}; border: none; border-radius: 16px;"
     " padding: 0; }"
-    f"QToolButton:hover {{ background: {ACCENT_DARK}; }}"
+    f"QToolButton:hover {{ background: {ACCENT_HOVER}; }}"
     f"QToolButton:pressed {{ background: {ACCENT_DARK}; }}"
 
     f"QToolButton:disabled {{ background: {ACCENT_BORDER}; }}"
@@ -307,10 +335,12 @@ _BTN_SEND = (
 
     f'QToolButton[running="true"] {{ background: {INK}; }}'
     f'QToolButton[running="true"]:hover {{ background: {INK_HOVER}; }}'
+    f'QToolButton[running="true"]:pressed {{ background: {INK_2}; }}'
 
 
     f'QToolButton[queue="true"] {{ background: {SURFACE}; border: 1px solid {LINE_STRONG}; }}'
     f'QToolButton[queue="true"]:hover {{ background: {HOVER}; }}'
+    f'QToolButton[queue="true"]:pressed {{ background: {HOVER_ON}; }}'
     f'QToolButton[queue="true"]:disabled {{ background: {SURFACE}; border: 1px solid {LINE}; }}'
 )
 
@@ -320,7 +350,7 @@ _BTN_SEND = (
 _BTN_MODE = (
     f"QToolButton {{ background: transparent; border: 1px solid {LINE};"
     f" border-radius: {RADIUS_CONTROL}px; padding: 3px 8px; font-size: {FONT_BODY}px;"
-    f" font-weight: 500; color: {INK}; }}"
+    f" font-weight: {WEIGHT_MEDIUM}; color: {INK}; }}"
     f"QToolButton:hover {{ background: {HOVER}; border-color: {LINE_STRONG}; }}"
     f'QToolButton:pressed, QToolButton[active="true"] {{ background: {HOVER_ON};'
     f" border-color: {LINE_STRONG}; }}"
@@ -341,18 +371,14 @@ _BTN_CHIP_CLOSE = (
     "QToolButton { background: transparent; border: none; padding: 0;"
     " border-radius: 7px; }"
     f"QToolButton:hover {{ background: {HOVER_ON}; }}"
+    f"QToolButton:pressed {{ background: {LINE_STRONG}; }}"
 )
 
 _BTN_THUMB_CLOSE = (
     "QToolButton { background: rgba(0, 0, 0, 0.62); border: 1px solid rgba(255, 255, 255, 0.75);"
     " border-radius: 9px; padding: 0; }"
     "QToolButton:hover { background: rgba(0, 0, 0, 0.88); }"
-)
-
-_BTN_AVATAR = (
-    "QToolButton { background: transparent; border: none; padding: 2px;"
-    " border-radius: 13px; }"
-    f"QToolButton:hover {{ background: {HOVER}; }}"
+    "QToolButton:pressed { background: rgb(0, 0, 0); }"
 )
 
 
@@ -364,43 +390,69 @@ _BTN_AVATAR = (
 BTN_PILL_PX = BTN_PX
 BTN_PRIMARY_WIDE_PX = 36
 
+
+
+
+
+def _focus_ring(colour: str, padding: str) -> str:
+    return (f'QPushButton[ring="true"]:focus {{ border: 2px solid {colour}; padding: {padding};'
+            " outline: none; }")
+
+
+def keyboard_ring(button) -> None:
+
+    from qgis.PyQt.QtCore import Qt
+
+    button.setFocusPolicy(Qt.FocusPolicy.TabFocus)
+    button.setProperty("ring", True)
+
+
 _BTN_PRIMARY = (
     f"QPushButton {{ background: {ACCENT}; color: {ON_ACCENT};"
     f" border: none; border-radius: {RADIUS_CONTROL}px; padding: 0 12px;"
-    f" font-size: {FONT_BODY}px; font-weight: 500; }}"
-    f"QPushButton:hover {{ background: {ACCENT_DARK}; }}"
+    f" font-size: {FONT_BODY}px; font-weight: {WEIGHT_MEDIUM}; }}"
+    f"QPushButton:hover {{ background: {ACCENT_HOVER}; }}"
     f"QPushButton:pressed {{ background: {ACCENT_DARK}; }}"
     f"QPushButton:disabled {{ background: {ACCENT_BORDER}; color: {ON_ACCENT}; }}"
+    + _focus_ring(INK, "0 10px")
 )
 
 
 _BTN_PRIMARY_WIDE = (
     f"QPushButton {{ background: {ACCENT}; color: {ON_ACCENT};"
     f" border: none; border-radius: {RADIUS_CONTROL}px;"
-    f" padding: 0 18px; font-size: {FONT_BASE}px; font-weight: 500; }}"
-    f"QPushButton:hover {{ background: {ACCENT_DARK}; }}"
+    f" padding: 0 18px; font-size: {FONT_BASE}px; font-weight: {WEIGHT_MEDIUM}; }}"
+    f"QPushButton:hover {{ background: {ACCENT_HOVER}; }}"
     f"QPushButton:pressed {{ background: {ACCENT_DARK}; }}"
     f"QPushButton:disabled {{ background: {ACCENT_BORDER}; color: {ON_ACCENT}; }}"
+    + _focus_ring(INK, "0 16px")
 )
 _BTN_GHOST = (
     f"QPushButton {{ background: {SURFACE}; color: {INK};"
     f" border: 1px solid {LINE_STRONG}; border-radius: {RADIUS_CONTROL}px;"
-    f" padding: 0 10px; font-size: {FONT_BODY}px; font-weight: 500; }}"
+    f" padding: 0 10px; font-size: {FONT_BODY}px; font-weight: {WEIGHT_MEDIUM}; }}"
     f"QPushButton:hover {{ background: {HOVER}; }}"
     f"QPushButton:pressed {{ background: {HOVER_ON}; }}"
     f"QPushButton:disabled {{ color: {INK_3}; border-color: {LINE}; }}"
+    + _focus_ring(ACCENT_INK, "0 9px")
 )
 _BTN_DANGER_GHOST = (
     f"QPushButton {{ background: {SURFACE}; color: {RED};"
     f" border: 1px solid {LINE_STRONG}; border-radius: {RADIUS_CONTROL}px;"
-    f" padding: 0 10px; font-size: {FONT_BODY}px; font-weight: 500; }}"
-    f"QPushButton:hover {{ background: {RED_TINT}; border-color: {RED}; }}"
+    f" padding: 0 10px; font-size: {FONT_BODY}px; font-weight: {WEIGHT_MEDIUM}; }}"
+    f"QPushButton:hover {{ background: {RED_TINT}; }}"
+    f"QPushButton:pressed {{ background: {RED_TINT}; border-color: {RED}; }}"
+    f"QPushButton:disabled {{ color: {INK_3}; border-color: {LINE}; }}"
+    + _focus_ring(RED, "0 9px")
 )
 _BTN_QUIET = (
     "QPushButton { background: transparent; border: none;"
-    f" color: {INK_2}; font-size: {FONT_BODY}px; font-weight: 500; padding: 4px 6px;"
+    f" color: {INK_2}; font-size: {FONT_BODY}px; font-weight: {WEIGHT_MEDIUM}; padding: 4px 6px;"
     f" border-radius: {RADIUS_CONTROL}px; }}"
     f"QPushButton:hover {{ color: {INK}; background: {HOVER}; }}"
+    f"QPushButton:pressed {{ color: {INK}; background: {HOVER_ON}; }}"
+    f"QPushButton:disabled {{ color: {INK_3}; }}"
+    + _focus_ring(ACCENT_INK, "2px 4px")
 )
 
 PRO_PILL_PX = 24
@@ -446,10 +498,11 @@ _MENU_QSS = (
 
 
 _HEADER_QSS = scale_qss_font_px(
-    "QWidget#hdr { background: transparent;"
+
+    f"QWidget#hdr {{ background: {PAGE};"
     f" border-bottom: 1px solid {LINE}; }}"
     f"QLabel#hdrTitle {{ font-size: {FONT_BODY}px; font-weight: 600;"
-    " color: palette(text); background: transparent; border: none; }"
+    f" color: {INK}; background: transparent; border: none; }}"
     f"QLabel#hdrByline {{ font-size: {FONT_MICRO}px;"
     f" color: {MUTED}; background: transparent; border: none; }}"
     "QLabel { background: transparent; border: none; }"
@@ -493,7 +546,7 @@ def panel_qss() -> str:
         f" color: {INK_2}; }}"
 
 
-        f"QLabel#statusText {{ font-size: {FONT_BODY}px; font-weight: 500;"
+        f"QLabel#statusText {{ font-size: {FONT_BODY}px; font-weight: {WEIGHT_MEDIUM};"
         f" color: {INK_2}; background: transparent; border: none; }}"
         f"QLabel#statusTime {{ font-size: {FONT_HINT}px;"
         f" color: {INK_3}; background: transparent; border: none; }}"
@@ -514,7 +567,7 @@ def panel_qss() -> str:
         f'QFrame#attachCard[clickable="true"]:hover {{ border-color: {LINE_STRONG};'
         f" background: {HOVER}; }}"
         f"QLabel#attachGlyph {{ background: {FIELD}; border: none; border-radius: {RADIUS_CONTROL}px; }}"
-        f"QLabel#attachName {{ font-size: {FONT_BASE + 1}px; font-weight: 500;"
+        f"QLabel#attachName {{ font-size: {FONT_BASE + 1}px; font-weight: {WEIGHT_MEDIUM};"
         f" color: {INK}; background: transparent; border: none; }}"
         f"QLabel#attachKind {{ font-size: {FONT_BASE}px; color: {INK_2};"
         " background: transparent; border: none; }"
@@ -541,7 +594,7 @@ def panel_qss() -> str:
         " background: transparent; border: none; }"
         f"QLabel#hint {{ font-size: {FONT_HINT}px; color: {INK_2};"
         " background: transparent; border: none; }"
-        f"QLabel#micro {{ font-size: {FONT_MICRO}px; font-weight: 500; color: {INK_3};"
+        f"QLabel#micro {{ font-size: {FONT_MICRO}px; font-weight: {WEIGHT_MEDIUM}; color: {INK_3};"
         " background: transparent; border: none; }"
         f"QLabel#mono {{ font-family: {MONO_FAMILY}; font-size: {FONT_HINT}px;"
         f" color: {INK_2}; background: transparent; border: none; }}"
@@ -549,9 +602,9 @@ def panel_qss() -> str:
 
         f"QLabel#planStep {{ font-size: {FONT_BODY}px; color: {INK_2};"
         " background: transparent; border: none; }"
-        f'QLabel#planStep[state="active"] {{ color: {INK}; font-weight: 500; }}'
+        f'QLabel#planStep[state="active"] {{ color: {INK}; font-weight: {WEIGHT_MEDIUM}; }}'
         f'QLabel#planStep[state="done"] {{ color: {INK}; }}'
-        f"QLabel#toolLine {{ font-size: {FONT_BODY}px; font-weight: 500; color: {INK};"
+        f"QLabel#toolLine {{ font-size: {FONT_BODY}px; font-weight: {WEIGHT_MEDIUM}; color: {INK};"
         " background: transparent; border: none; }"
         f'QLabel#toolLine[failed="true"] {{ color: {INK_2}; }}'
         f"QLabel#traceHead {{ font-size: {FONT_BASE}px; color: {INK_2};"
@@ -780,6 +833,7 @@ __all__ = [
     "ACCENT_BORDER",
     "ACCENT_BORDER_SOFT",
     "ACCENT_DARK",
+    "ACCENT_HOVER",
     "ACCENT_INK",
     "ACCENT_TINT",
     "ACCENT_TINT_ON",
@@ -801,6 +855,7 @@ __all__ = [
     "GREEN_TINT",
     "HAIRLINE",
     "HAIRLINE_STRONG",
+    "HIT_PX",
     "HOVER",
     "HOVER_ON",
     "INK",
@@ -814,7 +869,7 @@ __all__ = [
     "LINE_STRONG",
     "MIN_PANEL_WIDTH",
     "MONO_FAMILY",
-    "MOTION_FADE_UP_MS",
+    "MOTION_FADE_MS",
     "MOTION_FOLD_MS",
     "MOTION_HOVER_MS",
     "MOTION_POP_MS",
@@ -847,7 +902,6 @@ __all__ = [
     "TOOLTIP_FG",
     "TOOLTIP_MUTED",
     "USER_PILL_LINE",
-    "_BTN_AVATAR",
     "_BTN_CHIP_CLOSE",
     "_BTN_DANGER_GHOST",
     "_BTN_GHOST",
@@ -865,10 +919,13 @@ __all__ = [
     "_HEADER_QSS",
     "_MENU_QSS",
     "_SCROLL_AREA_QSS",
+    "WEIGHT_MEDIUM",
     "accent_color",
     "accent_ink",
     "hover_pill",
     "is_dark",
+    "keyboard_ring",
+    "medium_font_weight",
     "paint_shadow",
     "panel_qss",
     "qcolor",

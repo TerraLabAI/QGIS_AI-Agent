@@ -20,10 +20,20 @@
 
 
 
+
+
+
+
+
+
+
+
+
 from __future__ import annotations
 
 import os
 import re
+import threading
 import time
 
 from .logger import log_warning
@@ -55,10 +65,14 @@ def pid_of(name: str) -> int:
 class FreezeStack:
 
 
+
     def __init__(self) -> None:
         self._file = None
         self._broken = False
         self.armed = False
+
+
+        self._lock = threading.Lock()
 
     def _open(self):
         if self._file is None and not self._broken:
@@ -76,9 +90,18 @@ class FreezeStack:
 
     def arm(self, seconds: float) -> None:
 
-        handle = self._open()
-        if handle is None:
-            return
+        with self._lock:
+            handle = self._open()
+            if handle is not None:
+                self._arm(handle, seconds)
+
+    def hold_off(self, seconds: float) -> None:
+
+        with self._lock:
+            if self.armed and self._file is not None:
+                self._arm(self._file, seconds)
+
+    def _arm(self, handle, seconds: float) -> None:
         try:
             import faulthandler
 
@@ -90,6 +113,10 @@ class FreezeStack:
 
     def take(self) -> str:
 
+        with self._lock:
+            return self._take()
+
+    def _take(self) -> str:
         if not self.armed or self._file is None:
             return ""
         try:
@@ -116,8 +143,9 @@ class FreezeStack:
 
     def close(self) -> None:
 
-        self.take()
-        handle, self._file = self._file, None
+        with self._lock:
+            self._take()
+            handle, self._file = self._file, None
         if handle is None:
             return
         path = handle.name if isinstance(handle.name, str) else ""

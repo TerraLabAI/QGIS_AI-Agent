@@ -20,7 +20,9 @@
 
 from __future__ import annotations
 
-from qgis.PyQt.QtCore import Qt
+from typing import NamedTuple
+
+from qgis.PyQt.QtCore import QLocale, Qt
 from qgis.PyQt.QtWidgets import (
     QFrame,
     QHBoxLayout,
@@ -33,6 +35,7 @@ from qgis.PyQt.QtWidgets import (
 )
 
 from ..core.logger import log_warning
+from ..core.numbers import as_int
 from ..core.profile import clear_memory_notes
 from ..core.served_state import (
     PRODUCT_ID,
@@ -45,7 +48,6 @@ from ..core.served_state import (
     get_support_email,
 )
 from .account_avatar import AccountAvatarLoader, cached_avatar_pixmap, is_avatar_url_usable
-from .account_settings_dialog import _ACCOUNT_OFFLINE_CODES, format_count, resolve_plan_runs
 from .confirm_dialog import ask_confirm
 from .delete_account_dialog import ask_delete_account
 from .external_links import open_external_url
@@ -67,9 +69,61 @@ from .settings_pages import (
 )
 from .settings_retention import RetentionRow
 from .shared import format_reset_date, safe_disconnect
+from .styles import PANEL_TEXT
 from .widgets import ElidedLabel
 
 _AVATAR_D = 36
+
+
+_ACCOUNT_OFFLINE_CODES = frozenset({
+    "NO_INTERNET", "DNS_ERROR", "CONNECTION_REFUSED", "PROXY_ERROR",
+    "TIMEOUT", "SSL_ERROR",
+})
+
+
+class _PlanRuns(NamedTuple):
+
+
+    is_subscriber: bool
+    used: int | None
+    limit: int | None
+    reset_iso: str | None
+
+
+    trial_ends_on: str | None = None
+    trial_interval: str | None = None
+
+
+def _resolve_plan_runs(usage: dict, sub: dict) -> _PlanRuns:
+
+    usage = usage if isinstance(usage, dict) else {}
+    sub = sub if isinstance(sub, dict) else {}
+    if "is_subscriber" in usage:
+        is_subscriber = bool(usage["is_subscriber"])
+    elif "is_free_tier" in usage:
+        is_subscriber = not bool(usage["is_free_tier"])
+    else:
+        is_subscriber = str(sub.get("plan", "")).lower() == "pro"
+    used = as_int(usage.get("runs_used"))
+    if used is None:
+        used = as_int(sub.get("usage_this_month"))
+    limit = as_int(usage.get("runs_limit"))
+    if limit is None:
+        limit = as_int(sub.get("quota_limit"))
+    reset = (usage.get("period_end") or usage.get("reset_date")
+             or sub.get("current_period_end"))
+    trial_end = usage.get("plan_trial_ends_on")
+    interval = usage.get("plan_trial_interval")
+    return _PlanRuns(is_subscriber, used, limit, str(reset) if reset else None,
+                     str(trial_end) if trial_end and is_subscriber else None,
+                     interval if interval in ("month", "year") else None)
+
+
+def _format_count(value) -> str:
+    try:
+        return QLocale().toString(int(value or 0))
+    except (TypeError, ValueError):
+        return "0"
 _SETTINGS_UPSELL_SEEN = [False]
 
 
@@ -246,7 +300,7 @@ class AccountPageMixin:
         group = SettingGroup(self._account_box)
 
         sub = self._find_subscription(account)
-        plan = resolve_plan_runs(usage, sub or {})
+        plan = _resolve_plan_runs(usage, sub or {})
         plan_name = (get_plan_name("pro", self.tr("Pro plan")) if plan.is_subscriber
                      else get_plan_name("free", self.tr("Free plan")))
 
@@ -260,7 +314,7 @@ class AccountPageMixin:
         avatar.setFixedSize(diameter, diameter)
         avatar.setAlignment(Qt.AlignmentFlag.AlignCenter)
         avatar.setStyleSheet(
-            "background: rgba(128,128,128,0.2); color: palette(text);"
+            "background: rgba(128,128,128,0.2); color: " + PANEL_TEXT + ";"
             f" border-radius: {diameter // 2}px; font-size: 15px; font-weight: 700;")
         chip_row.addWidget(avatar, 0, Qt.AlignmentFlag.AlignVCenter)
         self._avatar_label = avatar
@@ -269,7 +323,7 @@ class AccountPageMixin:
         id_col.setContentsMargins(0, 0, 0, 0)
         id_col.setSpacing(1)
         email_lbl = ElidedLabel(email, chip, Qt.TextElideMode.ElideMiddle)
-        email_lbl.setStyleSheet("font-size: 13px; font-weight: 600; color: palette(text); background: transparent;")
+        email_lbl.setStyleSheet(f"font-size: 13px; font-weight: 600; color: {PANEL_TEXT}; background: transparent;")
         id_col.addWidget(email_lbl)
         chip_row.addLayout(id_col, 1)
         out = self._button(self.tr("Sign out"), GHOST_BTN_QSS)
@@ -293,9 +347,9 @@ class AccountPageMixin:
         if plan.limit is not None and plan.used is not None:
             left = max(0, int(plan.limit) - int(plan.used))
             runs = self.tr("{left} of {limit} tasks left").format(
-                left=format_count(left), limit=format_count(plan.limit))
+                left=_format_count(left), limit=_format_count(plan.limit))
         elif plan.used is not None:
-            runs = self.tr("{used} tasks this month").format(used=format_count(plan.used))
+            runs = self.tr("{used} tasks this month").format(used=_format_count(plan.used))
         else:
             runs = ""
         reset_str = format_reset_date(plan.reset_iso or "")
@@ -332,7 +386,7 @@ class AccountPageMixin:
         if runs:
             runs_lbl = QLabel(runs, row)
             runs_lbl.setStyleSheet(scale_qss_font_px(
-                "font-size: 20px; font-weight: 600; color: palette(text); background: transparent;"))
+                "font-size: 20px; font-weight: 600; color: " + PANEL_TEXT + "; background: transparent;"))
             runs_lbl.setWordWrap(True)
             words.addWidget(runs_lbl)
         line.addLayout(words, 1)
@@ -346,7 +400,7 @@ class AccountPageMixin:
 
             manage = self._button(trial_cta() if getattr(self, "trial_offered", False)
                                   else self.tr("Get Pro"), GET_PRO_BTN_QSS)
-            manage.clicked.connect(self._on_upgrade)
+            manage.clicked.connect(lambda: self._on_upgrade("account"))
         line.addWidget(manage, 0, Qt.AlignmentFlag.AlignVCenter)
         col.addLayout(line)
         if plan.is_subscriber:
@@ -464,13 +518,15 @@ class AccountPageMixin:
         self.dashboard_opened.emit(source)
         open_external_url(get_dashboard_url(), parent=self)
 
-    def _on_upgrade(self) -> None:
+    def _on_upgrade(self, surface: str = "account") -> None:
 
 
 
 
 
 
+
+        self.upgrade_surface = surface
         if self.receivers(self.upgrade_requested) > 0:
             self.upgrade_requested.emit()
             return

@@ -34,6 +34,7 @@ from .style import (
     CANVAS,
     FONT_BODY,
     FONT_HINT,
+    HIT_PX,
     HOVER_ON,
     INK,
     INK_2,
@@ -44,11 +45,13 @@ from .style import (
     qcolor,
     repolish,
 )
-from .widgets import IconButton
+from .widgets import ElidedLabel, IconButton, plain_tip
 
 QUEUE_MAX = 5
 _FOLDED = 3
 _MOTION_MS = 150
+
+_UNDO_MS = 5000
 _QWIDGETSIZE_MAX = 16777215
 _ids = itertools.count(1)
 TRAY_TUCK = 10
@@ -118,7 +121,7 @@ class _RowText(QLabel):
 
         self.setTextFormat(Qt.TextFormat.PlainText)
         self.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.setToolTip(self._full)
+        self.setToolTip(plain_tip(self._full))
         self.setAccessibleName(self._full)
         self.setMinimumWidth(40)
         self._elide()
@@ -166,7 +169,7 @@ class _QueueRow(QFrame):
         self.setFocusPolicy(Qt.FocusPolicy.TabFocus)
         self._pointer = False
         line = QHBoxLayout(self)
-        line.setContentsMargins(8, 3, 4, 3)
+        line.setContentsMargins(8, 2, 4, 2)
         line.setSpacing(8)
         glyph = QLabel(self)
         glyph.setPixmap(pixmap_for(glyph, "lu.corner-down-left", 12, qcolor(INK_3)))
@@ -193,7 +196,7 @@ class _QueueRow(QFrame):
         self.gone.clicked.connect(lambda: self.remove.emit(self.item_id))
         self._arrow_shown = True
         for button in (self.pencil, self.up, self.gone):
-            button.setFixedSize(22, 22)
+            button.setFixedSize(HIT_PX, HIT_PX)
 
             policy = button.sizePolicy()
             policy.setRetainSizeWhenHidden(True)
@@ -207,10 +210,11 @@ class _QueueRow(QFrame):
         self.setGraphicsEffect(self._fade)
         self._grow = QPropertyAnimation(self, b"maximumHeight", self)
         self._grow.setDuration(_MOTION_MS)
-        self._grow.setEasingCurve(QEasingCurve.Type.OutCubic)
+        self._grow.setEasingCurve(QEasingCurve.Type.OutQuint)
         self._grow.finished.connect(self._settled)
         self._alpha = QPropertyAnimation(self._fade, b"opacity", self)
         self._alpha.setDuration(_MOTION_MS)
+        self._alpha.setEasingCurve(QEasingCurve.Type.OutQuint)
         self._on_gone = None
 
     def _paint(self, active: bool) -> None:
@@ -352,7 +356,9 @@ class QueueStrip(QFrame):
 
         col.setContentsMargins(6, 8, 6, 6 + TRAY_TUCK)
         col.setSpacing(4)
-        self._header = QLabel(self)
+
+
+        self._header = ElidedLabel("", self)
         self._header.setObjectName("queueHeader")
         self._header.setContentsMargins(8, 0, 8, 0)
         col.addWidget(self._header)
@@ -555,8 +561,8 @@ class _ChatPanelQueue:
             return self.tr("Paused · nothing is sent until you choose")
         lead = self.tr("Queued") if count == 1 else self.tr("{n} queued").format(n=count)
         if any(self._joins_run(i) for i in items):
-            return self.tr("{lead} · the agent reads it at its next step").format(lead=lead)
-        return self.tr("{lead} · sent when the agent finishes").format(lead=lead)
+            return self.tr("{lead} · the AI agent reads it at its next step").format(lead=lead)
+        return self.tr("{lead} · sent when the AI agent finishes").format(lead=lead)
 
     def _push_rows(self, entry: dict) -> None:
 
@@ -631,9 +637,29 @@ class _ChatPanelQueue:
     def _queue_remove(self, item_id: int) -> None:
         item = self._find(item_id)
         if item is not None:
+            entry = self._queue()
+            index = entry["items"].index(item)
             self._withdraw(item)
-            self._queue()["items"].remove(item)
+            entry["items"].remove(item)
+            self._offer_queue_undo(entry, item, index)
         self._sync_queue()
+
+    def _offer_queue_undo(self, entry: dict, item: dict, index: int) -> None:
+
+
+
+
+        def put_back() -> None:
+            if item in entry["items"] or len(entry["items"]) >= QUEUE_MAX:
+                return
+            entry["items"].insert(min(index, len(entry["items"])), item)
+            self._sync_queue()
+
+        try:
+            self.toast.show_message(self.tr("Removed from the queue"), link=self.tr("Undo"),
+                                    on_link=put_back, ms=_UNDO_MS)
+        except (AttributeError, RuntimeError):
+            pass
 
     def _queue_edit_last(self) -> None:
         items = self._queue()["items"] if self._queue_key is not None else []

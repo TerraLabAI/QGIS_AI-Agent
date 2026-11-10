@@ -42,6 +42,7 @@ from qgis.PyQt.QtWidgets import (
     QWidget,
 )
 
+from ..core.host_platform import prefers_reduced_motion
 from ..core.numbers import as_float
 from .font_scale import scale_px_length, scale_qss_font_px, widget_pixel_ratio
 from .icons import icon_for
@@ -65,9 +66,11 @@ from .style import (
     RADIUS_CONTROL,
     SURFACE,
     hover_pill,
+    medium_font_weight,
     paint_shadow,
     qcolor,
 )
+from .widgets import plain_tip
 
 
 
@@ -123,7 +126,7 @@ def _font(base: QFont, px: int, weight: int = 400, mono: bool = False) -> QFont:
         font.setFamilies(families)
         font.setStyleHint(QFont.StyleHint.Monospace)
     font.setPixelSize(scale_px_length(px))
-    font.setWeight(QFont.Weight.Medium if weight >= 500 else QFont.Weight.Normal)
+    font.setWeight(medium_font_weight() if weight >= 500 else QFont.Weight.Normal)
     return font
 
 
@@ -173,7 +176,11 @@ class _SheetDelegate(QStyledItemDelegate):
         room = max(40.0, edge - left)
         detail_width = detail_metrics.horizontalAdvance(detail) if detail else 0
         name_room = max(40.0, room - (detail_width + _DETAIL_GAP if detail else 0))
-        name = name_metrics.elidedText(opt.text, Qt.TextElideMode.ElideRight, int(name_room))
+
+
+        elide = (Qt.TextElideMode.ElideMiddle if str(data.get("kind") or "") in ("layer", FILES)
+                 else Qt.TextElideMode.ElideRight)
+        name = name_metrics.elidedText(opt.text, elide, int(name_room))
         painter.setFont(name_font)
         painter.setPen(qcolor(INK))
         painter.drawText(QRectF(left, rect.top(), name_room, rect.height()),
@@ -290,9 +297,10 @@ class MentionSheet(QWidget):
         col.addWidget(self._footer)
         self._pop = QVariantAnimation(self)
         self._pop.setDuration(MOTION_POP_MS)
-        self._pop.setEasingCurve(QEasingCurve.Type.OutCubic)
+        self._pop.setEasingCurve(QEasingCurve.Type.OutQuint)
         self._pop.valueChanged.connect(self._on_pop)
         self._final = QPoint()
+        self._rise = _POP_RISE
 
     def set_rows(self, items, footer: str = "") -> None:
 
@@ -332,9 +340,9 @@ class MentionSheet(QWidget):
                 row.setIcon(icon_for(self._view, "paperclip", _GLYPH, qcolor(INK_3)))
             elif glyph:
                 row.setIcon(icon_for(self._view, glyph, _GLYPH, qcolor(INK_3)))
+
             detail = str(item.get("detail") or "")[:240]
-            if detail:
-                row.setToolTip(detail)
+            row.setToolTip(plain_tip(detail or label))
             self._model.appendRow(row)
         self._view.setCurrentIndex(self._first_choice())
 
@@ -419,7 +427,7 @@ class MentionSheet(QWidget):
         if index.isValid():
             self._on_picked(index)
 
-    def open_above(self, anchor: QWidget) -> None:
+    def open_above(self, anchor: QWidget, pop: bool = False) -> None:
 
 
 
@@ -448,16 +456,24 @@ class MentionSheet(QWidget):
         self.move(self._final)
         if not was_visible:
             self.show()
-            self._pop_in(anchor)
+
+
+            if pop:
+                self._pop_in(anchor)
+            else:
+                self._pop.stop()
+                self.setWindowOpacity(1.0)
         else:
             self.update()
 
     def _pop_in(self, anchor: QWidget) -> None:
 
+
         self._pop.stop()
         if not anchor.isVisible():
             self.setWindowOpacity(1.0)
             return
+        self._rise = 0 if prefers_reduced_motion() else _POP_RISE
         self.setWindowOpacity(0.0)
         self._pop.setStartValue(0.0)
         self._pop.setEndValue(1.0)
@@ -470,7 +486,7 @@ class MentionSheet(QWidget):
     def _on_pop(self, value) -> None:
         progress = as_float(value, 1.0)
         self.setWindowOpacity(progress)
-        self.move(QPoint(self._final.x(), self._final.y() + int(_POP_RISE * (1.0 - progress))))
+        self.move(QPoint(self._final.x(), self._final.y() + int(self._rise * (1.0 - progress))))
 
     def hideEvent(self, event):  # noqa: N802
         self._pop.stop()

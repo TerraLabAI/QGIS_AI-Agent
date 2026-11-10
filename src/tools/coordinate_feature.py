@@ -128,7 +128,6 @@ def _create_coordinate_feature(args: dict) -> dict:
         for name in (args.get("fields") or {}):
             layer.dataProvider().addAttributes([QgsField(str(name), QVAR_STRING)])
         layer.updateFields()
-        QgsProject.instance().addMapLayer(layer)
         created = True
     else:
         layer = target_layer
@@ -150,6 +149,9 @@ def _create_coordinate_feature(args: dict) -> dict:
     if started and not layer.commitChanges():
         layer.rollBack()
         return tool_error("Could not commit the feature.", "WRITE_FAILED")
+    if created:
+
+        QgsProject.instance().addMapLayer(layer)
     layer.triggerRepaint()
     return {"layer_name": layer.name(), "layer_id": layer.id(), "geometry_type": geometry_type,
             "crs": target.authid() or target.toWkt(), "created_layer": created, "added": 1}

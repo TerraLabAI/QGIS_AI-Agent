@@ -59,9 +59,11 @@ def describe_diff(diff: dict) -> list:
 def diff_changed(diff: dict) -> bool:
 
 
+
     if not isinstance(diff, dict):
         return False
-    return bool(int(diff.get("changed_layers") or 0) > 0 or diff.get("project_changes"))
+    return bool(int(diff.get("changed_layers") or 0) > 0 or diff.get("project_changes")
+                or diff.get("files_replaced"))
 
 
 def changed_layer_items(diff: dict) -> list[dict]:

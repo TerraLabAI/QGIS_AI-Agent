@@ -34,6 +34,7 @@ from qgis.PyQt.QtWidgets import (
     QWidget,
 )
 
+from .card_base import reduced_motion
 from .font_scale import scale_qss_font_px
 from .icons import icon_for, logo_pixmap, pixmap_for
 from .shared import event_pos
@@ -51,11 +52,12 @@ from .style import (
     MOTION_HOVER_MS,
     PAGE,
     RADIUS_CONTROL,
+    WEIGHT_MEDIUM,
     accent_color,
     qcolor,
     repolish,
 )
-from .widgets import ElidedLabel
+from .widgets import ElidedLabel, plain_tip
 
 EXPANDED_WIDTH = 240
 COLLAPSED_WIDTH = 36
@@ -79,16 +81,16 @@ _COPY_HIDE_PX = 120
 
 _QSS = scale_qss_font_px(
     f"QWidget#sidebar {{ background: {PAGE}; border-right: 1px solid {LINE}; }}"
-    f"QLabel#sidebarWorkspace {{ font-size: {FONT_BASE}px; font-weight: 500; color: {INK};"
+    f"QLabel#sidebarWorkspace {{ font-size: {FONT_BASE}px; font-weight: {WEIGHT_MEDIUM}; color: {INK};"
     " background: transparent; border: none; }"
-    f"QLabel#sidebarNav {{ font-size: {FONT_BASE}px; font-weight: 500; color: {INK_2};"
+    f"QLabel#sidebarNav {{ font-size: {FONT_BASE}px; font-weight: {WEIGHT_MEDIUM}; color: {INK_2};"
     " background: transparent; border: none; }"
     f"QLabel#sidebarRecent {{ font-size: {FONT_BASE}px; color: {INK_2};"
     " background: transparent; border: none; }"
     f'QLabel#sidebarRecent[on="true"] {{ color: {INK}; }}'
-    f"QLabel#sidebarUpgrade {{ font-size: {FONT_BASE}px; font-weight: 500; color: {ACCENT_INK};"
+    f"QLabel#sidebarUpgrade {{ font-size: {FONT_BASE}px; font-weight: {WEIGHT_MEDIUM}; color: {ACCENT_INK};"
     " background: transparent; border: none; }"
-    f"QLabel#sidebarMicro {{ font-size: {FONT_MICRO}px; font-weight: 500; color: {INK_3};"
+    f"QLabel#sidebarMicro {{ font-size: {FONT_MICRO}px; font-weight: {WEIGHT_MEDIUM}; color: {INK_3};"
     " padding: 5px 8px 6px 8px; background: transparent; border: none; }"
     f"QFrame#sidebarGlide {{ background: {HOVER_ON}; border: none;"
     f" border-radius: {RADIUS_CONTROL}px; }}"
@@ -145,7 +147,7 @@ class _Row(QWidget):
         self._text.setProperty("on", False)
         self._text.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Preferred)
         row.addWidget(self._text, 1, Qt.AlignmentFlag.AlignVCenter)
-        self.setToolTip(text)
+        self.setToolTip(plain_tip(text))
         self._paint_glyph()
 
     def _paint_glyph(self) -> None:
@@ -167,7 +169,7 @@ class _Row(QWidget):
 
     def set_text(self, text: str) -> None:
         self._text.setText(text)
-        self.setToolTip(text)
+        self.setToolTip(plain_tip(text))
 
     def enterEvent(self, event):  # noqa: N802
         super().enterEvent(event)
@@ -239,7 +241,7 @@ class _GlideHost(QWidget):
         self._glide.hide()
         self._anim = QVariantAnimation(self)
         self._anim.setDuration(MOTION_HOVER_MS)
-        self._anim.setEasingCurve(QEasingCurve.Type.OutCubic)
+        self._anim.setEasingCurve(QEasingCurve.Type.OutQuint)
         self._anim.valueChanged.connect(self._on_frame)
         self._target = None
         self.setAttribute(Qt.WidgetAttribute.WA_Hover, True)
@@ -247,7 +249,7 @@ class _GlideHost(QWidget):
     def glide_to(self, row: QWidget) -> None:
 
         target = QRect(row.geometry())
-        if not self._glide.isVisible() or not self.isVisible():
+        if not self._glide.isVisible() or reduced_motion(self):
             self._anim.stop()
             self._glide.setGeometry(target)
             self._glide.show()
@@ -297,7 +299,7 @@ class ChatSidebar(QWidget):
         self.setFixedWidth(EXPANDED_WIDTH)
         self._slide = QVariantAnimation(self)
         self._slide.setDuration(_SLIDE_MS)
-        self._slide.setEasingCurve(QEasingCurve.Type.OutCubic)
+        self._slide.setEasingCurve(QEasingCurve.Type.OutQuint)
         self._slide.valueChanged.connect(self._on_slide)
 
         col = QVBoxLayout(self)
@@ -316,7 +318,9 @@ class ChatSidebar(QWidget):
         self._mark.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self._mark.setPixmap(logo_pixmap(self._mark, _MARK))
         head.addWidget(self._mark, 0, Qt.AlignmentFlag.AlignVCenter)
-        self._workspace = QLabel(self.tr("AI Agent"), top)
+
+
+        self._workspace = ElidedLabel(self.tr("AI Agent"), top, Qt.TextElideMode.ElideMiddle)
         self._workspace.setObjectName("sidebarWorkspace")
         self._workspace.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Preferred)
         head.addWidget(self._workspace, 1, Qt.AlignmentFlag.AlignVCenter)
@@ -396,7 +400,8 @@ class ChatSidebar(QWidget):
 
         name = _project_name(path)
         self._workspace.setText(name or self.tr("Unsaved project"))
-        self._workspace.setToolTip(str(path or ""))
+
+        self._workspace.parentWidget().setToolTip(plain_tip(str(path or "")))
 
     def set_threads(self, items, current_project_path: str | None = None) -> None:
         threads = [i for i in (items or []) if isinstance(i, dict) and i.get("id")]
@@ -499,7 +504,7 @@ class ChatSidebar(QWidget):
         self._collapsed = collapsed
         target = COLLAPSED_WIDTH if collapsed else EXPANDED_WIDTH
         self._slide.stop()
-        if not self.isVisible():
+        if reduced_motion(self):
             self._apply_width(target)
         else:
             self._slide.setStartValue(self.width())

@@ -937,6 +937,8 @@ def _run_processing(args: dict, algorithm=None) -> dict:
         external = algorithm_id.split(":", 1)[0] in ("saga", "sagang", "grass", "grass7", "otb")
         if external and not failed.get("suggestion") and not failed.get("hint"):
             failed.update(hint="external_provider_wrote_nothing", provider=algorithm_id.split(":", 1)[0])
+
+        failed.update(invalid_geometry.facts(sanitized_parameters, context))
         return failed
 
     provenance = _record_history(alg, sanitized_parameters, context)
@@ -1770,6 +1772,7 @@ def _on_proc_done(task_id: str, ok: bool, results, context):
         _carry_advice(entry, explained)
         if written:
             entry["files_written"] = written
+        entry.update(invalid_geometry.facts(entry.get("parameters"), context))
     elif ok:
 
 

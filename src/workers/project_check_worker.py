@@ -82,9 +82,11 @@ def _source_path(layer) -> str:
 
 
 def _layer_rows(project, limit: int = _MAX_LAYERS) -> tuple:
+
     rows = []
     broken = []
-    for layer in list(project.mapLayers().values())[:limit]:
+    layers = list(project.mapLayers().values())
+    for layer in layers:
         row = {"name": "", "valid": False}
         try:
             row["name"] = str(layer.name() or "")
@@ -100,18 +102,19 @@ def _layer_rows(project, limit: int = _MAX_LAYERS) -> tuple:
             row["why"] = f"could not be read: {exc}"
         if not row["valid"] or row.get("source_found") is False:
             broken.append(row["name"])
-        rows.append(row)
-    return rows, broken
+        if len(rows) < limit:
+            rows.append(row)
+    return rows, broken, len(layers)
 
 
-def _layout_rows(project, quality, limit: int = _MAX_LAYOUTS) -> list:
+def _layout_rows(project, quality, limit: int = _MAX_LAYOUTS) -> tuple:
     rows = []
     manager = project.layoutManager()
     try:
-        layouts = list(manager.printLayouts())[:limit]
+        layouts = list(manager.printLayouts())
     except (AttributeError, RuntimeError):
-        return rows
-    for layout in layouts:
+        return rows, 0
+    for layout in layouts[:limit]:
         row = {"name": ""}
         try:
             row["name"] = str(layout.name() or "")
@@ -128,7 +131,7 @@ def _layout_rows(project, quality, limit: int = _MAX_LAYOUTS) -> list:
             row["status"] = "unknown"
             row["why"] = str(exc)
         rows.append(row)
-    return rows
+    return rows, len(layouts)
 
 
 def _check(job: dict) -> dict:
@@ -149,14 +152,17 @@ def _check(job: dict) -> dict:
         elapsed = round(time.monotonic() - started, 2)
         if not opened:
             return {"ok": False, "error": "QGIS could not read the project file.", "read_s": elapsed}
-        layers, broken = _layer_rows(project, _cap(job, "max_layers", _MAX_LAYERS))
-        layouts = _layout_rows(project, _layout_quality(job["plugin_root"]),
-                               _cap(job, "max_layouts", _MAX_LAYOUTS))
+        layers, broken, layer_count = _layer_rows(project, _cap(job, "max_layers", _MAX_LAYERS))
+        layouts, layout_count = _layout_rows(project, _layout_quality(job["plugin_root"]),
+                                             _cap(job, "max_layouts", _MAX_LAYOUTS))
         return {"ok": True, "read_s": elapsed,
                 "title": str(project.title() or ""),
                 "crs": str(project.crs().authid() or ""),
-                "layer_count": len(layers), "layers": layers, "broken_layers": broken,
-                "layout_count": len(layouts), "layouts": layouts}
+                "layer_count": layer_count, "layers": layers, "broken_layers": broken,
+                "layout_count": layout_count, "layouts": layouts,
+
+                **({"layers_listed": len(layers)} if len(layers) < layer_count else {}),
+                **({"layouts_checked": len(layouts)} if len(layouts) < layout_count else {})}
     finally:
         try:
             QgsApplication.exitQgis()

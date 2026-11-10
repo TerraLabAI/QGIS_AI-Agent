@@ -21,6 +21,8 @@
 
 
 
+
+
 from __future__ import annotations
 
 from qgis.PyQt.QtCore import QCoreApplication, QObject, QRectF, QSize, Qt, QUrl, pyqtSignal
@@ -30,18 +32,33 @@ from qgis.PyQt.QtWidgets import (
     QFrame,
     QHBoxLayout,
     QLabel,
+    QPushButton,
     QSizePolicy,
     QVBoxLayout,
     QWidget,
 )
 
+from ..core.qgis_plugins import plugin_logo
+from ..core.siblings import is_sibling_installed, sibling_info
+from .cross_plugin_discovery import open_sibling
 from .font_scale import scale_px_length, scale_qss_font_px
 from .icons import pixmap_for
 from .image_guard import read_bounded_image
-from .settings_pages import MUTED, ROW_NOTE_QSS, TINT_HOVER, Page
+from .logo_tile import logo_pixmap
+from .settings_pages import (
+    GHOST_BTN_QSS,
+    GROUP_TITLE_QSS,
+    MUTED,
+    PRIMARY_BTN_QSS,
+    ROW_NOTE_QSS,
+    ROW_TITLE_QSS,
+    TINT_HOVER,
+    Page,
+    SettingGroup,
+)
 from .shared import event_pos, get_learn_items
-from .siblings_page import SiblingsSection
-from .style import FONT_BASE, FONT_HINT, RADIUS_CARD
+from .style import FONT_BASE, FONT_HINT, GREEN, RADIUS_CARD
+from .styles import PANEL_TEXT
 from .thumbnail_cache import (
     HTTP_STATUS,
     MAX_THUMBNAIL_BYTES,
@@ -70,7 +87,7 @@ _CARD_QSS = (
     scale_qss_font_px(f"QFrame#learnCard {{ background: transparent; border: none;"
     f" border-radius: {RADIUS_CARD}px; }}"
     f"QFrame#learnCard:hover {{ background: {TINT_HOVER}; }}"
-    f"QLabel#learnTitle {{ font-size: {FONT_BASE}px; font-weight: 600; color: palette(text);"
+    f"QLabel#learnTitle {{ font-size: {FONT_BASE}px; font-weight: 600; color: {PANEL_TEXT};"
     " background: transparent; }"
     f"QLabel#learnNote {{ font-size: {FONT_HINT}px; color: {MUTED}; background: transparent; }}")
 )
@@ -309,6 +326,107 @@ class LearnCard(QFrame):
         super().mouseReleaseEvent(event)
 
 
+_LOGO_PX = 32
+
+
+class SiblingRow(QFrame):
+
+
+    install_requested = pyqtSignal(str)
+
+    def __init__(self, product_id: str, title: str, note: str, parent=None):
+        super().__init__(parent)
+        self.product_id = str(product_id)
+        sibling = sibling_info(self.product_id) or {}
+        self.setObjectName("settingsRow")
+        self.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Maximum)
+        line = QHBoxLayout(self)
+        line.setContentsMargins(14, 10, 14, 10)
+        line.setSpacing(12)
+
+
+        logo_path = plugin_logo(str(sibling.get("folder") or ""))
+        chip = logo_pixmap(logo_path, scale_px_length(_LOGO_PX),
+                           self.devicePixelRatioF()) if logo_path else None
+        if chip is not None:
+            mark = QLabel(self)
+            mark.setPixmap(chip)
+            line.addWidget(mark, 0, Qt.AlignmentFlag.AlignVCenter)
+        words = QVBoxLayout()
+        words.setContentsMargins(0, 0, 0, 0)
+        words.setSpacing(2)
+        name = QLabel(title, self)
+        name.setStyleSheet(ROW_TITLE_QSS)
+        words.addWidget(name)
+        body = QLabel(note, self)
+        body.setStyleSheet(ROW_NOTE_QSS)
+        body.setWordWrap(True)
+        words.addWidget(body)
+        line.addLayout(words, 1)
+        self._check = QLabel(self)
+        self._check.setPixmap(pixmap_for(self, "check", 12, QColor(GREEN)))
+        line.addWidget(self._check, 0, Qt.AlignmentFlag.AlignVCenter)
+        self._state = QLabel(self.tr("Installed"), self)
+        self._state.setStyleSheet(ROW_NOTE_QSS)
+        line.addWidget(self._state, 0, Qt.AlignmentFlag.AlignVCenter)
+        line.addSpacing(4)
+        self._action = QPushButton(self)
+        self._action.setCursor(Qt.CursorShape.PointingHandCursor)
+        self._action.setAutoDefault(False)
+        self._action.clicked.connect(lambda: self.install_requested.emit(self.product_id))
+        line.addWidget(self._action, 0, Qt.AlignmentFlag.AlignVCenter)
+        self.refresh()
+
+    def refresh(self) -> None:
+
+        installed = is_sibling_installed(self.product_id)
+        self._action.setText(self.tr("Open") if installed else self.tr("Install"))
+        self._action.setStyleSheet(GHOST_BTN_QSS if installed else PRIMARY_BTN_QSS)
+        self._action.setToolTip(
+            self.tr("Show the plugin's panel.") if installed
+            else self.tr("Opens the QGIS plugin manager on this plugin."))
+        self._check.setVisible(installed)
+        self._state.setVisible(installed)
+
+
+class SiblingsSection(QWidget):
+
+
+    opened = pyqtSignal(str, str)
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        col = QVBoxLayout(self)
+        col.setContentsMargins(0, 12, 0, 0)
+        col.setSpacing(8)
+        head = QLabel(self.tr("Other TerraLab plugins"), self)
+        head.setStyleSheet(GROUP_TITLE_QSS)
+        head.setContentsMargins(14, 0, 0, 0)
+        col.addWidget(head)
+        group = SettingGroup(self)
+        self._rows = [
+            SiblingRow("ai-edit", "AI Edit",
+                       self.tr("Edit your imagery with a single sentence."), group),
+            SiblingRow("ai-segmentation", "AI Segmentation",
+                       self.tr("Turn buildings, trees or water into polygons."), group),
+        ]
+        for row in self._rows:
+            row.install_requested.connect(self._on_install)
+            group.add_row(row)
+        col.addWidget(group)
+
+    def refresh(self) -> None:
+        for row in self._rows:
+            row.refresh()
+
+    def _on_install(self, product_id: str) -> None:
+        outcome = open_sibling(product_id)
+        self.opened.emit(product_id, outcome)
+
+
+        self.refresh()
+
+
 class LearnPage(Page):
 
 
@@ -348,7 +466,7 @@ class LearnPage(Page):
 
         for item in items[2:]:
             more = QLabel(
-                f'<a href="{item.get("url")}" style="color: palette(text);">'
+                f'<a href="{item.get("url")}" style="color: {PANEL_TEXT};">'
                 f'{item.get("title")}</a>', self)
             more.setOpenExternalLinks(True)
             more.setStyleSheet(scale_qss_font_px(f"font-size: {FONT_BASE}px; background: transparent;"))

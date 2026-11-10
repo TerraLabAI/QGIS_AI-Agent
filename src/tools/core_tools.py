@@ -756,6 +756,9 @@ def register_core_tools(registry: ToolRegistry):
         label=QT_TRANSLATE_NOOP("AIAgent", "Export {layer_name} to {path}"),
         input_schema={
             "type": "object",
+
+
+            "x-replaces-file-set": True,
             "properties": {
                 "layer_name": {"type": "string"},
                 "path": {

@@ -25,6 +25,7 @@
 
 
 
+
 from __future__ import annotations
 
 from qgis.PyQt.QtCore import Qt
@@ -105,6 +106,19 @@ class PictureHover:
         super().mouseMoveEvent(event)
 
 
+
+_PROMPT_LINE_MAX = 120
+
+
+def tile_line(case) -> str:
+
+
+    prompt = " ".join(str(getattr(case, "prompt", "") or "").split())
+    if prompt and len(prompt) <= _PROMPT_LINE_MAX:
+        return prompt
+    return str(case.outcome or "")
+
+
 def tile_height(width: int) -> int:
 
     return round(width * 9 / 16) + C.px(C.TILE_TEXT_H)
@@ -117,7 +131,7 @@ class ExampleTile(PictureHover, Pressable):
         super().__init__(parent, radius=C.RADIUS_TILE)
         self.case = case
         self._title_text = str(case.title or "")
-        self._note_text = str(case.outcome or "")
+        self._note_text = tile_line(case)
         self._pictured = has_picture(case)
         self.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Fixed)
         self.setMouseTracking(True)

@@ -8,8 +8,6 @@ from __future__ import annotations
 
 import time
 
-from qgis.PyQt.QtCore import QCoreApplication
-
 from ..api.account import Account
 from ..core import telemetry
 from ..core import telemetry_events as ev
@@ -19,10 +17,7 @@ from ..core.protocol import CANCEL_SIGNED_OUT, RunStatus
 from ..core.settings import account_tag, reset_account_tag_cache
 from ..core.threads import SIGNED_OUT, ThreadStore
 from .controller_actions import _project_path
-
-
-def tr(text: str) -> str:
-    return QCoreApplication.translate("AgentController", text)
+from .controller_shared import tr
 
 
 class _ControllerAccount:

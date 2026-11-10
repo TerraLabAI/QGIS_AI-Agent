@@ -292,6 +292,45 @@ def _write_bundle(name: str, parts) -> str | None:
     return target
 
 
+_SERVER_AUTH = "1.3.6.1.5.5.7.3.1"
+_PEM_BLOCK = re.compile(rb"-----BEGIN CERTIFICATE-----.+?-----END CERTIFICATE-----", re.DOTALL)
+
+
+def _windows_store_cas(base: bytes) -> bytes:
+
+
+
+
+
+
+
+
+
+
+
+    import ssl
+
+    held = set()
+    for block in _PEM_BLOCK.findall(base):
+        try:
+            held.add(ssl.PEM_cert_to_DER_cert(block.decode("ascii")))
+        except ValueError:
+            continue
+    parts = []
+    try:
+        for store in ("CA", "ROOT"):
+            for der, encoding, trust in ssl.enum_certificates(store):
+                if encoding == "x509_asn" and (trust is True or _SERVER_AUTH in trust) and der not in held:
+                    held.add(der)
+                    parts.append(ssl.DER_cert_to_PEM_cert(der).encode("ascii"))
+    except OSError as exc:
+        from .logger import log_warning
+
+        log_warning(f"Windows certificate store not read for GDAL: {exc}")
+        return b""
+    return b"".join(parts)
+
+
 def _ca_bundle_with_qgis_extras():
 
 
@@ -307,19 +346,22 @@ def _ca_bundle_with_qgis_extras():
 
 
 
+    from .host_platform import IS_WINDOWS
+
+
     extra = _qgis_extra_cas() if on_main_thread() else run_on_main_thread(_qgis_extra_cas, timeout=10)
-    if not extra:
+    if not extra and not IS_WINDOWS:
         return None
     base = _base_bundle()
-    if not base:
-        from .host_platform import IS_WINDOWS
-
-        if IS_WINDOWS:
+    if IS_WINDOWS:
+        if not base:
 
 
             return None
+        extra += _windows_store_cas(base + extra)
+    elif not base:
         base = _qgis_trusted_pem() if on_main_thread() else run_on_main_thread(_qgis_trusted_pem, timeout=10)
-    if not base or extra in base:
+    if not extra or not base or extra in base:
         return None
     return _write_bundle("gdal-ca-bundle.pem", (base, extra))
 
@@ -599,7 +641,12 @@ def local_dataset_sources(path: str, seen: set | None = None) -> list:
 
 
 
+    from . import security
+
     seen = set() if seen is None else seen
+    if security.refused_share(path):
+
+        return []
     real = os.path.realpath(path)
     if real in seen or len(seen) >= 16 or not os.path.isfile(real):
         return []
@@ -639,6 +686,11 @@ def remote_dataset_refusal(url: str) -> str | None:
         return None
     try:
         response = net.open_url(url, timeout=15)
+    except net.FetchCancelled:
+        raise
+    except net.LocalUrlRefused as exc:
+
+        return str(getattr(exc, "reason", "") or exc) or f"{url} leads to an address this plugin does not fetch"
     except Exception:  # noqa: BLE001
         return None
     try:
@@ -650,6 +702,8 @@ def remote_dataset_refusal(url: str) -> str | None:
             rest = net.read_bounded(response, _XML_DATASET_MAX_BYTES, deadline=None)
         except net.FetchTooLarge:
             return f"the XML dataset at {url} is too large to check its sources"
+        except net.FetchCancelled:
+            raise
         except Exception:  # noqa: BLE001
             return None
         return xml_dataset_refusal(head + rest, url)

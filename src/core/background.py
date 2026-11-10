@@ -36,6 +36,7 @@ from qgis.PyQt.QtCore import QCoreApplication, QObject, pyqtSignal, pyqtSlot
 
 from .logger import log_warning
 from .net_state import current_cancel_check, set_cancel_check
+from .qt_compat import task_flags
 
 
 
@@ -728,31 +729,6 @@ def marshalled() -> bool:
     return bool(_WAITS)
 
 
-def _task_flags(task_cls, hidden: bool):
-
-
-
-
-
-
-    holder = getattr(task_cls, "Flag", task_cls)
-    flags = getattr(holder, "CanCancel", None)
-    if flags is None:
-        return None
-
-
-
-    quiet = getattr(holder, "CancelWithoutPrompt", None)
-    if quiet is not None:
-        flags = flags | quiet
-    if hidden:
-        for name in ("Hidden", "Silent"):
-            extra = getattr(holder, name, None)
-            if extra is not None:
-                flags = flags | extra
-    return flags
-
-
 def _release_later(task) -> None:
 
 
@@ -1001,7 +977,7 @@ def run_off_thread(description: str, work: Callable[[], Any],
         from qgis.core import QgsApplication, QgsTask
 
         manager = QgsApplication.taskManager()
-        flags = _task_flags(QgsTask, hidden)
+        flags = task_flags(QgsTask, hidden)
         if manager is None or flags is None:
             return None
         main_thread_invoker()

@@ -42,10 +42,10 @@ _PAGE = string.Template("""<!doctype html>
 <html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>TerraLab \u00b7 QGIS</title>
 <style>
-:root{--page:#f7f8fa;--card:#ffffff;--border:#e2e5ea;--ink:#1f2124;--muted:#5b5f66;--faint:#868b93;
---ok:#199a4d;--ok-tint:#e8f5ed;--warn:#ef720d;--warn-tint:#fdf1e5;--brand:#43a047;color-scheme:light dark}
+:root{--page:#f7f8fa;--card:#ffffff;--border:#e2e5ea;--ink:#1f2124;--muted:#5b5f66;--faint:#696d73;
+--ok:#147a3d;--ok-tint:#e8f5ed;--warn:#b35200;--warn-tint:#fdf1e5;--brand:#43a047;color-scheme:light dark}
 @media (prefers-color-scheme:dark){:root{--page:#17181a;--card:#232427;--border:#2e3033;--ink:#f2f3f4;
---muted:#a5a8ad;--faint:#6c6f75;--ok:#3cbb72;--ok-tint:rgba(60,187,114,.14);--warn:#f68f3c;
+--muted:#a5a8ad;--faint:#8f939a;--ok:#3cbb72;--ok-tint:rgba(60,187,114,.14);--warn:#f68f3c;
 --warn-tint:rgba(246,143,60,.14)}}
 *{box-sizing:border-box}
 body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;

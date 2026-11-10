@@ -189,6 +189,8 @@ def _restore_error_code(result: dict) -> str:
     message = str(result.get("message") or "")
     if result.get("unreadable_copy"):
         return "COPY_UNREADABLE"
+    if result.get("files_blocked"):
+        return "FILES_BLOCKED"
     if message.startswith("No snapshot"):
         return "NO_SNAPSHOT"
     if not result.get("layers") and "project" in message:
@@ -203,7 +205,7 @@ def _restore_error_code(result: dict) -> str:
 def track_restore_failure(result: dict, where: str) -> None:
 
 
-    errors = [e for e in result.get("file_restore_errors") or [] if isinstance(e, dict)]
+    errors = [e for e in result.get("file_restore_errors") or result.get("files_blocked") or [] if isinstance(e, dict)]
     first = errors[0] if errors else {}
     kinds = "+".join(dict.fromkeys(str(e.get("kind")) for e in errors if e.get("kind")))
     track_plugin_error("restore", _restore_error_code(result), where=where, reason=kinds,

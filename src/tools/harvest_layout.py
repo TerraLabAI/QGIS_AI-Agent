@@ -7,10 +7,7 @@
 
 from __future__ import annotations
 
-import base64
 import os
-import tempfile
-import uuid
 
 from qgis.core import (
     QgsExpression,
@@ -19,12 +16,8 @@ from qgis.core import (
     QgsLayoutItemAttributeTable,
     QgsLayoutItemMap,
     QgsLayoutItemPicture,
-    QgsLayoutPoint,
-    QgsLayoutSize,
-    QgsPrintLayout,
     QgsProject,
 )
-from qgis.PyQt.QtGui import QImage
 
 from ..core import limits
 from ..core.output_paths import FORBIDDEN_CHARS, RESERVED_NAMES, safe_file_name
@@ -35,7 +28,6 @@ from . import layout_ready
 from ._compat import enum_value
 from .export_rules import _IMAGE_FORMATS, _dpi_for_ground, _ground_per_pixel, export_flags
 from .layer_lookup import require_vector
-from .layout_elevation import camera_facts, snapshot_3d_view
 from .layout_facts import _apply_scale
 from .layout_pixel_units import PixelSizeHold
 from .layout_tools import _first_map_item, _mm_point, _mm_size, _resolve_layout, _with_new_item, place_item
@@ -141,31 +133,6 @@ def register_harvest_layout_tools(registry: ToolRegistry):
         },
         handler=_export_atlas,
         prepare=_prepare_atlas,
-    ))
-
-    registry.register(Tool(
-        name="get_3d_screenshot",
-        danger="read",
-        render_size="held",
-        writes_at=("save_path",),
-        input_schema={
-            "type": "object",
-            "x-dpi-at-ceiling": True,
-
-
-            "x-ground-centred": True,
-            "properties": {
-                "view_index": {"type": "integer", "minimum": 0, "maximum": 1000},
-                "dpi": {"type": "integer", "minimum": 10, "maximum": 600},
-                "pitch": {"type": "number", "minimum": 0, "maximum": 90},
-                "heading": {"type": "number", "minimum": -360000, "maximum": 360000},
-                "distance": {"type": "number", "minimum": 0.001, "maximum": 1000000000},
-                "save_path": {"type": "string"},
-                "overwrite": {"type": "boolean"},
-            },
-            "required": [],
-        },
-        handler=_get_3d_screenshot,
     ))
 
 
@@ -836,83 +803,3 @@ def _bad_page_names(names: list) -> list:
             continue
         seen[key] = True
     return problems
-
-
-def _get_3d_screenshot(args: dict) -> dict:
-    view, error = snapshot_3d_view(args)
-    if error:
-        return error
-
-
-
-    ceiling = int(limits.current("MAX_RENDER_DPI"))
-    asked_dpi = int(args.get("dpi", 96))
-    dpi = max(10, min(asked_dpi, ceiling))
-
-    keep_at = args.get("save_path")
-    if keep_at:
-        keep_at = expand_path(keep_at)
-        refused = validate_path(keep_at, write=True)
-        if refused:
-            return tool_error(refused, "INVALID_ARGS",
-                              hint="" if isinstance(refused, CodedText) else "layout_path_writable",
-                              param="save_path")
-        png_path = keep_at
-    else:
-        png_path = os.path.join(tempfile.gettempdir(), f"agent_3d_{uuid.uuid4().hex[:8]}.png")
-
-
-
-    code = _render_3d_page(view, dpi, png_path)
-    if _export_failed(code) or not os.path.exists(png_path):
-        return tool_error(f"3D layout export failed (export code {code})", "EXECUTION_FAILED",
-                          hint="layout_3d_render_failed")
-
-    picture = QImage(png_path)
-    facts = {"width": picture.width(), "height": picture.height(), "format": "png",
-             "view_index": view["index"], "open_3d_views": view["count"], "camera": camera_facts(view["pose"])}
-    if asked_dpi > ceiling:
-        facts.update(dpi=dpi, dpi_lowered_from=asked_dpi)
-    if keep_at:
-        return {"saved_path": png_path, **facts}
-    return {"image_base64": base64.b64encode(_read_and_remove(png_path)).decode("ascii"), **facts}
-
-
-
-
-_CAPTURE_PAGE_MM = 200.0
-
-
-def _render_3d_page(view: dict, dpi: int, png_path: str):
-
-    from qgis._3d import QgsLayoutItem3DMap
-
-    window = view["canvas"].size()
-    page = QgsLayoutSize(_CAPTURE_PAGE_MM,
-                         _CAPTURE_PAGE_MM * max(1, window.height()) / max(1, window.width()))
-    sheet = QgsPrintLayout(QgsProject.instance())
-    sheet.initializeDefaults()
-    sheet.pageCollection().page(0).setPageSize(page)
-    scene = QgsLayoutItem3DMap(sheet)
-    scene.setMapSettings(view["settings"])
-    scene.setCameraPose(view["pose"])
-
-    scene.setBackgroundColor(view["settings"].backgroundColor())
-    scene.setBackgroundEnabled(True)
-    scene.attemptResize(page)
-    scene.attemptMove(QgsLayoutPoint(0, 0))
-    sheet.addLayoutItem(scene)
-    options = QgsLayoutExporter.ImageExportSettings()
-    options.dpi = dpi
-    return QgsLayoutExporter(sheet).exportToImage(png_path, options)
-
-
-def _read_and_remove(path: str) -> bytes:
-    try:
-        with open(path, "rb") as handle:
-            return handle.read()
-    finally:
-        try:
-            os.remove(path)
-        except OSError:
-            pass

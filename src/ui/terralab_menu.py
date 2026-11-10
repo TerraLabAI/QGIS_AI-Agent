@@ -78,6 +78,19 @@ def _open_plugin_manager_updates(_checked=False):
     open_plugin_manager_updates()
 
 
+
+
+
+
+
+
+
+def _open_more_from_terralab(_checked=False):
+    from qgis.utils import iface
+
+    open_external_url(TERRALAB_URL, parent=iface.mainWindow() if iface is not None else None)
+
+
 def get_or_create_terralab_menu(main_window) -> QMenu:
     menu_bar = main_window.menuBar()
     for action in menu_bar.actions():
@@ -95,7 +108,7 @@ def get_or_create_terralab_menu(main_window) -> QMenu:
     logo_path = _find_terralab_logo()
     website_icon = QIcon(logo_path) if logo_path else QIcon()
     more_action = menu.addAction(website_icon, tr("More from TerraLab..."))
-    more_action.triggered.connect(lambda: open_external_url(TERRALAB_URL, parent=menu))
+    more_action.triggered.connect(_open_more_from_terralab)
     return menu
 
 
@@ -171,7 +184,7 @@ def _get_or_create_plugins_submenu(iface) -> QMenu:
     check_update.triggered.connect(_open_plugin_manager_updates)
     website_icon = QIcon(logo_path) if logo_path else QIcon()
     more_action = submenu.addAction(website_icon, tr("More from TerraLab..."))
-    more_action.triggered.connect(lambda: open_external_url(TERRALAB_URL, parent=submenu))
+    more_action.triggered.connect(_open_more_from_terralab)
     return submenu
 
 

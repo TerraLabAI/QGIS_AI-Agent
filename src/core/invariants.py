@@ -60,8 +60,7 @@ def _rules() -> dict:
 
 
 def _words(key: str) -> tuple:
-    value = _rules().get(key)
-    return tuple(value) if isinstance(value, list) else ()
+    return tuple(_rules().get(key) or ())
 
 
 _SPLIT_RE = re.compile(r"[^a-z0-9]+")
@@ -141,6 +140,8 @@ _DEGREE_METRES = 111319.49079327357
 def metres_per_map_unit(crs, degrees: bool = False) -> float | None:
 
 
+
+
     try:
         from qgis.core import Qgis, QgsUnitTypes
 
@@ -148,11 +149,13 @@ def metres_per_map_unit(crs, degrees: bool = False) -> float | None:
 
         if not crs.isValid():
             return None
-        if crs.isGeographic():
-            return _DEGREE_METRES if degrees else None
         metres = enum_member(Qgis, "DistanceUnit", "Meters", None)
+        degrees_unit = enum_member(Qgis, "DistanceUnit", "Degrees", None)
         if metres is None:
             metres = enum_member(QgsUnitTypes, "DistanceUnit", "DistanceMeters")
+            degrees_unit = enum_member(QgsUnitTypes, "DistanceUnit", "DistanceDegrees")
+        if crs.isGeographic() or crs.mapUnits() == degrees_unit:
+            return _DEGREE_METRES if degrees else None
         factor = float(QgsUnitTypes.fromUnitToUnitFactor(crs.mapUnits(), metres))
     except Exception:  # noqa: BLE001
         return None

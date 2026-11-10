@@ -21,6 +21,7 @@ from .font_scale import scale_qss_font_px
 from .shared import tr
 from .style import (
     ACCENT,
+    FIELD,
     FONT_BASE,
     FONT_BODY,
     FONT_HINT,
@@ -28,8 +29,8 @@ from .style import (
     INK_2,
     INK_3,
     INSET,
+    LINE,
     LINE_SOFT,
-    LINE_STRONG,
     RADIUS_CHIP,
     RADIUS_CONTROL,
     SPACE_CARD,
@@ -42,7 +43,9 @@ from .widgets import ChatLabel, ElidedLabel
 
 _VALUE_PX = 15
 _BAR_PX = 8
-_LABEL_COL_PX = 84
+
+_LABEL_COL_PX = 168
+_PROSE_INSET_PX = 3
 _SHOWN_COL_PX = 64
 
 
@@ -50,7 +53,10 @@ def _label(text: str, px: int, color: str, weight: int = 400, wrap: bool = True,
            elide: bool = False, align=None) -> QLabel:
     label = ElidedLabel(text) if elide else ChatLabel(text, wrap=wrap, selectable=True)
     label.setStyleSheet(scale_qss_font_px(f"font-size: {px}px; color: {color}; font-weight: {weight};"
-                                          " background: transparent;"))
+                                          " background: transparent; padding: 0; margin: 0;"))
+
+
+    label.setIndent(0)
     if align is not None:
         label.setAlignment(align)
     if wrap and not elide:
@@ -64,6 +70,7 @@ def _tag(text: str, tone: str) -> QLabel:
     label.setStyleSheet(scale_qss_font_px(f"font-size: {FONT_HINT}px; font-weight: 600; color: {ink};"
                                           f" background: {background};"
                         f" border-radius: {RADIUS_CHIP - 1}px; padding: 0 6px;"))
+    label.setAlignment(Qt.AlignmentFlag.AlignCenter)
     label.setSizePolicy(QSizePolicy.Policy.Maximum, QSizePolicy.Policy.Fixed)
     return label
 
@@ -85,15 +92,21 @@ class _Bar(QWidget):
 
     def paintEvent(self, _event):  # noqa: N802
         width = self.width() * self._share
-        if width <= 0:
-            return
         painter = QPainter(self)
         try:
             painter.setRenderHint(QPainter.RenderHint.Antialiasing, True)
             painter.setPen(Qt.PenStyle.NoPen)
-            painter.setBrush(QBrush(qcolor(ACCENT)))
             radius = _BAR_PX / 2.0
-            painter.drawRoundedRect(QRectF(0, 0, max(width, _BAR_PX), _BAR_PX), radius, radius)
+
+            painter.setBrush(QBrush(qcolor(FIELD)))
+            painter.drawRoundedRect(QRectF(0, 0, self.width(), _BAR_PX), radius, radius)
+            if width <= 0:
+                return
+            painter.setBrush(QBrush(qcolor(ACCENT)))
+            width = max(width, _BAR_PX)
+
+            left = self.width() - width if self.layoutDirection() == Qt.LayoutDirection.RightToLeft else 0
+            painter.drawRoundedRect(QRectF(left, 0, width, _BAR_PX), radius, radius)
         finally:
             painter.end()
 
@@ -133,7 +146,8 @@ class BlockView(QFrame):
         for index, item in enumerate(self.block.items):
             card = QFrame(self)
             card.setObjectName("answerStat")
-            card.setStyleSheet(f"QFrame#answerStat {{ background: {INSET}; border-radius: {RADIUS_CONTROL}px; }}")
+            card.setStyleSheet(f"QFrame#answerStat {{ background: {INSET}; border: 1px solid {LINE};"
+                               f" border-radius: {RADIUS_CONTROL}px; }}")
             inner = QVBoxLayout(card)
             inner.setContentsMargins(10, 8, 10, 8)
             inner.setSpacing(1)
@@ -143,22 +157,28 @@ class BlockView(QFrame):
             if item["sub"]:
                 inner.addWidget(_label(item["sub"], FONT_HINT, INK_2))
             inner.addStretch(1)
-            grid.addWidget(card, index // 2, index % 2)
+
+            alone = index % 2 == 0 and index == len(self.block.items) - 1
+            grid.addWidget(card, index // 2, index % 2, 1, 2 if alone else 1)
         for column in range(2):
             grid.setColumnStretch(column, 1)
         col.addLayout(grid)
 
     def _build_bars(self, col: QVBoxLayout) -> None:
+
         if self.block.title:
-            col.addWidget(_label(self.block.title, FONT_BODY, INK, 600))
+            title = QHBoxLayout()
+            title.setContentsMargins(_PROSE_INSET_PX, 0, 0, 0)
+            title.addWidget(_label(self.block.title, FONT_BODY, INK, 600))
+            col.addLayout(title)
         top = max((item["value"] for item in self.block.items), default=0.0) or 1.0
         grid = QGridLayout()
-        grid.setContentsMargins(0, 0, 0, 0)
+        grid.setContentsMargins(_PROSE_INSET_PX, 0, 0, 0)
         grid.setHorizontalSpacing(SPACE_OUTER)
         grid.setVerticalSpacing(5)
         for row, item in enumerate(self.block.items):
             name = _label(item["label"], FONT_BODY, INK, elide=True)
-            name.setMaximumWidth(_LABEL_COL_PX + 40)
+            name.setMaximumWidth(_LABEL_COL_PX)
             grid.addWidget(name, row, 0)
             grid.addWidget(_Bar(item["value"] / top, self), row, 1, Qt.AlignmentFlag.AlignVCenter)
             shown = _label(item["shown"], FONT_BODY, INK_2, elide=True,
@@ -211,12 +231,14 @@ class BlockView(QFrame):
 
     def _build_callout(self, col: QVBoxLayout) -> None:
         tone = self.block.tone
-        edge = LINE_STRONG if tone == "neutral" else TAGS.get(tone, TAGS["neutral"])[1]
+
+
+        ground = INSET if tone == "neutral" else TAGS.get(tone, TAGS["neutral"])[0]
+        frame = f"1px solid {LINE}" if tone == "neutral" else "none"
         box = QFrame(self)
         box.setObjectName("answerCallout")
-        box.setStyleSheet(f"QFrame#answerCallout {{ background: {INSET}; border-left: 3px solid {edge};"
-                          f" border-top-right-radius: {RADIUS_CONTROL}px;"
-                          f" border-bottom-right-radius: {RADIUS_CONTROL}px; }}")
+        box.setStyleSheet(f"QFrame#answerCallout {{ background: {ground}; border: {frame};"
+                          f" border-radius: {RADIUS_CONTROL}px; }}")
         inner = QVBoxLayout(box)
         inner.setContentsMargins(10, 7, 10, 7)
         inner.setSpacing(1)

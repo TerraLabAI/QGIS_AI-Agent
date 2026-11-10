@@ -57,6 +57,7 @@ from __future__ import annotations
 from qgis.PyQt.QtCore import QSize, Qt, QTimer, pyqtSignal
 from qgis.PyQt.QtGui import QColor, QFont, QFontMetrics
 from qgis.PyQt.QtWidgets import (
+    QBoxLayout,
     QDialog,
     QFrame,
     QHBoxLayout,
@@ -65,6 +66,7 @@ from qgis.PyQt.QtWidgets import (
     QListWidgetItem,
     QProgressBar,
     QStackedWidget,
+    QStyle,
     QVBoxLayout,
     QWidget,
 )
@@ -95,9 +97,9 @@ from .settings_pages import (
     sidebar_qss,
 )
 from .settings_personalisation import PersonalisationPageMixin
-from .settings_project_memory import ProjectMemoryPageMixin
 from .shared import event_pos, exec_dialog, safe_disconnect, size_within_screen
-from .style import ACCENT, FONT_HINT, with_platform_font
+from .style import ACCENT, FONT_HINT, WEIGHT_MEDIUM, with_platform_font
+from .styles import PANEL_TEXT
 
 
 
@@ -116,12 +118,12 @@ _SIDEBAR_QSS = sidebar_qss("settingsSidebar")
 
 
 _WORDMARK_PX = 22
-_WORDMARK_QSS = ("font-size: 13px; font-weight: 700; color: palette(text);"
+_WORDMARK_QSS = ("font-size: 13px; font-weight: 700; color: " + PANEL_TEXT + ";"
                  " background: transparent;")
 _WORDMARK_NOTE_QSS = f"font-size: {FONT_HINT}px; color: {MUTED}; background: transparent;"
 _IDENTITY_QSS = (f"QLabel#settingsIdentity {{ font-size: {FONT_HINT}px; color: {MUTED};"
                  " background: transparent; }"
-                 "QLabel#settingsIdentity:hover { color: palette(text); }")
+                 "QLabel#settingsIdentity:hover { color: " + PANEL_TEXT + "; }")
 class _LinkTile(QWidget):
 
 
@@ -135,7 +137,7 @@ class _LinkTile(QWidget):
         super().mouseReleaseEvent(event)
 
 
-class SettingsDialog(PersonalisationPageMixin, ProjectMemoryPageMixin, AccountPageMixin, QDialog):
+class SettingsDialog(PersonalisationPageMixin, AccountPageMixin, QDialog):
 
 
     values_changed = pyqtSignal(dict)
@@ -277,12 +279,13 @@ class SettingsDialog(PersonalisationPageMixin, ProjectMemoryPageMixin, AccountPa
         rule.setStyleSheet(f"background: {HAIRLINE}; border: none;")
         plan_col.addWidget(rule)
         plan_col.addSpacing(4)
-        plan_line = QHBoxLayout()
+        plan_line = self._rail_plan_line = QBoxLayout(QBoxLayout.Direction.LeftToRight)
         plan_line.setContentsMargins(0, 0, 0, 0)
         plan_line.setSpacing(8)
         self._rail_plan_name = QLabel(self._rail_plan)
         self._rail_plan_name.setStyleSheet(
-            f"font-size: {FONT_HINT + 1}px; font-weight: 500; color: palette(text); background: transparent;")
+            f"font-size: {FONT_HINT + 1}px; font-weight: {WEIGHT_MEDIUM};"
+            f" color: {PANEL_TEXT}; background: transparent;")
         plan_line.addWidget(self._rail_plan_name)
         plan_line.addStretch(1)
         self._rail_plan_runs = QLabel(self._rail_plan)
@@ -309,6 +312,8 @@ class SettingsDialog(PersonalisationPageMixin, ProjectMemoryPageMixin, AccountPa
             f'{self.tr("Privacy")}</a>', side)
         legal.setObjectName("settingsIdentity")
         legal.setStyleSheet(_IDENTITY_QSS)
+
+        legal.setWordWrap(True)
         legal.setOpenExternalLinks(False)
         legal.linkActivated.connect(
             lambda href: self._open_site() if href == "site" else open_external_url(href, parent=self))
@@ -374,6 +379,18 @@ class SettingsDialog(PersonalisationPageMixin, ProjectMemoryPageMixin, AccountPa
 
         self._rail_plan_name.setText(name)
         self._rail_plan_runs.setText(runs)
+
+
+        for label in (self._rail_plan_name, self._rail_plan_runs):
+            label.ensurePolished()
+        margins = self._rail_plan.layout().contentsMargins()
+        room = self._rail_plan.parentWidget().width() - margins.left() - margins.right()
+        need = (self._rail_plan_name.sizeHint().width() + self._rail_plan_line.spacing()
+                + self._rail_plan_runs.sizeHint().width())
+        stacked = need > room
+        self._rail_plan_line.setDirection(QBoxLayout.Direction.TopToBottom if stacked
+                                          else QBoxLayout.Direction.LeftToRight)
+        self._rail_plan_line.setSpacing(2 if stacked else 8)
         has_bar = limit is not None and left is not None
         if has_bar:
             self._rail_plan_bar.setRange(0, max(int(limit), 1))
@@ -414,7 +431,9 @@ class SettingsDialog(PersonalisationPageMixin, ProjectMemoryPageMixin, AccountPa
 
         mark = QWidget(self._nav)
         line = QHBoxLayout(mark)
-        line.setContentsMargins(0, 0, 10, 0)
+
+
+        line.setContentsMargins(0, 0, 2, 0)
         line.addStretch(1)
         glyph_label = QLabel(mark)
         glyph_label.setPixmap(icon_for(self, "lu.external-link", 12, QColor(MUTED)).pixmap(12, 12))
@@ -425,11 +444,17 @@ class SettingsDialog(PersonalisationPageMixin, ProjectMemoryPageMixin, AccountPa
         self._nav.setItemWidget(item, mark)
 
 
+        self._nav.ensurePolished()
         font = QFont(self._nav.font())
         font.setPixelSize(scale_px_length(13))
 
 
-        needed = QFontMetrics(font).horizontalAdvance(label) + scale_px_length(6 + 8 + 16 + 8 + 8 + 12 + 10 + 6)
+
+
+        text_margin = self._nav.style().pixelMetric(
+            QStyle.PixelMetric.PM_FocusFrameHMargin, None, self._nav) + 1
+        needed = (6 + 8 + 16 + 3 * text_margin + QFontMetrics(font).horizontalAdvance(label)
+                  + 8 + 12 + 10 + 6 + 1)
         side = self._nav.parentWidget()
         if side is not None and needed > side.width():
             side.setFixedWidth(needed)

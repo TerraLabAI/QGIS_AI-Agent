@@ -1999,14 +1999,15 @@ def _band_stats_on_main(args: dict, sample_in_worker: bool = False) -> dict:
     try:
         from qgis.core import QgsRectangle
 
-        from ._compat import RASTER_STATS_ALL
         extent = QgsRectangle() if window is None else window
 
 
-        stats = provider.bandStatistics(band, RASTER_STATS_ALL, extent, 250000)
+
+        stats = provider.bandStatistics(band, extent=extent, sampleSize=250000)
     except Exception:  # nosec B110
         try:
-            stats = provider.bandStatistics(band)
+
+            stats = provider.bandStatistics(band, sampleSize=250000)
         except Exception as e:
             return tool_error(f"Band statistics failed: {e}", "EXECUTION_FAILED")
     out = {

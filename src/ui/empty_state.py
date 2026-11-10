@@ -36,6 +36,7 @@ from .style import (
     MUTED,
     SPACE_OUTER,
     SPACE_TIGHT,
+    WEIGHT_MEDIUM,
 )
 from .widgets import FlowLayout
 
@@ -52,7 +53,7 @@ _DISCLOSURE_QSS = scale_qss_font_px(
 
 
 _QUESTION_QSS = scale_qss_font_px(
-    f"font-size: {FONT_BASE + 4}px; font-weight: 500; color: {INK};"
+    f"font-size: {FONT_BASE + 4}px; font-weight: {WEIGHT_MEDIUM}; color: {INK};"
     " background: transparent; border: none;")
 
 

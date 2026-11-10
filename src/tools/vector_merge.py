@@ -341,6 +341,24 @@ def _read_file(ogr, osr, out, path: str, wanted, relative: str, state: dict, is_
     source = ogr.Open(path)
     if source is None:
         raise RuntimeError(f"cannot open {path}")
+    if path.lower().endswith((".shp", ".dbf")):
+
+
+
+
+
+
+
+        from osgeo import gdal
+
+        from ..core.text_encoding import python_codec
+        from .layer_io_tools import _declared_encoding, _undeclared_dbf_encoding
+
+        first = source.GetLayer(0)
+        page = (_declared_encoding(first) if first is not None else "") or _undeclared_dbf_encoding(path)
+        if page and python_codec(page) != "utf-8":
+            first = None
+            source = gdal.OpenEx(path, gdal.OF_VECTOR, open_options=[f"ENCODING={python_codec(page)}"]) or source
     layers = [source.GetLayerByName(wanted)] if wanted else [source.GetLayer(i)
                                                              for i in range(source.GetLayerCount())]
     for layer in layers:

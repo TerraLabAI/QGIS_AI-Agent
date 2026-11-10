@@ -30,7 +30,7 @@ from ..core.background import (
     take,
 )
 from ..core.crs_ref import crs_ref
-from ..core.host_platform import IS_WINDOWS, release_pooled_handles, remove_quietly, retry_file_op
+from ..core.host_platform import IS_WINDOWS, release_pooled_handles, remove_quietly
 from ..core.layer_order import feature_count_of, is_remote_vector
 from ..core.layer_release import register_task
 from ..core.logger import log_warning
@@ -57,12 +57,14 @@ from .data_common import (
 )
 from .elevation_style import apply_elevation_style, elevation_stretch
 from .layer_files import (
+    companions,
     detach_vector_layers_at_path,
     discard_staged_write,
     publish_staged_write,
     release_layers_at_path,
     restore_detached_layers,
     staging_path,
+    swap_in,
 )
 from .layer_lookup import require_vector
 from .missing_file import missing_file
@@ -523,7 +525,7 @@ def _readable(text: str, encoding: str = "") -> str:
     for name in (encoding, text_encoding.ansi_encoding()):
         try:
             if name:
-                return raw.decode(name)
+                return raw.decode(text_encoding.python_codec(name))
         except (LookupError, UnicodeDecodeError):
             continue
     return raw.decode("utf-8", "replace")
@@ -919,6 +921,10 @@ def _add_vector_layer(args: dict) -> dict:
     if not os.path.exists(real_path):
         return missing_file(real_path, f"File not found: {real_path}")
 
+    encoding = _asked_encoding(args)
+    if isinstance(encoding, dict):
+        return encoding
+
     if os.path.isdir(real_path) and not real_path.rstrip("/\\").lower().endswith(".gdb"):
 
 
@@ -926,7 +932,7 @@ def _add_vector_layer(args: dict) -> dict:
 
         action, value = folder_plan(real_path, args.get("layer"))
         if action == "load":
-            return _add_vector_layer({"path": value, "crs": args.get("crs"),
+            return _add_vector_layer({"path": value, "crs": args.get("crs"), "encoding": args.get("encoding"),
                                       "name": args.get("name") or os.path.splitext(os.path.basename(value))[0]})
         if action == "merge":
 
@@ -937,7 +943,7 @@ def _add_vector_layer(args: dict) -> dict:
         return _add_cad_to_gpkg(real_path, name, args.get("crs"))
 
     if path.lower().endswith(CSV_EXTENSIONS):
-        return add_csv(path, name, args.get("crs"))
+        return add_csv(path, name, args.get("crs"), encoding=encoding)
 
     if not options and real_path.lower().endswith(".gml") and os.path.getsize(real_path) > GML_COPY_BYTES:
         copied = _gml_to_gpkg(real_path)
@@ -989,7 +995,7 @@ def _add_vector_layer(args: dict) -> dict:
             with zipfile.ZipFile(path) as archive, archive.open(table[0]) as source, open(local, "wb") as sink:
                 shutil.copyfileobj(source, sink)
             return add_csv(local, args.get("name") or os.path.splitext(os.path.basename(table[0]))[0],
-                           args.get("crs"))
+                           args.get("crs"), encoding=encoding)
         sublayer = ""
         if wanted:
             picked = members_matching(members, wanted)
@@ -1077,7 +1083,7 @@ def _add_vector_layer(args: dict) -> dict:
 
     def make():
         with ogr_opens():
-            layer, facts["split"] = _open_vector(uri, name, real_path, worker_options())
+            layer, facts["split"] = _open_vector(uri, name, real_path, worker_options(), encoding)
             layer = split_parts(layer, worker_options())
         if layer.isValid():
             facts["count"] = layer.featureCount()
@@ -1089,7 +1095,7 @@ def _add_vector_layer(args: dict) -> dict:
     def build_on_main():
         siblings.clear()
         with ogr_opens():
-            layer, on_main["split"] = _open_vector(uri, name, real_path, QgsVectorLayer.LayerOptions())
+            layer, on_main["split"] = _open_vector(uri, name, real_path, QgsVectorLayer.LayerOptions(), encoding)
             return split_parts(layer, QgsVectorLayer.LayerOptions())
 
     def add(layer) -> dict:
@@ -1128,8 +1134,10 @@ def _add_vector_layer(args: dict) -> dict:
             out["not_loaded"] = split_left_out_note(facts["left_out"])
         out.update(crs_outcome)
         if layer.customProperty(_ENCODING_PROPERTY):
-            out["encoding"] = (f"{layer.customProperty(_ENCODING_PROPERTY)}: the DBF declares no code page "
-                               "and its text is not UTF-8")
+            from .csv_loader import read_as
+
+
+            out["encoding"] = read_as(layer, layer.dataProvider().encoding(), "given" if encoding else "assumed")
         if split is not None:
             from .vector_merge import split_note
 
@@ -1172,7 +1180,21 @@ def _add_inner_zips(path: str, inner: list, args: dict) -> dict:
     }
 
 
-def _open_vector(uri: str, name: str, real_path: str, options) -> tuple:
+def _asked_encoding(args: dict):
+
+    asked = str(args.get("encoding") or "").strip()
+    if not asked:
+        return ""
+    from qgis.core import QgsVectorDataProvider
+
+    listed = {name.casefold(): name for name in QgsVectorDataProvider.availableEncodings()}
+    for spelling in text_encoding.spellings(asked):
+        if spelling.casefold() in listed:
+            return listed[spelling.casefold()]
+    return tool_error(f"Unknown encoding {asked!r}.", "INVALID_ARGS", hint="pg_encoding_unknown", encoding=asked)
+
+
+def _open_vector(uri: str, name: str, real_path: str, options, encoding: str = "") -> tuple:
 
 
 
@@ -1191,7 +1213,8 @@ def _open_vector(uri: str, name: str, real_path: str, options) -> tuple:
                 return rebuilt, split
             delete_here(rebuilt)
     layer = QgsVectorLayer(uri, name, "ogr", options)
-    encoding = _undeclared_dbf_encoding(real_path)
+
+    encoding = encoding or _undeclared_dbf_encoding(real_path)
     if encoding and layer.isValid():
 
 
@@ -1203,7 +1226,18 @@ def _open_vector(uri: str, name: str, real_path: str, options) -> tuple:
 _ENCODING_PROPERTY = "terralab/encoding_read"
 
 
+
+_LDID_GDAL_LACKS = {0x7D: "windows-1255", 0x7E: "windows-1256"}
+
+
 def _undeclared_dbf_encoding(path: str) -> str:
+
+
+
+
+
+
+
 
 
 
@@ -1214,20 +1248,36 @@ def _undeclared_dbf_encoding(path: str) -> str:
     if ext.lower() not in (".shp", ".dbf"):
         return ""
     dbf = next((stem + suffix for suffix in (".dbf", ".DBF") if os.path.isfile(stem + suffix)), "")
-    if not dbf or any(os.path.isfile(stem + suffix) for suffix in (".cpg", ".CPG")):
+    cpg = next((stem + suffix for suffix in (".cpg", ".CPG") if os.path.isfile(stem + suffix)), "")
+    if not dbf:
         return ""
     try:
         with open(dbf, "rb") as fh:
             head = fh.read(32)
-            if len(head) < 32 or head[29] != 0:
+            if len(head) < 32:
                 return ""
             header_size = int.from_bytes(head[8:10], "little")
             fh.seek(header_size)
             sample = fh.read(65536)
+        declared = ""
+        if cpg:
+            with open(cpg, "rb") as fh:
+                declared = "".join(chr(byte) for byte in fh.read(32) if chr(byte).isalnum()).lower()
     except OSError:
         return ""
-    found = text_encoding.detect_encoding(sample)
-    return "" if found == "UTF-8" else found
+    language = head[29]
+    if not cpg and not language:
+        found = text_encoding.detect_encoding(sample)
+        return "" if found == "UTF-8" else found
+    text = sample.decode("utf-8", errors="replace")
+    broken = text.count("�")
+    whole = sum(1 for char in text if ord(char) > 127) - broken
+    is_utf8 = broken == 0 and whole >= 2
+    if cpg and declared in ("utf8", "65001"):
+        return text_encoding.ansi_encoding() if broken > whole else ""
+    if is_utf8:
+        return "UTF-8"
+    return "" if cpg else _LDID_GDAL_LACKS.get(language, "")
 
 
 
@@ -1582,6 +1632,23 @@ def _export_failure(path: str, error_msg: str, lead: str = "Export failed: ") ->
 SHAPEFILE_FIELD_NAME_MAX = 10
 
 
+def _dbase_name(original: str) -> str:
+
+
+
+
+    folded = "".join(char for char in unicodedata.normalize("NFKD", original) if not unicodedata.combining(char))
+    kept = folded if folded.isascii() else original
+    return "".join(char if char.isalnum() else "_" for char in kept).strip("_") or "field"
+
+
+def _cut_to_bytes(name: str, size: int) -> str:
+
+    while len(name.encode("utf-8")) > size:
+        name = name[:-1]
+    return name
+
+
 def _shapefile_field_names(layer) -> tuple[list[str], dict[str, str]]:
 
 
@@ -1594,15 +1661,12 @@ def _shapefile_field_names(layer) -> tuple[list[str], dict[str, str]]:
     mapping = {}
     for field in layer.fields():
         original = str(field.name())
-        ascii_name = unicodedata.normalize("NFKD", original).encode("ascii", "ignore").decode("ascii")
-        ascii_name = re.sub(r"[^A-Za-z0-9_]", "_", ascii_name)
-        ascii_name = ascii_name.strip("_") or "field"
-        base = ascii_name[:SHAPEFILE_FIELD_NAME_MAX]
+        base = _cut_to_bytes(_dbase_name(original), SHAPEFILE_FIELD_NAME_MAX)
         candidate = base
         suffix = 2
         while candidate.casefold() in used:
             tail = str(suffix)
-            candidate = f"{base[:SHAPEFILE_FIELD_NAME_MAX - len(tail)]}{tail}"
+            candidate = _cut_to_bytes(base, SHAPEFILE_FIELD_NAME_MAX - len(tail)) + tail
             suffix += 1
         used.add(candidate.casefold())
         names.append(candidate)
@@ -1893,8 +1957,13 @@ def _export_raster(layer, path: str, args: dict) -> dict:
 
         staged_stem = os.path.splitext(staging)[0]
         target_stem = os.path.splitext(path)[0]
-        for produced in sorted(_raster_staged_files(staging), key=lambda f: f == staging):
-            retry_file_op(os.replace, produced, target_stem + produced[len(staged_stem):])
+        moves = [(produced, target_stem + produced[len(staged_stem):]) for produced in _raster_staged_files(staging)]
+        landing = {os.path.normcase(final) for _produced, final in moves}
+        if os.path.normcase(path) not in landing:
+            raise RuntimeError("the writer left no file to put in place")
+        refused = swap_in(moves, [part for part in companions(path) if os.path.normcase(part) not in landing])
+        if refused:
+            raise RuntimeError(refused)
     except Exception as exc:  # noqa: BLE001
         for produced in _raster_staged_files(staging):
             remove_quietly(produced)

@@ -13,7 +13,7 @@ from __future__ import annotations
 import html
 import re
 
-from qgis.PyQt.QtCore import QEvent, QRect, QRectF, QSize, Qt, QTimer
+from qgis.PyQt.QtCore import QEvent, QObject, QRect, QRectF, QSize, Qt, QTimer
 from qgis.PyQt.QtGui import QColor, QKeySequence, QPainter, QPalette, QPen, QTextOption
 from qgis.PyQt.QtWidgets import (
     QApplication,
@@ -26,9 +26,56 @@ from qgis.PyQt.QtWidgets import (
 )
 
 from .icons import icon_factory, icon_for, ink_of
-from .style import _BTN_ICON, accent_color, repolish
+from .shared import exec_menu
+from .style import _BTN_ICON, ACCENT_INK, INK_3, RADIUS_CONTROL, accent_color, qcolor, repolish
 
 _FLOW_ITEM_MIN_PX = 64
+
+
+class _PlaceholderInk(QObject):
+
+
+
+    def __init__(self, field, colour: str):
+        super().__init__(field)
+        self._colour = qcolor(colour)
+        field.installEventFilter(self)
+        self._apply(field)
+
+    def _apply(self, field) -> None:
+        palette = field.palette()
+        if palette.color(QPalette.ColorRole.PlaceholderText) != self._colour:
+            palette.setColor(QPalette.ColorRole.PlaceholderText, self._colour)
+            field.setPalette(palette)
+
+    def eventFilter(self, watched, event):  # noqa: N802
+        if event.type() in (QEvent.Type.Polish, QEvent.Type.PaletteChange, QEvent.Type.StyleChange,
+                            QEvent.Type.Show):
+            self._apply(watched)
+        return False
+
+
+def placeholder_ink(field, colour: str = INK_3) -> None:
+
+
+
+
+    _PlaceholderInk(field, colour)
+
+def paint_keyboard_ring(widget, radius: float = RADIUS_CONTROL) -> None:
+
+
+
+    if not widget.hasFocus():
+        return
+    painter = QPainter(widget)
+    painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+    pen = QPen(QColor(ACCENT_INK))
+    pen.setWidthF(2.0)
+    painter.setPen(pen)
+    painter.setBrush(Qt.BrushStyle.NoBrush)
+    painter.drawRoundedRect(QRectF(widget.rect()).adjusted(1, 1, -1, -1), radius, radius)
+    painter.end()
 
 
 class FlowLayout(QLayout):
@@ -126,10 +173,15 @@ class FlowLayout(QLayout):
             slots.append((item, QRect(left, top, width, height)))
             left += width + self._h
             row_height = max(row_height, height)
+        rows: dict = {}
+        for _item, slot in slots:
+            rows.setdefault(slot.top(), []).append(slot)
+
+        for row in rows.values():
+            tallest = max(slot.height() for slot in row)
+            for slot in row:
+                slot.translate(0, (tallest - slot.height()) // 2)
         if self._centred:
-            rows: dict = {}
-            for _item, slot in slots:
-                rows.setdefault(slot.top(), []).append(slot)
             for row in rows.values():
                 shift = max(0, (edge - (row[-1].right() + 1)) // 2)
                 for slot in row:
@@ -198,7 +250,9 @@ class Spinner(QWidget):
             painter = QPainter(self)
             painter.setRenderHint(QPainter.RenderHint.Antialiasing, True)
             margin = 2.0
-            rect = QRectF(margin, margin, self._d - 2 * margin, self._d - 2 * margin)
+            side = self._d - 2 * margin
+
+            rect = QRectF((self.width() - side) / 2.0, (self.height() - side) / 2.0, side, side)
             pen = QPen(self._color)
             pen.setWidthF(max(1.6, self._d / 7.0))
             pen.setCapStyle(Qt.PenCapStyle.RoundCap)
@@ -301,7 +355,8 @@ class ElidedLabel(QLabel):
 
 
 
-_BREAK = "​"
+_BREAK = "\u200b"
+_JOIN = "\u2060"
 
 
 _RUN_PX_CHARS = 16
@@ -322,7 +377,7 @@ def break_anywhere(text: str) -> str:
         return text or ""
     out = []
     run = 0
-    for ch in text:
+    for index, ch in enumerate(text):
         if ch.isspace() or ch == _BREAK:
             run = 0
             out.append(ch)
@@ -332,7 +387,11 @@ def break_anywhere(text: str) -> str:
             run = 0
         out.append(ch)
         run += 1
-        if ch in _BREAK_AFTER:
+        if ch == ":" and text[index + 1:index + 2].isdigit():
+
+
+            out.append(_JOIN)
+        elif ch in _BREAK_AFTER:
             out.append(_BREAK)
             run = 0
     return "".join(out)
@@ -340,7 +399,7 @@ def break_anywhere(text: str) -> str:
 
 def unbroken(text: str) -> str:
 
-    return (text or "").replace(_BREAK, "")
+    return (text or "").replace(_BREAK, "").replace(_JOIN, "")
 
 
 class ChatLabel(QLabel):
@@ -395,7 +454,7 @@ class ChatLabel(QLabel):
         copy.triggered.connect(lambda: QApplication.clipboard().setText(self.selected_text()))
         select_all = menu.addAction(self.tr("Select All"))
         select_all.triggered.connect(lambda: self.setSelection(0, len(super(ChatLabel, self).text())))
-        menu.exec(event.globalPos())
+        exec_menu(menu, event.globalPos())
         event.accept()
 
 
@@ -419,7 +478,9 @@ class IconButton(QToolButton):
         self._glyph_color = None
         self._hovering = False
         self.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+
+        self.setFocusPolicy(Qt.FocusPolicy.TabFocus)
+        self.ring_radius = float(RADIUS_CONTROL)
         self.setAutoRaise(True)
         self.setStyleSheet(qss)
         if tooltip:
@@ -483,6 +544,17 @@ class IconButton(QToolButton):
                 self._repaint_glyph_icon()
         except (RuntimeError, AttributeError):
             pass
+
+    def paintEvent(self, event):  # noqa: N802
+        super().paintEvent(event)
+        paint_keyboard_ring(self, self.ring_radius)
+
+    def keyPressEvent(self, event):  # noqa: N802
+
+        if event.key() in (Qt.Key.Key_Return, Qt.Key.Key_Enter) and self.isEnabled():
+            self.click()
+            return
+        super().keyPressEvent(event)
 
     def set_hovered(self, hovered: bool) -> None:
         if bool(self.property("hover")) == hovered:

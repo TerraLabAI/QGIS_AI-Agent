@@ -31,6 +31,7 @@ import threading
 import time
 from typing import Callable
 
+from . import ws_sspi
 from .ws_protocol import (
     DEFLATE_OFFER,
     MAX_MESSAGE_BYTES,
@@ -58,7 +59,7 @@ from .ws_protocol import (
     parse_ws_url,
     read_frame_ext,
 )
-from .ws_proxy import resolve_proxy, resolve_tls
+from .ws_proxy import deferred_proxy, resolve_proxy, resolve_tls
 
 __all__ = ["WsConnection", "WsError", "WsHandshakeError", "WsConnectionLost", "WsClosing", "WsProtocolError",
            "parse_ws_url", "resolve_proxy", "resolve_tls"]
@@ -102,6 +103,16 @@ MAX_QUEUED_BYTES = 32 * 1024 * 1024
 
 
 
+
+
+_PROXY_AUTH_ROUNDS = 5
+_PROXY_BODY_MAX = 262144
+
+_proxy_schemes: dict = {}
+
+_proxy_refused: dict = {}
+
+_PROXY_REFUSED_HOLD_S = 900.0
 
 _NO_ROUTE_ERRNOS = frozenset(
     {getattr(errno, n) for n in ("ENETDOWN", "ENETUNREACH", "EHOSTUNREACH") if hasattr(errno, n)}
@@ -460,28 +471,43 @@ class WsConnection:
         except (OSError, AttributeError):
             pass
 
+    def _asked_proxy(self, ask):
+
+
+        box: list = []
+        worker = threading.Thread(target=lambda: box.append(ask()), name="terralab-proxy-lookup", daemon=True)
+        worker.start()
+        while worker.is_alive():
+            if self._stop.is_set():
+                raise WsConnectionLost("closed while connecting")
+            worker.join(0.05)
+        return box[0] if box else None
+
     def _open_tcp(self, host: str, port: int):
+        if callable(self.proxy):
+            self.proxy = self._asked_proxy(self.proxy)
         proxy = self.proxy
         if proxy:
             self.report["route"] = "proxy"
             target = f"{proxy['host']}:{proxy['port']}"
-            try:
-                started = time.monotonic()
-                infos = _addresses(proxy["host"], int(proxy["port"]))
-                self.report["dns_ms"] = _ms_since(started)
-                started = time.monotonic()
-                sock = self._race(infos)
-            except socket.gaierror as exc:
-                raise WsConnectionLost(f"proxy {target} not found: {exc}", "proxy_unreachable") from exc
-            except OSError as exc:
-                raise WsConnectionLost(f"cannot reach proxy {target}: {exc}", "proxy_unreachable") from exc
-            self._no_delay(sock)
-            sock.settimeout(self._poll_s())
-            try:
-                self._proxy_connect(sock, host, port, proxy)
-            except Exception:
-                sock.close()
-                raise
+
+            def dial():
+                try:
+                    started = time.monotonic()
+                    infos = _addresses(proxy["host"], int(proxy["port"]))
+                    self.report["dns_ms"] = _ms_since(started)
+                    sock = self._race(infos)
+                except socket.gaierror as exc:
+                    raise WsConnectionLost(f"proxy {target} not found: {exc}", "proxy_unreachable") from exc
+                except OSError as exc:
+                    raise WsConnectionLost(f"cannot reach proxy {target}: {exc}", "proxy_unreachable") from exc
+                self._no_delay(sock)
+                sock.settimeout(self._poll_s())
+                return sock
+
+            started = time.monotonic()
+            sock = self._proxy_connect(dial, host, port, proxy)
+
             self.report["tcp_ms"] = _ms_since(started)
             sock.settimeout(self.connect_timeout)
             return sock
@@ -644,25 +670,135 @@ class WsConnection:
             pass
         return sock
 
-    def _proxy_connect(self, sock, host: str, port: int, proxy: dict) -> None:
+    def _proxy_connect(self, dial, host: str, port: int, proxy: dict):
+
+
+
+
+
+
         authority = f"[{host}]:{port}" if ":" in host else f"{host}:{port}"
-        lines = [f"CONNECT {authority} HTTP/1.1", f"Host: {authority}", "Proxy-Connection: Keep-Alive"]
-        if proxy.get("user"):
-            cred = f"{proxy['user']}:{proxy.get('password', '')}".encode()
-            lines.append("Proxy-Authorization: Basic " + base64.b64encode(cred).decode("ascii"))
+        key = (str(proxy["host"]).lower(), int(proxy["port"]))
+        user, password = proxy.get("user") or "", proxy.get("password") or ""
+
+
+
+        typed = (key, hash((user, password))) if user else None
+        held = time.monotonic() - _proxy_refused.get(typed, -_PROXY_REFUSED_HOLD_S) < _PROXY_REFUSED_HOLD_S
+        scheme = "" if held else _proxy_schemes.get(key, "")
+        handshake = None
+
+        def proof(challenge: str = "") -> bytes:
+            nonlocal handshake
+            try:
+                if handshake is None:
+                    handshake = ws_sspi.Handshake(scheme, proxy["host"], user, password)
+                return handshake.step(base64.b64decode(challenge))
+            except (OSError, ValueError) as exc:
+                message = f"the proxy requires authentication (HTTP 407): {exc}"
+                raise WsHandshakeError(message, "proxy_auth", 407) from exc
+
+        sock = dial()
         try:
-            sock.sendall(("\r\n".join(lines) + "\r\n\r\n").encode("ascii"))
-        except OSError as exc:
-            raise WsConnectionLost(f"proxy dropped the connection: {exc}", "proxy_unreachable") from exc
-        reader = SocketReader(sock, self._stop.is_set)
-        head = reader.read_until(b"\r\n\r\n", deadline=time.monotonic() + self.connect_timeout,
-                                 what="waiting for the proxy")
-        start, _ = parse_http_head(head)
-        status = http_status_of(start)
-        if status == 407:
+            token = proof() if scheme else b""
+            remembered = handshake is not None
+            for _ in range(_PROXY_AUTH_ROUNDS):
+                lines = [f"CONNECT {authority} HTTP/1.1", f"Host: {authority}", "Proxy-Connection: Keep-Alive"]
+                if handshake is not None:
+                    lines.append(f"Proxy-Authorization: {scheme} " + base64.b64encode(token).decode("ascii"))
+                elif user:
+                    basic = base64.b64encode(f"{user}:{password}".encode()).decode("ascii")
+                    lines.append("Proxy-Authorization: Basic " + basic)
+                try:
+                    sock.sendall(("\r\n".join(lines) + "\r\n\r\n").encode("ascii"))
+                except OSError as exc:
+                    raise WsConnectionLost(f"proxy dropped the connection: {exc}", "proxy_unreachable") from exc
+                reader = SocketReader(sock, self._stop.is_set)
+                deadline = time.monotonic() + self.connect_timeout
+                try:
+                    head = reader.read_until(b"\r\n\r\n", deadline=deadline, what="waiting for the proxy")
+                except WsConnectionLost as exc:
+                    if len(lines) > 3 or self._stop.is_set():
+                        raise
+
+                    raise WsConnectionLost(str(exc), "proxy_unreachable") from exc
+                start, headers = parse_http_head(head)
+                status = http_status_of(start)
+                if 200 <= status < 300:
+                    if scheme:
+                        _proxy_schemes[key] = scheme
+                    _proxy_refused.pop(typed, None)
+                    return sock
+                if status != 407:
+                    raise WsHandshakeError(f"proxy refused CONNECT: {start}", "proxy_refused", status)
+
+                offers = dict((part.strip().split(" ", 1) + [""])[:2]
+                              for part in headers.get("proxy-authenticate", "").split(","))
+                offers = {name.lower(): blob.strip() for name, blob in offers.items()}
+                if remembered and not offers.get(scheme.lower()):
+
+                    handshake.close()
+                    handshake = None
+                remembered = False
+                if handshake is None:
+                    scheme = "" if held else ws_sspi.pick(offers)
+                    if not scheme:
+                        break
+                    kept = self._proxy_body_read(reader, headers, start, deadline)
+                    token = proof()
+                else:
+                    challenge = offers.get(scheme.lower(), "")
+                    if not challenge:
+                        if typed is not None:
+                            _proxy_refused[typed] = time.monotonic()
+                        break
+                    kept = self._proxy_body_read(reader, headers, start, deadline)
+                    if not kept:
+                        break
+                    token = proof(challenge)
+                if not kept:
+                    sock.close()
+                    sock = dial()
             raise WsHandshakeError("the proxy requires authentication (HTTP 407)", "proxy_auth", 407)
-        if not 200 <= status < 300:
-            raise WsHandshakeError(f"proxy refused CONNECT: {start}", "proxy_refused", status)
+        except Exception:
+            sock.close()
+            _proxy_schemes.pop(key, None)
+            raise
+        finally:
+            if handshake is not None:
+                handshake.close()
+
+    @staticmethod
+    def _proxy_body_read(reader, headers: dict, start: str, deadline: float) -> bool:
+
+        what = "waiting for the proxy"
+        stays = (headers.get("proxy-connection", "") + " " + headers.get("connection", "")).lower()
+        if "close" in stays or (start.startswith("HTTP/1.0") and "keep-alive" not in stays):
+            return False
+
+        def skip(count: int) -> None:
+            while len(reader.buf) < count:
+                reader.buf += reader._recv(65536, deadline, what)
+            del reader.buf[:count]
+
+        if "chunked" in headers.get("transfer-encoding", "").lower():
+            total = 0
+            while total <= _PROXY_BODY_MAX:
+                size_line = reader.read_until(b"\r\n", deadline=deadline, what=what).split(b";")[0].strip()
+                try:
+                    size = int(size_line, 16)
+                except ValueError:
+                    return False
+                skip(size + 2)
+                if not size:
+                    return True
+                total += size
+            return False
+        length = headers.get("content-length", "")
+        if not length.isdigit() or int(length) > _PROXY_BODY_MAX:
+            return False
+        skip(int(length))
+        return True
 
     def _wrap_tls(self, sock, host: str):
         ctx = _tls_context(self.ca_pem, self.insecure)
@@ -815,6 +951,7 @@ class WsConnection:
 
 
 
+
                 try:
                     payload = self._produce(payload)
                 except WsError as exc:
@@ -886,10 +1023,8 @@ class WsConnection:
             text = produce()
         except Exception as exc:  # noqa: BLE001
             raise WsError(f"frame not encodable: {exc}") from exc
-        try:
-            data = str(text).encode("utf-8")
-        except UnicodeError as exc:
-            raise WsError("frame contains invalid Unicode") from exc
+
+        data = str(text).encode("utf-8", "replace")
         if len(data) > MAX_MESSAGE_BYTES:
             raise WsError(f"message of {len(data)} bytes exceeds the 16 MiB limit")
         return data
@@ -941,10 +1076,7 @@ class WsConnection:
                 timeout=max(0.0, timeout))
 
     def send_text(self, text: str) -> None:
-        try:
-            data = text.encode("utf-8")
-        except UnicodeError as exc:
-            raise WsError("frame contains invalid Unicode") from exc
+        data = text.encode("utf-8", "replace")
         if len(data) > MAX_MESSAGE_BYTES:
             raise WsError(f"message of {len(data)} bytes exceeds the 16 MiB limit")
         self._enqueue(OP_TEXT, data)
@@ -1265,14 +1397,15 @@ if _QT_AVAILABLE:
                 self.connect_failed.emit("url", str(exc), 0)
                 self.disconnected.emit(1006, str(exc))
                 return True
-            proxy = resolve_proxy(host, port, secure)
+
+            proxy, ask = deferred_proxy(host, port, secure)
             self.proxy_label = f"{proxy['host']}:{proxy['port']}" if proxy else ""
             ca_pem, insecure = resolve_tls(host, port) if secure else (None, False)
             clocks = clocks or {}
             dial = dial or {}
             self.connect_report = {}
             thread = _WsThread(WsConnection(
-                url, headers or {}, proxy, insecure, ca_pem=ca_pem,
+                url, headers or {}, ask or proxy, insecure, ca_pem=ca_pem,
                 connect_timeout=float(clocks.get("connect_timeout_s", _CONNECT_TIMEOUT_S)),
                 idle_ping_s=float(clocks.get("idle_ping_s", IDLE_PING_S)),
                 dead_after_s=float(clocks.get("dead_after_s", DEAD_AFTER_S)),
@@ -1352,6 +1485,7 @@ if _QT_AVAILABLE:
             if thread is not self._thread:
                 return
             self.connect_report = dict(thread.conn.report)
+            self._label_proxy(thread)
             self._set_state("open")
             self.connected.emit()
 
@@ -1360,9 +1494,20 @@ if _QT_AVAILABLE:
                 self.arrived_at = at
                 self.frame_received.emit(text)
 
+        def _label_proxy(self, thread) -> None:
+
+
+            proxy = thread.conn.proxy
+            if isinstance(proxy, dict) and not self.proxy_label:
+                self.proxy_label = f"{proxy['host']}:{proxy['port']}"
+                from .logger import log
+
+                log(f"Connecting through the HTTP proxy {self.proxy_label}")
+
         def _on_failed(self, thread, kind: str, message: str, status: int):
             if thread is not self._thread:
                 return
+            self._label_proxy(thread)
             self.error_occurred.emit(message)
             self.connect_failed.emit(kind, message, status)
 

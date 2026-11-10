@@ -47,7 +47,11 @@ def _qt_app():
         return None
 
 
-def write_atomic(path: str, text: str | list[str]) -> None:
+def write_atomic(path: str, text: str | list[str], written=None) -> None:
+
+
+
+
 
 
 
@@ -57,14 +61,18 @@ def write_atomic(path: str, text: str | list[str]) -> None:
 
     fd, tmp = tempfile.mkstemp(prefix=".agent-", suffix=".tmp", dir=os.path.dirname(path) or ".")
     try:
-        with os.fdopen(fd, "w", encoding="utf-8") as fh:
+
+        with os.fdopen(fd, "w", encoding="utf-8", errors="backslashreplace") as fh:
             if isinstance(text, str):
                 fh.write(text)
             else:
                 fh.writelines(text)
             fh.flush()
             os.fsync(fh.fileno())
+        stat = os.stat(tmp) if written is not None else None
         retry_file_op(os.replace, tmp, path)
+        if stat is not None:
+            written(path, (stat.st_mtime_ns, stat.st_size))
     finally:
 
         remove_quietly(tmp)
@@ -77,6 +85,9 @@ class WriteBehind:
 
 
     def __init__(self, delay_ms: int = DEFAULT_DELAY_MS, name: str = "ai-agent-writeback"):
+
+
+        self.on_write = None
         self._delay_ms = int(delay_ms)
         self._name = name
         self._pending: dict[str, Callable[[], str | None]] = {}
@@ -158,7 +169,7 @@ class WriteBehind:
 
     def _submit(self, path: str, text: str) -> None:
         if not self._start_thread():
-            self._safe(lambda: write_atomic(path, text), path)
+            self._safe(lambda: write_atomic(path, text, self.on_write), path)
             return
         with self._lock:
             item = self._queued_writes.get(path)
@@ -186,7 +197,7 @@ class WriteBehind:
             log_warning(f"State file not serialised ({os.path.basename(path)}): {exc}")
             return
         if text is not None:
-            self._safe(lambda: write_atomic(path, text), path)
+            self._safe(lambda: write_atomic(path, text, self.on_write), path)
 
     @staticmethod
     def _safe(job: Callable[[], None], path: str = "") -> None:
@@ -228,7 +239,7 @@ class WriteBehind:
                 self._queue.task_done()
 
     def _write(self, path: str, text: str) -> None:
-        self._safe(lambda: write_atomic(path, text), path)
+        self._safe(lambda: write_atomic(path, text, self.on_write), path)
 
     def _drain(self) -> None:
 

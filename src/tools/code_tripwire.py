@@ -47,14 +47,16 @@
 
 from __future__ import annotations
 
+import ntpath
 import os
 import sys
 import tempfile
 import threading
+from urllib.parse import unquote
 
 from ..core import code_effects as ce
 from ..core import security
-from ..core.host_platform import resolved
+from ..core.host_platform import IS_WINDOWS, resolved
 from .code_guard_io import note_written
 
 _STATE_ATTR = "_terralab_code_tripwire"
@@ -135,7 +137,9 @@ def _plugin_dirs() -> tuple[str, ...]:
 
 _PLUGINS_DIRS: list = []
 
-_ACTING_FOR_SNIPPET = frozenset({"code_guard.py", "code_guard_files.py", "code_guard_runtime.py", "code_tripwire.py"})
+_ACTING_FOR_SNIPPET = frozenset(
+    {"code_guard.py", "code_guard_files.py", "code_guard_io.py", "code_guard_runtime.py", "code_tripwire.py"}
+)
 
 
 def _from_snippet(depth: int = 2) -> bool:
@@ -274,6 +278,10 @@ def _software_roots() -> tuple:
 def _spellings(full: str) -> tuple:
 
 
+
+
+    if security.refused_share(full):
+        return (full,)
     return tuple(dict.fromkeys((full, resolved(full))))
 
 
@@ -439,14 +447,56 @@ def _source_file(source, provider: str = "") -> str:
                 text = decoded
     except Exception:  # nosec B110
         pass
-    return security.local_part(text.split("|", 1)[0].split("?", 1)[0] if text.lower().startswith("file:")
-                               else text.split("|", 1)[0])
+    if text.startswith("{") and "}" in text:
+
+        archive, _, member = text[1:].partition("}")
+        text = archive + member
+    parts = text.split("&")
+    if "=" in parts[0] and not _names_file(parts[0]):
+
+
+        text = next((unquote(part[4:]) for part in parts if part.lower().startswith("url=")), text)
+    if text.lower().startswith("file:"):
+        return security.local_part(text.split("|", 1)[0].split("?", 1)[0])
+    if "://" in text.split("|", 1)[0]:
+        return ""
+    return security.local_part(_behind_driver(text.split("|", 1)[0]))
+
+
+def _behind_driver(text: str) -> str:
+
+
+
+
+
+    head, colon, rest = text.partition(":")
+    if not colon or len(head) < 2 or not head.replace("_", "").isalnum():
+        return text
+    if rest.startswith('"'):
+        return rest[1:].split('"', 1)[0]
+    drive, tail = ntpath.splitdrive(rest)
+    return drive + tail.split(":", 1)[0]
+
+
+def _names_file(path: str) -> bool:
+
+
+
+
+
+
+    whole = os.path.expanduser(path)
+    if os.path.isabs(whole) or path.startswith("~"):
+        return True
+    if IS_WINDOWS and (ntpath.splitdrive(whole)[0] or whole[:1] in ("\\", "/")):
+        return True
+    return os.path.lexists(whole)
 
 
 def _outside_scope(source, provider: str = "") -> str:
 
     path = _source_file(source, provider)
-    if not path or not (os.path.isabs(os.path.expanduser(path)) or path.startswith("~")):
+    if not path or not _names_file(path):
         return ""
     return security.validate_read(path) or ""
 
@@ -536,8 +586,21 @@ class _Arm:
             self.trip = exc
         raise exc
 
+    def no_share(self, path, verb: str) -> None:
+
+
+
+
+        try:
+            text = os.fsdecode(path)
+        except TypeError:
+            return
+        if security.refused_share(security.local_part(text.split("|", 1)[0]) or text):
+            self.refuse(f"{verb} another machine: {security.validate_path(text) or text}")
+
     def judge_file(self, path, creating: bool = True, folder: bool = False) -> None:
 
+        self.no_share(path, "writes to")
         cls, reason = file_class(path, creating, self.own, folder)
         self.need(cls, reason)
 
@@ -634,8 +697,13 @@ class _Arm:
             return
         full = os.path.abspath(os.path.expanduser(text))
 
-        if _snippet_origin(4) != "snippet" or _under_software(full):
+        if _snippet_origin(4) != "snippet":
             return
+
+
+        if _under_software(full):
+            return
+        self.no_share(full, f"{verb} a path on")
         reason = security.validate_read(full)
         if reason:
             what = "a folder" if verb == "lists" else "a file"
@@ -895,9 +963,10 @@ def _project_write(arm, project, *args, **kwargs):
 
 
 def _project_read(arm, project, *args, **kwargs):
+    path = args[0] if args and isinstance(args[0], str) else project.fileName()
+    arm.no_share(path, "reads a project on")
     if not _open_project(project):
 
-        path = args[0] if args and isinstance(args[0], str) else ""
         reason = _outside_scope(path) if path else ""
         if reason:
             arm.refuse(f"reads a project from outside the read scope: {reason}")
@@ -924,7 +993,12 @@ def _add_layers(arm, project, value=None, *args, **kwargs):
 _SOURCE_KEYWORDS = ("path", "uri", "dataSource", "source")
 
 
-def _builds_remote(index: int, provider_at: int = 0, provider_keys: tuple = (), provider: str = ""):
+def _builds_layer(index: int, provider_at: int = 0, provider_keys: tuple = (), provider: str = ""):
+
+
+
+
+
 
 
 
@@ -936,13 +1010,54 @@ def _builds_remote(index: int, provider_at: int = 0, provider_keys: tuple = (), 
     def judge(arm, *args, **kwargs):
         key = next((k for k in _SOURCE_KEYWORDS if k in kwargs), None)
         source = kwargs[key] if key else (args[index] if len(args) > index else "")
-        if not isinstance(source, str):
+
+
+
+
+        if not isinstance(source, str) or not source:
             return None
-        if _remote(source):
-            arm.refuse("builds a layer read from the network; add_data carries the address card")
-        return _with_whole_source(source, index, key, args, kwargs,
-                                  _provider_of(args, kwargs, provider_at, provider_keys, provider))
+        named = _provider_of(args, kwargs, provider_at, provider_keys, provider)
+        for inner, inner_provider in [(source, named)] + _virtual_sources(source):
+            if _remote(inner):
+                arm.refuse("builds a layer read from the network; add_data carries the address card")
+            arm.no_share(_source_file(inner, inner_provider), "builds a layer on")
+            whole = _whole_source(inner, inner_provider)
+            reason = _outside_scope(whole, inner_provider)
+            if reason and _file_there(_source_file(whole, inner_provider)):
+                arm.refuse(f"builds a layer on a file outside the read scope: {reason}")
+        return _with_whole_source(source, index, key, args, kwargs, named)
     return judge
+
+
+def _virtual_sources(source: str) -> list:
+
+
+
+
+    out = []
+    for part in source.partition("?")[2].split("&"):
+        key, _, value = part.partition("=")
+        provider, colon, rest = value.partition(":")
+        if key.lower() != "layer" or not colon:
+            continue
+
+
+        end = rest.find(":", 2 if rest[1:2] == ":" else 0)
+        out.append((unquote(rest if end < 0 else rest[:end]), unquote(provider)))
+    return out
+
+
+def _file_there(path: str) -> bool:
+
+    if not path or os.path.lexists(path):
+        return bool(path)
+    while True:
+        parent = os.path.dirname(path)
+        if not parent or parent == path:
+            return False
+        path = parent
+        if os.path.lexists(path):
+            return os.path.isfile(path)
 
 
 def _provider_of(args, kwargs, at: int, keys: tuple, default: str) -> str:
@@ -1209,6 +1324,9 @@ def _traps():
         (get("QgsProject"), "clear", _remove_all, False),
         (get("QgsProject"), "write", _project_write, False),
         (get("QgsProject"), "read", _project_read, False),
+
+        (get("QgsProject"), "setFileName",
+         lambda arm, project, name="", *a, **k: arm.no_share(name, "names a project on"), False),
         (get("QgsProject"), "addMapLayer", _add_layers, False),
         (get("QgsProject"), "addMapLayers", _add_layers, False),
         (get("QgsMapLayer"), "saveNamedStyle", _path_arg(1, "uri"), False),
@@ -1325,12 +1443,12 @@ def _child_write_traps() -> list:
         analysis = None
     out.append((getattr(analysis, "QgsRasterCalculator", None), "__init__", _path_arg(2, "outputFile"), False))
 
-    out.append((get("QgsVectorLayer"), "__init__", _builds_remote(1, 3, ("providerLib",), "ogr"), False))
-    out.append((get("QgsRasterLayer"), "__init__", _builds_remote(1, 3, ("providerType",), "gdal"), False))
+    out.append((get("QgsVectorLayer"), "__init__", _builds_layer(1, 3, ("providerLib",), "ogr"), False))
+    out.append((get("QgsRasterLayer"), "__init__", _builds_layer(1, 3, ("providerType",), "gdal"), False))
     for cls in ("QgsMeshLayer", "QgsVectorTileLayer", "QgsPointCloudLayer", "QgsTiledSceneLayer"):
-        out.append((get(cls), "__init__", _builds_remote(1), False))
-    out.append((get("QgsMapLayer"), "setDataSource", _builds_remote(1, 3, ("provider",)), False))
-    out.append((get("QgsProviderRegistry"), "createProvider", _builds_remote(2, 1, ("providerKey",)), False))
+        out.append((get(cls), "__init__", _builds_layer(1), False))
+    out.append((get("QgsMapLayer"), "setDataSource", _builds_layer(1, 3, ("provider",)), False))
+    out.append((get("QgsProviderRegistry"), "createProvider", _builds_layer(2, 1, ("providerKey",)), False))
     for cls in ("QgsNetworkAccessManager", "QgsBlockingNetworkRequest"):
         for name in ("get", "post", "put", "head", "deleteResource", "sendCustomRequest", "blockingGet",
                      "blockingPost"):

@@ -38,6 +38,7 @@ from .icons import icon_for
 from .settings_pages import GHOST_BTN_QSS
 from .shared import available_screen_rect
 from .style import INK, INK_2
+from .styles import PANEL_TEXT
 
 _SIGN_IN_WAIT_S = 300
 _POLL_MS = 150
@@ -134,7 +135,7 @@ class ConnectDialog(QDialog):
         self._list.setStyleSheet(
             f"QListWidget {{ border: 1px solid {S.LINE}; border-radius: 8px; padding: 4px; font-size: 12px; }}"
             f"QListWidget::item {{ padding: 6px 6px; border-radius: 6px; }}"
-            f"QListWidget::item:selected {{ background: {S.HOVER}; color: palette(text); }}")
+            f"QListWidget::item:selected {{ background: {S.HOVER}; color: {PANEL_TEXT}; }}")
         self._list.setMinimumHeight(scale_px_length(150))
         self._list.itemSelectionChanged.connect(self._sync)
         self._list.itemDoubleClicked.connect(lambda _item: self._primary_clicked())
@@ -159,11 +160,13 @@ class ConnectDialog(QDialog):
         footer.setSpacing(scale_px_length(8))
         footer.addStretch(1)
         cancel = QPushButton(tr("Cancel"), self)
+        cancel.setCursor(Qt.CursorShape.PointingHandCursor)
         cancel.setObjectName("earthEngineCancel")
         cancel.setStyleSheet(GHOST_BTN_QSS)
         cancel.clicked.connect(self.reject)
         footer.addWidget(cancel)
         self._primary = QPushButton(self)
+        self._primary.setCursor(Qt.CursorShape.PointingHandCursor)
         self._primary.setObjectName("earthEnginePrimary")
         self._primary.setStyleSheet(_SAVE_QSS)
         self._primary.setDefault(True)

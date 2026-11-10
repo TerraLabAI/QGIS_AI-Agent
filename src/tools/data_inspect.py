@@ -32,7 +32,7 @@ from ..core import (
     tuning,
     vsi,
 )
-from ..core.background import delete_here, run_on_main_thread, take
+from ..core.background import MainThreadBusy, delete_here, run_on_main_thread, take
 from ..core.crs_ref import crs_ref
 from ..core.host_platform import IS_WINDOWS, remove_tree
 from ..core.output_paths import file_stem, safe_file_name
@@ -685,7 +685,7 @@ def _sublayers_of(layer) -> list:
 
 
 
-_ARCHIVE_RASTER_EXTENSIONS = (".tif", ".tiff", ".img", ".jp2", ".asc", ".nc", ".bil", ".flt", ".hgt")
+_ARCHIVE_RASTER_EXTENSIONS = (".tif", ".tiff", ".img", ".jp2", ".asc", ".nc", ".bil", ".flt", ".hgt", ".xyz")
 
 
 def _archive_entries(root: str) -> list:
@@ -1001,6 +1001,36 @@ def _load_unpacked_raster(tmp_dir: str, url: str, paths: list, layer_name) -> di
     return loaded
 
 
+def _unpacked_cloud_or_archives(tmp_dir: str, url: str, archive: str, layer_name):
+
+
+
+
+
+
+
+    from .layer_io_tools import _add_point_cloud_layer, point_cloud_provider
+
+    files = sorted((f for f in _archive_entries(tmp_dir) if f != archive),
+                   key=lambda f: (f.count(os.sep), f.lower()))
+    clouds = [f for f in files if point_cloud_provider(f)]
+    if len(clouds) == 1:
+        loaded = run_on_main_thread(lambda: _add_point_cloud_layer({"path": clouds[0], "name": layer_name}),
+                                    timeout=120)
+        if isinstance(loaded, dict) and loaded.get("_error") is not None:
+            return _discard_download(tmp_dir, loaded)
+        if isinstance(loaded, dict):
+            loaded["url"] = url
+        return loaded
+    inner = clouds or [f for f in files if f.lower().endswith(".zip")]
+    if not inner:
+        return None
+    word = "point clouds" if clouds else "archives"
+    return {"url": url, "layers": _archive_names(inner, tmp_dir), "local_paths": inner[:_ARCHIVE_LIST_MAX],
+            "folder": tmp_dir,
+            "_note": f"The archive holds {len(inner)} {word}, none added yet; each loads from its local path."}
+
+
 def _service_exception(filepath: str) -> str:
 
 
@@ -1112,6 +1142,10 @@ def _load_download(args: dict, url: str, layer_name, tmp_dir: str, filepath: str
                 return _load_unpacked_raster(tmp_dir, url, [rasters[name] for name in named_raster], layer_name)
             if rasters and not readable and not gdbs and not wanted:
                 return _load_unpacked_raster(tmp_dir, url, list(rasters.values()), layer_name)
+            if not readable and not gdbs and not rasters:
+                loaded = _unpacked_cloud_or_archives(tmp_dir, url, filepath, layer_name)
+                if loaded is not None:
+                    return loaded
             if gdbs and not readable and len(gdbs) == 1:
 
 
@@ -1175,6 +1209,10 @@ def _load_download(args: dict, url: str, layer_name, tmp_dir: str, filepath: str
         except zipfile.BadZipFile:
             return _discard_download(tmp_dir, tool_error(
                 f"{url} did not download a valid ZIP archive.", "INVALID_ARGS", hint="zip_invalid"))
+        except (MainThreadBusy, InterruptedError):
+
+
+            raise
         except (NotImplementedError, RuntimeError, OSError, EOFError, zlib.error) as exc:
 
 

@@ -722,11 +722,9 @@ def _create_hillshade(args: dict) -> dict:
     name = str(args.get("name") or "").strip() or f"{layer.name()} Hillshade"
     output_path = str(args.get("output_path") or "").strip()
     if output_path:
-        from ..core import security
 
 
-
-        output_path = os.path.abspath(os.path.expanduser(output_path))
+        output_path = security.expand_path(output_path)
         if not output_path.lower().endswith((".tif", ".tiff")):
             output_path += ".tif"
         problem = security.validate_path(output_path, write=True,

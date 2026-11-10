@@ -11,7 +11,7 @@
 
 from __future__ import annotations
 
-from qgis.core import QgsLayerTreeGroup, QgsLayerTreeLayer, QgsLayoutItemLegend, QgsLayoutItemMap
+from qgis.core import Qgis, QgsLayerTreeGroup, QgsLayerTreeLayer, QgsLayoutItemLegend, QgsLayoutItemMap
 
 
 _LEGEND_ENTRIES = 60
@@ -70,11 +70,22 @@ def _entries(group, out: list, total: list) -> None:
                 out.append({"group": node.name(), "entries": inner})
 
 
+def legend_auto_updates(legend) -> bool:
+
+    modes = getattr(Qgis, "LegendSyncMode", None)
+    try:
+        if modes is not None and hasattr(legend, "syncMode"):
+            return legend.syncMode() != modes.Manual
+        return bool(legend.autoUpdateModel())
+    except (AttributeError, RuntimeError):
+        return False
+
+
 def _legend_facts(item) -> dict:
     linked = item.linkedMap()
     facts = {"uuid": item.uuid(), "id": item.displayName(), "title": item.title(),
              "linked_map": linked.uuid() if linked is not None else None,
-             "auto_update": item.autoUpdateModel(), "filtered_by_map": item.legendFilterByMapEnabled()}
+             "auto_update": legend_auto_updates(item), "filtered_by_map": item.legendFilterByMapEnabled()}
     root = item.model().rootGroup() if item.model() is not None else None
     if root is not None:
         entries: list = []

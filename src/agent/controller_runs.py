@@ -11,9 +11,9 @@ import json
 import time
 import uuid
 
-from qgis.PyQt.QtCore import QCoreApplication, QTimer
+from qgis.PyQt.QtCore import QTimer
 
-from ..core import telemetry
+from ..core import telemetry, trace
 from ..core import telemetry_events as ev
 from ..core.checkpoints import KIND_BEFORE
 from ..core.context import build_context
@@ -30,11 +30,8 @@ from .controller_shared import (
     RUN_SILENCE_S,
     SENDING_RECHECK_MS,
     _dump_context,
+    tr,
 )
-
-
-def tr(text: str) -> str:
-    return QCoreApplication.translate("AgentController", text)
 
 
 def _context_bytes(context: dict) -> int | None:
@@ -58,6 +55,11 @@ class _ControllerRuns:
         text = (text or "").strip()
         if not text:
             return
+        from ..ui.plugin_self_update import updated_on_disk_note
+
+        restart_note = updated_on_disk_note()
+        if restart_note:
+            self.notice.emit("warning", restart_note)
         if self._run is not None:
             self.notice.emit("info", tr("A run is in progress. Stop it or wait for it to finish."))
             return
@@ -180,7 +182,7 @@ class _ControllerRuns:
                               "attachments": attachments}
             self._agent_text[run_id] = ""
             self._remember_run_project(run_id)
-            self._session.set_run_open(True)
+            self._session.refresh_heartbeat()
             self._executor.begin_run(run_id, mode, approval, self._thread_id or "", text)
             self._panel_call("begin_run", run_id)
 
@@ -213,6 +215,7 @@ class _ControllerRuns:
 
             if self._run is not None and self._run["run_id"] == run_id:
                 self._run.setdefault("sent_at", time.perf_counter())
+            trace.mark("send.queued", run_id=run_id)
             self._touch_watchdog()
         self._panel_call("set_threads", self._store.list_threads(), _project_path())
         self._panel_call("set_current_thread", self._thread_id)
@@ -443,9 +446,14 @@ class _ControllerRuns:
         run = self._runs.stop(run_id)
         if run is None:
             return
+        tool, tool_s, in_background = self._executor.call_in_flight(run["run_id"])
         telemetry.track(ev.AGENT_RUN_STOPPED, {
             "run_id": run["run_id"], "phase": self._run_phase(run), "again": again,
-            "ms_since_start": self._run_age_ms(run)})
+            "ms_since_start": self._run_age_ms(run),
+
+
+            "tool": tool or None, "tool_elapsed_ms": int(tool_s * 1000) if tool else None,
+            "tool_background": in_background if tool else None})
         if again:
 
 

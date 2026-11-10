@@ -17,13 +17,12 @@ from qgis.core import (
     QgsColorRampShader,
     QgsContrastEnhancement,
     QgsMapLayer,
-    QgsRasterBandStats,
     QgsSingleBandGrayRenderer,
     QgsWkbTypes,
 )
 from qgis.PyQt.QtCore import QVariant
 
-from ..core.qt_compat import enum_member
+from ..core.qt_compat import enum_member, field_type
 
 _ABSENT = object()
 
@@ -50,8 +49,6 @@ def enum_value(*candidates):
 
 LAYER_VECTOR = enum_value((Qgis, "LayerType.Vector"), (QgsMapLayer, "VectorLayer"))
 LAYER_RASTER = enum_value((Qgis, "LayerType.Raster"), (QgsMapLayer, "RasterLayer"))
-
-RASTER_STATS_ALL = enum_value((Qgis, "RasterBandStatistic.All"), (QgsRasterBandStats, "All"))
 
 SHADER_INTERPOLATED = enum_value((QgsColorRampShader, "Type.Interpolated"), (QgsColorRampShader, "Interpolated"))
 SHADER_DISCRETE = enum_value((QgsColorRampShader, "Type.Discrete"), (QgsColorRampShader, "Discrete"))
@@ -94,13 +91,22 @@ WKB_NO_GEOMETRY = enum_value(
     (Qgis, "WkbType.NoGeometry"), (QgsWkbTypes, "Type.NoGeometry"), (QgsWkbTypes, "NoGeometry")
 )
 
-QVAR_STRING = enum_value((QVariant, "String"), (QVariant, "Type.String"))
-QVAR_INT = enum_value((QVariant, "Int"), (QVariant, "Type.Int"))
-QVAR_LONGLONG = enum_value((QVariant, "LongLong"), (QVariant, "Type.LongLong"))
-QVAR_DOUBLE = enum_value((QVariant, "Double"), (QVariant, "Type.Double"))
-QVAR_BOOL = enum_value((QVariant, "Bool"), (QVariant, "Type.Bool"))
-QVAR_DATE = enum_value((QVariant, "Date"), (QVariant, "Type.Date"))
-QVAR_DATETIME = enum_value((QVariant, "DateTime"), (QVariant, "Type.DateTime"))
+
+def _field_kind(name: str):
+
+    try:
+        return field_type(name)
+    except AttributeError:
+        return None
+
+
+QVAR_STRING = _field_kind("String")
+QVAR_INT = _field_kind("Int")
+QVAR_LONGLONG = _field_kind("LongLong")
+QVAR_DOUBLE = _field_kind("Double")
+QVAR_BOOL = _field_kind("Bool")
+QVAR_DATE = _field_kind("Date")
+QVAR_DATETIME = _field_kind("DateTime")
 
 FIELD_TYPES = {
     "string": QVAR_STRING,

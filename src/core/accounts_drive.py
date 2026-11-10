@@ -37,6 +37,7 @@ from qgis.PyQt.QtCore import pyqtSignal
 
 from . import accounts, accounts_oauth, background, oauth_loopback
 from .logger import log_warning
+from .qt_compat import task_flags
 from .settings import GROUP
 
 GOOGLE, MICROSOFT = "googledrive", "onedrive"
@@ -151,12 +152,7 @@ class LoopbackSignIn(QgsTask):
     done = pyqtSignal(bool, str)
 
     def __init__(self, provider: str, scopes: list, extra: dict, label: str):
-        flags = QgsTask.Flag.CanCancel
-        for name in ("Hidden", "Silent"):
-            more = getattr(QgsTask.Flag, name, None)
-            if more is not None:
-                flags = flags | more
-        super().__init__(label, flags)
+        super().__init__(label, task_flags(QgsTask, hidden=True))
         self.provider, self.scopes, self.extra = provider, list(scopes), dict(extra)
         self._result: dict = {}
         self.reason = ""
