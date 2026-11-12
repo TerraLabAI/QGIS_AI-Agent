@@ -59,6 +59,12 @@ _CLOSE_WAIT_S = 30.0
 _ADD_TIMEOUT = 30
 
 
+
+
+
+_ONE_READER = threading.Lock()
+
+
 _BOOL, _INT, _UINT, _LONG, _ULONG, _DOUBLE = 1, 2, 3, 4, 5, 6
 _DATE, _TIME, _DATETIME = 14, 15, 16
 _ISO_WITH_MS = enum_member(Qt, "DateFormat", "ISODateWithMs")
@@ -351,7 +357,14 @@ def extract(url: str, typename: str, name: str, uri: str, count_at: int | None =
 
     def reader():
         try:
-            _read(uri, name, path, table, state, halted)
+            while not _ONE_READER.acquire(timeout=_POLL_S):
+                if halted.is_set():
+                    return
+            try:
+                state["read_from"] = time.monotonic()
+                _read(uri, name, path, table, state, halted)
+            finally:
+                _ONE_READER.release()
         except BaseException as exc:  # noqa: BLE001
             failure.append(f"{type(exc).__name__}: {exc}")
         finally:
@@ -375,13 +388,20 @@ def extract(url: str, typename: str, name: str, uri: str, count_at: int | None =
         if cancelled is not None and cancelled():
             drop()
             return tool_error("Stopped while the WFS was being written to disk; nothing was added.", "CANCELLED")
-        if budget_s is not None and time.monotonic() > started + budget_s and not halted.is_set():
+        read_from = state.get("read_from")
+        if (budget_s is not None and read_from is not None and time.monotonic() > read_from + budget_s
+                and not halted.is_set()):
             written_by_then = int(state.get("written") or 0)
             drop()
             return {"_over_budget": True, "_written": written_by_then}
         if time.monotonic() > deadline and not halted.is_set():
             state["ended_by"] = "clock"
             halted.set()
+            if "read_from" not in state:
+                drop()
+                return tool_error(f"Other WFS copies read one after the other and {typename} had not "
+                                  "started when the clock ran out; nothing was added.", "TIMEOUT",
+                                  hint="wfs_clock_ran_out", typename=typename)
             if not over.wait(_CLOSE_WAIT_S):
                 drop()
                 return tool_error(f"The WFS was still sending {typename} when the clock ran out, and the file "

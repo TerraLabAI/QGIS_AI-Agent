@@ -13,10 +13,10 @@ from ..core import telemetry
 from ..core import telemetry_events as ev
 from ..core.logger import log, log_warning
 from ..core.profile import bind_personal
+from ..core.project_identity import open_project_file
 from ..core.protocol import CANCEL_SIGNED_OUT, RunStatus
 from ..core.settings import account_tag, reset_account_tag_cache
 from ..core.threads import SIGNED_OUT, ThreadStore
-from .controller_actions import _project_path
 from .controller_shared import tr
 
 
@@ -47,9 +47,19 @@ class _ControllerAccount:
 
 
             self._raise_qgis()
-        telemetry.track(ev.PLUGIN_ACTIVATED, {"activation_method": "sibling" if sibling else "pairing"})
+
+        signed_out_at, _, at_limit = self._settings.signed_out_mark.partition(":")
+        self._settings.signed_out_mark = ""
+        telemetry.track(ev.PLUGIN_ACTIVATED, {
+            "activation_method": "sibling" if sibling else "pairing",
+            "after_sign_out": ("at_run_limit" if at_limit == "1" else "other") if signed_out_at else "none",
+            "minutes_since_sign_out": (max(0, int((time.time() - int(signed_out_at)) // 60))
+                                       if signed_out_at.isdigit() else None)})
         telemetry.flush()
         self._session.forget_session()
+
+
+        self._refusal_retried = False
 
         self._bind_account(keep_view=True)
         self._panel_call("set_connection_state", "connecting", "")
@@ -63,8 +73,9 @@ class _ControllerAccount:
 
     def _on_signed_out(self) -> None:
 
+
         self._bind_account(keep_view=False)
-        self._session.disconnect_from_server()
+        self._session.disconnect_from_server(flush=True)
         self._session.forget_session()
         self._panel_call("set_connection_state", "signed_out", "")
 
@@ -122,7 +133,7 @@ class _ControllerAccount:
                 self._executor.bind_account()
             except Exception as exc:  # noqa: BLE001
                 log_warning(f"Tool history not moved to the signed-in account: {exc}")
-        self._panel_call("set_threads", self._store.list_threads(), _project_path())
+        self._panel_call("set_threads", self._store.list_threads(), open_project_file())
 
     def _bind_personal(self) -> None:
 

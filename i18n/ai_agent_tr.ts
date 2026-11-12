@@ -1714,6 +1714,98 @@ Silme, bekleme süresi bitince kesinleşir. O zamana kadar terra-lab.ai üzerind
             <source>expired</source>
             <translation>süresi doldu</translation>
         </message>
+        <message>
+            <source>Flow lines: {}</source>
+            <translation>Akış çizgileri: {}</translation>
+        </message>
+        <message>
+            <source>Voice dictation</source>
+            <translation>Sesle yazdırma</translation>
+        </message>
+        <message>
+            <source>Talk to your AI agent</source>
+            <translation>Yapay zeka ajanınızla konuşun</translation>
+        </message>
+        <message>
+            <source>Speak, and your words become text you can edit before sending.</source>
+            <translation>Konuşun, sözleriniz göndermeden önce düzenleyebileceğiniz metne dönüşsün.</translation>
+        </message>
+        <message>
+            <source>Your voice stays private</source>
+            <translation>Sesiniz gizli kalır</translation>
+        </message>
+        <message>
+            <source>Recorded only when you press the microphone, transcribed in the EU, never stored by TerraLab and never used to train AI.</source>
+            <translation>Yalnızca mikrofona bastığınızda kaydedilir, AB'de metne dönüştürülür, TerraLab tarafından asla saklanmaz ve yapay zekayı eğitmek için asla kullanılmaz.</translation>
+        </message>
+        <message>
+            <source>Start dictating</source>
+            <translation>Yazdırmaya başla</translation>
+        </message>
+        <message>
+            <source>Not now</source>
+            <translation>Şimdi değil</translation>
+        </message>
+        <message>
+            <source>AI can make mistakes</source>
+            <translation>Yapay zeka hata yapabilir</translation>
+        </message>
+        <message>
+            <source>Adding the layer</source>
+            <translation>Katman ekleniyor</translation>
+        </message>
+        <message>
+            <source>Cutting to the area</source>
+            <translation>Alana göre kesiliyor</translation>
+        </message>
+        <message>
+            <source>Failed</source>
+            <translation>Başarısız</translation>
+        </message>
+        <message>
+            <source>Finding the place</source>
+            <translation>Yer bulunuyor</translation>
+        </message>
+        <message>
+            <source>Paused</source>
+            <translation>Duraklatıldı</translation>
+        </message>
+        <message>
+            <source>Querying the source</source>
+            <translation>Kaynak sorgulanıyor</translation>
+        </message>
+        <message>
+            <source>Queued</source>
+            <translation>Sırada</translation>
+        </message>
+        <message>
+            <source>Stopped</source>
+            <translation>Durduruldu</translation>
+        </message>
+        <message>
+            <source>Working</source>
+            <translation>Çalışıyor</translation>
+        </message>
+        <message>
+            <source>about {n} min left</source>
+            <translation>yaklaşık {n} dk kaldı</translation>
+        </message>
+        <message>
+            <source>about {n} s left</source>
+            <translation>yaklaşık {n} sn kaldı</translation>
+        </message>
+        <message>
+            <source>{done} MB</source>
+            <translation>{done} MB</translation>
+        </message>
+        <message>
+            <source>{done} of {total} MB</source>
+            <translation>{done} / {total} MB</translation>
+        </message>
+        <message>
+            <source>{words} · {done} of {total}</source>
+            <translation>{words} · {done} / {total}</translation>
+        </message>
     </context>
     <context>
         <name>AIAgentContext</name>
@@ -2189,6 +2281,18 @@ Silme, bekleme süresi bitince kesinleşir. O zamana kadar terra-lab.ai üzerind
         <message>
             <source>Sign in or create an account</source>
             <translation>Oturum aç veya hesap oluştur</translation>
+        </message>
+        <message>
+            <source>Opens your browser, takes about 15 seconds</source>
+            <translation>Tarayıcınızı açar, yaklaşık 15 saniye sürer</translation>
+        </message>
+        <message>
+            <source>Sign in or create a free account</source>
+            <translation>Giriş yapın veya ücretsiz hesap açın</translation>
+        </message>
+        <message>
+            <source>The AI agent loads data, styles layers, runs analyses and edits features for you.</source>
+            <translation>AI ajanı sizin için veri yükler, katmanları biçimlendirir, analiz çalıştırır ve objeleri düzenler.</translation>
         </message>
     </context>
     <context>
@@ -3101,6 +3205,22 @@ Silme, bekleme süresi bitince kesinleşir. O zamana kadar terra-lab.ai üzerind
             <source>Removed from the queue</source>
             <translation>Kuyruktan kaldırıldı</translation>
         </message>
+        <message>
+            <source>No free tasks left on this computer</source>
+            <translation>Bu bilgisayarda ücretsiz görev kalmadı</translation>
+        </message>
+        <message>
+            <source>No free tasks left this month</source>
+            <translation>Bu ay ücretsiz görev kalmadı</translation>
+        </message>
+        <message>
+            <source>Ask or describe a task in QGIS</source>
+            <translation>QGIS'te bir şey sorun veya bir görevi anlatın</translation>
+        </message>
+        <message>
+            <source>Reply</source>
+            <translation>Yanıtla</translation>
+        </message>
     </context>
     <context>
         <name>ChatSidebar</name>
@@ -3380,6 +3500,26 @@ Silme, bekleme süresi bitince kesinleşir. O zamana kadar terra-lab.ai üzerind
             <source>{n} left out, {total} at most</source>
             <translation>{n} dışarıda bırakıldı, en fazla {total}</translation>
         </message>
+        <message>
+            <source>Send this as it is?</source>
+            <translation>Bu mesaj olduğu gibi gönderilsin mi?</translation>
+        </message>
+        <message>
+            <source>It looks like a typing slip. Edit it, or press Send again.</source>
+            <translation>Yazım hatası gibi görünüyor. Düzenleyin ya da tekrar Gönder'e basın.</translation>
+        </message>
+        <message>
+            <source>Ask or describe a task in QGIS</source>
+            <translation>QGIS'te bir şey sorun veya bir görevi anlatın</translation>
+        </message>
+        <message>
+            <source>Done: write what I said (Enter)</source>
+            <translation>Bitti: söylediklerimi yaz (Enter)</translation>
+        </message>
+        <message>
+            <source>Finish dictation</source>
+            <translation>Dikteyi bitir</translation>
+        </message>
     </context>
     <context>
         <name>ComposerInput</name>
@@ -3561,6 +3701,30 @@ Silme, bekleme süresi bitince kesinleşir. O zamana kadar terra-lab.ai üzerind
             <source>{sources} sources the AI agent finds and loads by itself: {datasets} datasets in {countries} countries.</source>
             <translation>Yapay zeka ajanının kendi bulup yüklediği {sources} kaynak: {countries} ülkede {datasets} veri seti.</translation>
         </message>
+        <message>
+            <source>%n datasets from other providers</source>
+            <translation>Diğer sağlayıcılardan %n veri seti</translation>
+        </message>
+        <message>
+            <source>Popular</source>
+            <translation>Popüler</translation>
+        </message>
+        <message>
+            <source>Europe</source>
+            <translation>Avrupa</translation>
+        </message>
+        <message>
+            <source>Americas</source>
+            <translation>Amerika</translation>
+        </message>
+        <message>
+            <source>Asia and Pacific</source>
+            <translation>Asya ve Pasifik</translation>
+        </message>
+        <message>
+            <source>Africa and Middle East</source>
+            <translation>Afrika ve Orta Doğu</translation>
+        </message>
     </context>
     <context>
         <name>DiffTableCard</name>
@@ -3678,6 +3842,10 @@ Silme, bekleme süresi bitince kesinleşir. O zamana kadar terra-lab.ai üzerind
             <source>{level} needs Pro. Pick Low to send.</source>
             <translation>{level} için Pro gerekir. Göndermek için Düşük'ü seçin.</translation>
         </message>
+        <message>
+            <source>Effort {level}: how hard the AI agent works on the next message</source>
+            <translation>Efor {level}: yapay zeka ajanı sonraki mesaj üzerinde ne kadar yoğun çalışır</translation>
+        </message>
     </context>
     <context>
         <name>EmptyState</name>
@@ -3700,6 +3868,10 @@ Silme, bekleme süresi bitince kesinleşir. O zamana kadar terra-lab.ai üzerind
         <message>
             <source>AI can make mistakes. Check its changes.</source>
             <translation>YZ hata yapabilir. Yaptığı değişiklikleri kontrol edin.</translation>
+        </message>
+        <message>
+            <source>How can I help?</source>
+            <translation>Nasıl yardımcı olabilirim?</translation>
         </message>
     </context>
     <context>
@@ -3858,6 +4030,26 @@ Bu dosya artık çalıştırmanın yazdığı yerde değil.</translation>
         <message>
             <source>Send feedback</source>
             <translation>Geri bildirim gönder</translation>
+        </message>
+        <message>
+            <source>Free trial</source>
+            <translation>Ücretsiz deneme</translation>
+        </message>
+        <message>
+            <source>Your Pro is set to end. Keep it in one click.</source>
+            <translation>Pro aboneliğiniz sona erecek. Tek tıkla sürdürün.</translation>
+        </message>
+        <message>
+            <source>Keep Pro</source>
+            <translation>Pro'yu koru</translation>
+        </message>
+        <message>
+            <source>Open the AI Agent page on terra-lab.ai</source>
+            <translation>terra-lab.ai üzerindeki AI Agent sayfasını aç</translation>
+        </message>
+        <message>
+            <source>Your Pro ends on {date}. Keep it in one click.</source>
+            <translation>Pro'nuz {date} tarihinde bitiyor. Tek tıkla sürdürün.</translation>
         </message>
     </context>
     <context>
@@ -4440,6 +4632,46 @@ Katmanlar panelinde göstermek için tıklayın.</translation>
             <source>{mode}: what AI Agent may do without asking</source>
             <translation>{mode}: AI Agent'ın sormadan yapabilecekleri</translation>
         </message>
+        <message>
+            <source>Free trial</source>
+            <translation>Ücretsiz deneme</translation>
+        </message>
+        <message>
+            <source>Asks before every change.</source>
+            <translation>Her değişiklikten önce sorar.</translation>
+        </message>
+        <message>
+            <source>Asks only before risky changes.</source>
+            <translation>Yalnızca riskli değişikliklerden önce sorar.</translation>
+        </message>
+        <message>
+            <source>It brings your project back. Files on disk are not covered.</source>
+            <translation>Projenizi geri getirir. Diskteki dosyalar kapsam dışıdır.</translation>
+        </message>
+        <message>
+            <source>Spending credits or reaching an unknown site.</source>
+            <translation>Kredi harcamak veya bilinmeyen bir siteye erişmek.</translation>
+        </message>
+        <message>
+            <source>Still asks for what matters</source>
+            <translation>Önemli olanlar için yine de sorar</translation>
+        </message>
+        <message>
+            <source>The AI agent runs every step without asking, even to delete a layer or run code.</source>
+            <translation>Yapay zeka ajanı her adımı sormadan çalıştırır, bir katmanı silmek veya kod çalıştırmak bile olsa.</translation>
+        </message>
+        <message>
+            <source>Undo is there</source>
+            <translation>Geri alma mevcut</translation>
+        </message>
+        <message>
+            <source>Works on its own</source>
+            <translation>Kendi başına çalışır</translation>
+        </message>
+        <message>
+            <source>Works on its own and rarely asks.</source>
+            <translation>Kendi başına çalışır ve nadiren sorar.</translation>
+        </message>
     </context>
     <context>
         <name>PlanCard</name>
@@ -4496,6 +4728,22 @@ Katmanlar panelinde göstermek için tıklayın.</translation>
         <message>
             <source>Question {n} of {count}</source>
             <translation>Soru {n} / {count}</translation>
+        </message>
+        <message>
+            <source>Checkbox</source>
+            <translation>Onay kutusu</translation>
+        </message>
+        <message>
+            <source>Radio button</source>
+            <translation>Seçenek düğmesi</translation>
+        </message>
+        <message>
+            <source>selected</source>
+            <translation>seçili</translation>
+        </message>
+        <message>
+            <source>not selected</source>
+            <translation>seçili değil</translation>
         </message>
     </context>
     <context>
@@ -4597,7 +4845,7 @@ Katmanlar panelinde göstermek için tıklayın.</translation>
             <translation>Pro: Ayda {n} görev ve daha zor görevler</translation>
         </message>
         <message>
-            <source>Start 7-day free trial</source>
+            <source>Start 7 day free trial</source>
             <translation>7 günlük ücretsiz denemeyi başlat</translation>
         </message>
         <message>
@@ -4704,6 +4952,134 @@ Katmanlar panelinde göstermek için tıklayın.</translation>
         <message>
             <source>Medium effort now, High after the trial</source>
             <translation>Şimdi Medium efor, denemeden sonra High</translation>
+        </message>
+        <message>
+            <source>For a company or team</source>
+            <translation>Şirket veya ekip için</translation>
+        </message>
+        <message>
+            <source>Your custom instructions</source>
+            <translation>Kendi talimatlarınız</translation>
+        </message>
+        <message>
+            <source>1 free task left this month</source>
+            <translation>Bu ay 1 ücretsiz görev kaldı</translation>
+        </message>
+        <message>
+            <source>AI Agent Pro for work, by invoice</source>
+            <translation>İş için AI Agent Pro, faturayla</translation>
+        </message>
+        <message>
+            <source>AI Agent Pro for work, without a card</source>
+            <translation>İş için AI Agent Pro, kartsız</translation>
+        </message>
+        <message>
+            <source>Copy</source>
+            <translation>Kopyala</translation>
+        </message>
+        <message>
+            <source>Free trial</source>
+            <translation>Ücretsiz deneme</translation>
+        </message>
+        <message>
+            <source>Hello,
+
+I used all my AI Agent tasks this month. Could you raise my quota?
+
+Thank you</source>
+            <translation>Merhaba,
+
+Bu ay tüm AI Agent görevlerimi kullandım. Kotamı artırabilir misiniz?
+
+Teşekkürler</translation>
+        </message>
+        <message>
+            <source>Hello,
+
+I'd like to use AI Agent Pro at work but I can't pay by card. Could you send my company an invoice or a quote?
+
+Company:
+Name:
+
+Thank you</source>
+            <translation>Merhaba,
+
+İş için AI Agent Pro kullanmak istiyorum ama kartla ödeme yapamıyorum. Şirketime fatura veya teklif gönderebilir misiniz?
+
+Şirket:
+Ad:
+
+Teşekkürler</translation>
+        </message>
+        <message>
+            <source>Hello,
+
+I'd like to use AI Agent Pro at work but I can't pay by card. Could you set up the 7 free days for us?
+
+Company:
+Name:
+
+Thank you</source>
+            <translation>Merhaba,
+
+İş için AI Agent Pro kullanmak istiyorum ama kartla ödeme yapamıyorum. Bizim için 7 ücretsiz günü ayarlayabilir misiniz?
+
+Şirket:
+Ad:
+
+Teşekkürler</translation>
+        </message>
+        <message>
+            <source>More AI Agent tasks this month</source>
+            <translation>Bu ay daha fazla AI Agent görevi</translation>
+        </message>
+        <message>
+            <source>Need it for work?</source>
+            <translation>İş için mi lazım?</translation>
+        </message>
+        <message>
+            <source>Need more this month? Write to us</source>
+            <translation>Bu ay daha fazlası mı lazım? Bize yazın</translation>
+        </message>
+        <message>
+            <source>No card to pay with? Write to us and we'll send your company an invoice.</source>
+            <translation>Ödeme için kartınız yok mu? Bize yazın, şirketinize fatura gönderelim.</translation>
+        </message>
+        <message>
+            <source>No card to pay with? Write to us and we'll set up your 7 free days.</source>
+            <translation>Ödeme için kartınız yok mu? Bize yazın, 7 ücretsiz gününüzü ayarlayalım.</translation>
+        </message>
+        <message>
+            <source>Nothing to pay today</source>
+            <translation>Bugün ödenecek bir şey yok</translation>
+        </message>
+        <message>
+            <source>Pro is off until it's paid.</source>
+            <translation>Pro, ödeme yapılana kadar kapalı.</translation>
+        </message>
+        <message>
+            <source>That was your last free task</source>
+            <translation>Bu son ücretsiz göreviniz oldu</translation>
+        </message>
+        <message>
+            <source>Want more? Come back to Pro: {n} tasks a month.</source>
+            <translation>Daha fazlası mı lazım? Pro'ya geri dönün: ayda {n} görev.</translation>
+        </message>
+        <message>
+            <source>Want more? Pro has {n} tasks a month.</source>
+            <translation>Daha fazlası mı lazım? Pro'da ayda {n} görev var.</translation>
+        </message>
+        <message>
+            <source>Want more? Pro is free for a week.</source>
+            <translation>Daha fazlası mı lazım? Pro bir hafta ücretsiz.</translation>
+        </message>
+        <message>
+            <source>{n} free tasks left this month</source>
+            <translation>Bu ay {n} ücretsiz görev kaldı</translation>
+        </message>
+        <message>
+            <source>{n} tasks a month, cancel anytime</source>
+            <translation>Ayda {n} görev, istediğiniz zaman iptal</translation>
         </message>
     </context>
     <context>
@@ -5111,12 +5487,12 @@ Katmanlar panelinde göstermek için tıklayın.</translation>
             <translation>Dil, stil, izinler, profiliniz ve hafıza notlarınız varsayılanlara döner. Oturumunuz açık kalır.</translation>
         </message>
         <message>
-            <source>We may read a chat only to fix a bug, never to train AI. Chats are kept 30 days.</source>
-            <translation>Bir sohbeti yalnızca bir hatayı düzeltmek için okuyabiliriz, yapay zekâyı eğitmek için asla. Sohbetler 30 gün saklanır.</translation>
+            <source>We may read a chat, or have a model score it, to fix bugs and improve the agent, never to train AI. Chats are kept 30 days.</source>
+            <translation>Hataları düzeltmek ve ajanı geliştirmek için bir sohbeti okuyabilir veya bir modele puanlatabiliriz, yapay zekâyı eğitmek için asla. Sohbetler 30 gün saklanır.</translation>
         </message>
         <message>
-            <source>We may read a chat only to fix a wrong answer or a bug, never to train AI.</source>
-            <translation>Bir sohbeti yalnızca yanlış bir yanıtı veya bir hatayı düzeltmek için okuyabiliriz, yapay zekâyı eğitmek için asla.</translation>
+            <source>We may read a chat, or have a model score it, to fix a wrong answer or a bug and improve the agent, never to train AI.</source>
+            <translation>Yanlış bir yanıtı veya bir hatayı düzeltmek ve ajanı geliştirmek için bir sohbeti okuyabilir veya bir modele puanlatabiliriz, yapay zekâyı eğitmek için asla.</translation>
         </message>
         <message>
             <source>Loading account info...</source>
@@ -5335,8 +5711,8 @@ Katmanlar panelinde göstermek için tıklayın.</translation>
             <translation>QGIS'ten istediğiniz zaman yeniden oturum açabilirsiniz.</translation>
         </message>
         <message>
-            <source>Your chats are kept 30 days so a conversation survives an update. Off, the team never reads them. 0 days of history stores nothing.</source>
-            <translation>Sohbetleriniz 30 gün saklanır, böylece bir sohbet güncellemeden sonra da durur. Kapalıyken ekip bunları asla okumaz. 0 günlük geçmiş hiçbir şey saklamaz.</translation>
+            <source>Your chats are kept 30 days so a conversation survives an update. Off, we never read or score them. 0 days of history stores nothing.</source>
+            <translation>Sohbetleriniz 30 gün saklanır, böylece bir sohbet güncellemeden sonra da durur. Kapalıyken bunları asla okumayız ya da puanlatmayız. 0 günlük geçmiş hiçbir şey saklamaz.</translation>
         </message>
         <message>
             <source>Your first name</source>
@@ -5458,6 +5834,38 @@ Katmanlar panelinde göstermek için tıklayın.</translation>
         <message>
             <source>Delete this note? The AI will not add it back.</source>
             <translation>Bu not silinsin mi? Yapay zeka onu geri eklemeyecek.</translation>
+        </message>
+        <message>
+            <source>Everywhere · {n}</source>
+            <translation>Her yerde · {n}</translation>
+        </message>
+        <message>
+            <source>Other projects · {n}</source>
+            <translation>Diğer projeler · {n}</translation>
+        </message>
+        <message>
+            <source>The rules you give it and the corrections that hold for later.</source>
+            <translation>Verdiğiniz kurallar ve sonraya da geçerli olan düzeltmeler.</translation>
+        </message>
+        <message>
+            <source>This project · {n}</source>
+            <translation>Bu proje · {n}</translation>
+        </message>
+        <message>
+            <source>What the AI keeps between conversations, stored on this computer.</source>
+            <translation>Asistanın sohbetler arasında tuttuğu şeyler, bu bilgisayarda saklanır.</translation>
+        </message>
+        <message>
+            <source>commercial use, more tasks, your instructions and higher effort</source>
+            <translation>ticari kullanım, daha fazla görev, kendi talimatların ve daha yüksek efor</translation>
+        </message>
+        <message>
+            <source>Animate the mascot</source>
+            <translation>Maskotu canlandır</translation>
+        </message>
+        <message>
+            <source>The AI agent's mark moves and follows the work. Off keeps it still.</source>
+            <translation>Yapay zeka ajanının işareti hareket eder ve işi takip eder. Kapalıyken sabit kalır.</translation>
         </message>
     </context>
     <context>
@@ -5837,6 +6245,26 @@ Katmanlar panelinde göstermek için tıklayın.</translation>
         <message>
             <source>could not be put back, so what it changed is still in the project</source>
             <translation>geri konulamadı, bu nedenle yaptığı değişiklikler projede kalmaya devam ediyor</translation>
+        </message>
+        <message>
+            <source>QGIS restarted during this request, so this step was not run again. The project may already hold what it changed.</source>
+            <translation>QGIS bu istek sırasında yeniden başladı, bu yüzden bu adım tekrar çalıştırılmadı. Proje, adımın yaptığı değişiklikleri zaten içeriyor olabilir.</translation>
+        </message>
+        <message>
+            <source>Stopped after this step had finished: its changes are in the project.</source>
+            <translation>Bu adım tamamlandıktan sonra durduruldu: değişiklikleri projede.</translation>
+        </message>
+        <message>
+            <source>{area} km²</source>
+            <translation>{area} km²</translation>
+        </message>
+        <message>
+            <source>{area} ha</source>
+            <translation>{area} ha</translation>
+        </message>
+        <message>
+            <source>{area} m²</source>
+            <translation>{area} m²</translation>
         </message>
     </context>
     <context>
@@ -7564,6 +7992,211 @@ Katmanlar panelinde göstermek için tıklayın.</translation>
         <message>
             <source>Edit this note</source>
             <translation>Bu notu düzenle</translation>
+        </message>
+    </context>
+    <context>
+        <name>QgisLinks</name>
+        <message>
+            <source>Project Properties</source>
+            <translation>Proje Özellikleri</translation>
+        </message>
+        <message>
+            <source>Open the project's properties</source>
+            <translation>Projenin özelliklerini aç</translation>
+        </message>
+        <message>
+            <source>3D Map View</source>
+            <translation>3B Harita Görünümü</translation>
+        </message>
+        <message>
+            <source>Bring this 3D map view to the front</source>
+            <translation>Bu 3B harita görünümünü öne getir</translation>
+        </message>
+        <message>
+            <source>Layout Designer</source>
+            <translation>Baskı Düzeni Tasarımcısı</translation>
+        </message>
+        <message>
+            <source>Open this layout in the layout designer</source>
+            <translation>Bu baskı düzenini baskı düzeni tasarımcısında aç</translation>
+        </message>
+        <message>
+            <source>Attribute Table</source>
+            <translation>Öznitelik Tablosu</translation>
+        </message>
+        <message>
+            <source>Open the attribute table of {layer}</source>
+            <translation>{layer} katmanının öznitelik tablosunu aç</translation>
+        </message>
+        <message>
+            <source>Layer Properties › {tab}</source>
+            <translation>Katman Özellikleri › {tab}</translation>
+        </message>
+        <message>
+            <source>Open the properties of {layer} on the {tab} tab</source>
+            <translation>{layer} katmanının özelliklerini {tab} sekmesinde aç</translation>
+        </message>
+    </context>
+    <context>
+        <name>OvertureExtract</name>
+        <message>
+            <source>{names}: loaded in full, {count} features.</source>
+            <translation>{names}: tamamı yüklendi, {count} nesne.</translation>
+        </message>
+        <message>
+            <source>{names}: {count} features loaded; part of the area could not be read.</source>
+            <translation>{names}: {count} nesne yüklendi; alanın bir kısmı okunamadı.</translation>
+        </message>
+        <message>
+            <source>Reading {names}</source>
+            <translation>{names} okunuyor</translation>
+        </message>
+    </context>
+    <context>
+        <name>GtfsTools</name>
+        <message>
+            <source>{lo} - {hi} trips/day</source>
+            <translation>{lo} - {hi} sefer/gün</translation>
+        </message>
+        <message>
+            <source>{name} stops</source>
+            <translation>{name} durakları</translation>
+        </message>
+        <message>
+            <source>{name} routes</source>
+            <translation>{name} hatları</translation>
+        </message>
+    </context>
+    <context>
+        <name>Dictation</name>
+        <message>
+            <source>The AI Agent plugin in QGIS listens only while you dictate a message, to turn your voice into text.</source>
+            <translation>QGIS içindeki AI Agent eklentisi, sesini metne çevirmek için yalnızca bir mesajı sesle yazdığın sırada dinler.</translation>
+        </message>
+        <message>
+            <source>Animate the mascot</source>
+            <translation>Maskotu canlandır</translation>
+        </message>
+        <message>
+            <source>The AI agent's mark moves and follows the work. Off keeps it still.</source>
+            <translation>Yapay zeka ajanının logosu hareket eder ve işi takip eder. Kapalıyken sabit kalır.</translation>
+        </message>
+    </context>
+    <context>
+        <name>CodeLayoutExport</name>
+        <message>
+            <source>the layout export</source>
+            <translation>yerleşim dışa aktarımı</translation>
+        </message>
+    </context>
+    <context>
+        <name>ComposerDictation</name>
+        <message>
+            <source>Cancel (Esc)</source>
+            <translation>İptal (Esc)</translation>
+        </message>
+        <message>
+            <source>Cancel dictation</source>
+            <translation>Dikteyi iptal et</translation>
+        </message>
+        <message>
+            <source>Dictate</source>
+            <translation>Dikte et</translation>
+        </message>
+        <message>
+            <source>Dictate ({shortcut})</source>
+            <translation>Dikte et ({shortcut})</translation>
+        </message>
+        <message>
+            <source>Dictation is busy right now.</source>
+            <translation>Dikte şu anda meşgul.</translation>
+        </message>
+        <message>
+            <source>Dictation is not available right now.</source>
+            <translation>Dikte şu anda kullanılamıyor.</translation>
+        </message>
+        <message>
+            <source>Listening</source>
+            <translation>Dinleniyor</translation>
+        </message>
+        <message>
+            <source>No connection to TerraLab, so nothing was transcribed.</source>
+            <translation>TerraLab ile bağlantı yok, bu yüzden hiçbir şey yazıya dökülmedi.</translation>
+        </message>
+        <message>
+            <source>No microphone found. Plug one in or check your sound settings.</source>
+            <translation>Mikrofon bulunamadı. Bir mikrofon takın veya ses ayarlarınızı kontrol edin.</translation>
+        </message>
+        <message>
+            <source>No sound came from the microphone. Check that it is not muted.</source>
+            <translation>Mikrofondan ses gelmedi. Sessize alınmadığını kontrol edin.</translation>
+        </message>
+        <message>
+            <source>No sound came from the microphone. In Windows settings, Privacy, Microphone, let desktop apps use it.</source>
+            <translation>Mikrofondan ses gelmedi. Windows ayarlarında Gizlilik, Mikrofon bölümünden masaüstü uygulamalarının mikrofonu kullanmasına izin verin.</translation>
+        </message>
+        <message>
+            <source>Nothing was heard. Speak closer to the microphone and try again.</source>
+            <translation>Hiçbir şey duyulmadı. Mikrofona daha yakın konuşun ve tekrar deneyin.</translation>
+        </message>
+        <message>
+            <source>Open settings</source>
+            <translation>Ayarları aç</translation>
+        </message>
+        <message>
+            <source>Stopped at {n} minutes, the longest one recording can be.</source>
+            <translation>{n} dakikada durduruldu, bir kaydın en uzun süresi bu.</translation>
+        </message>
+        <message>
+            <source>That recording is too long to transcribe. Record a shorter one.</source>
+            <translation>Bu kayıt yazıya dökülemeyecek kadar uzun. Daha kısa bir kayıt yapın.</translation>
+        </message>
+        <message>
+            <source>The microphone could not be opened. Check that no other app holds it, then try again.</source>
+            <translation>Mikrofon açılamadı. Başka bir uygulamanın kullanmadığını kontrol edin, sonra tekrar deneyin.</translation>
+        </message>
+        <message>
+            <source>The microphone is blocked for QGIS in your system's privacy settings.</source>
+            <translation>Mikrofon, sisteminizin gizlilik ayarlarında QGIS için engellenmiş.</translation>
+        </message>
+        <message>
+            <source>The microphone is off for "AI Agent for QGIS". Turn it on in System Settings, Privacy &amp; Security, Microphone.</source>
+            <translation>Mikrofon "AI Agent for QGIS" için kapalı. Sistem Ayarları, Gizlilik ve Güvenlik, Mikrofon bölümünden açın.</translation>
+        </message>
+        <message>
+            <source>The recording could not be transcribed.</source>
+            <translation>Kayıt yazıya dökülemedi.</translation>
+        </message>
+        <message>
+            <source>This QGIS installation cannot record sound, so dictation is not available here.</source>
+            <translation>Bu QGIS kurulumu ses kaydedemiyor, bu yüzden dikte burada kullanılamıyor.</translation>
+        </message>
+        <message>
+            <source>Too many recordings in a minute. Wait a little.</source>
+            <translation>Bir dakikada çok fazla kayıt yapıldı. Biraz bekleyin.</translation>
+        </message>
+        <message>
+            <source>Transcribing...</source>
+            <translation>Yazıya dökülüyor...</translation>
+        </message>
+        <message>
+            <source>Try again</source>
+            <translation>Tekrar dene</translation>
+        </message>
+        <message>
+            <source>You reached today's dictation limit. It opens again tomorrow.</source>
+            <translation>Bugünkü dikte sınırına ulaştınız. Yarın yeniden açılır.</translation>
+        </message>
+        <message>
+            <source>macOS asked to use the microphone and got no answer. Press the microphone to see the question again.</source>
+            <translation>macOS mikrofon kullanımı için izin istedi ve yanıt alamadı. Soruyu tekrar görmek için mikrofona basın.</translation>
+        </message>
+    </context>
+    <context>
+        <name>DictationBar</name>
+        <message>
+            <source>Recording</source>
+            <translation>Kaydediliyor</translation>
         </message>
     </context>
 </TS>

@@ -29,6 +29,7 @@ from ..core import policy, telemetry
 from ..core import telemetry_events as ev
 from ..core.logger import log, log_warning
 from ..core.qt_compat import disconnect_quietly
+from ..core.zone_of_interest import ZONE_PROPERTY
 from .scratch_scan import scratch_layers
 
 
@@ -43,7 +44,6 @@ _ERRORS = (
     ("Unable to save project to storage", "storage"),
 )
 _SAVE_ACTIONS = ("mActionSaveProject", "mActionSaveProjectAs", "mActionExit")
-_ZONE_PROPERTY = "terralab/zone_of_interest"
 
 
 def tr(text: str) -> str:
@@ -410,6 +410,7 @@ class SaveGuard(QObject):
             "ok": not error, "error_code": error_code(error), "during_run": pending["during_run"],
             "while_quitting": pending["while_quitting"], "format": pending["format"],
             "temp_folder_restored": self._restored, "agent_temp_layers": len(temporary),
+            "qgis_temp_layers": _in_qgis_temp(project),
             "duration_ms": int((time.monotonic() - pending["at"]) * 1000),
         }
         self._restored = False
@@ -439,7 +440,7 @@ class SaveGuard(QObject):
         memory, scratch = scratch_layers(QgsProject.instance())
         kept = []
         for layer in memory:
-            if layer.customProperty(_ZONE_PROPERTY) or layer.customProperty("skipMemoryLayersCheck"):
+            if layer.customProperty(ZONE_PROPERTY) or layer.customProperty("skipMemoryLayersCheck"):
                 continue
             if layer.featureCount() != 0:
                 kept.append(layer)
@@ -471,6 +472,8 @@ class SaveGuard(QObject):
             return
 
         result = self._keep_layers() or {}
+        telemetry.track(ev.NOTICE_SHOWN, {"surface": "save_temp_bar", "kind": "info",
+                                          "action": "keep_failed" if result.get("_error") else "kept"})
         if result.get("_error"):
             self._iface.messageBar().pushWarning(tr("Temporary layers not kept"), str(result["_error"]))
 
@@ -530,8 +533,27 @@ class SaveGuard(QObject):
             return
         roots = _temp_roots()
         in_temp = sum(1 for layer in dead if _under(str(layer.source() or ""), roots))
+        in_scratch = sum(1 for layer in dead if _under(str(layer.source() or ""), roots[:1]))
         telemetry.track(ev.PROJECT_OPENED_DEAD_PATHS, {
-            "layers": len(layers), "dead": len(dead), "dead_in_temp": in_temp})
+            "layers": len(layers), "dead": len(dead), "dead_in_temp": in_temp,
+            "dead_in_agent_tmp": in_scratch})
+
+
+def _in_qgis_temp(project) -> int:
+
+
+
+    root = _temp_path()
+    if not root:
+        return 0
+    roots = [_key(root).rstrip("/") + "/"]
+    scratch = [_key(policy.AGENT_TMP_DIR).rstrip("/") + "/"]
+    count = 0
+    for layer in project.mapLayers().values():
+        source = str(layer.source() or "")
+        if _under(source, roots) and not _under(source, scratch):
+            count += 1
+    return count
 
 
 def _qaction():

@@ -106,6 +106,7 @@ class MessageList(QScrollArea):
         self._stick = True
         self._clamped = False
         self._ride = None
+        self._held = 0
         bar = self.verticalScrollBar()
         bar.rangeChanged.connect(self._on_range_changed)
         bar.valueChanged.connect(self._on_value_changed)
@@ -417,6 +418,20 @@ class MessageList(QScrollArea):
         self._ride = None
         self._update_pill()
 
+    def hold_view(self) -> None:
+
+
+
+
+        self._held += 1
+
+    def release_view(self) -> None:
+
+        self._held = max(0, self._held - 1)
+        if not self._held:
+            self._stick = self.at_bottom()
+            self._update_pill()
+
     def at_bottom(self) -> bool:
         bar = self.verticalScrollBar()
         return bar.value() >= bar.maximum() - _STICKY_SLACK
@@ -453,7 +468,7 @@ class MessageList(QScrollArea):
 
         self._clamped = bar.value() > high
         bar.setEnabled(high > 0)
-        if self._stick:
+        if self._stick and not self._held:
             self.verticalScrollBar().setValue(high)
         self._update_pill()
 

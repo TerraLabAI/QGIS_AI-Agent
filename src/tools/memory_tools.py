@@ -17,20 +17,12 @@ from ..core.profile import (
     notes_for_project,
     remove_memory_note,
 )
+from ..core.project_identity import open_project_file
 from ..core.settings import Settings
 from ..core.tool_registry import Tool, ToolRegistry
 
 _DISABLED = {"stored": False, "reason": "memory_disabled",
              "message": "The user turned the memory off in Settings > Memory."}
-
-
-def _project_path() -> str:
-
-    try:
-        from qgis.core import QgsProject
-        return QgsProject.instance().fileName() or ""
-    except Exception:  # noqa: BLE001
-        return ""
 
 
 def _shown(note: dict) -> dict:
@@ -42,7 +34,7 @@ def _forget(args: dict) -> dict:
     if not getattr(settings, "memory_enabled", True):
         return dict(_DISABLED)
     wanted = str(args.get("id") or args.get("text") or "").strip()
-    notes = notes_for_project(settings, _project_path())
+    notes = notes_for_project(settings, open_project_file())
     if not wanted:
         return {"removed": False, "notes": [_shown(n) for n in notes],
                 "message": "forget needs the id of the note to remove."}

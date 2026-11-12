@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import time
 
+from qgis.PyQt import sip
 from qgis.PyQt.QtCore import QTimer, QUrl
 
 from ..core import openui, telemetry
@@ -32,7 +33,9 @@ from .file_links import (
 )
 from .layer_links import RunChangesRow, layer_id_from_url, layer_of_file, linkify_files, linkify_layers
 from .loader import user_waiting, waited_between
+from .mascot import step_event
 from .plan_card import PlanCard
+from .shared import TURN_DIVIDER_OBJECT
 from .trace import RunTrace
 
 
@@ -85,19 +88,18 @@ class _ChatPanelRuns:
         run = self._run(run_id)
         last = self.message_list.last_widget(ignore=self._status)
         if run.bubble is None or last is not run.bubble:
-            if run.trace is not None and last is run.trace:
-                run.trace.close()
             run.bubble = AgentBubble()
             run.bubble.run_id = run_id
             run.bubble.link_activated.connect(self._on_bubble_link)
             self._add(run.bubble)
-            if self._status is None and run_id == self._current_run:
+            if run.trace is not None:
+                run.trace.close()
+            if run_id == self._current_run:
 
 
 
-                self._status = StatusLine(self.tr("Thinking"),
-                                          reduced_motion=self._reduced_motion)
-                self.message_list.add_widget(self._status)
+                self._show_status(run, self._status.text() if self._status_alive()
+                                  else self.tr("Thinking"))
         return run.bubble
 
     def answer_row(self, run_id: str, animate: bool = True) -> AgentBubble:
@@ -125,10 +127,8 @@ class _ChatPanelRuns:
 
 
 
-        waiting = {id(card) for card in run.permissions}
         last = next((w for w in reversed(self.message_list.widgets())
-                     if w is not self._status and id(w) not in waiting
-                     and (w is run.trace or not w.isHidden())), None)
+                     if w is run.trace or not self._leaves_block_last(run, w)), None)
         if run.trace is None or last is not run.trace:
             self._drop_status()
             if run.trace is not None:
@@ -158,6 +158,38 @@ class _ChatPanelRuns:
                 self._add(run.plan)
         return run.plan
 
+    def _leaves_block_last(self, run: _Run, widget) -> bool:
+
+
+
+
+
+
+
+
+        if widget is self._status or widget.isHidden() or getattr(widget, "decision", None) is not None:
+            return True
+        return any(card is widget for card in run.permissions) and \
+            callable(getattr(widget, "is_open", None)) and bool(widget.is_open())
+
+    def _show_status(self, run: _Run, text: str) -> None:
+
+
+
+        if run.trace is not None:
+            run.trace.close()
+        if self._status is None:
+            self._status = StatusLine(text, reduced_motion=self._reduced_motion)
+            self.message_list.add_widget(self._status)
+        else:
+            self._status.set_text(text)
+
+    def _status_alive(self) -> bool:
+
+        if self._status is not None and sip.isdeleted(self._status):
+            self._status = None
+        return self._status is not None
+
     def _drop_status(self) -> None:
         if self._status is not None:
             self.message_list.remove_widget(self._status)
@@ -173,10 +205,9 @@ class _ChatPanelRuns:
         self._changed_layers = []
         self._run_changes = None
         self._drop_status()
-        self._status = StatusLine(self.tr("Thinking"),
-                                  reduced_motion=self._reduced_motion)
-        self.message_list.add_widget(self._status)
+        self._show_status(self._run(run_id), self.tr("Thinking"))
         self.composer.set_running(True)
+        self.mascot_stage.run_began()
         self._watch_canvas()
 
 
@@ -262,9 +293,9 @@ class _ChatPanelRuns:
         doomed = widgets[start:end]
 
 
-        if start > 0 and widgets[start - 1].objectName() == "turnDivider":
+        if start > 0 and widgets[start - 1].objectName() == TURN_DIVIDER_OBJECT:
             doomed.insert(0, widgets[start - 1])
-            if end < len(widgets) and widgets[end - 1].objectName() == "turnDivider":
+            if end < len(widgets) and widgets[end - 1].objectName() == TURN_DIVIDER_OBJECT:
                 doomed.remove(widgets[end - 1])
         for widget in doomed:
             self.message_list.remove_widget(widget)
@@ -313,6 +344,7 @@ class _ChatPanelRuns:
             if current and not current.endswith("\n"):
                 text = "\n\n" + text.lstrip()
         bubble.append_token(text)
+        self.mascot_stage.fire("run.write")
 
     def set_status_line(self, run_id: str, text: str, progress=None) -> None:
         text = str(text or "").strip()[:300] or self.tr("Thinking...")
@@ -324,14 +356,12 @@ class _ChatPanelRuns:
         block = run.trace if run is not None else None
         if block is not None and block.is_live() and self._block_is_tail(block):
             block.set_activity(text, progress)
+            if self.__dict__.get("_held_motion"):
+
+                self._hold_motion(block)
             self._drop_status()
             return
-        if self._status is None:
-            self._status = StatusLine(text,
-                                      reduced_motion=self._reduced_motion)
-            self.message_list.add_widget(self._status)
-        else:
-            self._status.set_text(text)
+        self._show_status(run, text)
 
     def set_link_notice(self, run_id: str, text: str) -> None:
 
@@ -345,7 +375,7 @@ class _ChatPanelRuns:
         if text:
             if not held or held[0] != run_id:
                 block = run.trace
-                self._link_prev = (run_id, self._status.text() if self._status is not None
+                self._link_prev = (run_id, self._status.text() if self._status_alive()
                                    else block.running_title() if block is not None else "")
             self.set_status_line(run_id, text)
         else:
@@ -356,13 +386,14 @@ class _ChatPanelRuns:
     def _block_is_tail(self, block) -> bool:
 
 
-
+        run = self._runs.get(block.run_id)
+        if run is None:
+            return False
         for w in reversed(self.message_list.widgets()):
             if w is block:
                 return True
-            if w is self._status or w.isHidden() or getattr(w, "decision", None) is not None:
-                continue
-            return False
+            if not self._leaves_block_last(run, w):
+                return False
         return False
 
     def set_plan(self, run_id: str, steps) -> None:
@@ -382,6 +413,7 @@ class _ChatPanelRuns:
             return
         run.segment_break = True
         args = dict(args) if isinstance(args, dict) else {}
+        self.mascot_stage.fire(step_event(str(name or ""), args))
         tool_call_id = str(tool_call_id or "")[:256]
         name = str(name or "")[:200]
         sentence = str(sentence or "")[:1000]
@@ -423,6 +455,8 @@ class _ChatPanelRuns:
         except (TypeError, ValueError, OverflowError):
             duration_s = 0.0
         card = self.message_list.tool_card(str(tool_call_id or ""))
+        if self._current_run:
+            self.mascot_stage.fire("run.think")
         running = isinstance(result, dict) and result.get("status") == "running"
         if card is not None and running and result.get("task_id"):
 
@@ -442,6 +476,7 @@ class _ChatPanelRuns:
         run = self._live_run(run_id)
         if run is None:
             return
+        self.mascot_stage.run_ended(status)
 
 
         try:
@@ -542,6 +577,8 @@ class _ChatPanelRuns:
             if self._current_run == run_id or self._current_run is None:
                 self._current_run = None
                 self.composer.set_running(False)
+
+                self._apply_quota()
 
         self._sync_answer_restores()
 

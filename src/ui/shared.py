@@ -17,9 +17,11 @@ import importlib
 import os
 import sys
 
-from qgis.PyQt.QtCore import QT_TRANSLATE_NOOP, QCoreApplication
-from qgis.PyQt.QtWidgets import QDialog, QMenu
+from qgis.PyQt.QtCore import QT_TRANSLATE_NOOP, QCoreApplication, QEasingCurve, QPoint, Qt, QVariantAnimation
+from qgis.PyQt.QtGui import QCursor
+from qgis.PyQt.QtWidgets import QDialog, QDockWidget, QMenu
 
+from ..core.host_platform import prefers_reduced_motion
 from ..core.i18n import day_pattern, words_locale
 from ..core.policy import PLUGIN_CACHE_DIR
 from ..core.served_state import SITE_URL, TUTORIAL_URL, build_utm_url, get_served_learn_items
@@ -27,12 +29,16 @@ from ..core.served_state import SITE_URL, TUTORIAL_URL, build_utm_url, get_serve
 PRODUCT_NAME = "AI Agent"
 
 
+CHAT_PANEL_OBJECT = "chatPanel"
+TOGGLE_DOCK_OBJECT = "aiAgentToggleDock"
+TURN_DIVIDER_OBJECT = "turnDivider"
 
 
 
-
-
-PLUGIN_FOLDERS = ("AI_Agent", "QGIS_AI-Agent-Team", "QGIS_AI-Agent", "QGIS_AI_Agent")
+AGENT_ACTION = "agentAction"
+AGENT_REQUEST_ID = "agentRequestId"
+AGENT_REQUEST_IDS = "agentRequestIds"
+AGENT_CARD_KIND = "agentCardKind"
 
 
 
@@ -62,7 +68,7 @@ def toggle_panel_key_text() -> str:
         from qgis.PyQt.QtWidgets import QAction
         from qgis.utils import iface
 
-        action = iface.mainWindow().findChild(QAction, "aiAgentToggleDock")
+        action = iface.mainWindow().findChild(QAction, TOGGLE_DOCK_OBJECT)
         if action is not None:
             sequence = action.shortcut()
     except (ImportError, AttributeError, RuntimeError, TypeError):
@@ -311,23 +317,6 @@ def event_pos(event):
     return to_point() if to_point is not None else point
 
 
-def safe_disconnect(owner, signal_name: str, slot=None) -> bool:
-
-
-
-
-
-    try:
-        signal = getattr(owner, signal_name)
-        if slot is None:
-            signal.disconnect()
-        else:
-            signal.disconnect(slot)
-        return True
-    except (TypeError, RuntimeError, AttributeError):
-        return False
-
-
 def format_reset_date(period_end_iso: str) -> str:
 
 
@@ -420,6 +409,100 @@ def keep_on_screen(x: int, y: int, width: int, height: int, area) -> tuple:
     x = max(area.left(), min(int(x), area.left() + area.width() - int(width)))
     y = max(area.top(), min(int(y), area.top() + area.height() - int(height)))
     return int(x), int(y)
+
+
+
+_POP_MS = 160
+
+
+class _PopIn(QVariantAnimation):
+
+
+
+    def __init__(self, popover):
+        super().__init__(popover)
+        self.setDuration(_POP_MS)
+        self.setEasingCurve(QEasingCurve.Type.OutQuint)
+        self.setStartValue(0.0)
+        self.setEndValue(1.0)
+        self._at = popover.pos()
+        self._from = 0
+        self.valueChanged.connect(self._step)
+
+    def play(self, offset: int) -> None:
+        self.stop()
+        self._at, self._from = self.parent().pos(), offset
+        self.start()
+
+    def _step(self, value) -> None:
+        popover, share = self.parent(), float(value)
+        popover.setWindowOpacity(share)
+        if self._from:
+            popover.move(self._at.x(), round(self._at.y() + (1.0 - share) * self._from))
+
+
+def settle_hover(widget) -> None:
+
+
+
+
+
+    inside = widget.rect().contains(widget.mapFromGlobal(QCursor.pos()))
+    if widget.underMouse() != inside:
+        widget.setAttribute(Qt.WidgetAttribute.WA_UnderMouse, inside)
+    style = widget.style()
+    style.unpolish(widget)
+    style.polish(widget)
+    widget.update()
+
+
+def show_popped(popover, below: bool) -> None:
+
+
+
+
+
+
+
+
+    at = popover.pos()
+    owner = popover.parentWidget()
+    by_hand = owner is None or owner.rect().contains(owner.mapFromGlobal(QCursor.pos()))
+    entrance = popover.findChild(_PopIn) or _PopIn(popover)
+    entrance.stop()
+    popover.setWindowOpacity(0.0 if by_hand else 1.0)
+    popover.show()
+    if popover.pos() != at:
+        popover.move(at)
+    if by_hand:
+        entrance.play(0 if prefers_reduced_motion() else (-6 if below else 6))
+
+
+def place_by_box(popover, box, right: bool = False) -> bool:
+
+
+
+
+
+
+    width, height = popover.width(), popover.height()
+    host = box
+    while host.parentWidget() is not None and not isinstance(host, QDockWidget):
+        host = host.parentWidget()
+    host_at = host.mapToGlobal(QPoint(0, 0))
+    at = box.mapToGlobal(QPoint(0, 0))
+    x = at.x() + box.width() - width if right else at.x()
+    x = max(host_at.x() + 4, min(x, host_at.x() + host.width() - 4 - width))
+    y = at.y() + box.height() + 6
+    area = screen_area_at(at, box)
+    floor = host_at.y() + host.height() - 4
+    if area is not None:
+        floor = min(floor, area.top() + area.height())
+    below = y + height <= floor
+    if not below:
+        y = at.y() - height - 6
+    popover.move(QPoint(*keep_on_screen(x, y, width, height, area)))
+    return below
 
 
 def size_within_screen(dialog, width: int, height: int,

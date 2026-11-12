@@ -1714,6 +1714,98 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <source>expired</source>
             <translation>прострочено</translation>
         </message>
+        <message>
+            <source>Flow lines: {}</source>
+            <translation>Лінії потоків: {}</translation>
+        </message>
+        <message>
+            <source>Voice dictation</source>
+            <translation>Голосове введення</translation>
+        </message>
+        <message>
+            <source>Talk to your AI agent</source>
+            <translation>Говоріть зі своїм ШІ-агентом</translation>
+        </message>
+        <message>
+            <source>Speak, and your words become text you can edit before sending.</source>
+            <translation>Говоріть, і ваші слова стануть текстом, який можна виправити перед надсиланням.</translation>
+        </message>
+        <message>
+            <source>Your voice stays private</source>
+            <translation>Ваш голос залишається приватним</translation>
+        </message>
+        <message>
+            <source>Recorded only when you press the microphone, transcribed in the EU, never stored by TerraLab and never used to train AI.</source>
+            <translation>Запис іде лише тоді, коли ви натискаєте мікрофон. Розпізнавання відбувається в ЄС, TerraLab нічого не зберігає, а ваш голос ніколи не використовується для навчання ШІ.</translation>
+        </message>
+        <message>
+            <source>Start dictating</source>
+            <translation>Почати диктувати</translation>
+        </message>
+        <message>
+            <source>Not now</source>
+            <translation>Не зараз</translation>
+        </message>
+        <message>
+            <source>AI can make mistakes</source>
+            <translation>ШІ може помилятися</translation>
+        </message>
+        <message>
+            <source>Adding the layer</source>
+            <translation>Додаю шар</translation>
+        </message>
+        <message>
+            <source>Cutting to the area</source>
+            <translation>Обрізаю за областю</translation>
+        </message>
+        <message>
+            <source>Failed</source>
+            <translation>Не вдалося</translation>
+        </message>
+        <message>
+            <source>Finding the place</source>
+            <translation>Шукаю місце</translation>
+        </message>
+        <message>
+            <source>Paused</source>
+            <translation>Призупинено</translation>
+        </message>
+        <message>
+            <source>Querying the source</source>
+            <translation>Опитую джерело</translation>
+        </message>
+        <message>
+            <source>Queued</source>
+            <translation>У черзі</translation>
+        </message>
+        <message>
+            <source>Stopped</source>
+            <translation>Зупинено</translation>
+        </message>
+        <message>
+            <source>Working</source>
+            <translation>Працюю</translation>
+        </message>
+        <message>
+            <source>about {n} min left</source>
+            <translation>залишилося близько {n} хв</translation>
+        </message>
+        <message>
+            <source>about {n} s left</source>
+            <translation>залишилося близько {n} с</translation>
+        </message>
+        <message>
+            <source>{done} MB</source>
+            <translation>{done} МБ</translation>
+        </message>
+        <message>
+            <source>{done} of {total} MB</source>
+            <translation>{done} з {total} МБ</translation>
+        </message>
+        <message>
+            <source>{words} · {done} of {total}</source>
+            <translation>{words} · {done} з {total}</translation>
+        </message>
     </context>
     <context>
         <name>AIAgentContext</name>
@@ -2189,6 +2281,18 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <source>Sign in or create an account</source>
             <translation>Увійти або створити обліковий запис</translation>
+        </message>
+        <message>
+            <source>Opens your browser, takes about 15 seconds</source>
+            <translation>Відкриє браузер, займе близько 15 секунд</translation>
+        </message>
+        <message>
+            <source>Sign in or create a free account</source>
+            <translation>Увійти або створити безкоштовний акаунт</translation>
+        </message>
+        <message>
+            <source>The AI agent loads data, styles layers, runs analyses and edits features for you.</source>
+            <translation>AI-агент завантажує дані, стилізує шари, виконує аналіз і редагує об'єкти за тебе.</translation>
         </message>
     </context>
     <context>
@@ -2991,7 +3095,7 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         </message>
         <message>
             <source>Undo</source>
-            <translation>Скасувати</translation>
+            <translation>Відкотити</translation>
         </message>
         <message>
             <source>Undo changes?</source>
@@ -3100,6 +3204,22 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <source>Removed from the queue</source>
             <translation>Видалено з черги</translation>
+        </message>
+        <message>
+            <source>No free tasks left on this computer</source>
+            <translation>На цьому комп’ютері безкоштовних завдань не залишилось</translation>
+        </message>
+        <message>
+            <source>No free tasks left this month</source>
+            <translation>Цього місяця безкоштовних завдань не залишилось</translation>
+        </message>
+        <message>
+            <source>Ask or describe a task in QGIS</source>
+            <translation>Запитайте або опишіть завдання в QGIS</translation>
+        </message>
+        <message>
+            <source>Reply</source>
+            <translation>Відповісти</translation>
         </message>
     </context>
     <context>
@@ -3380,6 +3500,26 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <source>{n} left out, {total} at most</source>
             <translation>{n} пропущено, максимум {total}</translation>
         </message>
+        <message>
+            <source>Send this as it is?</source>
+            <translation>Надіслати як є?</translation>
+        </message>
+        <message>
+            <source>It looks like a typing slip. Edit it, or press Send again.</source>
+            <translation>Схоже на помилку під час набору. Виправте текст або натисніть «Надіслати» ще раз.</translation>
+        </message>
+        <message>
+            <source>Ask or describe a task in QGIS</source>
+            <translation>Запитайте або опишіть завдання в QGIS</translation>
+        </message>
+        <message>
+            <source>Done: write what I said (Enter)</source>
+            <translation>Готово: записати сказане (Enter)</translation>
+        </message>
+        <message>
+            <source>Finish dictation</source>
+            <translation>Завершити диктування</translation>
+        </message>
     </context>
     <context>
         <name>ComposerInput</name>
@@ -3561,6 +3701,30 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <source>{sources} sources the AI agent finds and loads by itself: {datasets} datasets in {countries} countries.</source>
             <translation>{sources} джерел, які ШІ-агент знаходить і завантажує сам: {datasets} наборів даних у {countries} країнах.</translation>
         </message>
+        <message>
+            <source>%n datasets from other providers</source>
+            <translation>%n наборів даних від інших постачальників</translation>
+        </message>
+        <message>
+            <source>Popular</source>
+            <translation>Популярні</translation>
+        </message>
+        <message>
+            <source>Europe</source>
+            <translation>Європа</translation>
+        </message>
+        <message>
+            <source>Americas</source>
+            <translation>Америка</translation>
+        </message>
+        <message>
+            <source>Asia and Pacific</source>
+            <translation>Азія і Тихоокеанський регіон</translation>
+        </message>
+        <message>
+            <source>Africa and Middle East</source>
+            <translation>Африка і Близький Схід</translation>
+        </message>
     </context>
     <context>
         <name>DiffTableCard</name>
@@ -3678,6 +3842,10 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <source>{level} needs Pro. Pick Low to send.</source>
             <translation>{level} потребує Pro. Виберіть Low, щоб надіслати.</translation>
         </message>
+        <message>
+            <source>Effort {level}: how hard the AI agent works on the next message</source>
+            <translation>Зусилля {level}: наскільки старанно ШІ-агент працює над наступним повідомленням</translation>
+        </message>
     </context>
     <context>
         <name>EmptyState</name>
@@ -3700,6 +3868,10 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <source>AI can make mistakes. Check its changes.</source>
             <translation>ШІ може помилятися. Перевіряйте його зміни.</translation>
+        </message>
+        <message>
+            <source>How can I help?</source>
+            <translation>Чим можу допомогти?</translation>
         </message>
     </context>
     <context>
@@ -3858,6 +4030,26 @@ This file is no longer where the run wrote it.</source>
         <message>
             <source>Send feedback</source>
             <translation>Надіслати відгук</translation>
+        </message>
+        <message>
+            <source>Free trial</source>
+            <translation>Безкоштовний період</translation>
+        </message>
+        <message>
+            <source>Your Pro is set to end. Keep it in one click.</source>
+            <translation>Ваш Pro скоро закінчиться. Збережіть його одним кліком.</translation>
+        </message>
+        <message>
+            <source>Keep Pro</source>
+            <translation>Залишити Pro</translation>
+        </message>
+        <message>
+            <source>Open the AI Agent page on terra-lab.ai</source>
+            <translation>Відкрити сторінку AI Agent на terra-lab.ai</translation>
+        </message>
+        <message>
+            <source>Your Pro ends on {date}. Keep it in one click.</source>
+            <translation>Ваш Pro закінчується {date}. Залиште його одним кліком.</translation>
         </message>
     </context>
     <context>
@@ -4440,6 +4632,46 @@ Click to show it in the Layers panel.</source>
             <source>{mode}: what AI Agent may do without asking</source>
             <translation>{mode}: що AI Agent може робити без запиту</translation>
         </message>
+        <message>
+            <source>Free trial</source>
+            <translation>Безкоштовний період</translation>
+        </message>
+        <message>
+            <source>Asks before every change.</source>
+            <translation>Питає перед кожною зміною.</translation>
+        </message>
+        <message>
+            <source>Asks only before risky changes.</source>
+            <translation>Питає лише перед ризикованими змінами.</translation>
+        </message>
+        <message>
+            <source>It brings your project back. Files on disk are not covered.</source>
+            <translation>Він повертає ваш проєкт. Файли на диску не охоплено.</translation>
+        </message>
+        <message>
+            <source>Spending credits or reaching an unknown site.</source>
+            <translation>Витрата кредитів або звернення до невідомого сайту.</translation>
+        </message>
+        <message>
+            <source>Still asks for what matters</source>
+            <translation>Усе одно питає про важливе</translation>
+        </message>
+        <message>
+            <source>The AI agent runs every step without asking, even to delete a layer or run code.</source>
+            <translation>ШІ-агент виконує кожен крок без запитань, навіть щоб видалити шар або запустити код.</translation>
+        </message>
+        <message>
+            <source>Undo is there</source>
+            <translation>Скасування доступне</translation>
+        </message>
+        <message>
+            <source>Works on its own</source>
+            <translation>Працює самостійно</translation>
+        </message>
+        <message>
+            <source>Works on its own and rarely asks.</source>
+            <translation>Працює самостійно й рідко питає.</translation>
+        </message>
     </context>
     <context>
         <name>PlanCard</name>
@@ -4496,6 +4728,22 @@ Click to show it in the Layers panel.</source>
         <message>
             <source>Question {n} of {count}</source>
             <translation>Питання {n} з {count}</translation>
+        </message>
+        <message>
+            <source>Checkbox</source>
+            <translation>Прапорець</translation>
+        </message>
+        <message>
+            <source>Radio button</source>
+            <translation>Перемикач</translation>
+        </message>
+        <message>
+            <source>selected</source>
+            <translation>вибрано</translation>
+        </message>
+        <message>
+            <source>not selected</source>
+            <translation>не вибрано</translation>
         </message>
     </context>
     <context>
@@ -4597,7 +4845,7 @@ Click to show it in the Layers panel.</source>
             <translation>Pro: {n} завдань на місяць і складніші завдання</translation>
         </message>
         <message>
-            <source>Start 7-day free trial</source>
+            <source>Start 7 day free trial</source>
             <translation>Почати 7-денний безкоштовний період</translation>
         </message>
         <message>
@@ -4704,6 +4952,134 @@ Click to show it in the Layers panel.</source>
         <message>
             <source>Medium effort now, High after the trial</source>
             <translation>Зараз рівень Medium, після пробного періоду High</translation>
+        </message>
+        <message>
+            <source>For a company or team</source>
+            <translation>Для компанії або команди</translation>
+        </message>
+        <message>
+            <source>Your custom instructions</source>
+            <translation>Ваші власні інструкції</translation>
+        </message>
+        <message>
+            <source>1 free task left this month</source>
+            <translation>Залишилося 1 безкоштовне завдання цього місяця</translation>
+        </message>
+        <message>
+            <source>AI Agent Pro for work, by invoice</source>
+            <translation>AI Agent Pro для роботи, за рахунком-фактурою</translation>
+        </message>
+        <message>
+            <source>AI Agent Pro for work, without a card</source>
+            <translation>AI Agent Pro для роботи, без картки</translation>
+        </message>
+        <message>
+            <source>Copy</source>
+            <translation>Копіювати</translation>
+        </message>
+        <message>
+            <source>Free trial</source>
+            <translation>Безкоштовний пробний період</translation>
+        </message>
+        <message>
+            <source>Hello,
+
+I used all my AI Agent tasks this month. Could you raise my quota?
+
+Thank you</source>
+            <translation>Вітаю,
+
+Усі мої завдання AI Agent цього місяця закінчилися. Чи не могли б ви збільшити мою квоту?
+
+Дякую</translation>
+        </message>
+        <message>
+            <source>Hello,
+
+I'd like to use AI Agent Pro at work but I can't pay by card. Could you send my company an invoice or a quote?
+
+Company:
+Name:
+
+Thank you</source>
+            <translation>Вітаю,
+
+Мені потрібен AI Agent Pro для роботи, але оплатити карткою я не можу. Чи не могли б ви надіслати моїй компанії рахунок-фактуру або комерційну пропозицію?
+
+Компанія:
+Ім'я:
+
+Дякую</translation>
+        </message>
+        <message>
+            <source>Hello,
+
+I'd like to use AI Agent Pro at work but I can't pay by card. Could you set up the 7 free days for us?
+
+Company:
+Name:
+
+Thank you</source>
+            <translation>Вітаю,
+
+Мені потрібен AI Agent Pro для роботи, але оплатити карткою я не можу. Чи не могли б ви налаштувати для нас 7 безкоштовних днів?
+
+Компанія:
+Ім'я:
+
+Дякую</translation>
+        </message>
+        <message>
+            <source>More AI Agent tasks this month</source>
+            <translation>Більше завдань AI Agent цього місяця</translation>
+        </message>
+        <message>
+            <source>Need it for work?</source>
+            <translation>Потрібно для роботи?</translation>
+        </message>
+        <message>
+            <source>Need more this month? Write to us</source>
+            <translation>Потрібно більше цього місяця? Напишіть нам</translation>
+        </message>
+        <message>
+            <source>No card to pay with? Write to us and we'll send your company an invoice.</source>
+            <translation>Немає картки для оплати? Напишіть нам, і ми надішлемо вашій компанії рахунок-фактуру.</translation>
+        </message>
+        <message>
+            <source>No card to pay with? Write to us and we'll set up your 7 free days.</source>
+            <translation>Немає картки для оплати? Напишіть нам, і ми налаштуємо ваші 7 безкоштовних днів.</translation>
+        </message>
+        <message>
+            <source>Nothing to pay today</source>
+            <translation>Сьогодні платити не потрібно</translation>
+        </message>
+        <message>
+            <source>Pro is off until it's paid.</source>
+            <translation>Pro вимкнено до оплати.</translation>
+        </message>
+        <message>
+            <source>That was your last free task</source>
+            <translation>Це було ваше останнє безкоштовне завдання</translation>
+        </message>
+        <message>
+            <source>Want more? Come back to Pro: {n} tasks a month.</source>
+            <translation>Хочете більше? Поверніться до Pro: {n} завдань на місяць.</translation>
+        </message>
+        <message>
+            <source>Want more? Pro has {n} tasks a month.</source>
+            <translation>Хочете більше? У Pro є {n} завдань на місяць.</translation>
+        </message>
+        <message>
+            <source>Want more? Pro is free for a week.</source>
+            <translation>Хочете більше? Pro безкоштовний тиждень.</translation>
+        </message>
+        <message>
+            <source>{n} free tasks left this month</source>
+            <translation>Залишилося {n} безкоштовних завдань цього місяця</translation>
+        </message>
+        <message>
+            <source>{n} tasks a month, cancel anytime</source>
+            <translation>{n} завдань на місяць, скасувати можна будь-коли</translation>
         </message>
     </context>
     <context>
@@ -5111,12 +5487,12 @@ Click to show it in the Layers panel.</source>
             <translation>Мова, стиль, дозволи, ваш профіль і нотатки пам'яті повертаються до типових значень. Ви залишаєтеся у системі.</translation>
         </message>
         <message>
-            <source>We may read a chat only to fix a bug, never to train AI. Chats are kept 30 days.</source>
-            <translation>Ми можемо прочитати чат лише щоб виправити помилку, і ніколи для навчання ШІ. Чати зберігаються 30 днів.</translation>
+            <source>We may read a chat, or have a model score it, to fix bugs and improve the agent, never to train AI. Chats are kept 30 days.</source>
+            <translation>Ми можемо прочитати чат або дати моделі оцінити його, щоб виправляти помилки та покращувати агента, і ніколи для навчання ШІ. Чати зберігаються 30 днів.</translation>
         </message>
         <message>
-            <source>We may read a chat only to fix a wrong answer or a bug, never to train AI.</source>
-            <translation>Ми можемо прочитати чат лише щоб виправити неправильну відповідь або помилку, і ніколи для навчання ШІ.</translation>
+            <source>We may read a chat, or have a model score it, to fix a wrong answer or a bug and improve the agent, never to train AI.</source>
+            <translation>Ми можемо прочитати чат або дати моделі оцінити його, щоб виправити неправильну відповідь або помилку та покращити агента, і ніколи для навчання ШІ.</translation>
         </message>
         <message>
             <source>Loading account info...</source>
@@ -5335,8 +5711,8 @@ Click to show it in the Layers panel.</source>
             <translation>Знову увійти можна будь-коли з QGIS.</translation>
         </message>
         <message>
-            <source>Your chats are kept 30 days so a conversation survives an update. Off, the team never reads them. 0 days of history stores nothing.</source>
-            <translation>Ваші чати зберігаються 30 днів, щоб розмова пережила оновлення. Якщо вимкнено, команда їх ніколи не читає. 0 днів історії означає, що нічого не зберігається.</translation>
+            <source>Your chats are kept 30 days so a conversation survives an update. Off, we never read or score them. 0 days of history stores nothing.</source>
+            <translation>Ваші чати зберігаються 30 днів, щоб розмова пережила оновлення. Якщо вимкнено, ми ніколи не читаємо й не оцінюємо їх. 0 днів історії означає, що нічого не зберігається.</translation>
         </message>
         <message>
             <source>Your first name</source>
@@ -5458,6 +5834,38 @@ Click to show it in the Layers panel.</source>
         <message>
             <source>Delete this note? The AI will not add it back.</source>
             <translation>Видалити цю нотатку? ШІ не додасть її знову.</translation>
+        </message>
+        <message>
+            <source>Everywhere · {n}</source>
+            <translation>Усюди · {n}</translation>
+        </message>
+        <message>
+            <source>Other projects · {n}</source>
+            <translation>Інші проєкти · {n}</translation>
+        </message>
+        <message>
+            <source>The rules you give it and the corrections that hold for later.</source>
+            <translation>Правила, які ви їй даєте, і виправлення, що діють надалі.</translation>
+        </message>
+        <message>
+            <source>This project · {n}</source>
+            <translation>Цей проєкт · {n}</translation>
+        </message>
+        <message>
+            <source>What the AI keeps between conversations, stored on this computer.</source>
+            <translation>Що асистент зберігає між розмовами, на цьому комп'ютері.</translation>
+        </message>
+        <message>
+            <source>commercial use, more tasks, your instructions and higher effort</source>
+            <translation>комерційне використання, більше завдань, твої інструкції та вищий рівень зусиль</translation>
+        </message>
+        <message>
+            <source>Animate the mascot</source>
+            <translation>Анімувати маскота</translation>
+        </message>
+        <message>
+            <source>The AI agent's mark moves and follows the work. Off keeps it still.</source>
+            <translation>Знак ШІ-агента рухається й стежить за роботою. Коли вимкнено, він нерухомий.</translation>
         </message>
     </context>
     <context>
@@ -5837,6 +6245,26 @@ Click to show it in the Layers panel.</source>
         <message>
             <source>could not be put back, so what it changed is still in the project</source>
             <translation>не вдалося повернути назад, тож зміни, які він вніс, усе ще залишаються в проєкті</translation>
+        </message>
+        <message>
+            <source>QGIS restarted during this request, so this step was not run again. The project may already hold what it changed.</source>
+            <translation>QGIS перезапустився під час цього запиту, тому цей крок не виконувався повторно. Можливо, проєкт уже містить те, що він змінив.</translation>
+        </message>
+        <message>
+            <source>Stopped after this step had finished: its changes are in the project.</source>
+            <translation>Зупинено після завершення цього кроку: його зміни вже в проєкті.</translation>
+        </message>
+        <message>
+            <source>{area} km²</source>
+            <translation>{area} km²</translation>
+        </message>
+        <message>
+            <source>{area} ha</source>
+            <translation>{area} ha</translation>
+        </message>
+        <message>
+            <source>{area} m²</source>
+            <translation>{area} m²</translation>
         </message>
     </context>
     <context>
@@ -7564,6 +7992,211 @@ Click to show it in the Layers panel.</source>
         <message>
             <source>Edit this note</source>
             <translation>Редагувати цю нотатку</translation>
+        </message>
+    </context>
+    <context>
+        <name>QgisLinks</name>
+        <message>
+            <source>Project Properties</source>
+            <translation>Властивості проєкту</translation>
+        </message>
+        <message>
+            <source>Open the project's properties</source>
+            <translation>Відкрити властивості проєкту</translation>
+        </message>
+        <message>
+            <source>3D Map View</source>
+            <translation>Перегляд 3D-карти</translation>
+        </message>
+        <message>
+            <source>Bring this 3D map view to the front</source>
+            <translation>Показати цей перегляд 3D-карти поверх інших вікон</translation>
+        </message>
+        <message>
+            <source>Layout Designer</source>
+            <translation>Конструктор макетів</translation>
+        </message>
+        <message>
+            <source>Open this layout in the layout designer</source>
+            <translation>Відкрити цей макет у конструкторі макетів</translation>
+        </message>
+        <message>
+            <source>Attribute Table</source>
+            <translation>Таблиця атрибутів</translation>
+        </message>
+        <message>
+            <source>Open the attribute table of {layer}</source>
+            <translation>Відкрити таблицю атрибутів шару {layer}</translation>
+        </message>
+        <message>
+            <source>Layer Properties › {tab}</source>
+            <translation>Властивості шару › {tab}</translation>
+        </message>
+        <message>
+            <source>Open the properties of {layer} on the {tab} tab</source>
+            <translation>Відкрити властивості шару {layer} на вкладці {tab}</translation>
+        </message>
+    </context>
+    <context>
+        <name>OvertureExtract</name>
+        <message>
+            <source>{names}: loaded in full, {count} features.</source>
+            <translation>{names}: завантажено повністю, об'єктів: {count}.</translation>
+        </message>
+        <message>
+            <source>{names}: {count} features loaded; part of the area could not be read.</source>
+            <translation>{names}: завантажено об'єктів: {count}; частину області не вдалося прочитати.</translation>
+        </message>
+        <message>
+            <source>Reading {names}</source>
+            <translation>Читання {names}</translation>
+        </message>
+    </context>
+    <context>
+        <name>GtfsTools</name>
+        <message>
+            <source>{lo} - {hi} trips/day</source>
+            <translation>{lo} - {hi} рейсів на день</translation>
+        </message>
+        <message>
+            <source>{name} stops</source>
+            <translation>Зупинки {name}</translation>
+        </message>
+        <message>
+            <source>{name} routes</source>
+            <translation>Маршрути {name}</translation>
+        </message>
+    </context>
+    <context>
+        <name>Dictation</name>
+        <message>
+            <source>The AI Agent plugin in QGIS listens only while you dictate a message, to turn your voice into text.</source>
+            <translation>Плагін AI Agent у QGIS слухає лише тоді, коли ви диктуєте повідомлення, щоб перетворити ваш голос на текст.</translation>
+        </message>
+        <message>
+            <source>Animate the mascot</source>
+            <translation>Анімувати маскота</translation>
+        </message>
+        <message>
+            <source>The AI agent's mark moves and follows the work. Off keeps it still.</source>
+            <translation>Знак ШІ-агента рухається й стежить за роботою. Коли вимкнено, він нерухомий.</translation>
+        </message>
+    </context>
+    <context>
+        <name>CodeLayoutExport</name>
+        <message>
+            <source>the layout export</source>
+            <translation>експорт макета</translation>
+        </message>
+    </context>
+    <context>
+        <name>ComposerDictation</name>
+        <message>
+            <source>Cancel (Esc)</source>
+            <translation>Скасувати (Esc)</translation>
+        </message>
+        <message>
+            <source>Cancel dictation</source>
+            <translation>Скасувати диктування</translation>
+        </message>
+        <message>
+            <source>Dictate</source>
+            <translation>Диктувати</translation>
+        </message>
+        <message>
+            <source>Dictate ({shortcut})</source>
+            <translation>Диктувати ({shortcut})</translation>
+        </message>
+        <message>
+            <source>Dictation is busy right now.</source>
+            <translation>Диктування зараз зайняте.</translation>
+        </message>
+        <message>
+            <source>Dictation is not available right now.</source>
+            <translation>Диктування зараз недоступне.</translation>
+        </message>
+        <message>
+            <source>Listening</source>
+            <translation>Слухаю</translation>
+        </message>
+        <message>
+            <source>No connection to TerraLab, so nothing was transcribed.</source>
+            <translation>Немає зв'язку з TerraLab, тому нічого не розпізнано.</translation>
+        </message>
+        <message>
+            <source>No microphone found. Plug one in or check your sound settings.</source>
+            <translation>Мікрофон не знайдено. Підключіть його або перевірте налаштування звуку.</translation>
+        </message>
+        <message>
+            <source>No sound came from the microphone. Check that it is not muted.</source>
+            <translation>Мікрофон не передає звук. Перевірте, чи його не вимкнено.</translation>
+        </message>
+        <message>
+            <source>No sound came from the microphone. In Windows settings, Privacy, Microphone, let desktop apps use it.</source>
+            <translation>Мікрофон не передає звук. У налаштуваннях Windows, Конфіденційність, Мікрофон, дозвольте його класичним застосункам.</translation>
+        </message>
+        <message>
+            <source>Nothing was heard. Speak closer to the microphone and try again.</source>
+            <translation>Нічого не чутно. Говоріть ближче до мікрофона й спробуйте ще раз.</translation>
+        </message>
+        <message>
+            <source>Open settings</source>
+            <translation>Відкрити налаштування</translation>
+        </message>
+        <message>
+            <source>Stopped at {n} minutes, the longest one recording can be.</source>
+            <translation>Зупинено на {n} хв, це найдовший можливий запис.</translation>
+        </message>
+        <message>
+            <source>That recording is too long to transcribe. Record a shorter one.</source>
+            <translation>Цей запис задовгий для розпізнавання. Запишіть коротший.</translation>
+        </message>
+        <message>
+            <source>The microphone could not be opened. Check that no other app holds it, then try again.</source>
+            <translation>Не вдалося відкрити мікрофон. Перевірте, чи його не використовує інший застосунок, і спробуйте ще раз.</translation>
+        </message>
+        <message>
+            <source>The microphone is blocked for QGIS in your system's privacy settings.</source>
+            <translation>Мікрофон заблоковано для QGIS у налаштуваннях конфіденційності вашої системи.</translation>
+        </message>
+        <message>
+            <source>The microphone is off for "AI Agent for QGIS". Turn it on in System Settings, Privacy &amp; Security, Microphone.</source>
+            <translation>Мікрофон вимкнено для "AI Agent for QGIS". Увімкніть його в Системних налаштуваннях, Конфіденційність і безпека, Мікрофон.</translation>
+        </message>
+        <message>
+            <source>The recording could not be transcribed.</source>
+            <translation>Не вдалося розпізнати запис.</translation>
+        </message>
+        <message>
+            <source>This QGIS installation cannot record sound, so dictation is not available here.</source>
+            <translation>Ця установка QGIS не може записувати звук, тому диктування тут недоступне.</translation>
+        </message>
+        <message>
+            <source>Too many recordings in a minute. Wait a little.</source>
+            <translation>Забагато записів за хвилину. Зачекайте трохи.</translation>
+        </message>
+        <message>
+            <source>Transcribing...</source>
+            <translation>Розпізнаю...</translation>
+        </message>
+        <message>
+            <source>Try again</source>
+            <translation>Спробувати ще раз</translation>
+        </message>
+        <message>
+            <source>You reached today's dictation limit. It opens again tomorrow.</source>
+            <translation>Ви досягли ліміту диктування на сьогодні. Завтра він відкриється знову.</translation>
+        </message>
+        <message>
+            <source>macOS asked to use the microphone and got no answer. Press the microphone to see the question again.</source>
+            <translation>macOS запитала дозвіл на мікрофон, але відповіді не отримала. Натисніть мікрофон, щоб побачити запитання ще раз.</translation>
+        </message>
+    </context>
+    <context>
+        <name>DictationBar</name>
+        <message>
+            <source>Recording</source>
+            <translation>Запис</translation>
         </message>
     </context>
 </TS>

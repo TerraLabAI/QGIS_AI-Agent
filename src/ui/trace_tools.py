@@ -60,6 +60,7 @@ from qgis.PyQt.QtWidgets import (
 from ..core.layer_release import task_state
 from ..core.qt_compat import disconnect_quietly
 from ..core.tool_registry import spec
+from .card_base import local_decimal
 from .cards_tool import ToolCard
 from .font_scale import widget_pixel_ratio
 from .icons import pixmap_for
@@ -144,7 +145,7 @@ def progress_words(percent=None, eta_s=None, done_bytes=None, total_bytes=None) 
 
     def mb(size) -> str:
         size /= 1024 * 1024
-        return f"{size:.1f}" if size < 10 else f"{size:.0f}"
+        return local_decimal(size, 1 if size < 10 else 0)
 
     parts = []
     if isinstance(done_bytes, (int, float)) and done_bytes > 0:

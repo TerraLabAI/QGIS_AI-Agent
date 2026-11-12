@@ -1472,6 +1472,9 @@ def _add_point_cloud_layer(args: dict) -> dict:
     if not layer.isValid():
         return tool_error(f"Failed to load point cloud from: {source}", hint="point_cloud_load_failed")
 
+    from .pointcloud_style import give_3d_renderer
+
+    give_3d_renderer(layer)
     QgsProject.instance().addMapLayer(layer)
     out = {
         "name": layer.name(),

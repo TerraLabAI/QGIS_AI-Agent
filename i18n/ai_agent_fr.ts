@@ -1815,6 +1815,98 @@ L’effacement devient définitif à la fin de la période de grâce. D’ici l�
             <source>expired</source>
             <translation>expiré</translation>
         </message>
+        <message>
+            <source>Flow lines: {}</source>
+            <translation>Lignes de flux : {}</translation>
+        </message>
+        <message>
+            <source>Voice dictation</source>
+            <translation>Dictée vocale</translation>
+        </message>
+        <message>
+            <source>Talk to your AI agent</source>
+            <translation>Parlez à votre agent IA</translation>
+        </message>
+        <message>
+            <source>Speak, and your words become text you can edit before sending.</source>
+            <translation>Parlez, et vos mots deviennent un texte que vous pouvez modifier avant l'envoi.</translation>
+        </message>
+        <message>
+            <source>Your voice stays private</source>
+            <translation>Votre voix reste privée</translation>
+        </message>
+        <message>
+            <source>Recorded only when you press the microphone, transcribed in the EU, never stored by TerraLab and never used to train AI.</source>
+            <translation>Enregistrée uniquement lorsque vous appuyez sur le micro, transcrite dans l'UE, jamais conservée par TerraLab et jamais utilisée pour entraîner une IA.</translation>
+        </message>
+        <message>
+            <source>Start dictating</source>
+            <translation>Commencer à dicter</translation>
+        </message>
+        <message>
+            <source>Not now</source>
+            <translation>Pas maintenant</translation>
+        </message>
+        <message>
+            <source>AI can make mistakes</source>
+            <translation>L'IA peut faire des erreurs</translation>
+        </message>
+        <message>
+            <source>Adding the layer</source>
+            <translation>Ajout de la couche</translation>
+        </message>
+        <message>
+            <source>Cutting to the area</source>
+            <translation>Découpe selon la zone</translation>
+        </message>
+        <message>
+            <source>Failed</source>
+            <translation>Échec</translation>
+        </message>
+        <message>
+            <source>Finding the place</source>
+            <translation>Recherche du lieu</translation>
+        </message>
+        <message>
+            <source>Paused</source>
+            <translation>En pause</translation>
+        </message>
+        <message>
+            <source>Querying the source</source>
+            <translation>Interrogation de la source</translation>
+        </message>
+        <message>
+            <source>Queued</source>
+            <translation>En file d'attente</translation>
+        </message>
+        <message>
+            <source>Stopped</source>
+            <translation>Arrêté</translation>
+        </message>
+        <message>
+            <source>Working</source>
+            <translation>En cours</translation>
+        </message>
+        <message>
+            <source>about {n} min left</source>
+            <translation>environ {n} min restantes</translation>
+        </message>
+        <message>
+            <source>about {n} s left</source>
+            <translation>environ {n} s restantes</translation>
+        </message>
+        <message>
+            <source>{done} MB</source>
+            <translation>{done} Mo</translation>
+        </message>
+        <message>
+            <source>{done} of {total} MB</source>
+            <translation>{done} sur {total} Mo</translation>
+        </message>
+        <message>
+            <source>{words} · {done} of {total}</source>
+            <translation>{words} · {done} sur {total}</translation>
+        </message>
     </context>
     <context>
         <name>AIAgentContext</name>
@@ -2315,6 +2407,18 @@ L’effacement devient définitif à la fin de la période de grâce. D’ici l�
         <message>
             <source>Sign in or create an account</source>
             <translation>Connecte-toi ou crée un compte</translation>
+        </message>
+        <message>
+            <source>Opens your browser, takes about 15 seconds</source>
+            <translation>Ouvre ton navigateur, environ 15 secondes</translation>
+        </message>
+        <message>
+            <source>Sign in or create a free account</source>
+            <translation>Se connecter ou créer un compte gratuit</translation>
+        </message>
+        <message>
+            <source>The AI agent loads data, styles layers, runs analyses and edits features for you.</source>
+            <translation>L'agent IA charge des données, stylise des couches, lance des analyses et modifie des entités pour toi.</translation>
         </message>
     </context>
     <context>
@@ -3210,7 +3314,7 @@ L’effacement devient définitif à la fin de la période de grâce. D’ici l�
         </message>
         <message>
             <source>Undo</source>
-            <translation>Annuler</translation>
+            <translation>Revenir en arrière</translation>
         </message>
         <message>
             <source>Undo changes?</source>
@@ -3303,6 +3407,22 @@ L’effacement devient définitif à la fin de la période de grâce. D’ici l�
         <message>
             <source>Removed from the queue</source>
             <translation>Retiré de la file d’attente</translation>
+        </message>
+        <message>
+            <source>No free tasks left on this computer</source>
+            <translation>Plus de tâche gratuite sur cet ordinateur</translation>
+        </message>
+        <message>
+            <source>No free tasks left this month</source>
+            <translation>Plus de tâche gratuite ce mois-ci</translation>
+        </message>
+        <message>
+            <source>Ask or describe a task in QGIS</source>
+            <translation>Posez une question ou décrivez une tâche dans QGIS</translation>
+        </message>
+        <message>
+            <source>Reply</source>
+            <translation>Répondre</translation>
         </message>
     </context>
     <context>
@@ -3606,6 +3726,26 @@ L’effacement devient définitif à la fin de la période de grâce. D’ici l�
             <source>Add files or one of this project's layers. A layer can also be dragged from the Layers panel; Ctrl+V pastes a picture.</source>
             <translation>Ajoutez des fichiers ou une couche de ce projet. Une couche peut aussi être glissée depuis le panneau Couches ; Ctrl+V colle une image.</translation>
         </message>
+        <message>
+            <source>Send this as it is?</source>
+            <translation>Envoyer tel quel ?</translation>
+        </message>
+        <message>
+            <source>It looks like a typing slip. Edit it, or press Send again.</source>
+            <translation>On dirait une faute de frappe. Modifiez le message, ou appuyez de nouveau sur Envoyer.</translation>
+        </message>
+        <message>
+            <source>Ask or describe a task in QGIS</source>
+            <translation>Posez une question ou décrivez une tâche dans QGIS</translation>
+        </message>
+        <message>
+            <source>Done: write what I said (Enter)</source>
+            <translation>Terminé : écrire ce que j'ai dit (Entrée)</translation>
+        </message>
+        <message>
+            <source>Finish dictation</source>
+            <translation>Terminer la dictée</translation>
+        </message>
     </context>
     <context>
         <name>ComposerInput</name>
@@ -3837,6 +3977,30 @@ L’effacement devient définitif à la fin de la période de grâce. D’ici l�
             <source>{sources} sources the AI agent finds and loads by itself: {datasets} datasets in {countries} countries.</source>
             <translation>{sources} sources que l'agent IA trouve et charge tout seul : {datasets} jeux de données dans {countries} pays.</translation>
         </message>
+        <message>
+            <source>%n datasets from other providers</source>
+            <translation>%n jeux de données d'autres fournisseurs</translation>
+        </message>
+        <message>
+            <source>Popular</source>
+            <translation>Populaires</translation>
+        </message>
+        <message>
+            <source>Europe</source>
+            <translation>Europe</translation>
+        </message>
+        <message>
+            <source>Americas</source>
+            <translation>Amériques</translation>
+        </message>
+        <message>
+            <source>Asia and Pacific</source>
+            <translation>Asie et Pacifique</translation>
+        </message>
+        <message>
+            <source>Africa and Middle East</source>
+            <translation>Afrique et Moyen-Orient</translation>
+        </message>
     </context>
     <context>
         <name>DiffTableCard</name>
@@ -3979,6 +4143,10 @@ L’effacement devient définitif à la fin de la période de grâce. D’ici l�
             <source>Applies from your next message.</source>
             <translation>S’applique à partir de votre prochain message.</translation>
         </message>
+        <message>
+            <source>Effort {level}: how hard the AI agent works on the next message</source>
+            <translation>Effort {level} : l'intensité de travail de l'agent IA sur le prochain message</translation>
+        </message>
     </context>
     <context>
         <name>EmptyState</name>
@@ -4002,6 +4170,10 @@ L’effacement devient définitif à la fin de la période de grâce. D’ici l�
         <message>
             <source>Data</source>
             <translation>Données</translation>
+        </message>
+        <message>
+            <source>How can I help?</source>
+            <translation>Comment puis-je vous aider ?</translation>
         </message>
     </context>
     <context>
@@ -4112,6 +4284,26 @@ L’effacement devient définitif à la fin de la période de grâce. D’ici l�
         <message>
             <source>Send feedback</source>
             <translation>Envoyer un avis</translation>
+        </message>
+        <message>
+            <source>Free trial</source>
+            <translation>Essai gratuit</translation>
+        </message>
+        <message>
+            <source>Your Pro is set to end. Keep it in one click.</source>
+            <translation>Votre Pro va se terminer. Gardez-le en un clic.</translation>
+        </message>
+        <message>
+            <source>Keep Pro</source>
+            <translation>Garder Pro</translation>
+        </message>
+        <message>
+            <source>Open the AI Agent page on terra-lab.ai</source>
+            <translation>Ouvrir la page AI Agent sur terra-lab.ai</translation>
+        </message>
+        <message>
+            <source>Your Pro ends on {date}. Keep it in one click.</source>
+            <translation>Votre Pro se termine le {date}. Gardez-le en un clic.</translation>
         </message>
     </context>
     <context>
@@ -4661,6 +4853,46 @@ Cliquez pour ouvrir sa page.</translation>
             <source>{mode}: what AI Agent may do without asking</source>
             <translation>{mode} : ce qu'AI Agent peut faire sans demander</translation>
         </message>
+        <message>
+            <source>Free trial</source>
+            <translation>Essai gratuit</translation>
+        </message>
+        <message>
+            <source>Asks before every change.</source>
+            <translation>Demande avant chaque modification.</translation>
+        </message>
+        <message>
+            <source>Asks only before risky changes.</source>
+            <translation>Demande seulement avant les modifications à risque.</translation>
+        </message>
+        <message>
+            <source>It brings your project back. Files on disk are not covered.</source>
+            <translation>Il restaure votre projet. Les fichiers sur le disque ne sont pas couverts.</translation>
+        </message>
+        <message>
+            <source>Spending credits or reaching an unknown site.</source>
+            <translation>Dépenser des crédits ou accéder à un site inconnu.</translation>
+        </message>
+        <message>
+            <source>Still asks for what matters</source>
+            <translation>Demande toujours l'essentiel</translation>
+        </message>
+        <message>
+            <source>The AI agent runs every step without asking, even to delete a layer or run code.</source>
+            <translation>L'agent IA exécute chaque étape sans demander, même pour supprimer une couche ou lancer du code.</translation>
+        </message>
+        <message>
+            <source>Undo is there</source>
+            <translation>Annuler reste possible</translation>
+        </message>
+        <message>
+            <source>Works on its own</source>
+            <translation>Travaille en autonomie</translation>
+        </message>
+        <message>
+            <source>Works on its own and rarely asks.</source>
+            <translation>Travaille en autonomie et demande rarement.</translation>
+        </message>
     </context>
     <context>
         <name>PlanCard</name>
@@ -4727,6 +4959,22 @@ Cliquez pour ouvrir sa page.</translation>
             <source>Question {n} of {count}</source>
             <translation>Question {n} sur {count}</translation>
         </message>
+        <message>
+            <source>Checkbox</source>
+            <translation>Case à cocher</translation>
+        </message>
+        <message>
+            <source>Radio button</source>
+            <translation>Bouton radio</translation>
+        </message>
+        <message>
+            <source>selected</source>
+            <translation>sélectionné</translation>
+        </message>
+        <message>
+            <source>not selected</source>
+            <translation>non sélectionné</translation>
+        </message>
     </context>
     <context>
         <name>QuotaCard</name>
@@ -4775,7 +5023,7 @@ Cliquez pour ouvrir sa page.</translation>
         </message>
         <message>
             <location filename="src/ui/quota_card.py" />
-            <source>Start 7-day free trial</source>
+            <source>Start 7 day free trial</source>
             <translation>Essai gratuit 7 jours</translation>
         </message>
         <message>
@@ -4952,6 +5200,134 @@ Cliquez pour ouvrir sa page.</translation>
             <source>Medium effort now, High after the trial</source>
             <translation>Effort Medium maintenant, High après l'essai</translation>
         </message>
+        <message>
+            <source>For a company or team</source>
+            <translation>Pour une entreprise ou une équipe</translation>
+        </message>
+        <message>
+            <source>Your custom instructions</source>
+            <translation>Vos instructions personnalisées</translation>
+        </message>
+        <message>
+            <source>1 free task left this month</source>
+            <translation>1 tâche gratuite restante ce mois-ci</translation>
+        </message>
+        <message>
+            <source>AI Agent Pro for work, by invoice</source>
+            <translation>AI Agent Pro pour le travail, sur facture</translation>
+        </message>
+        <message>
+            <source>AI Agent Pro for work, without a card</source>
+            <translation>AI Agent Pro pour le travail, sans carte</translation>
+        </message>
+        <message>
+            <source>Copy</source>
+            <translation>Copier</translation>
+        </message>
+        <message>
+            <source>Free trial</source>
+            <translation>Essai gratuit</translation>
+        </message>
+        <message>
+            <source>Hello,
+
+I used all my AI Agent tasks this month. Could you raise my quota?
+
+Thank you</source>
+            <translation>Bonjour,
+
+J'ai utilisé toutes mes tâches AI Agent ce mois-ci. Pourriez-vous augmenter mon quota ?
+
+Merci</translation>
+        </message>
+        <message>
+            <source>Hello,
+
+I'd like to use AI Agent Pro at work but I can't pay by card. Could you send my company an invoice or a quote?
+
+Company:
+Name:
+
+Thank you</source>
+            <translation>Bonjour,
+
+Je voudrais utiliser AI Agent Pro au travail, mais je ne peux pas payer par carte. Pourriez-vous envoyer une facture ou un devis à mon entreprise ?
+
+Entreprise :
+Nom :
+
+Merci</translation>
+        </message>
+        <message>
+            <source>Hello,
+
+I'd like to use AI Agent Pro at work but I can't pay by card. Could you set up the 7 free days for us?
+
+Company:
+Name:
+
+Thank you</source>
+            <translation>Bonjour,
+
+Je voudrais utiliser AI Agent Pro au travail, mais je ne peux pas payer par carte. Pourriez-vous mettre en place les 7 jours gratuits pour nous ?
+
+Entreprise :
+Nom :
+
+Merci</translation>
+        </message>
+        <message>
+            <source>More AI Agent tasks this month</source>
+            <translation>Plus de tâches AI Agent ce mois-ci</translation>
+        </message>
+        <message>
+            <source>Need it for work?</source>
+            <translation>Besoin de l'utiliser au travail ?</translation>
+        </message>
+        <message>
+            <source>Need more this month? Write to us</source>
+            <translation>Besoin de plus ce mois-ci ? Écrivez-nous</translation>
+        </message>
+        <message>
+            <source>No card to pay with? Write to us and we'll send your company an invoice.</source>
+            <translation>Pas de carte pour payer ? Écrivez-nous et nous enverrons une facture à votre entreprise.</translation>
+        </message>
+        <message>
+            <source>No card to pay with? Write to us and we'll set up your 7 free days.</source>
+            <translation>Pas de carte pour payer ? Écrivez-nous et nous mettrons en place vos 7 jours gratuits.</translation>
+        </message>
+        <message>
+            <source>Nothing to pay today</source>
+            <translation>Rien à payer aujourd'hui</translation>
+        </message>
+        <message>
+            <source>Pro is off until it's paid.</source>
+            <translation>Pro est désactivé tant qu'il n'est pas payé.</translation>
+        </message>
+        <message>
+            <source>That was your last free task</source>
+            <translation>C'était votre dernière tâche gratuite</translation>
+        </message>
+        <message>
+            <source>Want more? Come back to Pro: {n} tasks a month.</source>
+            <translation>Envie de plus ? Revenez à Pro : {n} tâches par mois.</translation>
+        </message>
+        <message>
+            <source>Want more? Pro has {n} tasks a month.</source>
+            <translation>Envie de plus ? Pro offre {n} tâches par mois.</translation>
+        </message>
+        <message>
+            <source>Want more? Pro is free for a week.</source>
+            <translation>Envie de plus ? Pro est gratuit pendant une semaine.</translation>
+        </message>
+        <message>
+            <source>{n} free tasks left this month</source>
+            <translation>{n} tâches gratuites restantes ce mois-ci</translation>
+        </message>
+        <message>
+            <source>{n} tasks a month, cancel anytime</source>
+            <translation>{n} tâches par mois, résiliable à tout moment</translation>
+        </message>
     </context>
     <context>
         <name>QuotaPauseCard</name>
@@ -5108,16 +5484,16 @@ Cliquez pour ouvrir sa page.</translation>
             <translation>Supprimer toutes les {n} notes ? L’IA ne les rajoutera pas.</translation>
         </message>
         <message>
-            <source>We may read a chat only to fix a bug, never to train AI. Chats are kept 30 days.</source>
-            <translation>Nous pouvons lire un chat uniquement pour corriger un bug, jamais pour entraîner une IA. Les chats sont conservés 30 jours.</translation>
+            <source>We may read a chat, or have a model score it, to fix bugs and improve the agent, never to train AI. Chats are kept 30 days.</source>
+            <translation>Nous pouvons lire un chat, ou le faire noter par un modèle, pour corriger des bugs et améliorer l’agent, jamais pour entraîner une IA. Les chats sont conservés 30 jours.</translation>
         </message>
         <message>
             <source>The AI saves notes on its own</source>
             <translation>L’IA enregistre des notes toute seule</translation>
         </message>
         <message>
-            <source>Your chats are kept 30 days so a conversation survives an update. Off, the team never reads them. 0 days of history stores nothing.</source>
-            <translation>Vos conversations sont conservées 30 jours pour qu’une discussion survive à une mise à jour. Désactivé, l’équipe ne les lit jamais. Avec 0 jour d’historique, rien n’est conservé.</translation>
+            <source>Your chats are kept 30 days so a conversation survives an update. Off, we never read or score them. 0 days of history stores nothing.</source>
+            <translation>Vos conversations sont conservées 30 jours pour qu’une discussion survive à une mise à jour. Désactivé, nous ne les lisons ni ne les notons jamais. Avec 0 jour d’historique, rien n’est conservé.</translation>
         </message>
         <message>
             <location filename="src/ui/settings_dialog.py" />
@@ -5491,8 +5867,8 @@ Cliquez pour ouvrir sa page.</translation>
         </message>
         <message>
             <location filename="src/ui/settings_account.py" />
-            <source>We may read a chat only to fix a wrong answer or a bug, never to train AI.</source>
-            <translation>Nous pouvons lire un chat uniquement pour corriger une mauvaise réponse ou un bug, jamais pour entraîner une IA.</translation>
+            <source>We may read a chat, or have a model score it, to fix a wrong answer or a bug and improve the agent, never to train AI.</source>
+            <translation>Nous pouvons lire un chat, ou le faire noter par un modèle, pour corriger une mauvaise réponse ou un bug et améliorer l’agent, jamais pour entraîner une IA.</translation>
         </message>
         <message>
             <location filename="src/ui/settings_account.py" />
@@ -5707,6 +6083,38 @@ Cliquez pour ouvrir sa page.</translation>
         <message>
             <source>Delete this note? The AI will not add it back.</source>
             <translation>Supprimer cette note ? L’IA ne la rajoutera pas.</translation>
+        </message>
+        <message>
+            <source>Everywhere · {n}</source>
+            <translation>Partout · {n}</translation>
+        </message>
+        <message>
+            <source>Other projects · {n}</source>
+            <translation>Autres projets · {n}</translation>
+        </message>
+        <message>
+            <source>The rules you give it and the corrections that hold for later.</source>
+            <translation>Les règles que vous lui donnez et les corrections qui valent pour la suite.</translation>
+        </message>
+        <message>
+            <source>This project · {n}</source>
+            <translation>Ce projet · {n}</translation>
+        </message>
+        <message>
+            <source>What the AI keeps between conversations, stored on this computer.</source>
+            <translation>Ce que l’IA garde entre les conversations, stocké sur cet ordinateur.</translation>
+        </message>
+        <message>
+            <source>commercial use, more tasks, your instructions and higher effort</source>
+            <translation>usage commercial, plus de tâches, tes instructions et effort plus élevé</translation>
+        </message>
+        <message>
+            <source>Animate the mascot</source>
+            <translation>Animer la mascotte</translation>
+        </message>
+        <message>
+            <source>The AI agent's mark moves and follows the work. Off keeps it still.</source>
+            <translation>Le logo de l'agent IA bouge et suit le travail. Désactivé, il reste immobile.</translation>
         </message>
     </context>
     <context>
@@ -6104,6 +6512,26 @@ Cliquez pour ouvrir sa page.</translation>
         <message>
             <source>could not be put back, so what it changed is still in the project</source>
             <translation>n’a pas pu être remis en place, ses modifications sont donc toujours présentes dans le projet</translation>
+        </message>
+        <message>
+            <source>QGIS restarted during this request, so this step was not run again. The project may already hold what it changed.</source>
+            <translation>QGIS a redémarré pendant cette demande, donc cette étape n’a pas été relancée. Le projet contient peut-être déjà ce qu’elle a modifié.</translation>
+        </message>
+        <message>
+            <source>Stopped after this step had finished: its changes are in the project.</source>
+            <translation>Arrêté une fois cette étape terminée : ses modifications sont dans le projet.</translation>
+        </message>
+        <message>
+            <source>{area} km²</source>
+            <translation>{area} km²</translation>
+        </message>
+        <message>
+            <source>{area} ha</source>
+            <translation>{area} ha</translation>
+        </message>
+        <message>
+            <source>{area} m²</source>
+            <translation>{area} m²</translation>
         </message>
     </context>
     <context>
@@ -8508,6 +8936,211 @@ Ce fichier n’est plus là où l’exécution l’a écrit.</translation>
         <message>
             <source>Edit this note</source>
             <translation>Modifier cette note</translation>
+        </message>
+    </context>
+    <context>
+        <name>QgisLinks</name>
+        <message>
+            <source>Project Properties</source>
+            <translation>Propriétés du projet</translation>
+        </message>
+        <message>
+            <source>Open the project's properties</source>
+            <translation>Ouvrir les propriétés du projet</translation>
+        </message>
+        <message>
+            <source>3D Map View</source>
+            <translation>Vue cartographique 3D</translation>
+        </message>
+        <message>
+            <source>Bring this 3D map view to the front</source>
+            <translation>Mettre cette vue cartographique 3D au premier plan</translation>
+        </message>
+        <message>
+            <source>Layout Designer</source>
+            <translation>Mise en page</translation>
+        </message>
+        <message>
+            <source>Open this layout in the layout designer</source>
+            <translation>Ouvrir cette mise en page dans le concepteur de mises en page</translation>
+        </message>
+        <message>
+            <source>Attribute Table</source>
+            <translation>Table attributaire</translation>
+        </message>
+        <message>
+            <source>Open the attribute table of {layer}</source>
+            <translation>Ouvrir la table attributaire de {layer}</translation>
+        </message>
+        <message>
+            <source>Layer Properties › {tab}</source>
+            <translation>Propriétés de la couche › {tab}</translation>
+        </message>
+        <message>
+            <source>Open the properties of {layer} on the {tab} tab</source>
+            <translation>Ouvrir les propriétés de {layer} sur l'onglet {tab}</translation>
+        </message>
+    </context>
+    <context>
+        <name>OvertureExtract</name>
+        <message>
+            <source>{names}: loaded in full, {count} features.</source>
+            <translation>{names} : chargé en entier, {count} entités.</translation>
+        </message>
+        <message>
+            <source>{names}: {count} features loaded; part of the area could not be read.</source>
+            <translation>{names} : {count} entités chargées ; une partie de la zone n'a pas pu être lue.</translation>
+        </message>
+        <message>
+            <source>Reading {names}</source>
+            <translation>Lecture de {names}</translation>
+        </message>
+    </context>
+    <context>
+        <name>GtfsTools</name>
+        <message>
+            <source>{lo} - {hi} trips/day</source>
+            <translation>{lo} - {hi} trajets/jour</translation>
+        </message>
+        <message>
+            <source>{name} stops</source>
+            <translation>{name} : arrêts</translation>
+        </message>
+        <message>
+            <source>{name} routes</source>
+            <translation>{name} : lignes</translation>
+        </message>
+    </context>
+    <context>
+        <name>Dictation</name>
+        <message>
+            <source>The AI Agent plugin in QGIS listens only while you dictate a message, to turn your voice into text.</source>
+            <translation>Le plugin AI Agent dans QGIS n'écoute que pendant que vous dictez un message, pour transformer votre voix en texte.</translation>
+        </message>
+        <message>
+            <source>Animate the mascot</source>
+            <translation>Animer la mascotte</translation>
+        </message>
+        <message>
+            <source>The AI agent's mark moves and follows the work. Off keeps it still.</source>
+            <translation>Le logo de l'agent IA bouge et suit le travail. Désactivé, il reste immobile.</translation>
+        </message>
+    </context>
+    <context>
+        <name>CodeLayoutExport</name>
+        <message>
+            <source>the layout export</source>
+            <translation>l'export de la mise en page</translation>
+        </message>
+    </context>
+    <context>
+        <name>ComposerDictation</name>
+        <message>
+            <source>Cancel (Esc)</source>
+            <translation>Annuler (Échap)</translation>
+        </message>
+        <message>
+            <source>Cancel dictation</source>
+            <translation>Annuler la dictée</translation>
+        </message>
+        <message>
+            <source>Dictate</source>
+            <translation>Dicter</translation>
+        </message>
+        <message>
+            <source>Dictate ({shortcut})</source>
+            <translation>Dicter ({shortcut})</translation>
+        </message>
+        <message>
+            <source>Dictation is busy right now.</source>
+            <translation>La dictée est occupée pour le moment.</translation>
+        </message>
+        <message>
+            <source>Dictation is not available right now.</source>
+            <translation>La dictée n'est pas disponible pour le moment.</translation>
+        </message>
+        <message>
+            <source>Listening</source>
+            <translation>Écoute en cours</translation>
+        </message>
+        <message>
+            <source>No connection to TerraLab, so nothing was transcribed.</source>
+            <translation>Pas de connexion à TerraLab, rien n'a donc été transcrit.</translation>
+        </message>
+        <message>
+            <source>No microphone found. Plug one in or check your sound settings.</source>
+            <translation>Aucun microphone détecté. Branchez-en un ou vérifiez vos réglages audio.</translation>
+        </message>
+        <message>
+            <source>No sound came from the microphone. Check that it is not muted.</source>
+            <translation>Aucun son ne vient du microphone. Vérifiez qu'il n'est pas coupé.</translation>
+        </message>
+        <message>
+            <source>No sound came from the microphone. In Windows settings, Privacy, Microphone, let desktop apps use it.</source>
+            <translation>Aucun son ne vient du microphone. Dans les paramètres Windows, Confidentialité, Microphone, autorisez les applications de bureau à l'utiliser.</translation>
+        </message>
+        <message>
+            <source>Nothing was heard. Speak closer to the microphone and try again.</source>
+            <translation>Rien n'a été entendu. Parlez plus près du microphone et réessayez.</translation>
+        </message>
+        <message>
+            <source>Open settings</source>
+            <translation>Ouvrir les réglages</translation>
+        </message>
+        <message>
+            <source>Stopped at {n} minutes, the longest one recording can be.</source>
+            <translation>Arrêt à {n} minutes, la durée maximale d'un enregistrement.</translation>
+        </message>
+        <message>
+            <source>That recording is too long to transcribe. Record a shorter one.</source>
+            <translation>Cet enregistrement est trop long à transcrire. Faites-en un plus court.</translation>
+        </message>
+        <message>
+            <source>The microphone could not be opened. Check that no other app holds it, then try again.</source>
+            <translation>Impossible d'ouvrir le microphone. Vérifiez qu'aucune autre application ne l'utilise, puis réessayez.</translation>
+        </message>
+        <message>
+            <source>The microphone is blocked for QGIS in your system's privacy settings.</source>
+            <translation>Le microphone est bloqué pour QGIS dans les réglages de confidentialité de votre système.</translation>
+        </message>
+        <message>
+            <source>The microphone is off for "AI Agent for QGIS". Turn it on in System Settings, Privacy &amp; Security, Microphone.</source>
+            <translation>Le microphone est désactivé pour « AI Agent for QGIS ». Activez-le dans Réglages Système, Confidentialité et sécurité, Microphone.</translation>
+        </message>
+        <message>
+            <source>The recording could not be transcribed.</source>
+            <translation>Impossible de transcrire l'enregistrement.</translation>
+        </message>
+        <message>
+            <source>This QGIS installation cannot record sound, so dictation is not available here.</source>
+            <translation>Cette installation de QGIS ne peut pas enregistrer le son, la dictée n'est donc pas disponible ici.</translation>
+        </message>
+        <message>
+            <source>Too many recordings in a minute. Wait a little.</source>
+            <translation>Trop d'enregistrements en une minute. Patientez un peu.</translation>
+        </message>
+        <message>
+            <source>Transcribing...</source>
+            <translation>Transcription...</translation>
+        </message>
+        <message>
+            <source>Try again</source>
+            <translation>Réessayer</translation>
+        </message>
+        <message>
+            <source>You reached today's dictation limit. It opens again tomorrow.</source>
+            <translation>Vous avez atteint la limite de dictée du jour. Elle se rouvre demain.</translation>
+        </message>
+        <message>
+            <source>macOS asked to use the microphone and got no answer. Press the microphone to see the question again.</source>
+            <translation>macOS a demandé l'accès au microphone sans obtenir de réponse. Appuyez sur le microphone pour revoir la question.</translation>
+        </message>
+    </context>
+    <context>
+        <name>DictationBar</name>
+        <message>
+            <source>Recording</source>
+            <translation>Enregistrement</translation>
         </message>
     </context>
 </TS>

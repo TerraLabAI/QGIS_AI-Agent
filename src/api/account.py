@@ -12,8 +12,10 @@
 
 from __future__ import annotations
 
+import hashlib
 import secrets
 import time
+from datetime import datetime, timezone
 from typing import Any, Callable
 
 from qgis.core import QgsApplication, QgsTask
@@ -54,6 +56,9 @@ _UPGRADE_CHECK_GAP_S = 10.0
 
 
 _RETURN_CONFIRM_MS = 15_000
+
+_PERIOD_END_MARGIN_S = 60.0
+_TIMER_MAX_S = 2_000_000.0
 _PLATFORM_MAX_LEN = 48
 _cached_platform: str | None = None
 
@@ -83,6 +88,15 @@ def _openable_https(url: object) -> bool:
             and not any(ord(char) < 32 or ord(char) == 127 for char in url))
 
 
+def _mark(key: str) -> str:
+
+    return hashlib.sha256(key.encode("utf-8")).hexdigest() if key else ""
+
+
+def _asked_with(auth: dict) -> str:
+    return _mark(str(auth.get("Authorization") or "").removeprefix("Bearer "))
+
+
 def _ui_lang() -> str:
 
     try:
@@ -91,6 +105,17 @@ def _ui_lang() -> str:
         return str(current_locale() or "")
     except Exception:  # noqa: BLE001
         return ""
+
+
+def _seconds_until(iso: str) -> float | None:
+
+    try:
+        when = datetime.fromisoformat(str(iso or "").strip().replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    if when.tzinfo is None:
+        when = when.replace(tzinfo=timezone.utc)
+    return (when - datetime.now(timezone.utc)).total_seconds()
 
 
 def usage_to_runs(payload: dict) -> dict:
@@ -106,6 +131,16 @@ def usage_to_runs(payload: dict) -> dict:
             "plan_trial_ends_on": payload.get("plan_trial_ends_on"),
 
             "plan_trial_interval": payload.get("plan_trial_interval"),
+
+
+            "offer_kind": payload.get("offer_kind"),
+
+            "keep_url": site_url((payload.get("cancel_scheduled") or {}).get("keep_url")
+                                 if isinstance(payload.get("cancel_scheduled"), dict) else ""),
+
+
+            "keep_ends_on": (payload.get("cancel_scheduled") or {}).get("ends_on")
+                            if isinstance(payload.get("cancel_scheduled"), dict) else None,
 
 
             "trial_cap": payload.get("trial_cap") if isinstance(payload.get("trial_cap"), dict) else None}
@@ -294,11 +329,23 @@ class Account(QObject):
 
         self._return_confirming = False
         self._return_timer = one_shot(self, self._confirm_return)
+        self._at_zero = False
+        self._period_timer = one_shot(self, self._on_period_end)
+        self._period_timer_for = ""
 
         self.signed_in_from: tuple[str, str] | None = None
 
         self._refused = False
         self._state = account_state.resting(self._stored())
+
+
+
+        self._revalidate_asked = ""
+        self._account_asked = ""
+
+
+
+        self._told = _mark(self.activation_key) if self._state == self.ACTIVATED else ""
 
         self._key_seen = self._state != self.SIGNED_OUT
 
@@ -336,7 +383,9 @@ class Account(QObject):
             self.state_changed.emit(after, message)
         if stored in (account_state.KEY, account_state.KEY_LOCKED):
             self._key_seen, self._refused = True, False
-        elif self._key_seen and after in (self.SIGNED_OUT, self.EXPIRED):
+            return True
+        self._told = ""
+        if self._key_seen and after in (self.SIGNED_OUT, self.EXPIRED):
             self._key_seen = False
             if event == account_state.SIGN_OUT:
                 self.signed_out.emit()
@@ -527,8 +576,12 @@ class Account(QObject):
             self._on_pairing_failed(tr("QGIS could not save your sign-in on this computer. "
                                        "Click Sign in to try again."), "KEY_NOT_STORED")
             return
-        self.paired.emit(key_prefix(key))
+        self._say_paired(key)
         log("Pairing successful")
+
+    def _say_paired(self, key: str) -> None:
+        self._told = _mark(key)
+        self.paired.emit(key_prefix(key))
 
     def try_sibling_sign_in(self) -> None:
 
@@ -552,7 +605,7 @@ class Account(QObject):
         if not self._move(account_state.SIBLING_KEY, message):
             self.signed_in_from = None
             return
-        self.paired.emit(key_prefix(key))
+        self._say_paired(key)
         log(f"Signed in with the account of {label}")
 
     def _stop_poll(self) -> None:
@@ -569,7 +622,17 @@ class Account(QObject):
         self._pending_code = ""
         self._move(account_state.PAIR_END, message)
         self.pairing_failed.emit(message, code)
+        self._ask_after_sign_in()
         log_warning(f"Pairing failed ({code})")
+
+    def _ask_after_sign_in(self) -> None:
+
+
+
+
+
+        if self._state == self.ACTIVATED:
+            self.refresh_activation_async(force=True)
 
     def _on_pairing_timeout(self) -> None:
         self._end_v2()
@@ -577,6 +640,7 @@ class Account(QObject):
         message = tr("Sign-in timed out. Click Sign in to try again.")
         self._move(account_state.PAIR_END, message)
         self.pairing_timeout.emit()
+        self._ask_after_sign_in()
         log("Pairing timed out")
 
     def _on_pairing_stalled(self, reason: str = "") -> None:
@@ -607,6 +671,7 @@ class Account(QObject):
             QgsApplication.taskManager().addTask(self._pairing_cancel_task)
         if self._state == self.PAIRING:
             self._move(account_state.PAIR_END)
+            self._ask_after_sign_in()
         log("Pairing cancelled")
 
     def refresh_activation_async(self, force: bool = False) -> None:
@@ -636,6 +701,7 @@ class Account(QObject):
         task.succeeded.connect(self._on_key_revalidate_ok)
         task.failed.connect(self._on_key_revalidate_failed)
         self._revalidate_task = task
+        self._revalidate_asked = _asked_with(auth)
         QgsApplication.taskManager().addTask(task)
 
     def note_session_accepted(self) -> None:
@@ -661,6 +727,7 @@ class Account(QObject):
             return False
         if not unlocked or self._settings.activation_key_is_locked() or not self.has_activation_key:
             return False
+        self._told = _mark(self.activation_key)
 
         reset_account_tag_cache()
         return self._move(account_state.UNLOCK)
@@ -703,10 +770,19 @@ class Account(QObject):
         task.succeeded.connect(self._on_account_ok)
         task.failed.connect(self._on_account_failed)
         self._account_task = task
+        self._account_asked = _asked_with(auth)
         QgsApplication.taskManager().addTask(task)
+
+    def _about_another_key(self, asked: str) -> bool:
+
+        return bool(asked) and asked != _mark(self.activation_key)
 
     def _on_account_ok(self, account: object) -> None:
         self._account_task = None
+        asked, self._account_asked = self._account_asked, ""
+        if self._about_another_key(asked):
+            self.fetch_account_async()
+            return
         account = dict(account) if isinstance(account, dict) else {}
         payload = account.pop("_usage_payload", None)
         if isinstance(payload, dict):
@@ -716,6 +792,10 @@ class Account(QObject):
 
     def _on_account_failed(self, message: str, code: str) -> None:
         self._account_task = None
+        asked, self._account_asked = self._account_asked, ""
+        if self._about_another_key(asked):
+            self.fetch_account_async()
+            return
         if (code or "").strip().upper() == "INVALID_KEY":
             self._key_refused_by_website()
         self.account_failed.emit(message, code)
@@ -811,13 +891,28 @@ class Account(QObject):
         self.notice.emit("warning", message or tr("Could not delete your account. Try again, or "
                                                   "delete it from terra-lab.ai."))
 
+    def _dropped_stale_answer(self) -> bool:
+
+
+        asked, self._revalidate_asked = self._revalidate_asked, ""
+        if not self._about_another_key(asked):
+            return False
+        log("Answer about a key that is no longer stored: dropped")
+        if self.has_activation_key:
+            self.refresh_activation_async(force=True)
+        return True
+
     def _on_key_revalidate_ok(self, usage: object) -> None:
         self._revalidate_task = None
+        if self._dropped_stale_answer():
+            return
         if isinstance(usage, dict) and usage.get("is_subscriber") is True:
             self.stop_upgrade_watch()
             self._reset_return_check()
         self._last_key_validation_at = time.monotonic()
         self._move(account_state.KEY_OK)
+        if self._state == self.ACTIVATED and self._told != _mark(self.activation_key):
+            self._say_paired(self.activation_key)
         self.usage_refreshed.emit(usage if isinstance(usage, dict) else {})
         if not self._return_check_pending:
             return
@@ -858,6 +953,8 @@ class Account(QObject):
 
     def _on_key_revalidate_failed(self, message: str, code: str) -> None:
         self._revalidate_task = None
+        if self._dropped_stale_answer():
+            return
 
         if self._return_check_pending:
             self._reset_return_check()
@@ -909,6 +1006,7 @@ class Account(QObject):
         self._key_seen = False
         self.cancel_pairing()
         self._reset_return_check()
+        self.note_balance(0, 0, "")
         task = self._revalidate_task
         if task is not None and task.is_active():
             try:
@@ -945,6 +1043,35 @@ class Account(QObject):
     def sign_out(self) -> None:
         self._clear_local_session()
         log("Signed out")
+
+    @property
+    def at_run_limit(self) -> bool:
+
+        return self._at_zero
+
+    def note_balance(self, used: int, limit: int, period_end: str) -> None:
+
+
+
+
+        self._at_zero = limit > 0 and used >= limit
+        if not self._at_zero:
+            self._period_timer.stop()
+            self._period_timer_for = ""
+            return
+        if period_end == self._period_timer_for:
+            return
+        wait = _seconds_until(period_end)
+        if wait is None or wait + _PERIOD_END_MARGIN_S <= 0:
+            return
+        self._period_timer_for = period_end
+        self._period_timer.start(int(min(wait + _PERIOD_END_MARGIN_S, _TIMER_MAX_S) * 1000))
+
+    def _on_period_end(self) -> None:
+        self._period_timer_for = ""
+        if self.has_activation_key:
+            log("The period of a spent allowance is over: reading the count")
+            self.refresh_activation_async(force=True)
 
     def watch_for_upgrade(self) -> None:
 
@@ -992,7 +1119,8 @@ class Account(QObject):
         upgrading = bool(self._upgrade_watch_since) and now - self._upgrade_watch_since <= _UPGRADE_WATCH_S
         if not upgrading:
             self._upgrade_watch_since = 0.0
-        if now - self._upgrade_checked_at < (_UPGRADE_CHECK_GAP_S if upgrading else _FOCUS_CHECK_GAP_S):
+        fast = upgrading or self._at_zero
+        if now - self._upgrade_checked_at < (_UPGRADE_CHECK_GAP_S if fast else _FOCUS_CHECK_GAP_S):
             return
         self._upgrade_checked_at = now
         if upgrading:

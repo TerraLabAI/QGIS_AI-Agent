@@ -9,6 +9,37 @@ is what the QGIS Plugin Manager renders.
 
 ## [Unreleased]
 
+## [2.0.0] - 2026-11-12
+
+### Added
+
+- Voice dictation in the message box: press, speak, and the words land in the box. The first use
+  shows a short notice of what happens to the voice, with a link to the privacy policy.
+- A live AI agent mascot: on the home, in the header once a chat starts and on the sign-in card.
+  It reacts to steps, cards and dictation, can be carried and thrown, and can be turned off in
+  Settings. The toolbar, menu and Plugin Manager icons are the mascot too.
+- A Memory page on every plan, to see, edit and clear what the AI agent keeps for a project.
+
+### Changed
+
+- Effort is picked on a slider and starts at Low on every chat; the permission and effort menus
+  are calmer and open from the box.
+- Pro and trial offers are one bubble, one offer per screen; the sign-in card is centred, with a
+  larger free-account button.
+- The empty panel asks "How can I help?".
+- An Arabic or Hebrew answer reads right to left; Chinese and Japanese cards use their own
+  punctuation.
+
+### Fixed
+
+- Several WFS layers added together no longer close QGIS; a layout export written in a code step
+  runs in a separate QGIS so the window keeps responding.
+- A new 3D view aims at its real ground and content and builds its point cloud once.
+- Stop, sign-out mid-run, a dropped connection and a server restart no longer lose or repeat a
+  step or a queued message; Undo keeps a file you saved by hand meanwhile.
+- A spent monthly allowance opens again by itself at the new period.
+- Code copied from a step runs as pasted in the QGIS Python console.
+
 ## [1.9.5] - 2026-11-10
 
 ### Added

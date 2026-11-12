@@ -62,6 +62,17 @@ the canvas extent, and per layer the name, type, CRS, feature count, field names
 and extent); the attachments you add; and what you wrote in the agent's Settings
 fields. Leave those empty and nothing of the kind is sent.
 
+**Voice dictation**, only when you press the microphone: the recording goes to
+the same service to be turned into text. It is held in memory for that request,
+then dropped: it is not stored and not used to train models, and the text is put
+in the message box for you to read before anything is sent. On macOS the
+microphone is opened by a small helper app the plugin builds on your Mac,
+"AI Agent for QGIS" (QGIS itself cannot ask for the microphone): macOS asks you
+once under that name, and you can take the permission back in System Settings >
+Privacy & Security > Microphone. The helper runs only while you record, holds no
+code beyond the plugin's own and the Python that ships with your QGIS, and lives
+in `~/Library/Application Support/TerraLab/Dictation`, which you can delete.
+
 **What is not sent**: the contents of your raster and vector files, your project
 file itself, feature geometries and whole attribute tables. Your activation key
 never appears in a tool result: every result, error and traceback passes a

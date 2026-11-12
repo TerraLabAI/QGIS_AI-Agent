@@ -35,7 +35,7 @@ from typing import Any, Callable
 from qgis.PyQt.QtCore import QCoreApplication, QObject, pyqtSignal, pyqtSlot
 
 from .logger import log_warning
-from .net_state import current_cancel_check, set_cancel_check
+from .net_state import current_cancel_check, is_cancelled, set_cancel_check
 from .qt_compat import task_flags
 
 
@@ -248,6 +248,23 @@ def _kept_loop(state) -> None:
         job = None
         with state.lock:
             state.idle += 1
+
+
+
+STOP_POLL_S = 0.05
+
+
+def stop_came_first(over: threading.Event, cancelled=None) -> bool:
+
+
+
+
+
+
+    while not over.wait(STOP_POLL_S):
+        if is_cancelled(cancelled):
+            return True
+    return False
 
 
 def start_kept_thread(target: Callable[..., Any], *args, name: str = "ai-agent-worker") -> None:
@@ -622,7 +639,7 @@ def run_on_main_thread(fn, *args, timeout=10):
     result_queue: queue.Queue = queue.Queue()
     cancel_check = current_cancel_check()
     caller = current_call()
-    wait = _Wait(cancel_check)
+    wait = _Wait(cancel_check, caller)
 
     def _trampoline():
 
@@ -680,22 +697,40 @@ _COMMITTED_GRACE_S = 30.0
 _WAITS: list = []
 
 
+
+
+_COMMITTED_CALLS: set = set()
+
+
+def committed(tool_call_id: str) -> bool:
+
+
+    return tool_call_id in _COMMITTED_CALLS
+
+
+def forget_commit(tool_call_id: str) -> None:
+    _COMMITTED_CALLS.discard(tool_call_id)
+
+
 class _Wait:
 
 
 
-    def __init__(self, cancel_check):
+    def __init__(self, cancel_check, caller: str = ""):
         self._lock = threading.Lock()
         self._cancel_check = cancel_check
+        self._caller = caller
         self.given_up = False
         self.committed = False
 
-    def commit(self) -> bool:
+    def commit(self, changes_project: bool = True) -> bool:
         with self._lock:
             if self.given_up or (self._cancel_check is not None and self._cancel_check()):
                 self.given_up = True
                 return False
             self.committed = True
+            if self._caller and changes_project:
+                _COMMITTED_CALLS.add(self._caller)
             return True
 
     def give_up(self) -> bool:
@@ -707,7 +742,7 @@ class _Wait:
             return True
 
 
-def still_awaited() -> bool:
+def still_awaited(changes_project: bool = True) -> bool:
 
 
 
@@ -717,7 +752,10 @@ def still_awaited() -> bool:
 
 
 
-    return _WAITS[-1].commit() if _WAITS else True
+
+
+
+    return _WAITS[-1].commit(changes_project) if _WAITS else True
 
 
 def marshalled() -> bool:

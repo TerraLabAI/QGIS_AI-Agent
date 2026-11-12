@@ -15,7 +15,7 @@ from qgis.PyQt.QtWidgets import QFrame, QHBoxLayout, QLabel, QPushButton, QSizeP
 
 from .bubbles import AgentBubble
 from .font_scale import scale_qss_font_px
-from .shared import tr
+from .shared import TURN_DIVIDER_OBJECT, tr
 from .style import FONT_HINT, INK, INK_3
 from .trace import RunTrace
 
@@ -74,7 +74,7 @@ def _wrap(widget: QWidget, margins: tuple, parent=None) -> QWidget:
 def _turn_divider(parent=None) -> QFrame:
 
     line = QFrame(parent)
-    line.setObjectName("turnDivider")
+    line.setObjectName(TURN_DIVIDER_OBJECT)
     line.setFrameShape(QFrame.Shape.NoFrame)
     line.setFixedHeight(1)
     return line

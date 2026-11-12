@@ -48,6 +48,7 @@ from qgis.PyQt.QtWidgets import (
 from ..core.qt_compat import one_shot
 from ..tools.harvest_processing import dialog_call
 from .card_base import humanise_tool_name
+from .console_script import console_script
 from .font_scale import scale_qss_font_px
 from .icons import pixmap_for
 from .qgis_links import qgis_link
@@ -75,6 +76,7 @@ from .tool_describe import (
     _plain_note,
     check_warning,
     count_text,
+    group_number,
     is_processing_call,
     result_facts,
     source_text,
@@ -230,7 +232,7 @@ def _picture_size(detail) -> str:
     width, height = data.get("width"), data.get("height")
     if not all(isinstance(side, int) and not isinstance(side, bool) and side > 0 for side in (width, height)):
         return ""
-    return f"{width:,} \u00d7 {height:,} px"
+    return f"{group_number(width)} \u00d7 {group_number(height)} px"
 
 
 def result_words(card) -> str:
@@ -369,17 +371,6 @@ def call_fields(name: str, args) -> list:
     return [row[:3] for row in call_rows(name, args)]
 
 
-def processing_python(name: str, args) -> str:
-
-    args = args if isinstance(args, dict) else {}
-    algorithm = str(args.get("algorithm_id") or args.get("algorithm") or "")
-    params = args.get("parameters")
-    if not (is_processing_call(name) and algorithm and isinstance(params, dict)):
-        return ""
-    body = "{\n" + "".join(f"    {key!r}: {value!r},\n" for key, value in params.items()) + "}"
-    return f"import processing\n\nprocessing.run({algorithm!r}, {body})\n"
-
-
 def _by_id(value, layers: dict):
 
     layer = layers.get(value) if isinstance(value, str) else None
@@ -482,7 +473,8 @@ class ToolDetails(QWidget):
         algorithm, _params = self._dialog_call()
 
         place = None if algorithm else qgis_link(card.name, card.args, card.detail)
-        self._has_links = bool(algorithm or place or processing_python(card.name, card.args))
+        python = is_processing_call(card.name) and console_script(card.name, card.args)
+        self._has_links = bool(algorithm or place or python)
         self._links_rule = None
         if self._has_links:
             self._links_rule = _rule(box)
@@ -497,7 +489,7 @@ class ToolDetails(QWidget):
                                           "it again. The output goes to a new temporary layer."))
                 reopen.clicked.connect(self._open_dialog)
                 links.addWidget(reopen)
-            if processing_python(card.name, card.args):
+            if python:
                 self._copy = _TextButton(self.tr("Copy as Python"), "copy", box)
                 self._copy.setToolTip(self.tr("The processing.run line, ready for the QGIS Python console"))
                 self._copy.clicked.connect(self._copy_python)
@@ -675,7 +667,7 @@ class ToolDetails(QWidget):
         self._box.setVisible(self.has_content)
 
     def _copy_python(self) -> None:
-        QApplication.clipboard().setText(processing_python(self._card.name, self._card.args))
+        QApplication.clipboard().setText(console_script(self._card.name, self._card.args))
         self._copy.set_text(self.tr("Copied"))
         self._copy.set_glyph("check")
         self._timer.start(_COPIED_MS)

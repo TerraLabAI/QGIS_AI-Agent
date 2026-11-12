@@ -84,6 +84,14 @@ def main_thread_frames(ident: int | None, limit: int | None = None) -> str:
     return " < ".join(names)
 
 
+def _held_frames(where: str) -> str:
+
+
+
+
+    return "" if "watchdog.py:tick" in where else where
+
+
 class MainThreadWatchdog:
 
 
@@ -186,7 +194,7 @@ class MainThreadWatchdog:
         if not dump or gap < self._stall_report_s():
             return False, ""
         limit = tuning.threshold("watchdog_stall_frames", STALL_FRAMES, 1, 10)
-        return True, main_thread_frames_in(dump, self._main_ident, limit)
+        return True, _held_frames(main_thread_frames_in(dump, self._main_ident, limit))
 
     def _watch(self, stop: threading.Event) -> None:
 
@@ -197,13 +205,17 @@ class MainThreadWatchdog:
             held = time.monotonic() - last
             if self._stack is not None and held > HOLD_OFF_AFTER_S:
                 self._stack.hold_off(self._stall_report_s())
+
+
+                last = self._last
+                held = time.monotonic() - last
             if held < self._stall_report_s():
                 continue
             if reported_for == last and held - reported_at < tuning.ceiling(
                     "watchdog_stall_repeat_s", STALL_REPEAT_S, 10.0):
                 continue
             reported_for, reported_at = last, held
-            where = main_thread_frames(self._main_ident)
+            where = _held_frames(main_thread_frames(self._main_ident))
             self._reported_where = where
             self._reported_for = last
             try:

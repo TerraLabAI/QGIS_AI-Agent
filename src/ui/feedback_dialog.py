@@ -27,7 +27,7 @@ from ..api.terralab_client import TerraLabClient
 from ..core.host_platform import os_info, os_label, plugin_version
 from ..core.log_scrub import scrub_secrets, scrub_user_paths
 from ..core.logger import log_warning, recent_logs
-from ..core.served_state import SUPPORT_EMAIL, _served_text
+from ..core.served_state import PRODUCT_ID, SUPPORT_EMAIL, _served_text
 from .font_scale import scale_px_length, scale_qss_font_px
 from .session_export import render_markdown
 from .settings_pages import TEXTAREA_QSS
@@ -136,7 +136,7 @@ def feedback_payload(message: str, conversation: str, run_id: str, entry: str, r
         "session_id": session, "run_id": run_id, "entry": entry,
     }
     body = {
-        "product_id": "ai-agent", "kind": "feedback",
+        "product_id": PRODUCT_ID, "kind": "feedback",
         "message": redact_signed_urls((message or "").strip())[:1500],
         "conversation": conversation,
         "context": {key: value for key, value in context.items() if value},

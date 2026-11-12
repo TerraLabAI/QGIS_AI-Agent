@@ -460,7 +460,7 @@ def _file(name: str, url: str, size=None, fmt: str = "") -> dict:
     return out
 
 
-_SOCRATA_GEOMETRY = ("point", "multipoint", "line", "multiline", "polygon", "multipolygon", "location")
+SOCRATA_GEOMETRY_TYPES = ("point", "multipoint", "line", "multiline", "polygon", "multipolygon", "location")
 def _webmap_layers(layers, depth: int = 0) -> list[dict]:
 
     out: list[dict] = []
@@ -541,7 +541,7 @@ def listing_files(listing: str, api_url: str, payload) -> list[dict]:
     elif listing == "socrata" and isinstance(payload, dict) and payload.get("id"):
         parts = urllib.parse.urlsplit(api_url)
         kinds = [str(c.get("dataTypeName") or "").lower() for c in payload.get("columns") or [] if isinstance(c, dict)]
-        geometry = any(kind in _SOCRATA_GEOMETRY for kind in kinds)
+        geometry = any(kind in SOCRATA_GEOMETRY_TYPES for kind in kinds)
         ext = "geojson" if geometry else "csv"
         files.append(_file(f"{payload.get('name') or payload['id']}.{ext}",
                            f"{parts.scheme}://{parts.netloc}/resource/{payload['id']}.{ext}?$limit=10000"))

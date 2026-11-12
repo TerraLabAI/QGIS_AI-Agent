@@ -694,6 +694,9 @@ def _legend_entries(legend) -> list:
 
 _TITLE_LABEL = "legend/title-label"
 
+_GRID_NAME = "Coordinate grid"
+_GRID_ID_PROPERTY = "terralab/coordinate_grid_id"
+
 
 def _legend_title(node) -> str:
 
@@ -1844,7 +1847,7 @@ def _subject(args: dict):
         source = f"layer {layer.name()!r}"
     elif extent:
         if len(extent) != 4:
-            return None, "", {"_error": "extent must be [xmin, ymin, xmax, ymax]"}
+            return None, "", tool_error("extent must be [xmin, ymin, xmax, ymax]", "INVALID_ARGS")
         rect = QgsRectangle(extent[0], extent[1], extent[2], extent[3])
         source = "the extent given"
     else:
@@ -2985,7 +2988,7 @@ def _add_layout_coordinate_grid(args: dict) -> dict:
         return tool_error("This layout has no map item.", "INVALID_ARGS", hint="layout_no_map")
 
     stack = map_item.grids()
-    grid = QgsLayoutItemMapGrid("Coordinate grid", map_item)
+    grid = QgsLayoutItemMapGrid(_GRID_NAME, map_item)
     grid.setEnabled(True)
     grid.setAnnotationEnabled(True)
     grid.setIntervalX(float(args["interval_x"]))
@@ -3065,10 +3068,13 @@ def _add_layout_coordinate_grid(args: dict) -> dict:
 
 
 
+
+    replaced = str(map_item.customProperty(_GRID_ID_PROPERTY, "") or "")
     for existing in list(stack.asList()):
-        if existing.name() == "Coordinate grid":
+        if existing.id() == replaced or (not replaced and existing.name() == _GRID_NAME):
             stack.removeGrid(existing.id())
     stack.addGrid(grid)
+    map_item.setCustomProperty(_GRID_ID_PROPERTY, grid.id())
     return {
         "layout_name": layout.name(), "map_id": map_item.uuid(), "grid_id": grid.id(),
         "grid_name": grid.name(), "interval_x": grid.intervalX(), "interval_y": grid.intervalY(),

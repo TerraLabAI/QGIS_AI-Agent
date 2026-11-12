@@ -54,6 +54,7 @@
 
 from __future__ import annotations
 
+from qgis.PyQt import sip
 from qgis.PyQt.QtCore import QSize, Qt, QTimer, pyqtSignal
 from qgis.PyQt.QtGui import QColor, QFont, QFontMetrics
 from qgis.PyQt.QtWidgets import (
@@ -75,7 +76,7 @@ from ..core import accounts
 from ..core.logger import log_warning
 from ..core.plan import memory_allowed
 from ..core.profile import profile_context
-from ..core.qt_compat import one_shot
+from ..core.qt_compat import disconnect_quietly, one_shot
 from ..core.served_state import get_privacy_url, get_product_url, get_site_url, get_terms_url
 from ..core.settings import Settings
 from .external_links import open_external_url
@@ -97,13 +98,9 @@ from .settings_pages import (
     sidebar_qss,
 )
 from .settings_personalisation import PersonalisationPageMixin
-from .shared import event_pos, exec_dialog, safe_disconnect, size_within_screen
+from .shared import event_pos, exec_dialog, size_within_screen
 from .style import ACCENT, FONT_HINT, WEIGHT_MEDIUM, with_platform_font
 from .styles import PANEL_TEXT
-
-
-
-
 
 
 
@@ -148,7 +145,6 @@ class SettingsDialog(PersonalisationPageMixin, AccountPageMixin, QDialog):
     refresh_requested = pyqtSignal()
     telemetry_toggled = pyqtSignal(bool)
     improve_toggled = pyqtSignal(bool)
-    project_memory_requested = pyqtSignal(str)
     dashboard_opened = pyqtSignal(str)
     upgrade_requested = pyqtSignal()
     help_requested = pyqtSignal(str)
@@ -218,6 +214,7 @@ class SettingsDialog(PersonalisationPageMixin, AccountPageMixin, QDialog):
 
 
         self._add_page("lu.pencil", self.tr("Personalisation"), self._build_personalisation())
+        self._add_page("lu.bookmark", self.tr("Memory"), self._build_memory_page())
         self._add_page("lu.keyboard", self.tr("Keyboard shortcuts"), self._build_shortcuts())
         self._account_row = self._nav.count()
         self._add_page("lu.user", self.tr("Account"), self._build_account())
@@ -507,7 +504,7 @@ class SettingsDialog(PersonalisationPageMixin, AccountPageMixin, QDialog):
             timer.setSingleShot(True)
             self._pending[key] = timer
         else:
-            safe_disconnect(timer, "timeout")
+            disconnect_quietly(timer, "timeout")
         timer.timeout.connect(save)
         timer.start(_SAVE_DEBOUNCE_MS)
 
@@ -518,6 +515,7 @@ class SettingsDialog(PersonalisationPageMixin, AccountPageMixin, QDialog):
                 timer.timeout.emit()
 
     def _memory_locked(self) -> bool:
+
 
         return not memory_allowed()
 
@@ -545,7 +543,9 @@ class SettingsDialog(PersonalisationPageMixin, AccountPageMixin, QDialog):
         try:
             exec_dialog(library)
         finally:
-            library.deleteLater()
+
+            if not sip.isdeleted(library):
+                library.deleteLater()
 
     def _on_library_prompt(self, text: str, chip) -> None:
         self.accept()

@@ -68,13 +68,13 @@ from ...core.logger import log_warning
 from ..font_scale import widget_pixel_ratio
 from ..icons import contrast_ratio, render_pixmap
 from ..image_guard import read_bounded_image
-from ..shared import tr
+from ..shared import CHAT_PANEL_OBJECT, tr
 from ..thumbnail_cache import (
     HTTP_STATUS,
     NETWORK_NO_ERROR,
     NO_LESS_SAFE,
     REDIRECT_POLICY,
-    is_thumbnail_url_usable,
+    is_picture_url_usable,
     store_thumbnail,
     thumbnail_cache_path,
 )
@@ -105,7 +105,7 @@ _DECODE_CHUNK = 6
 
 
 def usable(url) -> bool:
-    return is_thumbnail_url_usable(url)
+    return is_picture_url_usable(url)
 
 
 def _decode(data: bytes, width: int):
@@ -409,7 +409,7 @@ def prefetch_popular(cases, groups) -> None:
     try:
         from qgis.utils import iface
 
-        panel = iface.mainWindow().findChild(QWidget, "chatPanel") if iface is not None else None
+        panel = iface.mainWindow().findChild(QWidget, CHAT_PANEL_OBJECT) if iface is not None else None
         if panel is None or not panel.isVisible():
             return
         first = str(groups[0][0]) if groups else ""

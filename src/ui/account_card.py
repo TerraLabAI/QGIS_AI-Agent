@@ -52,7 +52,7 @@ from .external_links import open_external_url
 from .font_scale import scale_px_length, scale_qss_font_px, widget_pixel_ratio
 from .icons import icon_for, pixmap_for
 from .settings_pages import GHOST_BTN_QSS, INPUT_QSS, PRIMARY_BTN_QSS
-from .shared import available_screen_rect, exec_dialog, resolve_qt_enum
+from .shared import AGENT_CARD_KIND, AGENT_REQUEST_ID, available_screen_rect, exec_dialog, resolve_qt_enum
 from .style import FONT_BASE, INK, INK_2, INK_3, MOTION_POP_MS, SPACE_CARD
 from .styles import PANEL_BASE, PANEL_TEXT
 from .widgets import ChatLabel, placeholder_ink
@@ -316,8 +316,8 @@ class AccountCard(_Card, FoldMixin):
                 yes.setObjectName("accountSignIn")
                 footer.set_widgets(None, [no, yes])
         for button in (no, yes):
-            button.setProperty("agentRequestId", self.tool_call_id)
-            button.setProperty("agentCardKind", "account")
+            button.setProperty(AGENT_REQUEST_ID, self.tool_call_id)
+            button.setProperty(AGENT_CARD_KIND, "account")
         self._error = ChatLabel("", body_widget, wrap=True, selectable=True)
         self._error.setObjectName("accountBrowserError")
         self._error.setStyleSheet(_SUB_QSS.replace(INK_2, msg_kind_colour("error")))

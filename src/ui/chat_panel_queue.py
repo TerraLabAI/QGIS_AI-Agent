@@ -536,6 +536,12 @@ class _ChatPanelQueue:
                     item["steer_id"] = ""
         self._sync_queue()
 
+    def pause_queue(self) -> None:
+
+
+        self._park_queue()
+        self._sync_queue()
+
     def _park_queue(self) -> None:
         if self._queue_key is not None:
             entry = self._queues.get(self._queue_key)

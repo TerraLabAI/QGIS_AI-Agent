@@ -73,6 +73,7 @@ from ..core.tool_registry import Tool, ToolRegistry, tool_error
 from . import style_3d
 from ._compat import enum_value
 from ._layers import resolve_layer
+from .pointcloud_style import give_3d_renderer
 
 TOOL = "configure_3d_map_view"
 _DEFAULT_TILE_RESOLUTION = 256
@@ -181,6 +182,10 @@ def _configure_3d_map_view(args: dict) -> dict:
                           hint="map3d_views_unavailable")
 
 
+    for layer in QgsProject.instance().mapLayers().values():
+        give_3d_renderer(layer)
+
+
     created = "view_index" not in args or not views
     if created:
         refused = _opengl_refusal()
@@ -258,7 +263,7 @@ def _configure_3d_map_view(args: dict) -> dict:
             terrain = None
 
     try:
-        camera = _point_camera(canvas, settings, args, created)
+        camera = _point_camera(canvas, settings, args, created, terrain)
     except ValueError as exc:
         return tool_error(str(exc), "INVALID_ARGS", hint="map3d_center_form")
     ground = None
@@ -276,15 +281,21 @@ def _configure_3d_map_view(args: dict) -> dict:
 
     edit = _scene_xml(args, (camera or {}).get("distance"))
     legacy = not hasattr(settings, "setTerrainSettings")
+    shown = settings.layers()
+
+
+    held = [layer.id() for layer in shown if _has_3d_renderer(layer)] if created else []
+    if held:
+        settings.setLayers([layer for layer in shown if layer.id() not in held])
     waits = _rebuild_when_idle(canvas, ground, terrain, None if show is None else bool(show),
-                               edit if legacy else None)
+                               edit if legacy else None, held)
     if edit is not None and not legacy:
         _through_xml(settings, edit)
     scene = _scene_facts(settings) if any(args.get(key) is not None for key in _SCENE_KEYS) else None
     if scene and "scene" in waits:
         scene.update({key: bool(args[key]) for key in ("shadows", "ambient_occlusion") if args.get(key) is not None})
 
-    moved = style_3d.refloat_labels(settings.layers()) if _annotations_3d() else []
+    moved = style_3d.refloat_labels(shown) if _annotations_3d() else []
 
     current_views = open_3d_views()
     current = _terrain_of(settings)
@@ -297,19 +308,19 @@ def _configure_3d_map_view(args: dict) -> dict:
         "terrain_screen_error": screen_error,
         "open_3d_views": len(current_views) if current_views is not None else None,
         "view": _view_facts(canvas, current_views, window),
-        "layers_3d": [layer.name() for layer in settings.layers() if _has_3d_renderer(layer)][:20],
+        "layers_3d": [layer.name() for layer in shown if _has_3d_renderer(layer)][:20],
         "ground_layers": _ground_layers(settings)[:20],
     }
     if result["view"].get("name"):
         result["object"] = {"kind": "view3d", "name": result["view"]["name"]}
     if hasattr(settings, "terrainRenderingEnabled"):
         result["terrain_shown"] = settings.terrainRenderingEnabled() if show is None else bool(show)
-    flat = [layer.name() for layer in settings.layers() if layer is not None and hasattr(layer, "labelsEnabled")
+    flat = [layer.name() for layer in shown if layer is not None and hasattr(layer, "labelsEnabled")
             and layer.labelsEnabled()]
     if flat:
 
         result["labels_on_2d_map_only"] = flat[:20]
-    in_view = {layer.id() for layer in settings.layers() if layer is not None}
+    in_view = {layer.id() for layer in shown if layer is not None}
     hidden = [layer.name() for layer in QgsProject.instance().mapLayers().values()
               if _has_3d_renderer(layer) and layer.id() not in in_view]
     if hidden:
@@ -489,9 +500,9 @@ def _view_point(center, crs_text, view_crs):
     return point.x(), point.y()
 
 
-def _ground_height(settings, x, y) -> float:
+def _ground_height(settings, x, y, terrain=None) -> float:
 
-    terrain = _terrain_of(settings)
+    terrain = terrain or _terrain_of(settings)
     offset = float(terrain.elevationOffset()) if hasattr(terrain, "elevationOffset") else 0.0
     layer = terrain.layer() if hasattr(terrain, "layer") else None
     if not isinstance(layer, QgsRasterLayer):
@@ -519,6 +530,11 @@ def _content_height(settings, x, y, distance) -> float | None:
     around = QgsRectangle(x - distance, y - distance, x + distance, y + distance)
     for layer in settings.layers():
         if not _has_3d_renderer(layer) or not hasattr(layer, "wkbType") or not QgsWkbTypes.hasZ(layer.wkbType()):
+            continue
+        _, symbols = style_3d.kept_renderer(layer)
+        if symbols and all(symbol.altitudeClamping() == Qgis.AltitudeClamping.Terrain for symbol in symbols):
+
+
             continue
         box = None
         with contextlib.suppress(Exception):
@@ -562,7 +578,9 @@ def _looked_at(controller, settings):
     return settings.worldToMapCoordinates(controller.lookingAtPoint())
 
 
-def _point_camera(canvas, settings, args: dict, created: bool) -> dict | None:
+def _point_camera(canvas, settings, args: dict, created: bool, terrain=None) -> dict | None:
+
+
 
 
     controller = canvas.cameraController() if hasattr(canvas, "cameraController") else None
@@ -588,7 +606,7 @@ def _point_camera(canvas, settings, args: dict, created: bool) -> dict | None:
         if z is None:
             z = _content_height(settings, x, y, distance)
         if z is None:
-            z = _ground_height(settings, x, y)
+            z = _ground_height(settings, x, y, terrain)
     if moved:
         look = getattr(controller, "setLookingAtMapPoint", None)
         if look is not None:
@@ -649,7 +667,7 @@ def ground_square(settings, x: float, y: float, distance: float):
     return QgsRectangle(x - half, y - half, x + half, y + half)
 
 
-def _rebuild_when_idle(canvas, ground, terrain, show_terrain=None, scene_xml=None) -> list:
+def _rebuild_when_idle(canvas, ground, terrain, show_terrain=None, scene_xml=None, held=()) -> list:
 
 
 
@@ -660,7 +678,13 @@ def _rebuild_when_idle(canvas, ground, terrain, show_terrain=None, scene_xml=Non
 
 
 
-    if ground is None and terrain is None and show_terrain is None and scene_xml is None:
+
+
+
+
+
+
+    if ground is None and terrain is None and show_terrain is None and scene_xml is None and not held:
         return []
     settings = canvas.mapSettings()
     scene = canvas.scene() if hasattr(canvas, "scene") else None
@@ -681,6 +705,10 @@ def _rebuild_when_idle(canvas, ground, terrain, show_terrain=None, scene_xml=Non
             settings.setLayers(layers)
         if show_terrain is not None:
             settings.setTerrainRenderingEnabled(show_terrain)
+        if held:
+            layers = settings.layers()
+            back = [QgsProject.instance().mapLayer(layer_id) for layer_id in held]
+            settings.setLayers(layers + [layer for layer in back if layer is not None and layer not in layers])
 
     if scene is None or not callable(pending) or pending() == 0:
         apply()
@@ -709,7 +737,7 @@ def _rebuild_when_idle(canvas, ground, terrain, show_terrain=None, scene_xml=Non
     canvas.setProperty("terralabWaiting3D", [*(canvas.property("terralabWaiting3D") or []), check])
     scene.totalPendingJobsCountChanged.connect(check)
     return [name for name, value in (("ground", ground), ("terrain", terrain), ("show_terrain", show_terrain),
-                                     ("scene", scene_xml)) if value is not None]
+                                     ("scene", scene_xml), ("layers_3d", held or None)) if value is not None]
 
 
 def _terrain_of(settings):

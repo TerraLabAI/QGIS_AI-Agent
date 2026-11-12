@@ -20,9 +20,9 @@ from ..core.checkpoints import KIND_BEFORE, KIND_EDITS, NOT_PUT_BACK
 from ..core.context import mention_candidates
 from ..core.host_platform import resolved
 from ..core.logger import log, log_warning, recent_logs
+from ..core.project_identity import open_project_file
 from ..core.protocol import Approval, Effort, Mode
 from ..core.security_urls import host_name
-from ..core.served_state import BUSINESS_QUOTE_URL, get_invoice_url
 from ..core.served_state import get_pro_offer as _offer
 from ..core.snapshot import REASON_UNSAVED_EDITS, RunSnapshot, diff_changed, layer_file_path, unsaved_edit_layers
 from ..core.snapshot_files import _same_content
@@ -43,8 +43,11 @@ def _restore_layers(rows) -> list:
 
 
 
+
     order: list = []
     groups: dict = {}
+    names: dict = {}
+    ids: dict = {}
     for row in rows or []:
         source = (row.get("after") or row.get("before") or {}) if isinstance(row, dict) else {}
         for item in source.get("changes") or []:
@@ -53,14 +56,17 @@ def _restore_layers(rows) -> list:
             name = str(item.get("layer") or "")
             if not name:
                 continue
+            layer_id = str(item.get("layer_id") or "")
+            key = layer_id or name
             group = "removed" if item.get("what") == ["added"] else "restored"
-            if name not in groups:
-                order.append(name)
-                groups[name] = group
+            if key not in groups:
+                order.append(key)
+                groups[key] = group
             elif group == "removed":
 
-                groups[name] = group
-    return [{"name": name, "group": groups[name]} for name in order]
+                groups[key] = group
+            names[key], ids[key] = name, layer_id
+    return [{"name": names[key], "id": ids[key], "group": groups[key]} for key in order]
 
 
 def _not_kept(snapshot, hand, target_pairs=()) -> list:
@@ -105,6 +111,22 @@ def _blocked_notice(blocked: list) -> str:
         text += " " + tr("{n} more files are in the same case.").format(n=len(blocked) - 1)
     return text
 
+def _file_stamps(paths) -> dict:
+
+
+    stamps = {}
+    for path in paths:
+        stamp = []
+        for name in (path, path + "-wal"):
+            try:
+                info = os.stat(name)
+                stamp.append((info.st_size, info.st_mtime_ns))
+            except OSError:
+                stamp.append(None)
+        stamps[path] = tuple(stamp)
+    return stamps
+
+
 class PanelActionsMixin:
 
 
@@ -148,7 +170,7 @@ class PanelActionsMixin:
         if self._crashed_chat is None or self._run is not None or self._thread_id is not None:
             return
         thread_id, run_id, project_path = self._crashed_chat
-        if project_path != _project_path():
+        if project_path != open_project_file():
             return
         self._crashed_chat = None
         self._store.append_message(thread_id, {
@@ -166,6 +188,9 @@ class PanelActionsMixin:
 
         if self._settings.reset_autopilot():
             self._sync_permission_mode()
+
+        if self._settings.reset_effort():
+            self._panel_call("set_effort", self._landing_effort())
         self._panel_call("clear_thread")
         self._panel_call("set_current_thread", "")
         self._panel_call("set_run_changes", 0, False)
@@ -184,8 +209,11 @@ class PanelActionsMixin:
         thread = self._store.load(thread_id)
         if thread is None:
             self.notice.emit("warning", tr("This chat is gone."))
-            self._panel_call("set_threads", self._store.list_threads(), _project_path())
+            self._panel_call("set_threads", self._store.list_threads(), open_project_file())
             return
+        if thread_id != self._thread_id and self._settings.reset_effort():
+
+            self._panel_call("set_effort", self._landing_effort())
         self._thread_id = thread_id
         link_vault.remember(thread_id, thread.get("messages", []))
         self._panel_call("load_thread", thread.get("messages", []))
@@ -209,7 +237,7 @@ class PanelActionsMixin:
             return
         if self._run is not None and thread_id == self._thread_id:
             self.notice.emit("info", tr("Stop the current run before deleting this chat."))
-            self._panel_call("set_threads", self._store.list_threads(), _project_path())
+            self._panel_call("set_threads", self._store.list_threads(), open_project_file())
             return
         history = self._executor.history
         snapshots = [entry.snapshot for entry in history.entries(thread_id) if entry.snapshot is not None]
@@ -220,7 +248,7 @@ class PanelActionsMixin:
         self._store.delete(thread_id)
         if thread_id == self._thread_id:
             self._on_new_thread(user=False)
-        self._panel_call("set_threads", self._store.list_threads(), _project_path())
+        self._panel_call("set_threads", self._store.list_threads(), open_project_file())
 
 
     def _history_available(self) -> bool:
@@ -425,6 +453,10 @@ class PanelActionsMixin:
             self._on_restore(checkpoint_id, confirmed, discard, hand=[])
             return
 
+
+
+        stamps: dict = {}
+
         def done(changed: list) -> None:
             self._hand_check_pending = False
             if getattr(self, "_shut_down", False):
@@ -436,6 +468,8 @@ class PanelActionsMixin:
                     self.notice.emit("info", tr("The project moved while your files were checked, "
                                                 "so nothing was restored."))
                 return
+            changed = list(changed) + [path for path, stamp in _file_stamps(stamps).items()
+                                       if stamp != stamps[path] and path not in changed]
             if changed:
                 log(f"Changed by hand since the current point: {', '.join(os.path.basename(p) for p in changed)}")
             self._on_restore(checkpoint_id, confirmed, discard, hand=list(changed))
@@ -454,6 +488,7 @@ class PanelActionsMixin:
 
         def compare() -> None:
             try:
+                stamps.update(_file_stamps(original for original, _copy in pairs))
                 changed = restore_guard.hand_changed_files(pairs)
             except Exception as exc:  # noqa: BLE001
                 log_warning(f"Hand-edit check failed: {exc}")
@@ -689,7 +724,10 @@ class PanelActionsMixin:
         self.layer_action_requested.emit(str(result["layer_id"]), "show")
 
     def _on_sign_out(self, entry: str = "panel") -> None:
-        telemetry.track(ev.ACCOUNT_SIGNED_OUT, {"source": entry if entry in ("panel", "settings") else "panel"})
+        at_limit = self._account.at_run_limit
+        telemetry.track(ev.ACCOUNT_SIGNED_OUT, {
+            "source": entry if entry in ("panel", "settings") else "panel", "at_run_limit": at_limit})
+        self._settings.signed_out_mark = f"{int(time.time())}:{int(at_limit)}"
         telemetry.flush()
         self._account.sign_out()
 
@@ -734,6 +772,20 @@ class PanelActionsMixin:
             trial_surface="header_pill" if self._trial_offered() else "")
         log("Upgrade opened from the header pill")
 
+    def _on_keep_pro_requested(self) -> None:
+
+
+        from ..ui.external_links import open_external_url
+
+        url = self._panel.keep_pro_url()
+        if not url:
+            return
+        telemetry.track(ev.SUBSCRIBE_LINK_CLICKED, {"source": "keep_pro", "where": "header_pill",
+                                                    "offer": get_pro_offer()})
+        self._account.watch_for_upgrade()
+        open_external_url(url, parent=self._panel)
+        log("Keep Pro opened from the header pill")
+
     def _trial_offered(self) -> bool:
 
         return bool(self._panel.trial_offer())
@@ -767,19 +819,6 @@ class PanelActionsMixin:
                                                     "cta_source": "trial_start_now", "offer": get_pro_offer()})
         open_external_url(url, parent=self._panel)
         log("Start my plan now opened from the panel")
-
-    def _on_invoice_requested(self, where: str) -> None:
-
-        from ..ui.external_links import open_external_url
-
-        telemetry.track(ev.SUBSCRIBE_LINK_CLICKED, {"source": "invoice", "where": where, "checkout_link": "invoice",
-                                                    "offer": get_pro_offer()})
-
-
-
-        url = (BUSINESS_QUOTE_URL if where == "checkout_return" or self._panel.trial_offer()
-               else get_invoice_url())
-        open_external_url(url, parent=self._panel)
 
     def _on_pro_contact_requested(self, where: str) -> None:
 
@@ -982,12 +1021,3 @@ def _thread_opened_props(thread: dict) -> dict:
     except (ValueError, TypeError):
         pass
     return props
-
-
-def _project_path() -> str:
-
-    try:
-        from qgis.core import QgsProject
-        return QgsProject.instance().fileName() or ""
-    except Exception:  # noqa: BLE001
-        return ""

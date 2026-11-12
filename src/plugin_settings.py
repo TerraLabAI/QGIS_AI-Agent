@@ -52,7 +52,6 @@ def open_settings_dialog(plugin):
         info["loading"] = True
     else:
         info["error"], info["error_code"] = tr("Sign in to see your account."), "SIGNED_OUT"
-    controller = plugin.controller
     values = {"mode": settings.mode, "approval": settings.approval, "server_url": settings.server_url,
               "settings": settings}
     dialog = SettingsDialog(plugin.iface.mainWindow(), info, values)
@@ -64,8 +63,6 @@ def open_settings_dialog(plugin):
     dialog.improve_toggled.connect(
         lambda on, d=dialog: improve_choice(d, on))
     dialog.values_changed.connect(lambda values: apply_settings_values(plugin, values))
-    if controller is not None:
-        dialog.project_memory_requested.connect(controller.request_project_memory)
     dialog.upgrade_requested.connect(lambda d=dialog: open_plans_from_settings(plugin, d))
 
     if plugin.panel is not None:

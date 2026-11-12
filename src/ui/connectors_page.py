@@ -71,6 +71,7 @@ from .library.dataset_rows import DatasetHit
 from .library.parts import Breadcrumb, EmptyState, PageHeader, SectionHead, edge, label, search_pill, section_title
 from .library.pictures import watch_scroll, wear_square_mark
 from .library.pressable import Pressable, labels_through, mouse_through
+from .mention_search import fold
 
 POPULAR_KEY = "__popular__"
 NATIONAL_KEY = "national"
@@ -215,7 +216,7 @@ def countries_line(row: dict) -> str:
     code = str(row.get("country") or "")
     if not codes and code:
         codes = [code]
-    names = sorted({country_name(c) for c in codes})
+    names = sorted({country_name(c) for c in codes}, key=fold)
     if code and country_name(code) in names:
         names.remove(country_name(code))
         names.insert(0, country_name(code))
@@ -243,8 +244,7 @@ def country_groups(rows: list) -> list:
     keys = [k for k in order if k in buckets] + sorted(k for k in buckets if k not in order)
     out = []
     for region in keys:
-        members = sorted(buckets[region], key=lambda r: (countries_line(r).casefold(),
-                                                         str(r.get("name") or "").casefold()))
+        members = sorted(buckets[region], key=lambda r: (fold(countries_line(r)), fold(str(r.get("name") or ""))))
         out.append((labels.get(region, "") if has_regions else "", members))
     return out
 
@@ -275,11 +275,11 @@ def country_blocks(members: list) -> list:
         code = str(row.get("country") or "").upper()
         if code and not _spans_countries(row):
             by_country.setdefault(code, []).append(row)
-    by_name = lambda r: str(r.get("name") or "").casefold()  # noqa: E731
+    by_name = lambda r: fold(str(r.get("name") or ""))  # noqa: E731
     blocks: list = []
     if several:
         blocks.append(("", [("", sorted(several, key=by_name))]))
-    for code in sorted(by_country, key=lambda c: country_name(c).casefold()):
+    for code in sorted(by_country, key=lambda c: fold(country_name(c))):
         rows = by_country[code]
         kinds = {str(r.get("group") or "") for r in rows}
         if len(rows) >= _COUNTRY_SPLIT_MIN and len(kinds) >= 2:

@@ -88,6 +88,7 @@ class FrameType:
 
     SEND_MANIFEST = "send_manifest"
 
+
     PROJECT_MEMORY = "project_memory"
 
 
@@ -95,10 +96,14 @@ class FrameType:
     TASK_RESULT = "task_result"
     TASK_STOP = "task_stop"
 
+
+    TRANSCRIBE = "transcribe"
+    TRANSCRIPT = "transcript"
+
     SERVER = frozenset(
         {SESSION, TOKEN, PLAN, PLAN_UPDATE, TOOL_CALL, RUN_END, ERROR, USAGE, PONG, THREAD_TITLE, STATUS_LINE,
          POLICY, MEMORY_NOTE, FOLLOWUPS, SOURCES, COUNTS, SERVER_TOOL, STEER_ACK, SEND_MANIFEST,
-         PROJECT_MEMORY, TASK_UPDATE, TASK_RESULT}
+         PROJECT_MEMORY, TASK_UPDATE, TASK_RESULT, TRANSCRIPT}
     )
 
 
@@ -253,7 +258,10 @@ def hello(activation_key: str, device_hash: str, plugin_version: str, qgis_versi
 
 
 
-        "renders": ["openui", "memory_silent", "ask_round", "link_handles"] + (["tasks"] if tasks_mode.on() else []),
+
+
+        "renders": ["openui", "memory_silent", "ask_round", "link_handles", "mascot", "memory_open"]
+        + (["tasks"] if tasks_mode.on() else []),
     }
     if tool_manifest is not None:
         frame["tool_manifest"] = tool_manifest
@@ -564,8 +572,8 @@ def upload(upload_id: str, name: str, seq: int, total: int, data_base64: str) ->
             "seq": int(seq), "total": int(total), "data_base64": data_base64}
 
 
-def project_memory_request(action: str, project_key: str) -> dict:
-    return {"type": FrameType.PROJECT_MEMORY, "action": action, "project_key": project_key}
+def transcribe(request_id: str, audio_base64: str) -> dict:
+    return {"type": FrameType.TRANSCRIBE, "id": request_id, "audio_base64": audio_base64}
 
 
 def busy(seconds: float, where: str, calls: str, ended: bool = False) -> dict:

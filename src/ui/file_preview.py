@@ -50,6 +50,7 @@ from qgis.PyQt.QtWidgets import (
 )
 
 from ..core.numbers import as_float
+from .card_base import local_decimal
 from .external_links import open_local_path
 from .file_kinds import IMAGE_EXTS, file_type
 from .file_links import is_safe_to_open, reveal_target
@@ -221,7 +222,7 @@ def size_words(size_bytes) -> str:
     for unit in ("KB", "MB", "GB"):
         value /= 1024.0
         if value < 1024 or unit == "GB":
-            number = f"{value:.1f}" if value < 10 else f"{value:.0f}"
+            number = local_decimal(value, 1 if value < 10 else 0)
             return f"{number} {unit}"
     return ""
 

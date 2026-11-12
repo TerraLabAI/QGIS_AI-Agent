@@ -40,22 +40,20 @@ from .widgets import break_anywhere
 
 DIALOG_W = 420
 SIDE_PAD = 24
-TILE_PX = 40
-TILE_GLYPH_PX = 20
-BADGE_PX = 30
-BADGE_GLYPH_PX = 16
+TILE_PX = 28
+TILE_GLYPH_PX = 22
+BADGE_PX = 28
+BADGE_GLYPH_PX = 17
 ROW_SPACING = 12
 
 
-def _tile(parent, glyph: str, accent: str, size: int, glyph_size: int, alpha: float) -> QLabel:
+def _tile(parent, glyph: str, accent: str, size: int, glyph_size: int) -> QLabel:
 
     color = QColor(accent)
     tile = QLabel(parent)
     tile.setFixedSize(size, size)
     tile.setAlignment(Qt.AlignmentFlag.AlignCenter)
-    tile.setStyleSheet(
-        f"QLabel {{ background: rgba({color.red()}, {color.green()}, {color.blue()}, {alpha});"
-        f" border: none; border-radius: {size // 2}px; }}")
+    tile.setStyleSheet("QLabel { background: transparent; border: none; }")
     tile.setPixmap(pixmap_for(parent, glyph, glyph_size, color))
     return tile
 
@@ -87,12 +85,12 @@ class ConfirmDialog(QDialog):
         layout.addLayout(self._build_header(title, glyph, accent))
 
         body = QVBoxLayout()
-        body.setContentsMargins(SIDE_PAD, 6, SIDE_PAD, 18)
-        body.setSpacing(10)
-        for row_glyph, text in points:
-            body.addWidget(self._build_row(row_glyph, text))
+        body.setContentsMargins(SIDE_PAD, 10, SIDE_PAD, 20)
+        body.setSpacing(16)
+        for point in points:
+            body.addWidget(self._build_row(*point))
         if note:
-            body.addSpacing(2)
+            body.addSpacing(4)
             body.addWidget(self._build_note(note))
         layout.addLayout(body)
 
@@ -132,7 +130,7 @@ class ConfirmDialog(QDialog):
         header.setSpacing(ROW_SPACING + 2)
         if glyph:
             tile = _tile(self, glyph, accent or S.accent_ink(),
-                         scale_px_length(TILE_PX), scale_px_length(TILE_GLYPH_PX), 0.16)
+                         scale_px_length(TILE_PX), scale_px_length(TILE_GLYPH_PX))
             tile.setObjectName("confirmDialogGlyph")
             header.addWidget(tile, 0, Qt.AlignmentFlag.AlignVCenter)
         heading = QLabel(title, self)
@@ -144,30 +142,37 @@ class ConfirmDialog(QDialog):
         header.addWidget(heading, 1, Qt.AlignmentFlag.AlignVCenter)
         return header
 
-    def _build_row(self, glyph: str, text: str) -> QFrame:
+    def _build_row(self, glyph: str, text: str, accent: str = "") -> QFrame:
+
+
         row = QFrame(self)
         row.setObjectName("confirmDialogRow")
         line = QHBoxLayout(row)
         line.setContentsMargins(0, 0, 0, 0)
         line.setSpacing(ROW_SPACING)
-        badge = _tile(row, glyph, S.INK_2, scale_px_length(BADGE_PX),
-                      scale_px_length(BADGE_GLYPH_PX), 0.0)
-        badge.setStyleSheet(
-            f"QLabel {{ background: {S.FIELD}; border: none;"
-            f" border-radius: {scale_px_length(BADGE_PX) // 2}px; }}")
-        line.addWidget(badge, 0, Qt.AlignmentFlag.AlignVCenter)
+        badge = _tile(row, glyph, accent or S.INK_2, scale_px_length(BADGE_PX),
+                      scale_px_length(BADGE_GLYPH_PX))
+        line.addWidget(badge, 0, Qt.AlignmentFlag.AlignTop)
+        lead, _, detail = text.partition("\n")
+        words = QVBoxLayout()
+        words.setContentsMargins(0, 0, 0, 0)
+        words.setSpacing(2)
+        styles = ([f"font-size: 13px; font-weight: 600; color: {S.INK};",
+                   f"font-size: 13px; color: {S.INK_2};"] if detail
+                  else [f"font-size: 13px; color: {S.INK};"])
+        for part, style in zip([lead, detail] if detail else [lead], styles):
 
-        label = QLabel(break_anywhere(text), row)
-        label.setTextFormat(Qt.TextFormat.PlainText)
-        label.setWordWrap(True)
-        label.setFixedWidth(self._text_width)
-        label.setStyleSheet(scale_qss_font_px(
-            f"font-size: 13px; color: {S.INK}; background: transparent;"))
+            label = QLabel(break_anywhere(part), row)
+            label.setTextFormat(Qt.TextFormat.PlainText)
+            label.setWordWrap(True)
+            label.setFixedWidth(self._text_width)
+            label.setStyleSheet(scale_qss_font_px(style + " background: transparent;"))
 
 
-        label.ensurePolished()
-        label.setMinimumHeight(label.heightForWidth(self._text_width))
-        line.addWidget(label, 1, Qt.AlignmentFlag.AlignVCenter)
+            label.ensurePolished()
+            label.setMinimumHeight(label.heightForWidth(self._text_width))
+            words.addWidget(label)
+        line.addLayout(words, 1)
         return row
 
     def _build_note(self, note: str) -> QLabel:

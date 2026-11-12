@@ -41,6 +41,7 @@ from .crash_note import pid_alive
 from .host_platform import remove_quietly, resolved, retry_file_op
 from .logger import log_warning
 from .numbers import as_float, as_int
+from .project_identity import open_project_file
 from .snapshot import (
     MAX_HASH_FILE_BYTES,
     MAX_INDEX_BYTES,
@@ -75,15 +76,6 @@ def _opening(text: str) -> str:
 def _count(value) -> int:
 
     return as_int(value or 0, 0)
-
-
-def _open_project_file() -> str:
-
-    try:
-        return QgsProject.instance().fileName() or ""
-    except Exception as exc:  # noqa: BLE001
-        log_warning(f"Open project not read: {exc}")
-        return ""
 
 
 
@@ -364,7 +356,7 @@ def _run_changes(before, after) -> list[dict]:
     items: dict[str, dict] = {}
 
     def item(lid: str, name: str) -> dict:
-        return items.setdefault(lid, {"layer": name, "what": [], "delta": None})
+        return items.setdefault(lid, {"layer": name, "layer_id": lid, "what": [], "delta": None})
 
     for lid in [*now, *[lid for lid in known_now if lid not in now]]:
         if lid not in known_then:
@@ -511,7 +503,7 @@ class Checkpoint:
 
 
 
-        open_file = _open_project_file()
+        open_file = open_project_file()
         if open_file and any(_same_file(name, open_file) for name in (self.project_files or [self.project_file])):
             return open_file
         return None
@@ -624,7 +616,7 @@ class CheckpointHistory:
 
 
         self._lineage: list[str] = []
-        self._remember(_open_project_file())
+        self._remember(open_project_file())
         self._restore_running = False
         self._restore_noted = False
 
@@ -729,7 +721,7 @@ class CheckpointHistory:
                 log_warning(f"Checkpoint hold failed: {exc}")
 
 
-        self._adopt(_open_project_file())
+        self._adopt(open_project_file())
 
     def _save(self, thread_id: str) -> None:
 
@@ -1016,7 +1008,7 @@ class CheckpointHistory:
 
 
 
-        open_file = _open_project_file()
+        open_file = open_project_file()
         if open_file and _in_snapshots(open_file):
             return
         self._lineage = []
@@ -1032,7 +1024,7 @@ class CheckpointHistory:
 
 
 
-        open_file = _open_project_file()
+        open_file = open_project_file()
         if open_file and any(_same_file(open_file, name) for name in self._lineage):
             return
         self._lineage = []
@@ -1047,7 +1039,7 @@ class CheckpointHistory:
 
 
 
-        path = _open_project_file()
+        path = open_project_file()
         if not path or _in_snapshots(path):
             return
 
@@ -1268,7 +1260,7 @@ class CheckpointHistory:
 
 
 
-        project = _open_project_file()
+        project = open_project_file()
         self._restore_running = True
         if not project or _in_snapshots(project):
             return
@@ -1297,7 +1289,7 @@ class CheckpointHistory:
                 note = json.load(handle)
         except (OSError, ValueError):
             return None
-        project = _open_project_file()
+        project = open_project_file()
         if not isinstance(note, dict) or not project or not _same_file(str(note.get("project") or ""), project):
             return None
         if pid_alive(as_int(note.get("pid"), 0)):
@@ -1328,7 +1320,7 @@ class CheckpointHistory:
 
         if entry.project_generation == self._generation:
             return True
-        open_file = _open_project_file()
+        open_file = open_project_file()
         files = entry.project_files or [entry.project_file]
         if any(_same_file(name, other) for name in files for other in self._known_files(open_file)):
             self._adopt(open_file)

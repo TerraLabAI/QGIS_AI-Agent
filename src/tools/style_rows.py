@@ -43,9 +43,6 @@ from ..core.tool_registry import tool_error
 from .harvest_remote import _arcgis_describe
 
 
-_STOP_POLL_S = 0.05
-
-
 
 _NUMERIC_NULL_TYPES = frozenset({1, 2, 3, 4, 5, 6})
 
@@ -254,12 +251,11 @@ def read(spec: dict) -> dict:
             over.set()
 
     background.start_kept_thread(reader, source, request, feedback, name="set_layer_style read")
-    while not over.wait(_STOP_POLL_S):
-        if net.is_cancelled(cancelled):
-            halted.set()
-            feedback.cancel()
-            return tool_error("Stopped while the layer's rows were read.", "CANCELLED",
-                              hint="style_stopped_unchanged")
+    if background.stop_came_first(over, cancelled):
+        halted.set()
+        feedback.cancel()
+        return tool_error("Stopped while the layer's rows were read.", "CANCELLED",
+                          hint="style_stopped_unchanged")
     if failure:
         raise failure[0]
     return out["facts"]

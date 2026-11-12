@@ -55,7 +55,6 @@ _SQL_ROW_CAP = 1000
 
 _COUNTED_VALUES_MAX = 50
 _UNIQUE_VALUES_DEFAULT = 1000
-_STOP_POLL_S = 0.05
 
 
 _CLICK_PX = 101
@@ -888,10 +887,9 @@ def _unique_values_off_thread(args: dict) -> dict:
             over.set()
 
     background.start_kept_thread(reader, plan.pop("source"), plan["request"], name="get_unique_values read")
-    while not over.wait(_STOP_POLL_S):
-        if callable(cancelled) and cancelled():
-            halted.set()
-            return tool_error("Stopped while the values were read.", "CANCELLED")
+    if background.stop_came_first(over, cancelled):
+        halted.set()
+        return tool_error("Stopped while the values were read.", "CANCELLED")
     if failure:
         raise failure[0]
     values = _ordered_values([entry[0] for entry in seen.values()])
@@ -1371,7 +1369,7 @@ def _watched(thread: _ServiceAsk):
             timer.stop()
             thread.exit()
 
-    timer.setInterval(int(_STOP_POLL_S * 1000))
+    timer.setInterval(int(background.STOP_POLL_S * 1000))
     timer.timeout.connect(watch)
     timer.start()
     try:

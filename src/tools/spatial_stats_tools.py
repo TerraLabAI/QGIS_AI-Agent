@@ -76,8 +76,6 @@ DEFAULT_K = 8
 MAX_LINKS = 6_000_000
 SIGNIFICANCE = 0.05
 
-_STOP_POLL_S = 0.05
-
 _NAMED = 20
 _GROUPS_SHOWN = 30
 
@@ -364,11 +362,10 @@ def _read(state: dict, plan: dict, rows: list, cancelled) -> None:
 
     background.start_kept_thread(reader, state["source"], state["request"], state["feedback"],
                                  name="spatial_statistics read")
-    while not over.wait(_STOP_POLL_S):
-        if net.is_cancelled(cancelled):
-            halted.set()
-            state["feedback"].cancel()
-            raise InterruptedError("Stopped while the features were read")
+    if background.stop_came_first(over, cancelled):
+        halted.set()
+        state["feedback"].cancel()
+        raise InterruptedError("Stopped while the features were read")
     if failure:
         raise failure[0]
 

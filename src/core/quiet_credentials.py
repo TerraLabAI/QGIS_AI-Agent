@@ -94,7 +94,7 @@ def _release() -> None:
 def _hold_if_awaited() -> bool:
 
 
-    if not still_awaited():
+    if not still_awaited(changes_project=False):
         return False
     _hold()
     return True

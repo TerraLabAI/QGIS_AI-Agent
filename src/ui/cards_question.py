@@ -764,6 +764,7 @@ class QuestionCard(_Card, FoldMixin):
         self._folding = False
         self._sending = False
         self._slide: QVariantAnimation | None = None
+        self._seat_inset = 0
         self._advance = one_shot(self, self._auto_advance, _ADVANCE_MS)
 
         self._body = QWidget(self)
@@ -785,6 +786,19 @@ class QuestionCard(_Card, FoldMixin):
         self.add_page(tool_call_id, self.question, self.options, allow_free_text,
                       recommended=recommended, why=why, multiple=multiple,
                       details=details, header=header)
+
+    def seat(self) -> QWidget:
+
+        return self._pages[self._current].head if self._pages and self._body.isVisible() else None
+
+    def set_seat_inset(self, px: int) -> None:
+
+        self._seat_inset = int(px)
+        for page in self._pages:
+            page.head.layout().setContentsMargins(0, 0, self._seat_inset, 0)
+
+    def option_rows(self) -> list:
+        return [row for page in self._pages for row in page._rows]
 
     def _build_footer(self) -> QWidget:
         footer = AnswerFooter(self._body)
@@ -831,6 +845,7 @@ class QuestionCard(_Card, FoldMixin):
         page.picked.connect(self._advance.start)
         page.submitted.connect(self._on_submitted)
         self._pages.append(page)
+        page.head.layout().setContentsMargins(0, 0, self._seat_inset, 0)
         page.seen = len(self._pages) - 1 == self._current
         self._stack.addWidget(page)
         self._fit_policies()

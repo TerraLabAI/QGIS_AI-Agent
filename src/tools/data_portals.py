@@ -20,7 +20,6 @@ from . import ogc_inspect
 from .data_common import (
     _CACHE_CATALOG_S,
     _PORTAL_TIMEOUT,
-    _SOCRATA_GEOMETRY_TYPES,
     _http_get,
     _open_data_portals,
 )
@@ -548,7 +547,7 @@ def _parse_socrata_results(data: dict) -> list:
             continue
 
         datatypes = [str(value).lower() for value in resource.get("columns_datatype", [])]
-        is_geospatial = any(any(geom in datatype for geom in _SOCRATA_GEOMETRY_TYPES) for datatype in datatypes)
+        is_geospatial = any(any(geom in datatype for geom in links.SOCRATA_GEOMETRY_TYPES) for datatype in datatypes)
         if not is_geospatial:
             continue
 

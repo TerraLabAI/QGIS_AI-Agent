@@ -478,6 +478,11 @@ def remove(layer_ids) -> list:
     return remove_layers([str(layer_id) for layer_id in layer_ids or ()])
 
 
+
+
+GROUP_PROPERTY = "terralab/working_layers"
+
+
 def group(layer_ids, title: str) -> int:
 
 
@@ -505,11 +510,14 @@ def group(layer_ids, title: str) -> int:
         if holder is None:
 
 
-            holder = next((child for child in root.children()
-                           if QgsLayerTree.isGroup(child) and child.name() == title), None)
-            holder = holder or root.addGroup(title)
+
+            groups = [child for child in root.children() if QgsLayerTree.isGroup(child)]
+            holder = next((child for child in groups if child.customProperty(GROUP_PROPERTY)), None) \
+                or next((child for child in groups if child.name() == title), None) \
+                or root.addGroup(title)
             if holder is None:
                 return 0
+            holder.setCustomProperty(GROUP_PROPERTY, True)
         try:
             clone = node.clone()
             holder.addChildNode(clone)

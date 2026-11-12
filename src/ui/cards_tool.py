@@ -70,6 +70,7 @@ from .card_base import (
     stop_fade_up,
 )
 from .code_block import CodeBlock
+from .console_script import console_script
 from .cross_plugin_discovery import open_sibling
 from .font_scale import scale_px_length, scale_qss_font_px
 from .icons import pixmap_for, sibling_logo_pixmap
@@ -120,14 +121,6 @@ from .trace_rows import HoverRow
 from .transcript import fence
 from .widgets import ChatLabel, ElidedLabel, FlowLayout, Spinner
 
-
-
-SCRIPT_PREAMBLE = (
-    "try:\n"
-    "    iface\n"
-    "except NameError:\n"
-    "    from qgis.utils import iface\n"
-)
 _COPIED_MS = 1500
 
 
@@ -943,7 +936,7 @@ class ToolCard(QWidget):
 
     def _on_copy_script(self) -> None:
         try:
-            QApplication.clipboard().setText(SCRIPT_PREAMBLE + "\n" + self.code_text().rstrip() + "\n")
+            QApplication.clipboard().setText(console_script(self.name, self.args))
         except (RuntimeError, AttributeError):
             return
         self._script_btn.setText(self.tr("Copied"))
@@ -1017,5 +1010,5 @@ class ToolCard(QWidget):
         return "\n".join(parts)
 
 
-__all__ = ["CodeBlock", "SCRIPT_PREAMBLE", "ToolCard", "humanise_tool_name",
+__all__ = ["CodeBlock", "ToolCard", "humanise_tool_name",
            "sibling_run_product"]

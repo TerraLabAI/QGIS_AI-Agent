@@ -35,6 +35,8 @@
 
 
 
+
+
 from __future__ import annotations
 
 import hashlib
@@ -451,6 +453,11 @@ def _clean(items) -> list:
             entry["family"] = family
             entry["logo_url"] = connector_logo(str(family.get("id") or "")) if family else ""
         entry["via"] = str(item.get("via") or "").strip()
+        entry["address"] = str(item.get("address") or "").strip()
+        if "{" in url or "%7b" in url.lower():
+
+            entry["address"] = entry["address"] or url
+            entry["url"] = ""
         for key in ("kind", "resolution", "attribution"):
             entry[key] = str(item.get(key) or "").strip()
         dates = item.get("dates")
@@ -463,7 +470,8 @@ def _clean(items) -> list:
 
 
 
-        identity = url or name
+
+        identity = (url or name, entry["product"])
         if identity in seen:
             continue
         seen.add(identity)
@@ -853,6 +861,7 @@ class _SourceRow(QWidget):
         self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
         self.setAccessibleName(top)
         self.setAccessibleDescription(under)
+        self.setToolTip(item.get("address") or item["url"])
 
     def _under(self, open_: bool) -> str:
 

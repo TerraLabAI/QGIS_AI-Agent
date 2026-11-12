@@ -6,6 +6,7 @@
 
 from __future__ import annotations
 
+from ..core import telemetry
 from ..core.logger import log, log_warning
 from ..core.profile import REPLY_LANGUAGES, add_memory_note, load_memory_notes, record_forgotten, remove_memory_note
 from ..core.protocol import ClientErrorCode, Decision, RunStatus
@@ -245,6 +246,7 @@ class _ControllerOffers:
         entry = (getattr(self, "_memory_undo", None) or {}).pop(str(key or ""), None)
         if not entry:
             return
+        telemetry.track_setting("memory_note", "undone")
         try:
             if "setting" in entry:
                 setattr(self._settings, entry["setting"], entry["before"])

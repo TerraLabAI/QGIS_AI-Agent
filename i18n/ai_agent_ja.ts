@@ -1815,6 +1815,98 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <source>expired</source>
             <translation>期限切れ</translation>
         </message>
+        <message>
+            <source>Flow lines: {}</source>
+            <translation>フローライン: {}</translation>
+        </message>
+        <message>
+            <source>Voice dictation</source>
+            <translation>音声入力</translation>
+        </message>
+        <message>
+            <source>Talk to your AI agent</source>
+            <translation>AIエージェントに話しかける</translation>
+        </message>
+        <message>
+            <source>Speak, and your words become text you can edit before sending.</source>
+            <translation>話した内容がテキストになり、送信前に編集できます。</translation>
+        </message>
+        <message>
+            <source>Your voice stays private</source>
+            <translation>音声は非公開のままです</translation>
+        </message>
+        <message>
+            <source>Recorded only when you press the microphone, transcribed in the EU, never stored by TerraLab and never used to train AI.</source>
+            <translation>録音はマイクを押したときだけ行われます。文字起こしはEU内で処理され、TerraLabが保存することも、AIの学習に使われることもありません。</translation>
+        </message>
+        <message>
+            <source>Start dictating</source>
+            <translation>音声入力を開始</translation>
+        </message>
+        <message>
+            <source>Not now</source>
+            <translation>今はしない</translation>
+        </message>
+        <message>
+            <source>AI can make mistakes</source>
+            <translation>AIは間違えることがあります</translation>
+        </message>
+        <message>
+            <source>Adding the layer</source>
+            <translation>レイヤを追加しています</translation>
+        </message>
+        <message>
+            <source>Cutting to the area</source>
+            <translation>範囲で切り抜いています</translation>
+        </message>
+        <message>
+            <source>Failed</source>
+            <translation>失敗しました</translation>
+        </message>
+        <message>
+            <source>Finding the place</source>
+            <translation>場所を探しています</translation>
+        </message>
+        <message>
+            <source>Paused</source>
+            <translation>一時停止中</translation>
+        </message>
+        <message>
+            <source>Querying the source</source>
+            <translation>データ元に問い合わせています</translation>
+        </message>
+        <message>
+            <source>Queued</source>
+            <translation>待機中</translation>
+        </message>
+        <message>
+            <source>Stopped</source>
+            <translation>停止しました</translation>
+        </message>
+        <message>
+            <source>Working</source>
+            <translation>作業中</translation>
+        </message>
+        <message>
+            <source>about {n} min left</source>
+            <translation>残り約{n}分</translation>
+        </message>
+        <message>
+            <source>about {n} s left</source>
+            <translation>残り約{n}秒</translation>
+        </message>
+        <message>
+            <source>{done} MB</source>
+            <translation>{done} MB</translation>
+        </message>
+        <message>
+            <source>{done} of {total} MB</source>
+            <translation>{done} / {total} MB</translation>
+        </message>
+        <message>
+            <source>{words} · {done} of {total}</source>
+            <translation>{words} · {done} / {total}</translation>
+        </message>
     </context>
     <context>
         <name>AIAgentContext</name>
@@ -2315,6 +2407,18 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <source>Sign in or create an account</source>
             <translation>サインインまたはアカウントを作成</translation>
+        </message>
+        <message>
+            <source>Opens your browser, takes about 15 seconds</source>
+            <translation>ブラウザが開きます。所要時間は約15秒です。</translation>
+        </message>
+        <message>
+            <source>Sign in or create a free account</source>
+            <translation>サインインまたは無料アカウント作成</translation>
+        </message>
+        <message>
+            <source>The AI agent loads data, styles layers, runs analyses and edits features for you.</source>
+            <translation>AIエージェントが、データの読み込み、レイヤのスタイル設定、解析の実行、フィーチャの編集を代行します。</translation>
         </message>
     </context>
     <context>
@@ -3304,6 +3408,22 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <source>Removed from the queue</source>
             <translation>キューから削除しました</translation>
         </message>
+        <message>
+            <source>No free tasks left on this computer</source>
+            <translation>このパソコンの無料タスクは残っていません</translation>
+        </message>
+        <message>
+            <source>No free tasks left this month</source>
+            <translation>今月の無料タスクは残っていません</translation>
+        </message>
+        <message>
+            <source>Ask or describe a task in QGIS</source>
+            <translation>QGISでやりたいことを質問または入力</translation>
+        </message>
+        <message>
+            <source>Reply</source>
+            <translation>返信</translation>
+        </message>
     </context>
     <context>
         <name>ChatSidebar</name>
@@ -3606,6 +3726,26 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <source>Add files or one of this project's layers. A layer can also be dragged from the Layers panel; Ctrl+V pastes a picture.</source>
             <translation>ファイル、またはこのプロジェクトのレイヤを追加します。レイヤはレイヤパネルからドラッグすることもできます。Ctrl+V で画像を貼り付けられます。</translation>
         </message>
+        <message>
+            <source>Send this as it is?</source>
+            <translation>このまま送信しますか？</translation>
+        </message>
+        <message>
+            <source>It looks like a typing slip. Edit it, or press Send again.</source>
+            <translation>入力ミスかもしれません。修正するか、もう一度「送信」を押してください。</translation>
+        </message>
+        <message>
+            <source>Ask or describe a task in QGIS</source>
+            <translation>QGISでやりたいことを質問または入力</translation>
+        </message>
+        <message>
+            <source>Done: write what I said (Enter)</source>
+            <translation>完了：話した内容を入力 (Enter)</translation>
+        </message>
+        <message>
+            <source>Finish dictation</source>
+            <translation>音声入力を終了</translation>
+        </message>
     </context>
     <context>
         <name>ComposerInput</name>
@@ -3837,6 +3977,30 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <source>{sources} sources the AI agent finds and loads by itself: {datasets} datasets in {countries} countries.</source>
             <translation>AIエージェントが自分で見つけて読み込めるソースは{sources}件、{countries}か国の{datasets}データセットです。</translation>
         </message>
+        <message>
+            <source>%n datasets from other providers</source>
+            <translation>他のプロバイダのデータセット%n件</translation>
+        </message>
+        <message>
+            <source>Popular</source>
+            <translation>人気</translation>
+        </message>
+        <message>
+            <source>Europe</source>
+            <translation>ヨーロッパ</translation>
+        </message>
+        <message>
+            <source>Americas</source>
+            <translation>アメリカ大陸</translation>
+        </message>
+        <message>
+            <source>Asia and Pacific</source>
+            <translation>アジア・太平洋</translation>
+        </message>
+        <message>
+            <source>Africa and Middle East</source>
+            <translation>アフリカ・中東</translation>
+        </message>
     </context>
     <context>
         <name>DiffTableCard</name>
@@ -3979,6 +4143,10 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <source>Applies from your next message.</source>
             <translation>次のメッセージから適用されます。</translation>
         </message>
+        <message>
+            <source>Effort {level}: how hard the AI agent works on the next message</source>
+            <translation>労力 {level}：次のメッセージにAIエージェントがどれだけ力を入れるか</translation>
+        </message>
     </context>
     <context>
         <name>EmptyState</name>
@@ -4002,6 +4170,10 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <source>Data</source>
             <translation>データ</translation>
+        </message>
+        <message>
+            <source>How can I help?</source>
+            <translation>何をお手伝いしましょうか？</translation>
         </message>
     </context>
     <context>
@@ -4112,6 +4284,26 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <source>Send feedback</source>
             <translation>フィードバックを送信</translation>
+        </message>
+        <message>
+            <source>Free trial</source>
+            <translation>無料トライアル</translation>
+        </message>
+        <message>
+            <source>Your Pro is set to end. Keep it in one click.</source>
+            <translation>Pro はまもなく終了します。ワンクリックで継続できます。</translation>
+        </message>
+        <message>
+            <source>Keep Pro</source>
+            <translation>Proを続ける</translation>
+        </message>
+        <message>
+            <source>Open the AI Agent page on terra-lab.ai</source>
+            <translation>terra-lab.aiのAI Agentページを開く</translation>
+        </message>
+        <message>
+            <source>Your Pro ends on {date}. Keep it in one click.</source>
+            <translation>Proは{date}に終了します。ワンクリックで続けられます。</translation>
         </message>
     </context>
     <context>
@@ -4661,6 +4853,46 @@ Click to open its page.</source>
             <source>{mode}: what AI Agent may do without asking</source>
             <translation>{mode}：AI Agentが確認なしで実行できること</translation>
         </message>
+        <message>
+            <source>Free trial</source>
+            <translation>無料トライアル</translation>
+        </message>
+        <message>
+            <source>Asks before every change.</source>
+            <translation>変更のたびに確認します。</translation>
+        </message>
+        <message>
+            <source>Asks only before risky changes.</source>
+            <translation>リスクのある変更の前だけ確認します。</translation>
+        </message>
+        <message>
+            <source>It brings your project back. Files on disk are not covered.</source>
+            <translation>プロジェクトを元に戻せます。ディスク上のファイルは対象外です。</translation>
+        </message>
+        <message>
+            <source>Spending credits or reaching an unknown site.</source>
+            <translation>クレジットの消費や、不明なサイトへのアクセス。</translation>
+        </message>
+        <message>
+            <source>Still asks for what matters</source>
+            <translation>重要なことは確認します</translation>
+        </message>
+        <message>
+            <source>The AI agent runs every step without asking, even to delete a layer or run code.</source>
+            <translation>AIエージェントは、レイヤの削除やコードの実行も含め、すべての手順を確認なしで実行します。</translation>
+        </message>
+        <message>
+            <source>Undo is there</source>
+            <translation>元に戻せます</translation>
+        </message>
+        <message>
+            <source>Works on its own</source>
+            <translation>自分で進めます</translation>
+        </message>
+        <message>
+            <source>Works on its own and rarely asks.</source>
+            <translation>自分で進め、ほとんど確認しません。</translation>
+        </message>
     </context>
     <context>
         <name>PlanCard</name>
@@ -4727,6 +4959,22 @@ Click to open its page.</source>
             <source>Question {n} of {count}</source>
             <translation>質問 {n} / {count}</translation>
         </message>
+        <message>
+            <source>Checkbox</source>
+            <translation>チェックボックス</translation>
+        </message>
+        <message>
+            <source>Radio button</source>
+            <translation>ラジオボタン</translation>
+        </message>
+        <message>
+            <source>selected</source>
+            <translation>選択済み</translation>
+        </message>
+        <message>
+            <source>not selected</source>
+            <translation>未選択</translation>
+        </message>
     </context>
     <context>
         <name>QuotaCard</name>
@@ -4775,7 +5023,7 @@ Click to open its page.</source>
         </message>
         <message>
             <location filename="src/ui/quota_card.py" />
-            <source>Start 7-day free trial</source>
+            <source>Start 7 day free trial</source>
             <translation>7日間無料トライアルを開始</translation>
         </message>
         <message>
@@ -4952,6 +5200,134 @@ Click to open its page.</source>
             <source>Medium effort now, High after the trial</source>
             <translation>トライアル中はMedium、終了後はHighの推論レベル</translation>
         </message>
+        <message>
+            <source>For a company or team</source>
+            <translation>法人・チームでのご利用</translation>
+        </message>
+        <message>
+            <source>Your custom instructions</source>
+            <translation>あなたのカスタム指示</translation>
+        </message>
+        <message>
+            <source>1 free task left this month</source>
+            <translation>今月の無料タスクは残り1件</translation>
+        </message>
+        <message>
+            <source>AI Agent Pro for work, by invoice</source>
+            <translation>仕事で使うAI Agent Pro、請求書払い</translation>
+        </message>
+        <message>
+            <source>AI Agent Pro for work, without a card</source>
+            <translation>仕事で使うAI Agent Pro、カードなしで</translation>
+        </message>
+        <message>
+            <source>Copy</source>
+            <translation>コピー</translation>
+        </message>
+        <message>
+            <source>Free trial</source>
+            <translation>無料トライアル</translation>
+        </message>
+        <message>
+            <source>Hello,
+
+I used all my AI Agent tasks this month. Could you raise my quota?
+
+Thank you</source>
+            <translation>お世話になっております。
+
+今月のAI Agentのタスクをすべて使い切りました。上限を引き上げていただけますか。
+
+よろしくお願いいたします。</translation>
+        </message>
+        <message>
+            <source>Hello,
+
+I'd like to use AI Agent Pro at work but I can't pay by card. Could you send my company an invoice or a quote?
+
+Company:
+Name:
+
+Thank you</source>
+            <translation>お世話になっております。
+
+仕事でAI Agent Proを使いたいのですが、カードで支払えません。会社宛てに請求書または見積書を送っていただけますか。
+
+会社名:
+お名前:
+
+よろしくお願いいたします。</translation>
+        </message>
+        <message>
+            <source>Hello,
+
+I'd like to use AI Agent Pro at work but I can't pay by card. Could you set up the 7 free days for us?
+
+Company:
+Name:
+
+Thank you</source>
+            <translation>お世話になっております。
+
+仕事でAI Agent Proを使いたいのですが、カードで支払えません。7日間の無料期間を設定していただけますか。
+
+会社名:
+お名前:
+
+よろしくお願いいたします。</translation>
+        </message>
+        <message>
+            <source>More AI Agent tasks this month</source>
+            <translation>今月のAI Agentタスクを追加</translation>
+        </message>
+        <message>
+            <source>Need it for work?</source>
+            <translation>仕事で使いますか？</translation>
+        </message>
+        <message>
+            <source>Need more this month? Write to us</source>
+            <translation>今月もっと必要ですか？ ご連絡ください</translation>
+        </message>
+        <message>
+            <source>No card to pay with? Write to us and we'll send your company an invoice.</source>
+            <translation>支払いに使えるカードがありませんか？ ご連絡いただければ、会社宛てに請求書をお送りします。</translation>
+        </message>
+        <message>
+            <source>No card to pay with? Write to us and we'll set up your 7 free days.</source>
+            <translation>支払いに使えるカードがありませんか？ ご連絡いただければ、7日間の無料期間を設定します。</translation>
+        </message>
+        <message>
+            <source>Nothing to pay today</source>
+            <translation>今日のお支払いはありません</translation>
+        </message>
+        <message>
+            <source>Pro is off until it's paid.</source>
+            <translation>お支払いが済むまでProは停止中です。</translation>
+        </message>
+        <message>
+            <source>That was your last free task</source>
+            <translation>最後の無料タスクでした</translation>
+        </message>
+        <message>
+            <source>Want more? Come back to Pro: {n} tasks a month.</source>
+            <translation>もっと使いたいですか？ Proに戻りましょう。月{n}タスク。</translation>
+        </message>
+        <message>
+            <source>Want more? Pro has {n} tasks a month.</source>
+            <translation>もっと使いたいですか？ Proは月{n}タスクです。</translation>
+        </message>
+        <message>
+            <source>Want more? Pro is free for a week.</source>
+            <translation>もっと使いたいですか？ Proは1週間無料です。</translation>
+        </message>
+        <message>
+            <source>{n} free tasks left this month</source>
+            <translation>今月の無料タスクは残り{n}件</translation>
+        </message>
+        <message>
+            <source>{n} tasks a month, cancel anytime</source>
+            <translation>月{n}タスク、いつでも解約可能</translation>
+        </message>
     </context>
     <context>
         <name>QuotaPauseCard</name>
@@ -5108,16 +5484,16 @@ Click to open its page.</source>
             <translation>{n} 件のメモをすべて削除しますか？ AI が再び追加することはありません。</translation>
         </message>
         <message>
-            <source>We may read a chat only to fix a bug, never to train AI. Chats are kept 30 days.</source>
-            <translation>チャットを読むのは、バグを直すときだけです。AIの学習には使いません。チャットは30日間保存されます。</translation>
+            <source>We may read a chat, or have a model score it, to fix bugs and improve the agent, never to train AI. Chats are kept 30 days.</source>
+            <translation>バグの修正とエージェントの改善のため、チャットを読んだり、モデルにスコアを付けさせたりすることがあります。AIの学習には使いません。チャットは30日間保存されます。</translation>
         </message>
         <message>
             <source>The AI saves notes on its own</source>
             <translation>AI がメモを自動で保存します</translation>
         </message>
         <message>
-            <source>Your chats are kept 30 days so a conversation survives an update. Off, the team never reads them. 0 days of history stores nothing.</source>
-            <translation>アップデート後も会話を残せるよう、チャットは30日間保存されます。オフにすると、チームがチャットを読むことはありません。保存期間を0日にすると、履歴は何も保存されません。</translation>
+            <source>Your chats are kept 30 days so a conversation survives an update. Off, we never read or score them. 0 days of history stores nothing.</source>
+            <translation>アップデート後も会話を残せるよう、チャットは30日間保存されます。オフにすると、チャットが読まれたり、スコアを付けられたりすることはありません。保存期間を0日にすると、履歴は何も保存されません。</translation>
         </message>
         <message>
             <location filename="src/ui/settings_dialog.py" />
@@ -5491,8 +5867,8 @@ Click to open its page.</source>
         </message>
         <message>
             <location filename="src/ui/settings_account.py" />
-            <source>We may read a chat only to fix a wrong answer or a bug, never to train AI.</source>
-            <translation>チャットを読むのは、誤った回答やバグを直すときだけです。AIの学習には使いません。</translation>
+            <source>We may read a chat, or have a model score it, to fix a wrong answer or a bug and improve the agent, never to train AI.</source>
+            <translation>誤った回答やバグの修正とエージェントの改善のため、チャットを読んだり、モデルにスコアを付けさせたりすることがあります。AIの学習には使いません。</translation>
         </message>
         <message>
             <location filename="src/ui/settings_account.py" />
@@ -5707,6 +6083,38 @@ Click to open its page.</source>
         <message>
             <source>Delete this note? The AI will not add it back.</source>
             <translation>このメモを削除しますか？AIが再び追加することはありません。</translation>
+        </message>
+        <message>
+            <source>Everywhere · {n}</source>
+            <translation>全プロジェクト共通 · {n}</translation>
+        </message>
+        <message>
+            <source>Other projects · {n}</source>
+            <translation>他のプロジェクト · {n}</translation>
+        </message>
+        <message>
+            <source>The rules you give it and the corrections that hold for later.</source>
+            <translation>あなたが与えたルールと、今後も有効な修正内容。</translation>
+        </message>
+        <message>
+            <source>This project · {n}</source>
+            <translation>このプロジェクト · {n}</translation>
+        </message>
+        <message>
+            <source>What the AI keeps between conversations, stored on this computer.</source>
+            <translation>AIが会話の合間も保持する内容で、このコンピューターに保存されます。</translation>
+        </message>
+        <message>
+            <source>commercial use, more tasks, your instructions and higher effort</source>
+            <translation>商用利用、より多くのタスク、独自の指示、高い推論レベル</translation>
+        </message>
+        <message>
+            <source>Animate the mascot</source>
+            <translation>マスコットをアニメーションさせる</translation>
+        </message>
+        <message>
+            <source>The AI agent's mark moves and follows the work. Off keeps it still.</source>
+            <translation>AIエージェントのマークが動き、作業に合わせて反応します。オフにすると静止します。</translation>
         </message>
     </context>
     <context>
@@ -6104,6 +6512,26 @@ Click to open its page.</source>
         <message>
             <source>could not be put back, so what it changed is still in the project</source>
             <translation>元に戻せなかったため、変更内容は引き続きプロジェクトに残っています</translation>
+        </message>
+        <message>
+            <source>QGIS restarted during this request, so this step was not run again. The project may already hold what it changed.</source>
+            <translation>この依頼の実行中に QGIS が再起動したため、このステップは再実行されませんでした。変更内容はすでにプロジェクトに反映されている可能性があります。</translation>
+        </message>
+        <message>
+            <source>Stopped after this step had finished: its changes are in the project.</source>
+            <translation>このステップが完了した後で停止しました。変更内容はプロジェクトに反映されています。</translation>
+        </message>
+        <message>
+            <source>{area} km²</source>
+            <translation>{area} km²</translation>
+        </message>
+        <message>
+            <source>{area} ha</source>
+            <translation>{area} ha</translation>
+        </message>
+        <message>
+            <source>{area} m²</source>
+            <translation>{area} m²</translation>
         </message>
     </context>
     <context>
@@ -8508,6 +8936,211 @@ This file is no longer where the run wrote it.</source>
         <message>
             <source>Edit this note</source>
             <translation>このメモを編集</translation>
+        </message>
+    </context>
+    <context>
+        <name>QgisLinks</name>
+        <message>
+            <source>Project Properties</source>
+            <translation>プロジェクトプロパティ</translation>
+        </message>
+        <message>
+            <source>Open the project's properties</source>
+            <translation>プロジェクトのプロパティを開く</translation>
+        </message>
+        <message>
+            <source>3D Map View</source>
+            <translation>3Dマップビュー</translation>
+        </message>
+        <message>
+            <source>Bring this 3D map view to the front</source>
+            <translation>この3Dマップビューを前面に表示</translation>
+        </message>
+        <message>
+            <source>Layout Designer</source>
+            <translation>レイアウトデザイナ</translation>
+        </message>
+        <message>
+            <source>Open this layout in the layout designer</source>
+            <translation>このレイアウトをレイアウトデザイナで開く</translation>
+        </message>
+        <message>
+            <source>Attribute Table</source>
+            <translation>属性テーブル</translation>
+        </message>
+        <message>
+            <source>Open the attribute table of {layer}</source>
+            <translation>{layer}の属性テーブルを開く</translation>
+        </message>
+        <message>
+            <source>Layer Properties › {tab}</source>
+            <translation>レイヤプロパティ › {tab}</translation>
+        </message>
+        <message>
+            <source>Open the properties of {layer} on the {tab} tab</source>
+            <translation>{layer}のプロパティを{tab}タブで開く</translation>
+        </message>
+    </context>
+    <context>
+        <name>OvertureExtract</name>
+        <message>
+            <source>{names}: loaded in full, {count} features.</source>
+            <translation>{names}: すべて読み込みました（地物{count}件）。</translation>
+        </message>
+        <message>
+            <source>{names}: {count} features loaded; part of the area could not be read.</source>
+            <translation>{names}: 地物{count}件を読み込みました。一部の範囲は読み取れませんでした。</translation>
+        </message>
+        <message>
+            <source>Reading {names}</source>
+            <translation>{names}を読み取り中</translation>
+        </message>
+    </context>
+    <context>
+        <name>GtfsTools</name>
+        <message>
+            <source>{lo} - {hi} trips/day</source>
+            <translation>{lo} - {hi} 便/日</translation>
+        </message>
+        <message>
+            <source>{name} stops</source>
+            <translation>{name}の停留所</translation>
+        </message>
+        <message>
+            <source>{name} routes</source>
+            <translation>{name}の路線</translation>
+        </message>
+    </context>
+    <context>
+        <name>Dictation</name>
+        <message>
+            <source>The AI Agent plugin in QGIS listens only while you dictate a message, to turn your voice into text.</source>
+            <translation>QGISのAI Agentプラグインは、メッセージを音声入力している間だけ、音声をテキストに変換するために聞き取ります。</translation>
+        </message>
+        <message>
+            <source>Animate the mascot</source>
+            <translation>マスコットを動かす</translation>
+        </message>
+        <message>
+            <source>The AI agent's mark moves and follows the work. Off keeps it still.</source>
+            <translation>AIエージェントのマークが動き、作業の進み具合に合わせます。オフにすると動きません。</translation>
+        </message>
+    </context>
+    <context>
+        <name>CodeLayoutExport</name>
+        <message>
+            <source>the layout export</source>
+            <translation>レイアウトの書き出し</translation>
+        </message>
+    </context>
+    <context>
+        <name>ComposerDictation</name>
+        <message>
+            <source>Cancel (Esc)</source>
+            <translation>キャンセル (Esc)</translation>
+        </message>
+        <message>
+            <source>Cancel dictation</source>
+            <translation>音声入力をキャンセル</translation>
+        </message>
+        <message>
+            <source>Dictate</source>
+            <translation>音声入力</translation>
+        </message>
+        <message>
+            <source>Dictate ({shortcut})</source>
+            <translation>音声入力 ({shortcut})</translation>
+        </message>
+        <message>
+            <source>Dictation is busy right now.</source>
+            <translation>音声入力は現在使用中です。</translation>
+        </message>
+        <message>
+            <source>Dictation is not available right now.</source>
+            <translation>音声入力は現在利用できません。</translation>
+        </message>
+        <message>
+            <source>Listening</source>
+            <translation>聞き取り中</translation>
+        </message>
+        <message>
+            <source>No connection to TerraLab, so nothing was transcribed.</source>
+            <translation>TerraLabに接続できないため、文字起こしできませんでした。</translation>
+        </message>
+        <message>
+            <source>No microphone found. Plug one in or check your sound settings.</source>
+            <translation>マイクが見つかりません。マイクを接続するか、サウンド設定を確認してください。</translation>
+        </message>
+        <message>
+            <source>No sound came from the microphone. Check that it is not muted.</source>
+            <translation>マイクから音声が入りませんでした。ミュートになっていないか確認してください。</translation>
+        </message>
+        <message>
+            <source>No sound came from the microphone. In Windows settings, Privacy, Microphone, let desktop apps use it.</source>
+            <translation>マイクから音声が入りませんでした。Windowsの設定、プライバシー、マイクで、デスクトップアプリの使用を許可してください。</translation>
+        </message>
+        <message>
+            <source>Nothing was heard. Speak closer to the microphone and try again.</source>
+            <translation>音声が聞き取れませんでした。マイクに近づいて、もう一度話してください。</translation>
+        </message>
+        <message>
+            <source>Open settings</source>
+            <translation>設定を開く</translation>
+        </message>
+        <message>
+            <source>Stopped at {n} minutes, the longest one recording can be.</source>
+            <translation>1回の録音の上限である{n}分で停止しました。</translation>
+        </message>
+        <message>
+            <source>That recording is too long to transcribe. Record a shorter one.</source>
+            <translation>録音が長すぎて文字起こしできません。もっと短く録音してください。</translation>
+        </message>
+        <message>
+            <source>The microphone could not be opened. Check that no other app holds it, then try again.</source>
+            <translation>マイクを開けませんでした。他のアプリが使用していないか確認して、もう一度お試しください。</translation>
+        </message>
+        <message>
+            <source>The microphone is blocked for QGIS in your system's privacy settings.</source>
+            <translation>システムのプライバシー設定で、QGISのマイク使用がブロックされています。</translation>
+        </message>
+        <message>
+            <source>The microphone is off for "AI Agent for QGIS". Turn it on in System Settings, Privacy &amp; Security, Microphone.</source>
+            <translation>"AI Agent for QGIS"のマイクがオフです。システム設定、プライバシーとセキュリティ、マイクでオンにしてください。</translation>
+        </message>
+        <message>
+            <source>The recording could not be transcribed.</source>
+            <translation>録音を文字起こしできませんでした。</translation>
+        </message>
+        <message>
+            <source>This QGIS installation cannot record sound, so dictation is not available here.</source>
+            <translation>このQGISでは録音できないため、音声入力は利用できません。</translation>
+        </message>
+        <message>
+            <source>Too many recordings in a minute. Wait a little.</source>
+            <translation>1分間の録音回数が多すぎます。少し待ってください。</translation>
+        </message>
+        <message>
+            <source>Transcribing...</source>
+            <translation>文字起こし中...</translation>
+        </message>
+        <message>
+            <source>Try again</source>
+            <translation>もう一度試す</translation>
+        </message>
+        <message>
+            <source>You reached today's dictation limit. It opens again tomorrow.</source>
+            <translation>今日の音声入力の上限に達しました。明日また使えるようになります。</translation>
+        </message>
+        <message>
+            <source>macOS asked to use the microphone and got no answer. Press the microphone to see the question again.</source>
+            <translation>macOSがマイクの使用を確認しましたが、応答がありませんでした。マイクを押すと、もう一度確認が表示されます。</translation>
+        </message>
+    </context>
+    <context>
+        <name>DictationBar</name>
+        <message>
+            <source>Recording</source>
+            <translation>録音中</translation>
         </message>
     </context>
 </TS>

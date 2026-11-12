@@ -21,12 +21,13 @@
 
 from __future__ import annotations
 
-from qgis.PyQt.QtCore import QCoreApplication, QEvent, QPoint, QSize, Qt, pyqtSignal
-from qgis.PyQt.QtGui import QColor
+from qgis.PyQt.QtCore import QCoreApplication, QEvent, QSize, Qt, pyqtSignal
+from qgis.PyQt.QtGui import QColor, QIcon
 from qgis.PyQt.QtWidgets import (
     QFrame,
     QHBoxLayout,
     QLabel,
+    QPushButton,
     QSizePolicy,
     QToolButton,
     QVBoxLayout,
@@ -38,8 +39,8 @@ from ..core.served_state import get_pro_offer
 from .confirm_dialog import ask_confirm
 from .font_scale import scale_qss_font_px
 from .icons import icon_for, pixmap_for
-from .quota_card import pro_price_per_month, trial_cta
-from .shared import event_pos, keep_on_screen, paint_styled_ground, round_popup_corners, screen_area_at
+from .quota_card import get_pro_label, pro_price_per_month, trial_short
+from .shared import event_pos, paint_styled_ground, place_by_box, round_popup_corners, settle_hover, show_popped
 from .style import (
     _BTN_MODE,
     ACCENT,
@@ -49,10 +50,12 @@ from .style import (
     FONT_BODY,
     FONT_HINT,
     HOVER,
+    HOVER_ON,
     INK,
     INK_2,
-    INK_3,
     LINE_STRONG,
+    OFFER_SOFT,
+    OFFER_SOFT_INK,
     RADIUS_CARD,
     RADIUS_CONTROL,
     SURFACE,
@@ -90,17 +93,23 @@ MODE_VISUALS = {
     AUTO: ("bolt", BRAND_RED),
 }
 _TILE_SIZE = 26
-_ROW_PAD_X = 10
-_ROW_PAD_Y = 7
-_ROW_SPACING = 10
-_POPOVER_MARGIN = 4
-_WRAP_SLACK = 6
 _TILE_GLYPH = 15
-_POPOVER_WIDTH = 300
-_HEAD_SPACING = 8
-_CHECK_SIZE = 14
+
+_ROW_TILE = 24
+_ROW_GLYPH = 19
+_ROW_PAD_X = 10
+_ROW_PAD_Y = 10
+_ROW_SPACING = 12
+_ROW_GAP = 2
+_POPOVER_MARGIN = 6
+_WRAP_SLACK = 6
+_POPOVER_WIDTH = 320
+_POPOVER_MIN_WIDTH = 260
+_CHECK_SIZE = 16
 _CHEVRON_SIZE = 12
-_SHIELD_SIZE = 14
+_SHIELD_SIZE = 16
+
+_CHIP_GLYPHS = {CAREFUL: "lu.shield", ASK: "lu.shield-check", AUTO: "lu.zap"}
 
 
 def mode_visual(approval: str) -> tuple:
@@ -112,15 +121,9 @@ def paint_tile(tile: QLabel, glyph: str, accent: str, glyph_size: int = _TILE_GL
                tinted: bool = True) -> None:
 
 
-    size = tile.width()
-    if tinted:
-        color = QColor(accent)
-        ground = f"rgba({color.red()}, {color.green()}, {color.blue()}, 0.16)"
-    else:
-        color = QColor(INK_2)
-        ground = FIELD
-    tile.setStyleSheet(
-        f"QLabel {{ background: {ground}; border: none; border-radius: {size // 3 + 2}px; }}")
+
+    color = QColor(accent if tinted else INK_2)
+    tile.setStyleSheet("QLabel { background: transparent; border: none; }")
     tile.setPixmap(pixmap_for(tile, glyph, glyph_size, color))
 
 
@@ -150,7 +153,7 @@ def select_qss(name: str) -> str:
 
 
         f"QToolButton#{name} {{ border-color: transparent; color: {INK_2};"
-        f" padding: 0 {_CHEVRON_SIZE + 10}px 0 6px; font-size: {FONT_BODY}px; }}"
+        f" padding: 0 {_CHEVRON_SIZE + 10}px 0 6px; font-size: {FONT_BODY - 1}px; }}"
         f"QToolButton#{name}:hover {{ color: {INK}; }}"
         f'QToolButton#{name}:pressed, QToolButton#{name}[active="true"] {{ color: {INK}; }}'
     )
@@ -162,15 +165,19 @@ _POPOVER_QSS = scale_qss_font_px(
     f"QFrame#permissionPopover {{ background: {SURFACE};"
     f" border: 1px solid {LINE_STRONG}; border-radius: {RADIUS_CARD}px; }}"
     f"QFrame#permissionRow {{ background: transparent; border: none; border-radius: {RADIUS_CONTROL}px; }}"
+    f'QFrame#permissionRow[current="true"] {{ background: {FIELD}; }}'
     f'QFrame#permissionRow[hover="true"] {{ background: {HOVER}; }}'
+    f'QFrame#permissionRow[held="true"] {{ background: {HOVER_ON}; }}'
     f"QLabel#permissionName {{ font-size: {FONT_BODY}px; font-weight: {WEIGHT_MEDIUM};"
     f" color: {INK}; background: transparent; border: none; }}"
     f"QLabel#permissionNote {{ font-size: {FONT_HINT}px; color: {INK_2};"
     " background: transparent; border: none; }"
-    f"QLabel#permissionHead {{ font-size: {FONT_HINT}px; font-weight: {WEIGHT_MEDIUM};"
-    f" color: {INK_3}; background: transparent; border: none; }}"
-    f"QLabel#permissionTag {{ font-size: {FONT_HINT}px; font-weight: {WEIGHT_MEDIUM}; color: {ACCENT_INK};"
-    " background: transparent; border: none; padding: 0; }"
+    f"QLabel#permissionHead {{ font-size: {FONT_BODY}px; font-weight: {WEIGHT_MEDIUM};"
+    f" color: {INK}; background: transparent; border: none; }}"
+
+
+    f"QPushButton#permissionTag {{ font-size: {FONT_HINT}px; font-weight: {WEIGHT_MEDIUM}; color: {OFFER_SOFT_INK};"
+    f" background: {OFFER_SOFT}; border: none; border-radius: 10px; padding: 2px 8px; min-height: 16px; }}"
     f"QLabel#permissionPrice {{ font-size: {FONT_HINT}px; color: {INK_2};"
     " background: transparent; border: none; }"
     "QLabel { background: transparent; border: none; }"
@@ -185,45 +192,31 @@ def normalize_mode(approval: str) -> str:
 class _ModeRow(QFrame):
 
 
+
     picked = pyqtSignal(str)
     locked_picked = pyqtSignal(str)
 
-    def __init__(self, approval: str, name: str, note: str, parent=None):
+    def __init__(self, approval: str, name: str, line: str, detail: str, parent=None):
         super().__init__(parent)
         self.approval = approval
         self.setObjectName("permissionRow")
         self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
         self.setProperty("hover", False)
+        self.setProperty("current", False)
         self.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.setToolTip(detail)
         row = QHBoxLayout(self)
         row.setContentsMargins(_ROW_PAD_X, _ROW_PAD_Y, _ROW_PAD_X, _ROW_PAD_Y)
         row.setSpacing(_ROW_SPACING)
-        self._tile = mode_tile(self, approval)
-        row.addWidget(self._tile, 0, Qt.AlignmentFlag.AlignTop)
+        self._tile = mode_tile(self, approval, _ROW_TILE, _ROW_GLYPH)
+        row.addWidget(self._tile, 0, Qt.AlignmentFlag.AlignVCenter)
         col = QVBoxLayout()
         col.setContentsMargins(0, 0, 0, 0)
-        col.setSpacing(2)
-
-
-
-        head = QHBoxLayout()
-        head.setContentsMargins(0, 0, 0, 0)
-        head.setSpacing(_HEAD_SPACING)
+        col.setSpacing(_ROW_GAP)
         self._name = QLabel(name, self)
         self._name.setObjectName("permissionName")
-        head.addWidget(self._name)
-        head.addStretch(1)
-
-
-        self._tag = QLabel(QCoreApplication.translate("PermissionChip", "Get Pro"), self)
-        self._tag.setObjectName("permissionTag")
-        self._tag.hide()
-        head.addWidget(self._tag, 0, Qt.AlignmentFlag.AlignVCenter)
-        self._check = QLabel(self)
-        self._check.setFixedSize(_CHECK_SIZE, _CHECK_SIZE)
-        head.addWidget(self._check, 0, Qt.AlignmentFlag.AlignVCenter)
-        col.addLayout(head)
-        self._note = QLabel(note, self)
+        col.addWidget(self._name)
+        self._note = QLabel(line, self)
         self._note.setObjectName("permissionNote")
         self._note.setWordWrap(True)
         col.addWidget(self._note)
@@ -232,6 +225,16 @@ class _ModeRow(QFrame):
         self._price.hide()
         col.addWidget(self._price)
         row.addLayout(col, 1)
+        self._tag = QPushButton(get_pro_label(), self)
+        self._tag.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+        self._tag.setObjectName("permissionTag")
+        self._tag.hide()
+        row.addWidget(self._tag, 0, Qt.AlignmentFlag.AlignVCenter)
+        self._check = QLabel(self)
+        self._check.setFixedSize(_CHECK_SIZE, _CHECK_SIZE)
+        row.addWidget(self._check, 0, Qt.AlignmentFlag.AlignVCenter)
+        for label in (self._tile, self._name, self._note, self._price, self._tag, self._check):
+            label.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, True)
         self._current = False
         self._locked = False
         self.set_current(False)
@@ -249,25 +252,19 @@ class _ModeRow(QFrame):
         if self._locked:
             self._check.clear()
 
-    def _label_tag(self, text_width: int | None = None) -> None:
+    def _label_tag(self) -> None:
 
-
-
-        short = QCoreApplication.translate("PermissionChip", "Get Pro")
-        label = trial_cta() if get_pro_offer() == "trial" else short
-        if text_width is not None and label != short:
-            room = text_width - self._name.sizeHint().width() - _HEAD_SPACING
-            if self._tag.fontMetrics().horizontalAdvance(label) > room:
-                label = short
-        self._tag.setText(label)
+        self._tag.setText(trial_short() if get_pro_offer() == "trial" else get_pro_label())
 
     def is_locked(self) -> bool:
         return self._locked
 
     def set_current(self, current: bool) -> None:
         self._current = bool(current)
+        self.setProperty("current", self._current)
+        repolish(self)
         if self._current:
-            self._check.setPixmap(pixmap_for(self, "check", _CHECK_SIZE))
+            self._check.setPixmap(pixmap_for(self, "check", _CHECK_SIZE, QColor(ACCENT_INK)))
         else:
             self._check.clear()
 
@@ -279,35 +276,24 @@ class _ModeRow(QFrame):
 
 
 
-        self.ensurePolished()
-        self._name.ensurePolished()
-        self._note.ensurePolished()
-        self._price.ensurePolished()
-        text_width = max(60, width - 2 * _POPOVER_MARGIN - 2 * _ROW_PAD_X
-                         - _TILE_SIZE - _ROW_SPACING)
-        self._tag.ensurePolished()
-        self._label_tag(text_width)
+        for widget in (self, self._name, self._note, self._price, self._tag):
+            widget.ensurePolished()
+        room = width - 2 * _POPOVER_MARGIN - 2 * _ROW_PAD_X - _ROW_TILE - _ROW_SPACING
+        self._label_tag()
+        trailing = self._tag.sizeHint().width() if self._locked else _CHECK_SIZE
+        text_width = max(60, room - _ROW_SPACING - trailing)
         metrics = self._note.fontMetrics()
         if metrics.horizontalAdvance(self._note.text()) <= text_width - _WRAP_SLACK:
 
 
-
             note_height = metrics.height()
         else:
-            note_height = self._note.heightForWidth(text_width)
-            if note_height <= 0:
-                note_height = metrics.boundingRect(
-                    0, 0, text_width, 0, int(Qt.TextFlag.TextWordWrap),
-                    self._note.text()).height()
-        self._note.setFixedHeight(note_height)
-
-
-
-
-        head = max(self._name.sizeHint().height(),
-                   self._tag.sizeHint().height() if self._locked else _CHECK_SIZE)
-        price = (2 + self._price.fontMetrics().height()) if self._price.text() else 0
-        self.setFixedHeight(2 * _ROW_PAD_Y + head + 2 + note_height + price)
+            note_height = metrics.boundingRect(
+                0, 0, text_width, 0, int(Qt.TextFlag.TextWordWrap), self._note.text()).height()
+        self._note.setFixedSize(text_width, note_height)
+        price = (_ROW_GAP + self._price.fontMetrics().height()) if self._price.text() else 0
+        text = self._name.sizeHint().height() + _ROW_GAP + note_height + price
+        self.setFixedHeight(2 * _ROW_PAD_Y + max(_ROW_TILE, text))
 
     def enterEvent(self, event):  # noqa: N802
         self.setProperty("hover", True)
@@ -319,7 +305,14 @@ class _ModeRow(QFrame):
         repolish(self)
         super().leaveEvent(event)
 
+    def mousePressEvent(self, event):  # noqa: N802
+        self.setProperty("held", True)
+        repolish(self)
+        event.accept()
+
     def mouseReleaseEvent(self, event):  # noqa: N802
+        self.setProperty("held", False)
+        repolish(self)
 
         if event.button() == Qt.MouseButton.LeftButton and self.rect().contains(event_pos(event)):
             self.pick()
@@ -340,7 +333,7 @@ class _ModeRow(QFrame):
         super().changeEvent(event)
         try:
             if event.type() == QEvent.Type.PaletteChange and self._current:
-                self._check.setPixmap(pixmap_for(self, "check", _CHECK_SIZE))
+                self._check.setPixmap(pixmap_for(self, "check", _CHECK_SIZE, QColor(ACCENT_INK)))
         except (RuntimeError, AttributeError):
             pass
 
@@ -359,17 +352,18 @@ class PermissionPopover(QFrame):
         self.setStyleSheet(_POPOVER_QSS)
         col = QVBoxLayout(self)
         col.setContentsMargins(_POPOVER_MARGIN, _POPOVER_MARGIN, _POPOVER_MARGIN, _POPOVER_MARGIN)
-        col.setSpacing(0)
+        col.setSpacing(2)
 
 
         self._head = QLabel(QCoreApplication.translate(
             "PermissionChip", "AI permissions"), self)
         self._head.setObjectName("permissionHead")
-        self._head.setContentsMargins(_ROW_PAD_X, 6, _ROW_PAD_X, 4)
+        self._head.setContentsMargins(_ROW_PAD_X, 8, _ROW_PAD_X, 6)
         col.addWidget(self._head)
         self._rows: dict[str, _ModeRow] = {}
+        lines = mode_lines()
         for approval, name, note in mode_texts(self):
-            row = _ModeRow(approval, name, note, self)
+            row = _ModeRow(approval, name, lines[approval], note, self)
             row.picked.connect(self._on_picked)
             row.locked_picked.connect(self._on_locked)
             self._rows[approval] = row
@@ -400,7 +394,7 @@ class PermissionPopover(QFrame):
         height = 2 * _POPOVER_MARGIN + self._head.sizeHint().height()
         for row in self._rows.values():
             row.fit_to_width(width)
-            height += row.height()
+            height += row.height() + self.layout().spacing()
         self.setFixedHeight(height)
 
     def paintEvent(self, event):  # noqa: N802
@@ -439,6 +433,16 @@ class PermissionPopover(QFrame):
     def _on_locked(self, _approval: str) -> None:
         self.hide()
         self.upgrade_requested.emit()
+
+
+def mode_lines() -> dict:
+
+
+    return {
+        CAREFUL: QCoreApplication.translate("PermissionChip", "Asks before every change."),
+        ASK: QCoreApplication.translate("PermissionChip", "Asks only before risky changes."),
+        AUTO: QCoreApplication.translate("PermissionChip", "Works on its own and rarely asks."),
+    }
 
 
 def mode_texts(widget: QWidget | None = None) -> tuple:
@@ -522,8 +526,6 @@ class PermissionChip(QToolButton):
 
 
 
-
-
         compact = bool(compact)
         if compact == self._compact:
             return
@@ -536,16 +538,23 @@ class PermissionChip(QToolButton):
 
 
 
+        if compact:
+            return BTN_SMALL_PX
         name = self._names().get(self.mode(), "")
-        text = 0 if compact else self.fontMetrics().horizontalAdvance(name) + 4
-        return 6 + _SHIELD_SIZE + text + _CHEVRON_SIZE + 10 + 2
+        return 6 + _SHIELD_SIZE + self.fontMetrics().horizontalAdvance(name) + 4 + _CHEVRON_SIZE + 10 + 2
+
+    def _chip_visual(self) -> tuple:
+
+
+        return _CHIP_GLYPHS[self.mode()], INK_2
 
     def _paint(self) -> None:
         shown = self.mode()
-        glyph, accent = mode_visual(shown)
-        self.setIcon(icon_for(self, glyph, _SHIELD_SIZE, QColor(accent)))
+        glyph, accent = self._chip_visual()
 
 
+        self.setIcon(QIcon() if self._compact
+                     else icon_for(self, glyph, _SHIELD_SIZE, QColor(accent)))
         name = self._names().get(shown, "")
         self.setText("" if self._compact else name)
         if self._compact and name:
@@ -575,11 +584,14 @@ class PermissionChip(QToolButton):
         super().paintEvent(event)
         from qgis.PyQt.QtGui import QPainter
 
-        pixmap = pixmap_for(self, "chevron_down", _CHEVRON_SIZE)
         painter = QPainter(self)
-        x = self.width() - _CHEVRON_SIZE - 6
-        y = (self.height() - _CHEVRON_SIZE) // 2
-        painter.drawPixmap(x, y, pixmap)
+        if self._compact:
+            glyph, accent = self._chip_visual()
+            painter.drawPixmap((self.width() - _SHIELD_SIZE) // 2, (self.height() - _SHIELD_SIZE) // 2,
+                               pixmap_for(self, glyph, _SHIELD_SIZE, QColor(accent)))
+        else:
+            painter.drawPixmap(self.width() - _CHEVRON_SIZE - 6, (self.height() - _CHEVRON_SIZE) // 2,
+                               pixmap_for(self, "chevron_down", _CHEVRON_SIZE))
         painter.end()
         paint_keyboard_ring(self)
 
@@ -609,25 +621,18 @@ class PermissionChip(QToolButton):
 
     def _open(self) -> None:
         popover = self.popover()
-        popover.fit(_POPOVER_WIDTH)
-        above = self.mapToGlobal(QPoint(0, 0))
+        box = self.parentWidget() or self
+        popover.fit(max(_POPOVER_MIN_WIDTH, min(_POPOVER_WIDTH, box.width())))
         self.setProperty("active", True)
         repolish(self)
-        y = above.y() - popover.height() - 6
-        area = screen_area_at(above, self)
-        if area is not None and y < area.top():
-            y = above.y() + self.height() + 6
-
-
-        popover.move(*keep_on_screen(above.x(), y, popover.width(), popover.height(), area))
-        popover.show()
+        show_popped(popover, place_by_box(popover, box))
         if popover.shows_pro_tag():
             self.upsell_shown.emit()
 
     def eventFilter(self, watched, event):  # noqa: N802
         if watched is self._popover and event.type() == QEvent.Type.Hide:
             self.setProperty("active", False)
-            repolish(self)
+            settle_hover(self)
         return super().eventFilter(watched, event)
 
     def _on_picked(self, approval: str) -> None:
@@ -650,9 +655,12 @@ class PermissionChip(QToolButton):
             window_title=self.tr("Autopilot"),
             title=self.tr("Turn on Autopilot?"),
             points=(
-                ("trash", self.tr("Deletes layers, overwrites files and runs Python code without asking.")),
-                ("shield_check", self.tr("Spending credits or reaching an unknown site still asks first.")),
-                ("undo", self.tr("Undo covers the project, not every file on disk.")),
+                ("lu.navigation", self.tr("Works on its own") + "\n" + self.tr(
+                    "The AI agent runs every step without asking, even to delete a layer or run code."), accent),
+                ("shield_check", self.tr("Still asks for what matters") + "\n" + self.tr(
+                    "Spending credits or reaching an unknown site."), ACCENT),
+                ("undo", self.tr("Undo is there") + "\n" + self.tr(
+                    "It brings your project back. Files on disk are not covered."), BRAND_BLUE),
             ),
             note=self.tr("The next chat starts in Balanced again."),
             cancel_text=self.tr("Cancel"),

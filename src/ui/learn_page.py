@@ -66,7 +66,8 @@ from .thumbnail_cache import (
     NO_LESS_SAFE,
     REDIRECT_POLICY,
     cached_thumbnail,
-    is_thumbnail_url_usable,
+    drop_reply,
+    is_picture_url_usable,
     store_thumbnail,
 )
 
@@ -112,7 +113,7 @@ class ThumbnailLoader(QObject):
     def fetch(self, url: str) -> None:
         from qgis.core import QgsNetworkAccessManager
 
-        if self._reply is not None or not is_thumbnail_url_usable(url):
+        if self._reply is not None or not is_picture_url_usable(url):
             return
         self._url = url
         request = QNetworkRequest(QUrl(url))
@@ -135,18 +136,7 @@ class ThumbnailLoader(QObject):
 
     def abort(self) -> None:
         reply, self._reply = self._reply, None
-        if reply is None:
-            return
-        for signal in ("finished", "downloadProgress"):
-            try:
-                getattr(reply, signal).disconnect()
-            except (AttributeError, RuntimeError, TypeError):
-                pass
-        try:
-            reply.abort()
-            reply.deleteLater()
-        except RuntimeError:
-            pass
+        drop_reply(reply)
 
     def _on_progress(self, received: int, total: int) -> None:
         if self._reply is not None and (received > MAX_THUMBNAIL_BYTES or total > MAX_THUMBNAIL_BYTES):
@@ -308,7 +298,7 @@ class LearnCard(QFrame):
 
         self._loader: ThumbnailLoader | None = None
         thumbnail_url = str(item.get("thumbnail_url") or "")
-        if is_thumbnail_url_usable(thumbnail_url):
+        if is_picture_url_usable(thumbnail_url):
             cached = cached_thumbnail(thumbnail_url)
             if cached is not None:
                 self._thumb.set_image(cached)

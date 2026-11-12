@@ -36,8 +36,8 @@ from qgis.PyQt.QtWidgets import (
 
 from .card_base import reduced_motion
 from .font_scale import scale_qss_font_px
-from .icons import icon_for, logo_pixmap, pixmap_for
-from .shared import event_pos
+from .icons import icon_for, pixmap_for
+from .shared import CHAT_PANEL_OBJECT, event_pos
 from .style import (
     _BTN_ICON,
     ACCENT_INK,
@@ -71,7 +71,6 @@ MAX_RECENT_ROWS = 24
 _TOP_PX = 40
 _GLYPH = 18
 _GLYPH_SLOT = 20
-_MARK = 20
 _PAD = 8
 _GAP = 8
 _SLIDE_MS = 200
@@ -313,10 +312,9 @@ class ChatSidebar(QWidget):
         head = QHBoxLayout(top)
         head.setContentsMargins(0, 0, 0, 0)
         head.setSpacing(0)
-        self._mark = QLabel(top)
-        self._mark.setFixedSize(_MARK + 2 * _PAD, ROW_PX)
-        self._mark.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self._mark.setPixmap(logo_pixmap(self._mark, _MARK))
+
+        self._mark = QWidget(top)
+        self._mark.setFixedSize(_PAD, ROW_PX)
         head.addWidget(self._mark, 0, Qt.AlignmentFlag.AlignVCenter)
 
 
@@ -475,7 +473,7 @@ class ChatSidebar(QWidget):
     def host_is_wide(self) -> bool:
 
         host = self.parentWidget()
-        while host is not None and host.objectName() != "chatPanel":
+        while host is not None and host.objectName() != CHAT_PANEL_OBJECT:
             host = host.parentWidget()
         width = host.width() if host is not None else 0
         return width > WIDE_PANEL_PX

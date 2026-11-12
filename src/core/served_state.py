@@ -14,6 +14,7 @@
 from __future__ import annotations
 
 import re
+import string
 
 from . import tuning
 from .numbers import as_int
@@ -24,12 +25,13 @@ PRODUCT_ID = "ai-agent"
 SITE_URL = "https://terra-lab.ai"
 
 
-def build_utm_url(path: str, utm_content: str) -> str:
+def build_utm_url(path: str, utm_content: str, anchor: str = "") -> str:
 
     return (
         f"{SITE_URL}{path}"
         f"?utm_source=qgis&utm_medium=plugin&utm_campaign={PRODUCT_ID}"
         f"&utm_content={utm_content}"
+        + (f"#{anchor}" if anchor else "")
     )
 
 
@@ -38,10 +40,12 @@ UPGRADE_URL = build_utm_url(f"/dashboard/{PRODUCT_ID}", "upgrade")
 
 
 
-PRICING_URL = build_utm_url(f"/{PRODUCT_ID}#pricing", "pricing")
+PRICING_URL = build_utm_url(f"/{PRODUCT_ID}", "pricing", "pricing")
 PRODUCT_URL = build_utm_url(f"/{PRODUCT_ID}", "dock_branding")
 TERMS_URL = build_utm_url("/terms-of-sale", "settings_terms")
 PRIVACY_URL = build_utm_url("/privacy-policy", "settings_privacy")
+
+DICTATION_PRIVACY_URL = build_utm_url("/privacy-policy", "dictation_privacy", "voice-dictation")
 
 TUTORIAL_URL = build_utm_url("/blog/ai-agent-complete-guide", "tutorial")
 TERRALAB_MORE_URL = build_utm_url("", "menu_more")
@@ -65,15 +69,6 @@ PRO_RUNS_PER_MONTH = 300
 
 
 
-
-
-
-
-INVOICE_URL = build_utm_url("/pricing", "invoice")
-
-
-BUSINESS_QUOTE_URL = (f"{SITE_URL}/pricing?business={PRODUCT_ID}&request=trial&utm_source=qgis&utm_medium=plugin"
-                      f"&utm_campaign={PRODUCT_ID}&utm_content=trial_request#company")
 
 
 
@@ -686,11 +681,14 @@ def get_promo_active() -> bool:
 
 
 
+
+
+PRO_OFFERS = ("trial", "return", "none")
 _OFFER = ["none"]
 
 
-def set_pro_offer(trial: bool) -> None:
-    _OFFER[0] = "trial" if trial else "none"
+def set_pro_offer(kind: str) -> None:
+    _OFFER[0] = kind if kind in PRO_OFFERS else "none"
 
 
 def get_pro_offer() -> str:
@@ -741,8 +739,6 @@ def get_pro_price_excludes_tax() -> bool:
     pricing = _served_config.get("pricing")
     return isinstance(pricing, dict) and pricing.get("excludes_tax") is True
 
-def get_invoice_url() -> str:
-    return _served_url("invoice_url", INVOICE_URL)
 
 
 def _served_points(key: str, fallback: tuple) -> list:
@@ -819,6 +815,50 @@ def served_label_map(key: str, max_rows: int = _MAX_LABEL_ROWS) -> dict:
         if isinstance(token, str) and token.strip() and text:
             out[token.strip()] = text[:_MAX_LABEL_CHARS]
     return out
+
+
+
+
+
+
+
+
+
+
+
+_MAX_OFFER_CHARS = 200
+_MAX_OFFER_MAIL_CHARS = 1500
+
+
+def _fill(template: str, values: dict) -> str | None:
+
+
+
+    try:
+        parts = list(string.Formatter().parse(template))
+    except ValueError:
+        return None
+    for _text, name, spec, conversion in parts:
+        if name is not None and (name not in values or spec or conversion):
+            return None
+    return template.format(**values)
+
+
+def offer_text(key: str, shipped: str, **values) -> str:
+
+    raw = _served_config.get("offer_copy")
+    raw = raw if isinstance(raw, dict) else {}
+    served = raw.get(f"{key}@return") if _OFFER[0] == "return" else None
+    served = served if isinstance(served, str) and served.strip() else raw.get(key)
+    limit = _MAX_OFFER_MAIL_CHARS if key.endswith(".body") else _MAX_OFFER_CHARS
+    if isinstance(served, str) and served.strip() and not _PRICE_RE.search(served):
+        filled = _fill(served.strip(), values)
+        if filled is not None:
+            return filled[:limit]
+    try:
+        return shipped.format(**values) if values else shipped
+    except (IndexError, KeyError, ValueError):
+        return shipped
 
 
 

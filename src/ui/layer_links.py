@@ -55,7 +55,7 @@ from ..core.numbers import as_int
 from ..core.qt_compat import enum_member
 from .card_base import mono_font
 from .external_links import open_external_url
-from .file_links import escape_markdown_label, file_link
+from .file_links import KeptSpans, escape_markdown_label, file_link
 from .font_scale import scale_point_size, scale_px_length
 from .icons import icon_for, pixmap_for
 from .layer_icons import follows_layers, layer_name, resolve_layer
@@ -699,10 +699,7 @@ def linkify_layers(text: str, layers) -> str:
 
 
 
-
-
-
-    text = (text or "").replace("\x00", "")
+    text = KeptSpans.clean(text)
     named = [(str(i.get("name") or "").strip(), str(i.get("id") or ""))
              for i in (layers or []) if isinstance(i, dict)]
     named = [(name, lid) for name, lid in named if name and lid and len(name) > 2]
@@ -716,17 +713,8 @@ def linkify_layers(text: str, layers) -> str:
         target.setdefault(name, lid)
 
 
-    guarded = []
-
-    def keep(match):
-        guarded.append(match.group(0))
-        return f"\x00{len(guarded) - 1}\x00"
-
-    def restore(match):
-        index = int(match.group(1))
-        return guarded[index] if 0 <= index < len(guarded) else match.group(0)
-
-    masked = _FENCE.sub(keep, text)
+    kept = KeptSpans()
+    masked = _FENCE.sub(kept.keep, text)
 
 
 
@@ -741,7 +729,7 @@ def linkify_layers(text: str, layers) -> str:
                                   for name in target))
     masked = pattern.sub(
         lambda m: f"[{escape_markdown_label(m.group(0))}]({LAYER_URL}{target[m.group(0)]})", masked)
-    return re.sub(r"\x00(\d+)\x00", restore, masked)
+    return kept.restore(masked)
 
 
 def linkify_files(text: str, paths) -> str:
@@ -753,7 +741,7 @@ def linkify_files(text: str, paths) -> str:
 
 
 
-    text = (text or "").replace("\x00", "")
+    text = KeptSpans.clean(text)
     names: dict[str, str] = {}
     shared: set[str] = set()
     for path in paths or ():
@@ -766,21 +754,15 @@ def linkify_files(text: str, paths) -> str:
     target = {name: path for name, path in names.items() if name not in shared}
     if not target or not text:
         return text
-    guarded = []
-
-    def keep(match):
-        guarded.append(match.group(0))
-        return f"\x00{len(guarded) - 1}\x00"
-
-    masked = _FENCE.sub(keep, text)
+    kept = KeptSpans()
+    masked = _FENCE.sub(kept.keep, text)
 
 
 
     pattern = re.compile("|".join(rf"(?<![\w`./\\-]){re.escape(name)}(?![\w`-])"
                                   for name in sorted(target, key=len, reverse=True)))
     masked = pattern.sub(lambda m: file_link(target[m.group(0)]), masked)
-    return re.sub(r"\x00(\d+)\x00",
-                  lambda m: guarded[int(m.group(1))] if int(m.group(1)) < len(guarded) else m.group(0), masked)
+    return kept.restore(masked)
 
 
 def layer_id_from_url(url: str) -> str:
@@ -840,18 +822,10 @@ def follow_layer_links(text: str, gone=frozenset()) -> str:
 
 
 
-    text = (text or "").replace("\x00", "")
+    text = KeptSpans.clean(text)
     if LAYER_URL not in text:
         return text
-    guarded = []
-
-    def keep(match):
-        guarded.append(match.group(0))
-        return f"\x00{len(guarded) - 1}\x00"
-
-    def restore(match):
-        index = int(match.group(1))
-        return guarded[index] if 0 <= index < len(guarded) else match.group(0)
+    kept = KeptSpans()
 
     def relink(match):
         layer_id = match.group(2)
@@ -863,8 +837,7 @@ def follow_layer_links(text: str, gone=frozenset()) -> str:
         label = escape_markdown_label(name) if name else match.group(1)
         return f"[{label}]({LAYER_URL}{layer_id})"
 
-    masked = _LAYER_LINK.sub(relink, _CODE.sub(keep, text))
-    return re.sub(r"\x00(\d+)\x00", restore, masked)
+    return kept.restore(_LAYER_LINK.sub(relink, _CODE.sub(kept.keep, text)))
 
 
 def layer_names(layers) -> list[str]:

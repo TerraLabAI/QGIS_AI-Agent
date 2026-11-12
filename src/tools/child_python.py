@@ -29,7 +29,8 @@ from ..core.logger import log_warning
 from ..core.policy import AGENT_HOME
 
 
-def _read_json(path: str) -> dict:
+def read_json(path: str) -> dict:
+
     try:
         with open(path, encoding="utf-8") as handle:
             value = json.load(handle)

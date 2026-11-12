@@ -1714,6 +1714,98 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <source>expired</source>
             <translation>만료됨</translation>
         </message>
+        <message>
+            <source>Flow lines: {}</source>
+            <translation>흐름선: {}</translation>
+        </message>
+        <message>
+            <source>Voice dictation</source>
+            <translation>음성 받아쓰기</translation>
+        </message>
+        <message>
+            <source>Talk to your AI agent</source>
+            <translation>AI 에이전트에게 말로 요청하세요</translation>
+        </message>
+        <message>
+            <source>Speak, and your words become text you can edit before sending.</source>
+            <translation>말씀하시면 텍스트로 바뀌고, 보내기 전에 수정할 수 있습니다.</translation>
+        </message>
+        <message>
+            <source>Your voice stays private</source>
+            <translation>음성은 비공개로 유지됩니다</translation>
+        </message>
+        <message>
+            <source>Recorded only when you press the microphone, transcribed in the EU, never stored by TerraLab and never used to train AI.</source>
+            <translation>마이크 버튼을 누를 때만 녹음되고, EU에서 텍스트로 변환되며, TerraLab에 저장되지 않고 AI 학습에도 사용되지 않습니다.</translation>
+        </message>
+        <message>
+            <source>Start dictating</source>
+            <translation>받아쓰기 시작</translation>
+        </message>
+        <message>
+            <source>Not now</source>
+            <translation>나중에</translation>
+        </message>
+        <message>
+            <source>AI can make mistakes</source>
+            <translation>AI는 실수할 수 있습니다</translation>
+        </message>
+        <message>
+            <source>Adding the layer</source>
+            <translation>레이어 추가 중</translation>
+        </message>
+        <message>
+            <source>Cutting to the area</source>
+            <translation>영역에 맞게 자르는 중</translation>
+        </message>
+        <message>
+            <source>Failed</source>
+            <translation>실패</translation>
+        </message>
+        <message>
+            <source>Finding the place</source>
+            <translation>장소 찾는 중</translation>
+        </message>
+        <message>
+            <source>Paused</source>
+            <translation>일시 정지됨</translation>
+        </message>
+        <message>
+            <source>Querying the source</source>
+            <translation>소스 조회 중</translation>
+        </message>
+        <message>
+            <source>Queued</source>
+            <translation>대기 중</translation>
+        </message>
+        <message>
+            <source>Stopped</source>
+            <translation>중지됨</translation>
+        </message>
+        <message>
+            <source>Working</source>
+            <translation>작업 중</translation>
+        </message>
+        <message>
+            <source>about {n} min left</source>
+            <translation>약 {n}분 남음</translation>
+        </message>
+        <message>
+            <source>about {n} s left</source>
+            <translation>약 {n}초 남음</translation>
+        </message>
+        <message>
+            <source>{done} MB</source>
+            <translation>{done} MB</translation>
+        </message>
+        <message>
+            <source>{done} of {total} MB</source>
+            <translation>{done} / {total} MB</translation>
+        </message>
+        <message>
+            <source>{words} · {done} of {total}</source>
+            <translation>{words} · {done} / {total}</translation>
+        </message>
     </context>
     <context>
         <name>AIAgentContext</name>
@@ -2189,6 +2281,18 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <source>Sign in or create an account</source>
             <translation>로그인 또는 계정 만들기</translation>
+        </message>
+        <message>
+            <source>Opens your browser, takes about 15 seconds</source>
+            <translation>브라우저가 열리며 약 15초 걸립니다</translation>
+        </message>
+        <message>
+            <source>Sign in or create a free account</source>
+            <translation>로그인 또는 무료 계정 만들기</translation>
+        </message>
+        <message>
+            <source>The AI agent loads data, styles layers, runs analyses and edits features for you.</source>
+            <translation>AI 에이전트가 데이터 불러오기, 레이어 스타일 지정, 분석 실행, 피처 편집을 대신해 드립니다.</translation>
         </message>
     </context>
     <context>
@@ -3101,6 +3205,22 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <source>Removed from the queue</source>
             <translation>대기열에서 삭제했습니다</translation>
         </message>
+        <message>
+            <source>No free tasks left on this computer</source>
+            <translation>이 컴퓨터에 남은 무료 작업이 없습니다</translation>
+        </message>
+        <message>
+            <source>No free tasks left this month</source>
+            <translation>이번 달 남은 무료 작업이 없습니다</translation>
+        </message>
+        <message>
+            <source>Ask or describe a task in QGIS</source>
+            <translation>QGIS에서 할 작업을 묻거나 설명하세요</translation>
+        </message>
+        <message>
+            <source>Reply</source>
+            <translation>답장</translation>
+        </message>
     </context>
     <context>
         <name>ChatSidebar</name>
@@ -3380,6 +3500,26 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <source>{n} left out, {total} at most</source>
             <translation>{n}개 제외됨, 최대 {total}개</translation>
         </message>
+        <message>
+            <source>Send this as it is?</source>
+            <translation>이대로 보낼까요?</translation>
+        </message>
+        <message>
+            <source>It looks like a typing slip. Edit it, or press Send again.</source>
+            <translation>오타처럼 보입니다. 수정하거나 보내기를 다시 눌러 주세요.</translation>
+        </message>
+        <message>
+            <source>Ask or describe a task in QGIS</source>
+            <translation>QGIS에서 할 작업을 묻거나 설명하세요</translation>
+        </message>
+        <message>
+            <source>Done: write what I said (Enter)</source>
+            <translation>완료: 말한 내용을 입력 (Enter)</translation>
+        </message>
+        <message>
+            <source>Finish dictation</source>
+            <translation>음성 입력 완료</translation>
+        </message>
     </context>
     <context>
         <name>ComposerInput</name>
@@ -3561,6 +3701,30 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <source>{sources} sources the AI agent finds and loads by itself: {datasets} datasets in {countries} countries.</source>
             <translation>AI 에이전트가 직접 찾아 불러오는 소스 {sources}개: {countries}개 국가의 데이터셋 {datasets}개.</translation>
         </message>
+        <message>
+            <source>%n datasets from other providers</source>
+            <translation>다른 제공처의 데이터셋 %n개</translation>
+        </message>
+        <message>
+            <source>Popular</source>
+            <translation>인기</translation>
+        </message>
+        <message>
+            <source>Europe</source>
+            <translation>유럽</translation>
+        </message>
+        <message>
+            <source>Americas</source>
+            <translation>아메리카</translation>
+        </message>
+        <message>
+            <source>Asia and Pacific</source>
+            <translation>아시아 및 태평양</translation>
+        </message>
+        <message>
+            <source>Africa and Middle East</source>
+            <translation>아프리카 및 중동</translation>
+        </message>
     </context>
     <context>
         <name>DiffTableCard</name>
@@ -3678,6 +3842,10 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <source>{level} needs Pro. Pick Low to send.</source>
             <translation>{level}은(는) Pro가 필요합니다. 전송하려면 Low를 선택하세요.</translation>
         </message>
+        <message>
+            <source>Effort {level}: how hard the AI agent works on the next message</source>
+            <translation>작업 강도 {level}: 다음 메시지에서 AI 에이전트가 얼마나 깊이 작업할지 정합니다</translation>
+        </message>
     </context>
     <context>
         <name>EmptyState</name>
@@ -3700,6 +3868,10 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <source>AI can make mistakes. Check its changes.</source>
             <translation>AI는 실수할 수 있습니다. 변경 내용을 확인하세요.</translation>
+        </message>
+        <message>
+            <source>How can I help?</source>
+            <translation>무엇을 도와드릴까요?</translation>
         </message>
     </context>
     <context>
@@ -3858,6 +4030,26 @@ This file is no longer where the run wrote it.</source>
         <message>
             <source>Send feedback</source>
             <translation>피드백 보내기</translation>
+        </message>
+        <message>
+            <source>Free trial</source>
+            <translation>무료 체험</translation>
+        </message>
+        <message>
+            <source>Your Pro is set to end. Keep it in one click.</source>
+            <translation>Pro 구독이 곧 종료됩니다. 클릭 한 번으로 유지하세요.</translation>
+        </message>
+        <message>
+            <source>Keep Pro</source>
+            <translation>Pro 유지</translation>
+        </message>
+        <message>
+            <source>Open the AI Agent page on terra-lab.ai</source>
+            <translation>terra-lab.ai의 AI Agent 페이지 열기</translation>
+        </message>
+        <message>
+            <source>Your Pro ends on {date}. Keep it in one click.</source>
+            <translation>Pro가 {date}에 종료됩니다. 한 번의 클릭으로 유지하세요.</translation>
         </message>
     </context>
     <context>
@@ -4440,6 +4632,46 @@ Click to show it in the Layers panel.</source>
             <source>{mode}: what AI Agent may do without asking</source>
             <translation>{mode}: 묻지 않고 AI Agent가 할 수 있는 일</translation>
         </message>
+        <message>
+            <source>Free trial</source>
+            <translation>무료 체험</translation>
+        </message>
+        <message>
+            <source>Asks before every change.</source>
+            <translation>변경할 때마다 먼저 묻습니다.</translation>
+        </message>
+        <message>
+            <source>Asks only before risky changes.</source>
+            <translation>위험한 변경 전에만 묻습니다.</translation>
+        </message>
+        <message>
+            <source>It brings your project back. Files on disk are not covered.</source>
+            <translation>프로젝트를 되돌려 줍니다. 디스크의 파일은 해당되지 않습니다.</translation>
+        </message>
+        <message>
+            <source>Spending credits or reaching an unknown site.</source>
+            <translation>크레딧을 사용하거나 알 수 없는 사이트에 접속할 때입니다.</translation>
+        </message>
+        <message>
+            <source>Still asks for what matters</source>
+            <translation>중요한 일은 여전히 묻습니다</translation>
+        </message>
+        <message>
+            <source>The AI agent runs every step without asking, even to delete a layer or run code.</source>
+            <translation>AI 에이전트가 레이어 삭제나 코드 실행까지 묻지 않고 모든 단계를 실행합니다.</translation>
+        </message>
+        <message>
+            <source>Undo is there</source>
+            <translation>실행 취소가 가능합니다</translation>
+        </message>
+        <message>
+            <source>Works on its own</source>
+            <translation>알아서 작업합니다</translation>
+        </message>
+        <message>
+            <source>Works on its own and rarely asks.</source>
+            <translation>알아서 작업하며 거의 묻지 않습니다.</translation>
+        </message>
     </context>
     <context>
         <name>PlanCard</name>
@@ -4496,6 +4728,22 @@ Click to show it in the Layers panel.</source>
         <message>
             <source>Question {n} of {count}</source>
             <translation>질문 {n}/{count}</translation>
+        </message>
+        <message>
+            <source>Checkbox</source>
+            <translation>체크박스</translation>
+        </message>
+        <message>
+            <source>Radio button</source>
+            <translation>라디오 버튼</translation>
+        </message>
+        <message>
+            <source>selected</source>
+            <translation>선택됨</translation>
+        </message>
+        <message>
+            <source>not selected</source>
+            <translation>선택 안 됨</translation>
         </message>
     </context>
     <context>
@@ -4597,7 +4845,7 @@ Click to show it in the Layers panel.</source>
             <translation>Pro: 월 {n}개 작업과 더 어려운 작업</translation>
         </message>
         <message>
-            <source>Start 7-day free trial</source>
+            <source>Start 7 day free trial</source>
             <translation>7일 무료 체험 시작</translation>
         </message>
         <message>
@@ -4704,6 +4952,134 @@ Click to show it in the Layers panel.</source>
         <message>
             <source>Medium effort now, High after the trial</source>
             <translation>지금은 Medium, 체험 후에는 High</translation>
+        </message>
+        <message>
+            <source>For a company or team</source>
+            <translation>회사 또는 팀용</translation>
+        </message>
+        <message>
+            <source>Your custom instructions</source>
+            <translation>사용자 지침</translation>
+        </message>
+        <message>
+            <source>1 free task left this month</source>
+            <translation>이번 달 무료 작업 1개 남음</translation>
+        </message>
+        <message>
+            <source>AI Agent Pro for work, by invoice</source>
+            <translation>업무용 AI Agent Pro, 청구서 결제</translation>
+        </message>
+        <message>
+            <source>AI Agent Pro for work, without a card</source>
+            <translation>업무용 AI Agent Pro, 카드 없이</translation>
+        </message>
+        <message>
+            <source>Copy</source>
+            <translation>복사</translation>
+        </message>
+        <message>
+            <source>Free trial</source>
+            <translation>무료 체험</translation>
+        </message>
+        <message>
+            <source>Hello,
+
+I used all my AI Agent tasks this month. Could you raise my quota?
+
+Thank you</source>
+            <translation>안녕하세요,
+
+이번 달 AI Agent 작업을 모두 사용했습니다. 할당량을 늘려 주실 수 있을까요?
+
+감사합니다</translation>
+        </message>
+        <message>
+            <source>Hello,
+
+I'd like to use AI Agent Pro at work but I can't pay by card. Could you send my company an invoice or a quote?
+
+Company:
+Name:
+
+Thank you</source>
+            <translation>안녕하세요,
+
+업무에서 AI Agent Pro를 사용하고 싶지만 카드로 결제할 수 없습니다. 저희 회사로 청구서나 견적서를 보내 주실 수 있을까요?
+
+회사:
+이름:
+
+감사합니다</translation>
+        </message>
+        <message>
+            <source>Hello,
+
+I'd like to use AI Agent Pro at work but I can't pay by card. Could you set up the 7 free days for us?
+
+Company:
+Name:
+
+Thank you</source>
+            <translation>안녕하세요,
+
+업무에서 AI Agent Pro를 사용하고 싶지만 카드로 결제할 수 없습니다. 저희에게 7일 무료 체험을 설정해 주실 수 있을까요?
+
+회사:
+이름:
+
+감사합니다</translation>
+        </message>
+        <message>
+            <source>More AI Agent tasks this month</source>
+            <translation>이번 달 AI Agent 작업 추가</translation>
+        </message>
+        <message>
+            <source>Need it for work?</source>
+            <translation>업무에 필요하신가요?</translation>
+        </message>
+        <message>
+            <source>Need more this month? Write to us</source>
+            <translation>이번 달에 더 필요하신가요? 문의하세요</translation>
+        </message>
+        <message>
+            <source>No card to pay with? Write to us and we'll send your company an invoice.</source>
+            <translation>결제할 카드가 없나요? 문의해 주시면 회사로 청구서를 보내 드립니다.</translation>
+        </message>
+        <message>
+            <source>No card to pay with? Write to us and we'll set up your 7 free days.</source>
+            <translation>결제할 카드가 없나요? 문의해 주시면 7일 무료 체험을 설정해 드립니다.</translation>
+        </message>
+        <message>
+            <source>Nothing to pay today</source>
+            <translation>오늘 결제할 금액 없음</translation>
+        </message>
+        <message>
+            <source>Pro is off until it's paid.</source>
+            <translation>결제될 때까지 Pro는 꺼져 있습니다.</translation>
+        </message>
+        <message>
+            <source>That was your last free task</source>
+            <translation>마지막 무료 작업이었습니다</translation>
+        </message>
+        <message>
+            <source>Want more? Come back to Pro: {n} tasks a month.</source>
+            <translation>더 필요하신가요? Pro로 돌아오세요: 월 {n}개 작업.</translation>
+        </message>
+        <message>
+            <source>Want more? Pro has {n} tasks a month.</source>
+            <translation>더 필요하신가요? Pro는 월 {n}개 작업을 제공합니다.</translation>
+        </message>
+        <message>
+            <source>Want more? Pro is free for a week.</source>
+            <translation>더 필요하신가요? Pro는 일주일간 무료입니다.</translation>
+        </message>
+        <message>
+            <source>{n} free tasks left this month</source>
+            <translation>이번 달 무료 작업 {n}개 남음</translation>
+        </message>
+        <message>
+            <source>{n} tasks a month, cancel anytime</source>
+            <translation>월 {n}개 작업, 언제든 취소 가능</translation>
         </message>
     </context>
     <context>
@@ -5111,12 +5487,12 @@ Click to show it in the Layers panel.</source>
             <translation>언어, 스타일, 권한, 프로필, 메모리 메모가 기본값으로 돌아갑니다. 로그인 상태는 유지됩니다.</translation>
         </message>
         <message>
-            <source>We may read a chat only to fix a bug, never to train AI. Chats are kept 30 days.</source>
-            <translation>버그를 고치기 위해서만 채팅을 읽을 수 있으며, AI 학습에는 절대 사용하지 않습니다. 채팅은 30일 동안 보관됩니다.</translation>
+            <source>We may read a chat, or have a model score it, to fix bugs and improve the agent, never to train AI. Chats are kept 30 days.</source>
+            <translation>버그를 고치고 에이전트를 개선하기 위해 채팅을 읽거나 모델이 점수를 매기게 할 수 있으며, AI 학습에는 절대 사용하지 않습니다. 채팅은 30일 동안 보관됩니다.</translation>
         </message>
         <message>
-            <source>We may read a chat only to fix a wrong answer or a bug, never to train AI.</source>
-            <translation>잘못된 답변이나 버그를 고치기 위해서만 채팅을 읽을 수 있으며, AI 학습에는 절대 사용하지 않습니다.</translation>
+            <source>We may read a chat, or have a model score it, to fix a wrong answer or a bug and improve the agent, never to train AI.</source>
+            <translation>잘못된 답변이나 버그를 고치고 에이전트를 개선하기 위해 채팅을 읽거나 모델이 점수를 매기게 할 수 있으며, AI 학습에는 절대 사용하지 않습니다.</translation>
         </message>
         <message>
             <source>Loading account info...</source>
@@ -5335,8 +5711,8 @@ Click to show it in the Layers panel.</source>
             <translation>QGIS에서 언제든 다시 로그인할 수 있습니다.</translation>
         </message>
         <message>
-            <source>Your chats are kept 30 days so a conversation survives an update. Off, the team never reads them. 0 days of history stores nothing.</source>
-            <translation>업데이트 후에도 대화가 유지되도록 대화를 30일간 보관합니다. 끄면 팀이 대화를 읽지 않습니다. 기록 0일로 설정하면 아무것도 저장되지 않습니다.</translation>
+            <source>Your chats are kept 30 days so a conversation survives an update. Off, we never read or score them. 0 days of history stores nothing.</source>
+            <translation>업데이트 후에도 대화가 유지되도록 대화를 30일간 보관합니다. 끄면 대화를 읽지도, 점수를 매기지도 않습니다. 기록 0일로 설정하면 아무것도 저장되지 않습니다.</translation>
         </message>
         <message>
             <source>Your first name</source>
@@ -5458,6 +5834,38 @@ Click to show it in the Layers panel.</source>
         <message>
             <source>Delete this note? The AI will not add it back.</source>
             <translation>이 메모를 삭제할까요? AI가 다시 추가하지 않습니다.</translation>
+        </message>
+        <message>
+            <source>Everywhere · {n}</source>
+            <translation>모든 곳 · {n}</translation>
+        </message>
+        <message>
+            <source>Other projects · {n}</source>
+            <translation>다른 프로젝트 · {n}</translation>
+        </message>
+        <message>
+            <source>The rules you give it and the corrections that hold for later.</source>
+            <translation>사용자가 정한 규칙과 이후에도 유지되는 수정 사항입니다.</translation>
+        </message>
+        <message>
+            <source>This project · {n}</source>
+            <translation>이 프로젝트 · {n}</translation>
+        </message>
+        <message>
+            <source>What the AI keeps between conversations, stored on this computer.</source>
+            <translation>AI 어시스턴트가 대화 사이에 보관하는 내용으로, 이 컴퓨터에 저장됩니다.</translation>
+        </message>
+        <message>
+            <source>commercial use, more tasks, your instructions and higher effort</source>
+            <translation>상업적 사용, 더 많은 작업, 사용자 지침, 더 높은 노력 수준</translation>
+        </message>
+        <message>
+            <source>Animate the mascot</source>
+            <translation>마스코트 애니메이션</translation>
+        </message>
+        <message>
+            <source>The AI agent's mark moves and follows the work. Off keeps it still.</source>
+            <translation>AI 에이전트의 마크가 움직이며 작업을 따라갑니다. 끄면 멈춰 있습니다.</translation>
         </message>
     </context>
     <context>
@@ -5837,6 +6245,26 @@ Click to show it in the Layers panel.</source>
         <message>
             <source>could not be put back, so what it changed is still in the project</source>
             <translation>다시 넣을 수 없어서, 변경한 내용이 프로젝트에 여전히 남아 있습니다</translation>
+        </message>
+        <message>
+            <source>QGIS restarted during this request, so this step was not run again. The project may already hold what it changed.</source>
+            <translation>이 요청을 처리하는 동안 QGIS가 다시 시작되어 이 단계는 다시 실행되지 않았습니다. 변경된 내용이 이미 프로젝트에 들어 있을 수 있습니다.</translation>
+        </message>
+        <message>
+            <source>Stopped after this step had finished: its changes are in the project.</source>
+            <translation>이 단계가 끝난 뒤에 중지되었습니다. 변경 내용은 프로젝트에 반영되어 있습니다.</translation>
+        </message>
+        <message>
+            <source>{area} km²</source>
+            <translation>{area} km²</translation>
+        </message>
+        <message>
+            <source>{area} ha</source>
+            <translation>{area} ha</translation>
+        </message>
+        <message>
+            <source>{area} m²</source>
+            <translation>{area} m²</translation>
         </message>
     </context>
     <context>
@@ -7564,6 +7992,211 @@ Click to show it in the Layers panel.</source>
         <message>
             <source>Edit this note</source>
             <translation>이 메모 편집</translation>
+        </message>
+    </context>
+    <context>
+        <name>QgisLinks</name>
+        <message>
+            <source>Project Properties</source>
+            <translation>프로젝트 속성</translation>
+        </message>
+        <message>
+            <source>Open the project's properties</source>
+            <translation>프로젝트 속성 열기</translation>
+        </message>
+        <message>
+            <source>3D Map View</source>
+            <translation>3D 지도 뷰</translation>
+        </message>
+        <message>
+            <source>Bring this 3D map view to the front</source>
+            <translation>이 3D 지도 뷰를 맨 앞으로 가져오기</translation>
+        </message>
+        <message>
+            <source>Layout Designer</source>
+            <translation>레이아웃 디자이너</translation>
+        </message>
+        <message>
+            <source>Open this layout in the layout designer</source>
+            <translation>이 레이아웃을 레이아웃 디자이너에서 열기</translation>
+        </message>
+        <message>
+            <source>Attribute Table</source>
+            <translation>속성 테이블</translation>
+        </message>
+        <message>
+            <source>Open the attribute table of {layer}</source>
+            <translation>{layer}의 속성 테이블 열기</translation>
+        </message>
+        <message>
+            <source>Layer Properties › {tab}</source>
+            <translation>레이어 속성 › {tab}</translation>
+        </message>
+        <message>
+            <source>Open the properties of {layer} on the {tab} tab</source>
+            <translation>{layer}의 속성을 {tab} 탭에서 열기</translation>
+        </message>
+    </context>
+    <context>
+        <name>OvertureExtract</name>
+        <message>
+            <source>{names}: loaded in full, {count} features.</source>
+            <translation>{names}: 전체를 불러왔습니다. 피처 {count}개.</translation>
+        </message>
+        <message>
+            <source>{names}: {count} features loaded; part of the area could not be read.</source>
+            <translation>{names}: 피처 {count}개를 불러왔습니다. 일부 영역은 읽지 못했습니다.</translation>
+        </message>
+        <message>
+            <source>Reading {names}</source>
+            <translation>{names} 읽는 중</translation>
+        </message>
+    </context>
+    <context>
+        <name>GtfsTools</name>
+        <message>
+            <source>{lo} - {hi} trips/day</source>
+            <translation>{lo} - {hi}회/일</translation>
+        </message>
+        <message>
+            <source>{name} stops</source>
+            <translation>{name} 정류장</translation>
+        </message>
+        <message>
+            <source>{name} routes</source>
+            <translation>{name} 노선</translation>
+        </message>
+    </context>
+    <context>
+        <name>Dictation</name>
+        <message>
+            <source>The AI Agent plugin in QGIS listens only while you dictate a message, to turn your voice into text.</source>
+            <translation>QGIS의 AI Agent 플러그인은 메시지를 음성으로 입력하는 동안에만 음성을 듣고, 이를 텍스트로 변환합니다.</translation>
+        </message>
+        <message>
+            <source>Animate the mascot</source>
+            <translation>마스코트 움직이기</translation>
+        </message>
+        <message>
+            <source>The AI agent's mark moves and follows the work. Off keeps it still.</source>
+            <translation>AI 에이전트의 마크가 움직이며 작업을 따라갑니다. 끄면 가만히 있습니다.</translation>
+        </message>
+    </context>
+    <context>
+        <name>CodeLayoutExport</name>
+        <message>
+            <source>the layout export</source>
+            <translation>레이아웃 내보내기</translation>
+        </message>
+    </context>
+    <context>
+        <name>ComposerDictation</name>
+        <message>
+            <source>Cancel (Esc)</source>
+            <translation>취소 (Esc)</translation>
+        </message>
+        <message>
+            <source>Cancel dictation</source>
+            <translation>음성 입력 취소</translation>
+        </message>
+        <message>
+            <source>Dictate</source>
+            <translation>음성 입력</translation>
+        </message>
+        <message>
+            <source>Dictate ({shortcut})</source>
+            <translation>음성 입력 ({shortcut})</translation>
+        </message>
+        <message>
+            <source>Dictation is busy right now.</source>
+            <translation>지금은 음성 입력을 사용 중입니다.</translation>
+        </message>
+        <message>
+            <source>Dictation is not available right now.</source>
+            <translation>지금은 음성 입력을 사용할 수 없습니다.</translation>
+        </message>
+        <message>
+            <source>Listening</source>
+            <translation>듣는 중</translation>
+        </message>
+        <message>
+            <source>No connection to TerraLab, so nothing was transcribed.</source>
+            <translation>TerraLab에 연결되지 않아 변환된 내용이 없습니다.</translation>
+        </message>
+        <message>
+            <source>No microphone found. Plug one in or check your sound settings.</source>
+            <translation>마이크를 찾을 수 없습니다. 마이크를 연결하거나 사운드 설정을 확인하세요.</translation>
+        </message>
+        <message>
+            <source>No sound came from the microphone. Check that it is not muted.</source>
+            <translation>마이크에서 소리가 들어오지 않았습니다. 음소거되어 있지 않은지 확인하세요.</translation>
+        </message>
+        <message>
+            <source>No sound came from the microphone. In Windows settings, Privacy, Microphone, let desktop apps use it.</source>
+            <translation>마이크에서 소리가 들어오지 않았습니다. Windows 설정, 개인 정보, 마이크에서 데스크톱 앱의 사용을 허용하세요.</translation>
+        </message>
+        <message>
+            <source>Nothing was heard. Speak closer to the microphone and try again.</source>
+            <translation>아무 소리도 들리지 않았습니다. 마이크에 더 가까이 말하고 다시 시도하세요.</translation>
+        </message>
+        <message>
+            <source>Open settings</source>
+            <translation>설정 열기</translation>
+        </message>
+        <message>
+            <source>Stopped at {n} minutes, the longest one recording can be.</source>
+            <translation>한 번에 녹음할 수 있는 최대 길이인 {n}분에서 중지되었습니다.</translation>
+        </message>
+        <message>
+            <source>That recording is too long to transcribe. Record a shorter one.</source>
+            <translation>녹음이 너무 길어 변환할 수 없습니다. 더 짧게 녹음하세요.</translation>
+        </message>
+        <message>
+            <source>The microphone could not be opened. Check that no other app holds it, then try again.</source>
+            <translation>마이크를 열 수 없습니다. 다른 앱이 사용 중이 아닌지 확인한 뒤 다시 시도하세요.</translation>
+        </message>
+        <message>
+            <source>The microphone is blocked for QGIS in your system's privacy settings.</source>
+            <translation>시스템 개인 정보 설정에서 QGIS의 마이크 사용이 차단되어 있습니다.</translation>
+        </message>
+        <message>
+            <source>The microphone is off for "AI Agent for QGIS". Turn it on in System Settings, Privacy &amp; Security, Microphone.</source>
+            <translation>"AI Agent for QGIS"의 마이크가 꺼져 있습니다. 시스템 설정, 개인 정보 보호 및 보안, 마이크에서 켜세요.</translation>
+        </message>
+        <message>
+            <source>The recording could not be transcribed.</source>
+            <translation>녹음을 변환할 수 없었습니다.</translation>
+        </message>
+        <message>
+            <source>This QGIS installation cannot record sound, so dictation is not available here.</source>
+            <translation>이 QGIS 설치본은 소리를 녹음할 수 없어 음성 입력을 사용할 수 없습니다.</translation>
+        </message>
+        <message>
+            <source>Too many recordings in a minute. Wait a little.</source>
+            <translation>1분 안에 녹음이 너무 많습니다. 잠시 기다려 주세요.</translation>
+        </message>
+        <message>
+            <source>Transcribing...</source>
+            <translation>변환 중...</translation>
+        </message>
+        <message>
+            <source>Try again</source>
+            <translation>다시 시도</translation>
+        </message>
+        <message>
+            <source>You reached today's dictation limit. It opens again tomorrow.</source>
+            <translation>오늘의 음성 입력 한도에 도달했습니다. 내일 다시 사용할 수 있습니다.</translation>
+        </message>
+        <message>
+            <source>macOS asked to use the microphone and got no answer. Press the microphone to see the question again.</source>
+            <translation>macOS가 마이크 사용을 요청했지만 응답이 없었습니다. 마이크 버튼을 누르면 질문이 다시 표시됩니다.</translation>
+        </message>
+    </context>
+    <context>
+        <name>DictationBar</name>
+        <message>
+            <source>Recording</source>
+            <translation>녹음 중</translation>
         </message>
     </context>
 </TS>

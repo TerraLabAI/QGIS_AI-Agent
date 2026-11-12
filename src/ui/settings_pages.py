@@ -42,7 +42,6 @@ from .style import (
     ON_ACCENT,
     RED,
     RED_TINT,
-    WEIGHT_MEDIUM,
 )
 from .styles import INK_HOVER_FILL, INK_PRESSED_FILL, PANEL_BASE, PANEL_TEXT
 from .widgets import IconButton, plain_tip
@@ -514,11 +513,6 @@ class NoteRow(QFrame):
 
 
 
-PRO_LOCK_QSS = (
-    f"QFrame#proLock {{ background: {FIELD}; border: none; border-radius: 8px; }}"
-    f"QFrame#proLock QLabel {{ background: transparent; color: {INK_2}; font-size: 11px;"
-    f" font-weight: {WEIGHT_MEDIUM}; }}"
-)
 TEXT_LINK_QSS = (
     f"QPushButton {{ background: transparent; border: none; color: {ACCENT_INK};"
     " font-size: 12px; font-weight: 600; padding: 2px 0; }"
@@ -563,22 +557,6 @@ def set_section_locked(*widgets, locked: bool = True) -> None:
             widget.setGraphicsEffect(effect)
         except RuntimeError:
             continue
-
-
-class ProLock(QFrame):
-
-
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        self.setObjectName("proLock")
-        self.setStyleSheet(PRO_LOCK_QSS)
-        line = QHBoxLayout(self)
-        line.setContentsMargins(8, 3, 9, 3)
-        line.setSpacing(5)
-        glyph = QLabel(self)
-        glyph.setPixmap(pixmap_for(self, "lock", 11, QColor(INK_2)))
-        line.addWidget(glyph, 0, Qt.AlignmentFlag.AlignVCenter)
-        line.addWidget(QLabel(self.tr("Pro"), self), 0, Qt.AlignmentFlag.AlignVCenter)
 
 
 class ProNote(QWidget):

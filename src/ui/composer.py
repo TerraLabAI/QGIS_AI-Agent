@@ -30,6 +30,7 @@ import os
 import sys
 import time
 
+from qgis.core import QgsProject
 from qgis.PyQt.QtCore import QEvent, QLocale, QSize, Qt, QTimer, pyqtSignal
 from qgis.PyQt.QtGui import QColor, QImage
 from qgis.PyQt.QtWidgets import (
@@ -42,7 +43,8 @@ from qgis.PyQt.QtWidgets import (
     QWidget,
 )
 
-from ..core import drafts, first_run_funnel, limits, trace
+from ..core import drafts, first_run_funnel, limits, telemetry, trace
+from ..core import telemetry_events as ev
 from ..core.layer_mime import ChipRow, layer_chip, layer_ids_from_mime, live_layer_chips, mime_has_layers
 from ..core.prompt_quality import NOT_A_TASK, TOO_SHORT, check_prompt
 from ..core.qt_compat import one_shot
@@ -59,6 +61,7 @@ from .attachments import (
     wire_shape,
 )
 from .composer_input import EMPTY_CHAT_LINES, MIN_LINES, ComposerInput
+from .dictation_bar import ComposerDictation
 from .effort_chip import EffortChip, effort_texts
 from .font_scale import scale_qss_font_px
 from .icons import icon_for, paper_of
@@ -66,10 +69,10 @@ from .layer_card import LayerCard
 from .layer_icons import layer_name, resolve_layer
 from .library.dialog import HOME_KEY, SOURCES_KEY, ExamplesDialog
 from .permission_chip import PermissionChip
-from .shared import exec_dialog
+from .prompt_notice import PromptNotice
+from .shared import exec_dialog, settle_hover
 from .style import (
     _BTN_SEND,
-    ACCENT_BORDER,
     ACCENT_TINT,
     ACCENT_TINT_ON,
     BTN_PX,
@@ -77,9 +80,7 @@ from .style import (
     INK,
     INK_2,
     INK_3,
-    LINE,
     ON_ACCENT,
-    PAGE,
     SPACE_CARD,
     SPACE_OUTER,
     SPACE_TIGHT,
@@ -106,21 +107,22 @@ _CHIP_GAP = SPACE_TIGHT
 _ROW_MIN_GAP = 12
 
 
+EMPTY_CHAT_GAP = 8
+
+
 _ROW_HYSTERESIS = 16
 _ATTACH_PX = 28
-_ATTACH_GLYPH = 16
+_ATTACH_GLYPH = 18
 
 
 
 
 _ATTACH_BTN_QSS = (
-    f"QToolButton#attachButton {{ background: transparent; border: 1px solid {LINE};"
+    "QToolButton#attachButton { background: transparent; border: none;"
     f" padding: 0; border-radius: {_ATTACH_PX // 2}px; }}"
-    f"QToolButton#attachButton:hover {{ border-color: {ACCENT_BORDER};"
-    f" background: {ACCENT_TINT}; }}"
+    f"QToolButton#attachButton:hover {{ background: {ACCENT_TINT}; }}"
     'QToolButton#attachButton:pressed, QToolButton#attachButton[active="true"] {'
-    f" border-color: {ACCENT_BORDER}; background: {ACCENT_TINT_ON}; }}"
-    f"QToolButton#attachButton:disabled {{ border-color: {LINE}; }}"
+    f" background: {ACCENT_TINT_ON}; }}"
     "QToolButton#attachButton::menu-indicator { image: none; width: 0; }"
 )
 
@@ -215,9 +217,6 @@ class Composer(QFrame):
 
         self._effort_locked = False
 
-
-
-
         self._compact_controls = 0
         self._last_sent = ""
 
@@ -249,12 +248,13 @@ class Composer(QFrame):
 
 
         self._sticky_hint = False
+        self._asked = ""
         self._items: list[dict] = []
         self._tags: dict[str, AttachmentTag] = {}
         self._chips = ChipRow()
         self._cards: dict[tuple, LayerCard] = {}
         self._attach: AttachPopover | None = None
-        self._placeholder = self.tr("Give the AI agent a task in QGIS...")
+        self._placeholder = self.tr("Ask or describe a task in QGIS")
 
 
         self._draft_key = drafts.NEW_CHAT
@@ -341,6 +341,9 @@ class Composer(QFrame):
         self._send_btn.clicked.connect(self._on_send_or_stop)
         row.addWidget(self._send_btn, 0, Qt.AlignmentFlag.AlignVCenter)
 
+        self._dictation_ui = ComposerDictation(self, row, col, self._input, self._send_btn)
+        QWidget.setTabOrder(self._effort_chip, self._dictation_ui.button)
+
         self._hint = QLabel(self)
         self._hint.setStyleSheet(_HINT_QSS)
         self._hint.setWordWrap(True)
@@ -350,6 +353,13 @@ class Composer(QFrame):
         self._hint.linkActivated.connect(self._on_hint_link)
         self._hint.hide()
         col.addWidget(self._hint)
+        self._notice = PromptNotice(self)
+        self._notice.send_anyway.connect(self._on_submit)
+        col.addWidget(self._notice)
+        self._empty_gap = QWidget(self)
+
+        self._empty_gap.setFixedHeight(max(0, EMPTY_CHAT_GAP - col.spacing()))
+        col.addWidget(self._empty_gap)
         col.addLayout(row)
         self._hint_timer = one_shot(self, self._passing_line_over)
 
@@ -389,49 +399,23 @@ class Composer(QFrame):
 
 
 
-
-
-
-
-
         margins = self.contentsMargins()
         room = self.width() - margins.left() - margins.right()
         if room <= 0:
             return
-
-
-
-
-
-
-        fixed = (_ATTACH_PX
-                 + _CHIP_GAP
-                 + _SEND_SIZE
-                 + 2 * SPACE_OUTER
-                 + _ROW_MIN_GAP)
         perm, effort = self._permission_chip, self._effort_chip
-        needs = (fixed + self._chip_width(perm, False) + self._chip_width(effort, False),
-                 fixed + self._chip_width(perm, False) + self._chip_width(effort, True))
 
-        def level_for(margin: int) -> int:
-            for level, need in enumerate(needs):
-                if need + margin <= room:
-                    return level
-            return len(needs)
 
-        level = self._compact_controls
-        wider = level_for(0)
-        if wider > level:
-            level = wider
-        else:
-            level = min(level, level_for(_ROW_HYSTERESIS))
-        if level == self._compact_controls:
+
+        need = (_ATTACH_PX + self._chip_width(perm, False) + _ROW_MIN_GAP
+                + self._chip_width(effort, False) + 2 * _SEND_SIZE + 5 * SPACE_OUTER)
+        margin = _ROW_HYSTERESIS if self._compact_controls else 0
+        compact = not self._empty_chat or need + margin > room
+        if compact == bool(self._compact_controls):
             return
-        self._compact_controls = level
-        for chip, compact in ((effort, level >= 1), (perm, level >= 2)):
-            setter = getattr(chip, "set_compact", None)
-            if callable(setter):
-                setter(compact)
+        self._compact_controls = int(compact)
+        perm.set_compact(compact)
+        effort.set_compact(compact)
 
     def text(self) -> str:
         return self._input.text()
@@ -532,6 +516,8 @@ class Composer(QFrame):
 
         self._empty_chat = bool(empty)
         self._input.set_min_lines(EMPTY_CHAT_LINES if empty else MIN_LINES)
+        self._empty_gap.setVisible(self._empty_chat)
+        self._sync_controls()
 
     def set_mentions(self, items) -> None:
         self._input.set_mentions(items)
@@ -630,10 +616,8 @@ class Composer(QFrame):
         if not sticky:
             self._hint_timer.start(_HINT_MS)
 
-    def show_warning(self, text: str, *, offer_send_anyway: bool = False, sticky: bool = False,
-                     focus: bool = True) -> None:
-
-
+    def show_warning(self, text: str, *, sticky: bool = False,
+                     focus: bool = True, link: tuple[str, str] | None = None) -> None:
 
 
 
@@ -645,7 +629,6 @@ class Composer(QFrame):
         if not text:
             return
         self._hint.setStyleSheet(_HINT_WARN_QSS)
-        link = (self.tr("Send anyway"), "send-anyway") if offer_send_anyway else None
         self._hint.setText(self._with_link(text, link))
         self._sticky_hint = bool(sticky)
         self._hint.show()
@@ -676,7 +659,7 @@ class Composer(QFrame):
                 f'style="color: {INK}; text-decoration: underline;">{html.escape(str(label))}</a>')
 
     def hint_text(self) -> str:
-        return self._hint.text() if self._hint.isVisible() else ""
+        return self._notice.text() or (self._hint.text() if self._hint.isVisible() else "")
 
     def _clear_warning(self) -> None:
 
@@ -684,6 +667,7 @@ class Composer(QFrame):
 
 
 
+        self._answer_question("edited")
         if self._sticky_hint:
             if self._pending_send and not (self.text().strip() or self._items):
 
@@ -816,7 +800,7 @@ class Composer(QFrame):
             return
         self._attach_btn.set_active(True)
         self.attach_popover().set_layers_available(self._input.has_layers())
-        self.attach_popover().show_above(self._attach_btn, self.window())
+        self.attach_popover().show_by(self, self.window())
 
     def attachments(self) -> list:
 
@@ -1098,6 +1082,7 @@ class Composer(QFrame):
         self._apply_placeholder()
         self._attach_btn.setEnabled(not (self._blocked or self._effort_locked))
         self._permission_chip.setEnabled(not self._blocked)
+        self._dictation_ui.sync()
         self._sync_effort_run_lock()
         self._paint_send()
         self._sync_send_enabled()
@@ -1209,7 +1194,47 @@ class Composer(QFrame):
     def connection_state(self) -> str:
         return self._conn_state
 
+    def set_dictation(self, dictation) -> None:
+
+        self._dictation_ui.attach(dictation)
+
+    def dictation_blocked(self) -> bool:
+        return self._blocked
+
+    def dictation_clear_hint(self) -> None:
+        self._clear_hint()
+
+    def dictation_warn(self, text: str, link: tuple[str, str] | None) -> None:
+        self.show_warning(text, link=link)
+
+    def dictation_state_changed(self) -> None:
+        on_clip = self._dictation_ui.active
+
+        for control in (self._attach_btn, self._permission_chip, self._effort_chip):
+            control.setVisible(not on_clip)
+        if not on_clip:
+            self._set_disc_state(self._running, self.queues(), self._offline)
+        self._paint_send()
+        self._sync_send_enabled()
+
+    def _set_disc_state(self, running: bool, queue: bool, offline: bool) -> None:
+        changed = False
+        for name, value in (("running", running), ("queue", queue), ("offline", offline)):
+            if bool(self._send_btn.property(name)) != bool(value):
+                self._send_btn.setProperty(name, bool(value))
+                changed = True
+        if changed:
+            repolish(self._send_btn)
+
     def _paint_send(self) -> None:
+        if self._dictation_ui.active:
+
+            paper = paper_of(self._send_btn)
+            self._set_disc_state(False, False, False)
+            self._send_btn.setIcon(icon_for(self._send_btn, "lu.check", _DISC_GLYPH, QColor(ON_ACCENT), paper))
+            self._send_btn.setToolTip(self.tr("Done: write what I said (Enter)"))
+            self._send_btn.setAccessibleName(self.tr("Finish dictation"))
+            return
 
 
 
@@ -1229,10 +1254,7 @@ class Composer(QFrame):
         elif self._running:
 
 
-
-
-
-            self._send_btn.setIcon(icon_for(self._send_btn, "stop", 16, qcolor(PAGE)))
+            self._send_btn.setIcon(icon_for(self._send_btn, "stop", 14, qcolor(INK)))
             self._send_btn.setToolTip(self.tr("Stop the run"))
             self._send_btn.setAccessibleName(self.tr("Stop"))
         elif self._effort_locked and not self._blocked:
@@ -1259,6 +1281,9 @@ class Composer(QFrame):
             self._send_btn.setAccessibleName(self.tr("Send"))
 
     def _sync_send_enabled(self) -> None:
+        if self._dictation_ui.active:
+            self._send_btn.setEnabled(self._dictation_ui.state == "recording")
+            return
         if self._running:
             if bool(self._send_btn.property("queue")) != self.queues():
                 self._paint_send()
@@ -1338,10 +1363,16 @@ class Composer(QFrame):
 
 
 
-            reason = check_prompt(self.text(), len(self._items), len(self.chips()), first_message=self._empty_chat)
+
+
+            asked = not self._notice.isHidden()
+            self._answer_question("sent")
+            reason = "" if asked else check_prompt(
+                self.text(), len(self._items), len(self.chips()), first_message=self._empty_chat,
+                known_names=tuple(layer.name() for layer in QgsProject.instance().mapLayers().values()))
             if reason:
                 first_run_funnel.note_banner(f"prompt_{reason}")
-                self.show_warning(self._refusal(reason), offer_send_anyway=True)
+                self._ask_before_sending(reason)
                 return
         self._last_sent = self.text()
         self._last_sent_items = [dict(item) for item in self._items]
@@ -1374,19 +1405,24 @@ class Composer(QFrame):
 
     def _on_hint_link(self, href: str) -> None:
 
-        if href == "send-anyway":
-            self._on_send_anyway(href)
+        if self._dictation_ui.follow_link(href):
+            self._clear_hint()
 
-    def _on_send_anyway(self, href: str) -> None:
-
-
+    def _ask_before_sending(self, reason: str) -> None:
 
 
 
-        if href != "send-anyway":
-            return
-        self._clear_warning()
-        self._submit(check_quality=False)
+
+        self._clear_hint()
+        self._asked = reason
+        telemetry.track(ev.PROMPT_QUESTION_SHOWN, {"reason": reason, "first_message": self._empty_chat})
+        self._notice.ask(self.tr("Send this as it is?"), self._refusal(reason), self.tr("Send anyway"))
+        self._input.setFocus(Qt.FocusReason.OtherFocusReason)
+
+    def _answer_question(self, answer: str) -> None:
+        if not self._notice.isHidden():
+            self._notice.hide()
+            telemetry.track(ev.PROMPT_QUESTION_ANSWERED, {"reason": self._asked, "answer": answer})
 
     def _too_large(self) -> str:
 
@@ -1407,13 +1443,15 @@ class Composer(QFrame):
 
     def _refusal(self, reason: str) -> str:
         if reason == NOT_A_TASK:
-            return self.tr("That does not read like a task yet. Say what you want in a sentence.")
+            return self.tr("It looks like a typing slip. Edit it, or press Send again.")
         if reason == TOO_SHORT:
             return self.tr("A few more words, please: what to do, and on which layer.")
         return ""
 
     def _on_send_or_stop(self) -> None:
-        if self._running and not self.queues():
+        if self._dictation_ui.active:
+            self._dictation_ui.confirm()
+        elif self._running and not self.queues():
 
 
             if time.monotonic() - self._sent_at >= STOP_AFTER_SEND_S:
@@ -1428,9 +1466,18 @@ class Composer(QFrame):
                 self._set_flag("focused", True)
             elif event.type() == QEvent.Type.FocusOut:
                 self._set_flag("focused", False)
+            elif (event.type() in (QEvent.Type.KeyPress, QEvent.Type.ShortcutOverride)
+                  and event.key() == Qt.Key.Key_D
+                  and event.modifiers() == (Qt.KeyboardModifier.ControlModifier | Qt.KeyboardModifier.ShiftModifier)):
+
+                if event.type() == QEvent.Type.KeyPress:
+                    self._dictation_ui.toggle()
+                event.accept()
+                return True
         elif watched is self._attach and event.type() == QEvent.Type.Hide:
             self._attach_btn.set_hovered(False)
             self._attach_btn.set_active(False)
+            settle_hover(self._attach_btn)
             self._attach_btn.paint_glyph(self._attach_btn.underMouse())
         return super().eventFilter(watched, event)
 

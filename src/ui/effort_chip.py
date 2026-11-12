@@ -37,8 +37,8 @@ import math
 from qgis.PyQt.QtCore import (
     QCoreApplication,
     QEasingCurve,
+    QElapsedTimer,
     QEvent,
-    QPoint,
     QPointF,
     QRectF,
     QSize,
@@ -47,7 +47,7 @@ from qgis.PyQt.QtCore import (
     QVariantAnimation,
     pyqtSignal,
 )
-from qgis.PyQt.QtGui import QColor, QFont, QFontMetrics, QLinearGradient, QPainter, QPen, QPolygonF, QRadialGradient
+from qgis.PyQt.QtGui import QColor, QFont, QFontMetrics, QLinearGradient, QPainter, QPen, QRadialGradient
 from qgis.PyQt.QtWidgets import (
     QFrame,
     QGraphicsOpacityEffect,
@@ -63,22 +63,20 @@ from qgis.PyQt.QtWidgets import (
 from ..core.host_platform import prefers_reduced_motion
 from ..core.numbers import as_float
 from ..core.plan import effort_name, efforts_allowed, efforts_stated, efforts_trial_locked, efforts_trial_note
-from ..core.served_state import get_effort_text, get_pro_offer
+from ..core.served_state import get_effort_text, get_pro_offer, offer_text
 from .font_scale import scale_qss_font_px
 from .icons import pixmap_for
 from .permission_chip import select_qss
-from .quota_card import pro_price_per_month, trial_cta
+from .quota_card import get_pro_label, pro_price_per_month, trial_cta
 from .shared import (
     event_pos,
-    keep_on_screen,
     paint_styled_ground,
+    place_by_box,
     round_popup_corners,
-    screen_area_at,
+    settle_hover,
+    show_popped,
 )
 from .style import (
-    ACCENT,
-    ACCENT_DARK,
-    ACCENT_HOVER,
     BTN_SMALL_PX,
     DARK,
     FIELD,
@@ -91,11 +89,12 @@ from .style import (
     LINE,
     LINE_STRONG,
     MOTION_POP_MS,
-    ON_ACCENT,
+    OFFER_FILL,
+    OFFER_FILL_HOVER,
+    ON_OFFER,
     RADIUS_CARD,
     SURFACE,
     WEIGHT_MEDIUM,
-    medium_font_weight,
     qcolor,
     repolish,
 )
@@ -151,10 +150,10 @@ _POPOVER_QSS = scale_qss_font_px(
     " background: transparent; border: none; }"
 
 
-    f"QPushButton#effortCta {{ background: {ACCENT}; color: {ON_ACCENT}; border: none;"
+    f"QPushButton#effortCta {{ background: {OFFER_FILL}; color: {ON_OFFER}; border: none;"
     f" border-radius: 12px; padding: 0 10px; font-size: {FONT_MICRO + 1}px; font-weight: 600; }}"
-    f"QPushButton#effortCta:hover {{ background: {ACCENT_HOVER}; }}"
-    f"QPushButton#effortCta:pressed {{ background: {ACCENT_DARK}; }}"
+    f"QPushButton#effortCta:hover {{ background: {OFFER_FILL_HOVER}; }}"
+    f"QPushButton#effortCta:pressed {{ background: {OFFER_FILL_HOVER}; }}"
 
 
     f"QLabel#effortHead {{ font-size: {FONT_HINT}px; font-weight: {WEIGHT_MEDIUM};"
@@ -183,7 +182,22 @@ _STOP_PX = 3
 _SLIDER_PAD = 8
 _SLIDER_PX = int(_HANDLE_PX * _HANDLE_GROW) + 2 * _SLIDER_PAD
 _CTA_PX = 24
-_TWINKLE_MS = 40
+_TWINKLE_MS = 16
+
+
+_REV_BAND = ((0.0, "#3f9d5c"), (0.38, "#7fbd55"), (0.62, "#e6c84c"), (0.82, "#ee8d3f"), (1.0, "#e0503f"))
+
+
+def rev_colour(at: float) -> QColor:
+
+    at = max(0.0, min(1.0, at))
+    for (a, low), (b, high) in zip(_REV_BAND, _REV_BAND[1:]):
+        if at <= b:
+            low, high, mix = QColor(low), QColor(high), (at - a) / (b - a)
+            return QColor(*(round(x + (y - x) * mix) for x, y in zip(low.getRgb()[:3], high.getRgb()[:3])))
+    return QColor(_REV_BAND[-1][1])
+
+
 
 
 
@@ -199,12 +213,46 @@ _CHARGE_MS = 520
 _RING_MS = 420
 
 
-
-
-_ARC_MS = 720
 _HEAT_MS = 360
-_HEAT_LIGHTER = 122
 _CHEVRON_SIZE = 12
+_GAUGE_PX = 16
+
+_NEEDLE_DEG = (155.0, 90.0, 25.0)
+_DIAL_PEN = 1.7
+
+
+def _between(stops: tuple, level: float) -> float:
+    low = min(len(stops) - 2, int(level))
+    return stops[low] + (stops[low + 1] - stops[low]) * (level - low)
+
+
+def paint_dial(painter: QPainter, box: QRectF, level: float, ink: QColor, faint: QColor) -> None:
+
+
+    level = max(0.0, min(2.0, float(level)))
+    scale = min(box.width(), box.height()) / 16.0
+    radius = 6.4 * scale
+    centre = QPointF(box.center().x(), box.top() + 9.4 * scale)
+    arc = QRectF(centre.x() - radius, centre.y() - radius, 2 * radius, 2 * radius)
+    painter.save()
+    painter.setRenderHint(QPainter.RenderHint.Antialiasing, True)
+    painter.setBrush(Qt.BrushStyle.NoBrush)
+    pen = QPen(faint, _DIAL_PEN * scale)
+    pen.setCapStyle(Qt.PenCapStyle.RoundCap)
+    painter.setPen(pen)
+    painter.drawArc(arc, 210 * 16, -240 * 16)
+    pen.setColor(ink)
+    painter.setPen(pen)
+    painter.drawArc(arc, 210 * 16, -int(_between((60.0, 120.0, 240.0), level) * 16))
+    turn = math.radians(_between(_NEEDLE_DEG, level))
+    painter.drawLine(centre, QPointF(centre.x() + math.cos(turn) * radius * 0.66,
+                                     centre.y() - math.sin(turn) * radius * 0.66))
+    painter.setPen(Qt.PenStyle.NoPen)
+    painter.setBrush(ink)
+    painter.drawEllipse(centre, 1.5 * scale, 1.5 * scale)
+    painter.restore()
+
+
 _LOCK_PX = 10
 _CHIP_GAP = 4
 
@@ -252,19 +300,6 @@ def _index(effort: str) -> int:
     return EFFORTS.index(normalize_effort(effort))
 
 
-
-
-
-
-_SPECKS = (
-    (0.06, 0.30, 1.0, 0.55, 0.0), (0.11, 0.70, 0.7, 0.35, 1.1), (0.17, 0.45, 1.3, 0.75, 2.3),
-    (0.24, 0.22, 0.8, 0.45, 3.4), (0.29, 0.78, 1.0, 0.60, 4.6), (0.36, 0.40, 0.7, 0.35, 5.7),
-    (0.42, 0.62, 1.2, 0.70, 0.8), (0.49, 0.28, 0.8, 0.40, 1.9), (0.55, 0.74, 1.0, 0.55, 3.1),
-    (0.61, 0.36, 0.7, 0.35, 4.2), (0.68, 0.58, 1.3, 0.75, 5.4), (0.74, 0.24, 0.8, 0.45, 0.4),
-    (0.80, 0.70, 1.0, 0.60, 1.5), (0.86, 0.42, 0.7, 0.35, 2.7), (0.92, 0.64, 1.1, 0.65, 3.8),
-)
-
-
 class EffortSlider(QWidget):
 
 
@@ -302,9 +337,14 @@ class EffortSlider(QWidget):
         self._hover = False
         self._scale = 1.0
         self._phase = 0.0
+        self._beat = 0.0
+        self._clock = QElapsedTimer()
         self._anim = QVariantAnimation(self)
+
         self._anim.setDuration(MOTION_POP_MS + 120)
-        self._anim.setEasingCurve(QEasingCurve.Type.OutQuint)
+        back = QEasingCurve(QEasingCurve.Type.OutBack)
+        back.setOvershoot(1.2)
+        self._anim.setEasingCurve(back)
         self._anim.valueChanged.connect(self._on_anim)
         self._swell = QVariantAnimation(self)
         self._swell.setDuration(140)
@@ -334,12 +374,6 @@ class EffortSlider(QWidget):
         self._ambient.timeout.connect(self._on_ambient)
 
 
-        self._arc = -1.0
-        self._arc_anim = QVariantAnimation(self)
-        self._arc_anim.setDuration(_ARC_MS)
-        self._arc_anim.setEasingCurve(QEasingCurve.Type.Linear)
-        self._arc_anim.valueChanged.connect(self._on_arc)
-        self._arc_anim.finished.connect(self._end_arc)
         self._heat = 1.0 if self._value == len(EFFORTS) - 1 else 0.0
         self._heat_anim = QVariantAnimation(self)
         self._heat_anim.setDuration(_HEAT_MS)
@@ -351,6 +385,10 @@ class EffortSlider(QWidget):
 
     def set_value(self, effort: str, animate: bool = False) -> None:
 
+
+
+        if _index(effort) == self._value and not self._dragging:
+            return
         self._value = _index(effort)
         self._preview = self._value
         self._heat_anim.stop()
@@ -402,7 +440,12 @@ class EffortSlider(QWidget):
         self.update()
 
     def _on_twinkle(self) -> None:
-        self._phase = (self._phase + _LEVEL_MOTION[self._value][3]) % (2 * math.pi)
+
+        dt = min(0.05, self._clock.restart() / 1000.0) if self._clock.isValid() else 0.0
+        if not self._clock.isValid():
+            self._clock.start()
+        self._phase = (self._phase + _LEVEL_MOTION[self._value][3] * 0.8 * dt * 30.0) % (2 * math.pi)
+        self._beat += dt
         self.update()
 
     def _on_charge(self, value) -> None:
@@ -425,17 +468,6 @@ class EffortSlider(QWidget):
 
     def _end_ring(self) -> None:
         self._ring = -1.0
-        self.update()
-
-    def _on_arc(self, value) -> None:
-        try:
-            self._arc = float(value)
-        except (TypeError, ValueError):
-            return
-        self.update()
-
-    def _end_arc(self) -> None:
-        self._arc = -1.0
         self.update()
 
     def _on_heat(self, value) -> None:
@@ -483,11 +515,6 @@ class EffortSlider(QWidget):
             self._ambient.start(int(ambient_ms))
         top = level == len(EFFORTS) - 1
         self._heat_to(1.0 if top else 0.0)
-        if top:
-            self._arc_anim.stop()
-            self._arc_anim.setStartValue(0.0)
-            self._arc_anim.setEndValue(1.0)
-            self._arc_anim.start()
 
     def _glide_to(self, index: int) -> None:
         self._anim.stop()
@@ -513,7 +540,12 @@ class EffortSlider(QWidget):
 
     def showEvent(self, event):  # noqa: N802
         super().showEvent(event)
-        self._twinkle.start()
+        if not prefers_reduced_motion():
+            self._clock.invalidate()
+            self._twinkle.start()
+            if self._value:
+                self._pos = 0.0
+                self._glide_to(self._value)
         ambient_ms = _LEVEL_MOTION[self._value][4]
         if ambient_ms:
             self._ambient.start(int(ambient_ms))
@@ -528,10 +560,8 @@ class EffortSlider(QWidget):
         self._ambient.stop()
         self._charge_anim.stop()
         self._ring_anim.stop()
-        self._arc_anim.stop()
         self._charge = -1.0
         self._ring = -1.0
-        self._arc = -1.0
 
     def enterEvent(self, event):  # noqa: N802
         self._hover = True
@@ -550,15 +580,22 @@ class EffortSlider(QWidget):
         self._dragging = True
         self._anim.stop()
         self._swell_to(self._rest_scale())
-        self._pos = self._pos_at(event_pos(event).x())
+        self._pos = self._caught(self._pos_at(event_pos(event).x()))
         self._set_preview(int(round(self._pos)))
         self.update()
+
+    @staticmethod
+    def _caught(pos: float) -> float:
+
+
+        stop = round(pos)
+        return stop + (pos - stop) * 0.35 if abs(pos - stop) < 0.2 else pos
 
     def mouseMoveEvent(self, event):  # noqa: N802
         if not self._dragging:
             super().mouseMoveEvent(event)
             return
-        self._pos = self._pos_at(event_pos(event).x())
+        self._pos = self._caught(self._pos_at(event_pos(event).x()))
         self._set_preview(int(round(self._pos)))
         self.update()
 
@@ -604,55 +641,12 @@ class EffortSlider(QWidget):
         if changed:
             self.changed.emit(EFFORTS[target])
 
-    def _draw_arc(self, painter: QPainter, track: QRectF, handle_x: float) -> None:
-
-
-
-
-
-        t = self._arc
-        fade = 1.0 if t < 0.66 else max(0.0, 1.0 - (t - 0.66) / 0.34)
-        if fade <= 0.0:
-            return
-        left = track.left() + track.height() / 2
-        right = handle_x - _HANDLE_PX / 2 + 2
-        if right - left < 16:
-            return
-
-
-        head = left + (right - left) * min(1.0, t / 0.34)
-        mid = track.center().y()
-        amp = track.height() * 0.28
-        n = max(6, int((head - left) / 9))
-        points = [QPointF(left, mid)]
-        for i in range(1, n):
-            x = left + (head - left) * i / n
-            jitter = math.sin(i * 12.9898 + t * 57.0) * math.cos(i * 4.1 + t * 23.0)
-            points.append(QPointF(x, mid + amp * jitter))
-        points.append(QPointF(head, mid))
-        line = QPolygonF(points)
-        soft = QColor(ACCENT).lighter(130)
-        soft.setAlphaF(0.55 * fade)
-        pen = QPen(soft, 4.0)
-        pen.setCapStyle(Qt.PenCapStyle.RoundCap)
-        pen.setJoinStyle(Qt.PenJoinStyle.RoundJoin)
-        painter.setPen(pen)
-        painter.setBrush(Qt.BrushStyle.NoBrush)
-        painter.drawPolyline(line)
-        core = QColor(255, 255, 255)
-        core.setAlphaF(0.92 * fade)
-        pen = QPen(core, 1.4)
-        pen.setCapStyle(Qt.PenCapStyle.RoundCap)
-        pen.setJoinStyle(Qt.PenJoinStyle.RoundJoin)
-        painter.setPen(pen)
-        painter.drawPolyline(line)
-
     def paintEvent(self, event):  # noqa: N802
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing, True)
         track = self._track()
         radius = _TRACK_PX / 2
-        handle_x = self._stop_x(self._pos)
+        handle_x = self._stop_x(max(-0.03, min(len(EFFORTS) - 1 + 0.03, self._pos)))
         centre = QPointF(handle_x, track.center().y())
         painter.setPen(QPen(qcolor(LINE), 1))
         painter.setBrush(qcolor(FIELD))
@@ -660,21 +654,25 @@ class EffortSlider(QWidget):
 
 
         trail = QRectF(track.left(), track.top(), max(0.0, handle_x - track.left()), track.height())
+        if trail.width() > radius:
+            band = QLinearGradient(QPointF(track.left(), 0), QPointF(track.right(), 0))
+            push = max(0.0, min(2.0, self._pos)) / 2.0
+            for at, colour in _REV_BAND:
+                tint = QColor(colour)
+                tint.setAlphaF(0.035 + 0.045 * push)
+                band.setColorAt(at, tint)
+            painter.setPen(Qt.PenStyle.NoPen)
+            painter.setBrush(band)
+            for spread in (1.0, 2.5, 4.0, 5.5):
+                under = trail.adjusted(0, spread * 0.6, 0, spread * 1.2)
+                painter.drawRoundedRect(under, radius + spread, radius + spread)
         if trail.width() > 1:
             painter.save()
             painter.setPen(Qt.PenStyle.NoPen)
             painter.setClipRect(trail)
-            gradient = QLinearGradient(QPointF(track.left(), 0), QPointF(handle_x, 0))
-            gradient.setColorAt(0.0, QColor(ACCENT_DARK))
-            lit = QColor(ACCENT)
-            if self._heat > 0.0:
-                hot = QColor(ACCENT).lighter(_HEAT_LIGHTER)
-                lit = QColor(
-                    int(lit.red() + (hot.red() - lit.red()) * self._heat),
-                    int(lit.green() + (hot.green() - lit.green()) * self._heat),
-                    int(lit.blue() + (hot.blue() - lit.blue()) * self._heat))
-                gradient.setColorAt(0.55, QColor(ACCENT))
-            gradient.setColorAt(1.0, lit)
+            gradient = QLinearGradient(QPointF(track.left(), 0), QPointF(track.right(), 0))
+            for at, colour in _REV_BAND:
+                gradient.setColorAt(at, QColor(colour))
             painter.setBrush(gradient)
             painter.drawRoundedRect(track, radius, radius)
             sheen = QLinearGradient(QPointF(0, track.top()), QPointF(0, track.bottom()))
@@ -696,21 +694,7 @@ class EffortSlider(QWidget):
                 light.setColorAt(1.0, white)
                 painter.setBrush(light)
                 painter.drawRoundedRect(track, radius, radius)
-            speck = QColor("#ffffff")
-            for fx, fy, r, alpha, phase in _SPECKS:
-                x = track.left() + radius + (track.width() - 2 * radius) * fx
-                if x > handle_x - _HANDLE_PX / 2 - 2:
-                    continue
-                wave = math.sin(self._phase + phase)
-                breath = 0.7 + 0.3 * wave
-
-
-                flare = self._heat * max(0.0, wave - 0.9) * 6.0
-                speck.setAlphaF(min(1.0, alpha * breath + flare))
-                painter.setBrush(speck)
-                painter.drawEllipse(QPointF(x, track.top() + track.height() * fy), r + flare * 0.8, r + flare * 0.8)
-            if self._arc >= 0.0:
-                self._draw_arc(painter, track, handle_x)
+            painter.setPen(Qt.PenStyle.NoPen)
             painter.restore()
 
 
@@ -725,13 +709,24 @@ class EffortSlider(QWidget):
 
         r = _HANDLE_PX / 2 * self._scale
         glow = (self._scale - 1.0) / (_HANDLE_GROW - 1.0)
+        here = rev_colour((handle_x - track.left()) / max(1.0, track.width()))
+        rev = max(0.0, min(2.0, self._pos)) / 2.0
+        needle = self._pos
+        if self._twinkle.isActive() and rev > 0.05:
+
+
+            pace = 34.0 + 46.0 * rev
+            reach = 1.05 * rev ** 1.5
+            centre = centre + QPointF(reach * 0.55 * math.sin(self._beat * pace * 1.31 + 1.7),
+                                      reach * math.sin(self._beat * pace))
+            needle += 0.05 * rev * math.sin(self._beat * pace * 0.83)
         if self._heat > 0.01:
 
 
 
             breath = 0.5 + 0.5 * math.sin(self._phase * 0.6)
             halo = QRadialGradient(centre, r + _SLIDER_PAD)
-            warm = QColor(ACCENT)
+            warm = QColor(here)
             warm.setAlphaF(self._heat * (0.10 + 0.16 * breath))
             halo.setColorAt(0.5, warm)
             warm.setAlphaF(0.0)
@@ -741,7 +736,7 @@ class EffortSlider(QWidget):
             painter.drawEllipse(centre, r + _SLIDER_PAD, r + _SLIDER_PAD)
         if glow > 0.01:
             halo = QRadialGradient(centre, r + _SLIDER_PAD)
-            lit = QColor(ACCENT)
+            lit = QColor(here)
             lit.setAlphaF(0.34 * glow)
             halo.setColorAt(0.55, lit)
             lit.setAlphaF(0.0)
@@ -761,11 +756,14 @@ class EffortSlider(QWidget):
         painter.setPen(QPen(QColor(0, 0, 0, 36) if DARK else qcolor(INK_3), 1))
         painter.setBrush(QColor("#ffffff"))
         painter.drawEllipse(centre, r - 0.5, r - 0.5)
+        face = r * 1.18
+        paint_dial(painter, QRectF(centre.x() - face / 2, centre.y() - face / 2, face, face),
+                   needle, QColor("#1b1c1f"), QColor(0, 0, 0, 38))
         if self._ring >= 0.0:
 
 
             reach = _LEVEL_MOTION[self._ring_level][0]
-            ring = QColor(ACCENT)
+            ring = QColor(here)
             ring.setAlphaF(0.55 * (1.0 - self._ring))
             painter.setPen(QPen(ring, 2.2 - 1.4 * self._ring))
             painter.setBrush(Qt.BrushStyle.NoBrush)
@@ -790,6 +788,13 @@ class _StopNames(QWidget):
         font.setPixelSize(max(9, FONT_MICRO))
         self.setFont(font)
         self.setFixedHeight(QFontMetrics(font).height() + 2)
+        self.setCursor(Qt.CursorShape.PointingHandCursor)
+
+    def mousePressEvent(self, event):  # noqa: N802
+
+        if event.button() == Qt.MouseButton.LeftButton:
+            x = event_pos(event).x()
+            self._slider._commit(min(range(len(self._names)), key=lambda i: abs(self._slider._stop_x(i) - x)))
 
     def paintEvent(self, event):  # noqa: N802
         painter = QPainter(self)
@@ -861,7 +866,7 @@ class EffortPopover(QFrame):
 
 
 
-        self._cta = QPushButton(QCoreApplication.translate("EffortChip", "Get Pro"), self)
+        self._cta = QPushButton(get_pro_label(), self)
         self._cta.setObjectName("effortCta")
         self._cta.setFixedHeight(_CTA_PX)
         self._cta.setCursor(Qt.CursorShape.PointingHandCursor)
@@ -936,8 +941,7 @@ class EffortPopover(QFrame):
             locked_from = min(locked_from, EFFORTS.index(self._trial[0]))
         self.slider.set_locked_from(locked_from)
 
-        self._cta.setText(trial_cta() if get_pro_offer() == "trial"
-                          else QCoreApplication.translate("EffortChip", "Get Pro"))
+        self._cta.setText(trial_cta() if get_pro_offer() == "trial" else get_pro_label())
         self._stops.trial = self._trial
         self._stops.update()
         self._price.setVisible(self.slider.is_locked(HIGH))
@@ -998,8 +1002,9 @@ class EffortPopover(QFrame):
     @staticmethod
     def _price_text() -> str:
         price = pro_price_per_month()
-        return (QCoreApplication.translate("EffortChip", "Pro · {price}").format(price=price) if price
-                else QCoreApplication.translate("EffortChip", "Included in Pro"))
+        if price:
+            return offer_text("effort.price", QCoreApplication.translate("EffortChip", "Pro · {price}"), price=price)
+        return offer_text("effort.included", QCoreApplication.translate("EffortChip", "Included in Pro"))
 
     def _on_dip(self, value) -> None:
         t = as_float(value)
@@ -1069,6 +1074,12 @@ class EffortChip(QToolButton):
         self._compact = False
         self._popover: EffortPopover | None = None
 
+        self._needle = float(EFFORTS.index(self._effort))
+        self._glide = QVariantAnimation(self)
+        self._glide.setDuration(280)
+        self._glide.setEasingCurve(QEasingCurve.Type.InOutCubic)
+        self._glide.valueChanged.connect(self._on_glide)
+
 
 
         self.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Fixed)
@@ -1091,6 +1102,7 @@ class EffortChip(QToolButton):
     def set_effort(self, effort: str) -> None:
 
         self._effort = normalize_effort(effort)
+        self._turn_needle()
         self._paint()
         if self._popover is not None:
             self._popover.set_current(self._effort)
@@ -1137,7 +1149,6 @@ class EffortChip(QToolButton):
 
 
 
-
         compact = bool(compact)
         if compact == self._compact:
             return
@@ -1150,20 +1161,12 @@ class EffortChip(QToolButton):
 
 
 
-        plain, strong = self._fonts()
-        word = "" if compact else QCoreApplication.translate("EffortChip", "Effort")
+        lock = _LOCK_PX + _CHIP_GAP if self.is_locked() else 0
+        if compact:
+            return BTN_SMALL_PX + lock
         name = self._names().get(self._effort, "")
-        width = (QFontMetrics(strong).horizontalAdvance(name)
-                 + _CHIP_GAP + _CHEVRON_SIZE + 6 + 8)
-        if word:
-            width += QFontMetrics(plain).horizontalAdvance(word + " ")
-        if self.is_locked():
-            width += _LOCK_PX + _CHIP_GAP
-        return width
-
-    def _label(self) -> tuple[str, str]:
-        word = "" if self._compact else QCoreApplication.translate("EffortChip", "Effort")
-        return word, self._names().get(self._effort, "")
+        return (6 + _GAUGE_PX + _CHIP_GAP + QFontMetrics(self._strong_font()).horizontalAdvance(name)
+                + _CHIP_GAP + lock + _CHEVRON_SIZE + 6)
 
     def _paint(self) -> None:
 
@@ -1177,20 +1180,43 @@ class EffortChip(QToolButton):
 
             name = self._names().get(self._effort, "")
             self.setToolTip(self.tr("{level} needs Pro. Pick Low to send.").format(level=name))
+        elif self._compact:
+            self.setToolTip(self.tr("Effort {level}: how hard the AI agent works on the next message")
+                            .format(level=self._names().get(self._effort, "")))
         else:
             self.setToolTip(self.tr("How hard the AI agent works on the next message"))
+        self.setAccessibleDescription(self._names().get(self._effort, ""))
         self.updateGeometry()
         self.update()
 
-    def _fonts(self) -> tuple[QFont, QFont]:
+    def _strong_font(self) -> QFont:
 
 
 
-        plain = QFont(self.font())
-        plain.setWeight(QFont.Weight.Normal)
-        strong = QFont(self.font())
-        strong.setWeight(medium_font_weight())
-        return plain, strong
+        self.ensurePolished()
+        return QFont(self.font())
+
+    def _turn_needle(self) -> None:
+
+        target = float(EFFORTS.index(self._effort)) if self._effort in EFFORTS else 0.0
+        self._glide.stop()
+        if target == self._needle or not self.isVisible() or prefers_reduced_motion():
+            self._needle = target
+            self.update()
+            return
+        self._glide.setStartValue(self._needle)
+        self._glide.setEndValue(target)
+        self._glide.start()
+
+    def _on_glide(self, value) -> None:
+        self._needle = float(value)
+        self.update()
+
+    def _draw_gauge(self, painter: QPainter, x: float, height: float, lit: bool) -> None:
+        faint = QColor(qcolor(INK_3))
+        faint.setAlphaF(0.5)
+        paint_dial(painter, QRectF(x, (height - _GAUGE_PX) / 2, _GAUGE_PX, _GAUGE_PX), self._needle,
+                   QColor(qcolor(INK if lit else INK_2)), faint)
 
     def sizeHint(self) -> QSize:  # noqa: N802
         return QSize(self.width_for(self._compact), BTN_SMALL_PX)
@@ -1203,35 +1229,28 @@ class EffortChip(QToolButton):
 
     def paintEvent(self, event):  # noqa: N802
         super().paintEvent(event)
-        plain, strong = self._fonts()
-        word, name = self._label()
-        lit = (self.underMouse() or bool(self.property("active")))
+        strong = self._strong_font()
+        name = self._names().get(self._effort, "")
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing, True)
-        x = 8
         height = self.rect().height()
-
-
-
-        if word:
-            painter.setFont(plain)
+        lit = self.underMouse() or bool(self.property("active"))
+        x = 6.0
+        self._draw_gauge(painter, x, height, lit)
+        x += _GAUGE_PX + _CHIP_GAP
+        if not self._compact:
+            painter.setFont(strong)
             painter.setPen(qcolor(INK if lit else INK_2))
-
-
-            painter.drawText(QRectF(x, 0, QFontMetrics(plain).horizontalAdvance(word) + 2, height),
-                             int(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter), word)
-            x += QFontMetrics(plain).horizontalAdvance(word + " ")
-        painter.setFont(strong)
-        painter.setPen(qcolor(INK))
-        painter.drawText(QRectF(x, 0, QFontMetrics(strong).horizontalAdvance(name) + 2, height),
-                         int(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter), name)
-        x += QFontMetrics(strong).horizontalAdvance(name) + _CHIP_GAP
+            painter.drawText(QRectF(x, 0, QFontMetrics(strong).horizontalAdvance(name) + 2, height),
+                             int(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter), name)
+            x += QFontMetrics(strong).horizontalAdvance(name) + _CHIP_GAP
         if self.is_locked():
             self._draw_lock(painter, x, height, qcolor(INK_3))
             x += _LOCK_PX + _CHIP_GAP
-        glyph = pixmap_for(self, "chevron_down", _CHEVRON_SIZE)
-        y = (height - glyph.height() / glyph.devicePixelRatio()) / 2
-        painter.drawPixmap(QPointF(x, y), glyph)
+        if not self._compact:
+            glyph = pixmap_for(self, "chevron_down", _CHEVRON_SIZE)
+            y = (height - glyph.height() / glyph.devicePixelRatio()) / 2
+            painter.drawPixmap(QPointF(x, y), glyph)
         painter.end()
         paint_keyboard_ring(self)
 
@@ -1288,26 +1307,14 @@ class EffortChip(QToolButton):
         popover.fit_text()
         popover.layout().activate()
         popover.adjustSize()
-        above = self.mapToGlobal(QPoint(0, 0))
         self.setProperty("active", True)
         repolish(self)
-
-
-        x = above.x() + self.width() - popover.width()
-        y = above.y() - popover.height() - 6
-        area = screen_area_at(above, self)
-        if area is not None:
-            x = max(area.left() + 4, min(x, area.right() - popover.width() - 4))
-            if y < area.top():
-                y = above.y() + self.height() + 6
-        popover.move(*keep_on_screen(x, y, popover.width(), popover.height(), area))
-        popover.show()
+        show_popped(popover, place_by_box(popover, self.parentWidget() or self, right=True))
 
     def eventFilter(self, watched, event):  # noqa: N802
         if watched is self._popover and event.type() == QEvent.Type.Hide:
             self.setProperty("active", False)
-            repolish(self)
-            self.update()
+            settle_hover(self)
         return super().eventFilter(watched, event)
 
     def _on_changed(self, effort: str) -> None:
@@ -1315,5 +1322,6 @@ class EffortChip(QToolButton):
         if effort == self._effort:
             return
         self._effort = effort
+        self._turn_needle()
         self._paint()
         self.effort_changed.emit(effort)

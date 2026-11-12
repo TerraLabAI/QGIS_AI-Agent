@@ -42,7 +42,10 @@ from __future__ import annotations
 from qgis.PyQt.QtCore import (
     QAbstractAnimation,
     QEasingCurve,
+    QEvent,
+    QSize,
     Qt,
+    QTimer,
     QVariantAnimation,
     pyqtSignal,
 )
@@ -99,11 +102,67 @@ _NOTE_QSS = scale_qss_font_px(
 class _Body(QWidget):
 
 
+
+
+
+
+
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.rows = QWidget(self)
+        self.rows.installEventFilter(self)
+
+    def _rows_height(self, width: int) -> int:
+        if self.rows.hasHeightForWidth() and width > 0:
+            return max(0, self.rows.heightForWidth(width))
+        return max(0, self.rows.sizeHint().height())
+
+    def sizeHint(self):  # noqa: N802
+        hint = self.rows.sizeHint()
+        return QSize(hint.width(), self._rows_height(self.width() or hint.width()))
+
+    def minimumSizeHint(self):  # noqa: N802
+        return QSize(self.rows.minimumSizeHint().width(),
+                     self._rows_height(self.width() or self.rows.sizeHint().width()))
+
+    def hasHeightForWidth(self) -> bool:  # noqa: N802
+        return True
+
+    def heightForWidth(self, width: int) -> int:  # noqa: N802
+        return self._rows_height(width)
+
+    def refit(self) -> None:
+
+        self.rows.setGeometry(0, 0, self.width(), self._rows_height(self.width()))
+
+    def resizeEvent(self, event):  # noqa: N802
+        super().resizeEvent(event)
+        self.refit()
+
+    def showEvent(self, event):  # noqa: N802
+        super().showEvent(event)
+        self.refit()
+
+    def eventFilter(self, obj, event):  # noqa: N802
+
+
+        if obj is self.rows and event.type() == QEvent.Type.LayoutRequest:
+            self.updateGeometry()
+            self.refit()
+        return False
+
+    def event(self, event):
+        if event.type() == QEvent.Type.LayoutRequest:
+            self.updateGeometry()
+            self.refit()
+        return super().event(event)
+
     def paintEvent(self, event):  # noqa: N802
         try:
             painter = QPainter(self)
-            painter.fillRect(_RAIL_X, _BODY_PAD_Y, 1, max(0, self.height() - 2 * _BODY_PAD_Y),
-                             qcolor(LINE))
+            painter.fillRect(_RAIL_X, _BODY_PAD_Y, 1,
+                             max(0, self.rows.height() - 2 * _BODY_PAD_Y), qcolor(LINE))
             painter.end()
         except Exception:  # noqa: BLE001
             return
@@ -131,6 +190,7 @@ class RunTrace(QWidget):
         self._manual: bool | None = None
         self._show_all = False
         self._roll_anim: QVariantAnimation | None = None
+        self._view_held = None
         self._anims: set = set()
         self.setObjectName("runTrace")
         col = QVBoxLayout(self)
@@ -182,10 +242,11 @@ class RunTrace(QWidget):
         col.addWidget(self._head)
 
         self._body = _Body(self)
-        self._body_col = QVBoxLayout(self._body)
+        self._rows = self._body.rows
+        self._body_col = QVBoxLayout(self._rows)
         self._body_col.setContentsMargins(_BODY_INDENT, _BODY_PAD_Y, 0, _BODY_PAD_Y)
         self._body_col.setSpacing(SPACE_TIGHT)
-        self._earlier = HoverRow(self._body)
+        self._earlier = HoverRow(self._rows)
         self._earlier.setObjectName("traceEarlier")
         self._earlier.setCursor(Qt.CursorShape.PointingHandCursor)
         self._earlier.setFixedHeight(ROW_PX - 4)
@@ -222,7 +283,7 @@ class RunTrace(QWidget):
             last.add(card)
             row = last
         else:
-            row = ActivityRow(card, self._body)
+            row = ActivityRow(card, self._rows)
             row.on_job_end = self._on_job_end
             self._place(row)
         self._latest = row.line()
@@ -248,13 +309,13 @@ class RunTrace(QWidget):
         return lines[-1] if lines else None
 
     def _place(self, widget: QWidget) -> None:
-        widget.setParent(self._body)
+        widget.setParent(self._rows)
         self._body_col.addWidget(widget)
         self._fade_up(widget)
 
     def add_note(self, text: str, failed: bool = False) -> None:
 
-        row = QWidget(self._body)
+        row = QWidget(self._rows)
         lay = QHBoxLayout(row)
         lay.setContentsMargins(6, 2, 6, 2)
         lay.setSpacing(_HEAD_GAP)
@@ -329,7 +390,30 @@ class RunTrace(QWidget):
 
     def _on_head_clicked(self) -> None:
         self._manual = not self._expanded
+        if self._view_held is None:
+            view = self.parentWidget()
+            while view is not None and not hasattr(view, "hold_view"):
+                view = view.parentWidget()
+            if view is not None:
+                view.hold_view()
+                self._view_held = view
         self.set_expanded(self._manual)
+        if self._roll_anim is None:
+            self._let_view_go()
+
+    def _let_view_go(self) -> None:
+
+        view, self._view_held = self._view_held, None
+        if view is None:
+            return
+
+        def _go():
+            try:
+                view.release_view()
+            except RuntimeError:
+                pass
+
+        QTimer.singleShot(0, _go)
 
     def hold(self, anim) -> None:
 
@@ -544,10 +628,7 @@ class RunTrace(QWidget):
 
 
 
-        width = self._body.width() or self.width()
-        target = max(0, self._body.sizeHint().height())
-        if self._body.hasHeightForWidth() and width > 0:
-            target = max(target, self._body.heightForWidth(width))
+        target = self._body.heightForWidth(self._body.width() or self.width())
         start = self._body.height() if self._body.isVisible() else 0
 
 
@@ -556,7 +637,6 @@ class RunTrace(QWidget):
 
 
 
-        mid_roll = self._roll_anim is not None
         self._stop_roll(settle=False)
         if open_it:
             self._body.setMaximumHeight(start)
@@ -564,7 +644,7 @@ class RunTrace(QWidget):
         roll = QVariantAnimation(self)
         roll.setDuration(_FOLD_MS)
         roll.setEasingCurve(QEasingCurve.Type.OutQuint)
-        roll.setStartValue(float(start if open_it or mid_roll else max(start, target)))
+        roll.setStartValue(float(start))
         roll.setEndValue(float(target if open_it else 0))
 
         def _step(value):
@@ -619,6 +699,7 @@ class RunTrace(QWidget):
             row.cleanup()
 
     def _roll_done(self, open_it: bool) -> None:
+        self._let_view_go()
         try:
             self._body.setVisible(open_it)
 

@@ -123,7 +123,7 @@ def open_plugin_manager(plugin_name: str, fallback_url: str) -> str:
         if iface.pluginManagerInterface() is None:
             raise RuntimeError("plugin manager unavailable")
         QTimer.singleShot(0, lambda: _reveal_plugin(plugin_name))
-        show_plugin_manager(0)
+        show_plugin_manager(TAB_ALL)
         return "manager"
     except Exception:  # noqa: BLE001
         open_external_url(fallback_url)
@@ -145,13 +145,22 @@ def open_plugin_manager_later(plugin_name: str, fallback_url: str) -> str:
     from qgis.PyQt.QtCore import QTimer
 
     if _plugin_manager_dialog() is not None:
-        reveal_in_open_manager(plugin_name, tab=0, filter_text=True)
+        reveal_in_open_manager(plugin_name, tab=TAB_ALL, filter_text=True)
         return "revealed"
     QTimer.singleShot(0, lambda: open_plugin_manager(plugin_name, fallback_url))
     return "queued"
 
 
-def show_plugin_manager(tab: int = 0) -> None:
+
+
+TAB_ALL = 0
+TAB_UPGRADEABLE = 3
+
+
+_PLUGIN_KEY_ROLE_OFFSET = 1
+
+
+def show_plugin_manager(tab: int = TAB_ALL) -> None:
 
 
 
@@ -219,6 +228,7 @@ def _select_row(dialog, plugin_name: str) -> bool:
 
 
 
+
     from qgis.PyQt.QtCore import Qt
     from qgis.PyQt.QtWidgets import QListView
 
@@ -232,8 +242,9 @@ def _select_row(dialog, plugin_name: str) -> bool:
     found = None
     for row in range(model.rowCount()):
         index = model.index(row, 0)
+        key = str(model.data(index, Qt.ItemDataRole.UserRole + _PLUGIN_KEY_ROLE_OFFSET) or "").strip().casefold()
         label = str(model.data(index, Qt.ItemDataRole.DisplayRole) or "").strip().casefold()
-        if label == wanted:
+        if wanted in (key, label):
             found = index
             break
 
@@ -280,10 +291,12 @@ def reveal_in_open_manager(plugin_name: str, tab: int = -1, filter_text: bool = 
         if dialog is not None:
 
 
-            if confirmed == 0 and tab >= 0:
+
+            if tab >= 0:
                 tabs = dialog.findChild(QListWidget, "mOptionsListWidget")
                 if tabs is not None and tabs.currentRow() != tab:
                     tabs.setCurrentRow(tab)
+                tab = -1
             edit = _filter_edit(dialog) if filter_text else None
             if edit is not None and edit.text() != plugin_name:
                 edit.setText(plugin_name)
@@ -301,4 +314,4 @@ def reveal_in_open_manager(plugin_name: str, tab: int = -1, filter_text: bool = 
 
 def _reveal_plugin(plugin_name: str) -> None:
 
-    reveal_in_open_manager(plugin_name, tab=0, filter_text=True)
+    reveal_in_open_manager(plugin_name, tab=TAB_ALL, filter_text=True)

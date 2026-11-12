@@ -20,12 +20,19 @@ import tempfile
 
 from qgis.PyQt.QtCore import QObject, Qt, QUrl, pyqtSignal
 from qgis.PyQt.QtGui import QImage, QPainter, QPainterPath, QPixmap
-from qgis.PyQt.QtNetwork import QNetworkReply, QNetworkRequest
+from qgis.PyQt.QtNetwork import QNetworkRequest
 
 from ..core.host_platform import retry_file_op
 from ..core.policy import PLUGIN_CACHE_DIR
 from .image_guard import read_bounded_image
-from .shared import resolve_qt_enum
+from .thumbnail_cache import (
+    HTTP_STATUS,
+    NETWORK_NO_ERROR,
+    NO_LESS_SAFE,
+    REDIRECT_POLICY,
+    drop_reply,
+    is_picture_url_usable,
+)
 
 
 
@@ -37,25 +44,6 @@ MAX_AVATAR_PIXELS = 16 * 1024 * 1024
 AVATAR_OVERSAMPLE = 2
 
 AVATAR_CACHE_DIR = os.path.join(PLUGIN_CACHE_DIR, "avatars")
-
-_NETWORK_NO_ERROR = resolve_qt_enum(QNetworkReply, "NetworkError", "NoError")
-HttpStatusCodeAttribute = resolve_qt_enum(QNetworkRequest, "Attribute", "HttpStatusCodeAttribute")
-RedirectPolicyAttribute = resolve_qt_enum(QNetworkRequest, "Attribute", "RedirectPolicyAttribute")
-NoLessSafeRedirectPolicy = resolve_qt_enum(QNetworkRequest, "RedirectPolicy", "NoLessSafeRedirectPolicy")
-
-
-
-
-def is_avatar_url_usable(url: object) -> bool:
-    if not isinstance(url, str) or not url.lower().startswith("https://"):
-        return False
-    try:
-        from urllib.parse import urlsplit
-        parsed = urlsplit(url)
-        return bool(parsed.hostname) and not parsed.username and not parsed.password
-    except ValueError:
-        return False
-
 
 
 
@@ -160,12 +148,12 @@ class AccountAvatarLoader(QObject):
 
         from qgis.core import QgsNetworkAccessManager
 
-        if self._reply is not None or not is_avatar_url_usable(url):
+        if self._reply is not None or not is_picture_url_usable(url):
             return
         self._url = url
         self._diameter = int(diameter)
         request = QNetworkRequest(QUrl(url))
-        request.setAttribute(RedirectPolicyAttribute, NoLessSafeRedirectPolicy)
+        request.setAttribute(REDIRECT_POLICY, NO_LESS_SAFE)
         try:
             reply = QgsNetworkAccessManager.instance().get(request)
         except Exception:  # noqa: BLE001
@@ -185,18 +173,7 @@ class AccountAvatarLoader(QObject):
     def abort(self) -> None:
 
         reply, self._reply = self._reply, None
-        if reply is None:
-            return
-        for signal in ("finished", "downloadProgress"):
-            try:
-                getattr(reply, signal).disconnect()
-            except (AttributeError, RuntimeError, TypeError):
-                pass
-        try:
-            reply.abort()
-            reply.deleteLater()
-        except RuntimeError:
-            pass
+        drop_reply(reply)
 
     def _on_download_progress(self, received: int, total: int) -> None:
 
@@ -209,9 +186,9 @@ class AccountAvatarLoader(QObject):
             return
         data = b""
         try:
-            status = reply.attribute(HttpStatusCodeAttribute)
+            status = reply.attribute(HTTP_STATUS)
             served = int(status) if status is not None else 200
-            if reply.error() == _NETWORK_NO_ERROR and served == 200:
+            if reply.error() == NETWORK_NO_ERROR and served == 200:
                 data = bytes(reply.readAll())
         except (RuntimeError, TypeError, ValueError):
             data = b""

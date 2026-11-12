@@ -25,7 +25,7 @@ from qgis.PyQt.QtCore import QLocale, QSysInfo
 from .host_platform import IS_WINDOWS, retry_file_op
 from .i18n import current_locale, qgis_locale_names
 from .net_state import clear_cache
-from .plan import effort_allowed, effort_default, effort_name, efforts_stated, plan_features, stated
+from .plan import effort_default
 from .policy import state_dir  # noqa: F401
 
 GROUP = "TerraLab/AIAgent"
@@ -124,7 +124,6 @@ def use_server_url(url: str) -> None:
     _alternates["active"] = url if url in _alternates["served"] else ""
 
 
-PRODUCT_ID = "ai-agent"
 KEY_RE = re.compile(r"^tl_[0-9a-f]{32}$")
 
 
@@ -315,6 +314,7 @@ class Settings:
         self._cache_files = settings is None
         self._s = settings or profile_settings()
         self._session_approval = ""
+        self._session_effort = ""
 
     def _cache_get(self, name: str) -> str:
         if not self._cache_files:
@@ -388,6 +388,24 @@ class Settings:
     @last_run_version.setter
     def last_run_version(self, value: str) -> None:
         self._set("last_run_version", str(value or ""))
+
+    @property
+    def update_pressed(self) -> str:
+
+        return self._get("update_pressed", "")
+
+    @update_pressed.setter
+    def update_pressed(self, value: str) -> None:
+        self._set("update_pressed", str(value or ""))
+
+    @property
+    def signed_out_mark(self) -> str:
+
+        return self._get("signed_out_mark", "")
+
+    @signed_out_mark.setter
+    def signed_out_mark(self, value: str) -> None:
+        self._set("signed_out_mark", str(value or ""))
 
     @property
     def last_paid(self) -> bool:
@@ -643,57 +661,18 @@ class Settings:
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-        value = self._get("effort", "")
-
-
-
-        mode = self._get("model_mode", "")
-        if mode and efforts_stated():
-            self._s.remove(self._key("model_mode"))
-            legacy = {"fast": "low", "pro": "medium"}.get(mode, "")
-            if not value and legacy and effort_allowed(legacy):
-                self.effort = value = legacy
-
-
-
-
-
-        if value and stated("pro"):
-            pro = "1" if plan_features().get("pro") else "0"
-            tagged = self._get("effort_pro", "")
-            if tagged == "0" and pro == "1":
-                self._s.remove(self._key("effort"))
-                value = ""
-            if not tagged:
-
-
-                self._set("effort_pro", pro)
-        known = effort_name(value)
-        if known:
-            return known
-        if efforts_stated():
-            default = effort_default()
-            if self._get("effort_last_default", "") != default:
-                self._set("effort_last_default", default)
-            return default
-        return effort_name(self._get("effort_last_default", "")) or effort_default()
+        return self._session_effort or effort_default()
 
     @effort.setter
     def effort(self, value: str) -> None:
-        self._set("effort", value if value in self.EFFORTS else "low")
-        if stated("pro"):
-            self._set("effort_pro", "1" if plan_features().get("pro") else "0")
+        self._session_effort = value if value in self.EFFORTS else ""
+
+    def reset_effort(self) -> bool:
+
+        if not self._session_effort:
+            return False
+        self._session_effort = ""
+        return True
 
     @property
     def approval(self) -> str:
@@ -781,6 +760,25 @@ class Settings:
         self._set("follow_edits", "1" if value else "0")
 
 
+
+    @property
+    def mascot_animated(self) -> bool:
+
+        return self._get("mascot_animated", "1") == "1"
+
+    @mascot_animated.setter
+    def mascot_animated(self, value: bool) -> None:
+        self._set("mascot_animated", "1" if value else "0")
+
+    @property
+    def mascot_table(self) -> str:
+
+
+        return self._get("mascot_table", "")
+
+    @mascot_table.setter
+    def mascot_table(self, value: str) -> None:
+        self._set("mascot_table", value)
 
     @property
     def question_policy(self) -> str:

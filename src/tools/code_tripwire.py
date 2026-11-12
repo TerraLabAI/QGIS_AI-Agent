@@ -766,13 +766,25 @@ def _with_overrides(base, name: str) -> list:
     return out
 
 
+
+AS_WRITTEN = object()
+
+
 def _wrap(arm: _Arm, original, judge, static: bool):
+
+
+    instead = getattr(judge, "instead", None)
+
     def trapped(*args, **kwargs):
         if _from_snippet(2):
 
             replaced = judge(arm, *args, **kwargs)
             if replaced is not None:
                 args, kwargs = replaced
+            if instead is not None:
+                done = instead(*args, **kwargs)
+                if done is not AS_WRITTEN:
+                    return done
         if static or not args or not hasattr(original, "__get__"):
             return original(*args, **kwargs)
 
@@ -1151,6 +1163,20 @@ def _page_export(arm, *args, **kwargs):
         note_page(os.path.abspath(os.path.expanduser(text)))
 
 
+def _page_drawn_apart(method: str):
+
+    def judge(arm, *args, **kwargs):
+        return _page_export(arm, *args, **kwargs)
+
+    def instead(*args, **kwargs):
+        from . import code_layout_export
+
+        return code_layout_export.drawn_apart(method, args, kwargs)
+
+    judge.instead = instead
+    return judge
+
+
 def _written(target) -> None:
 
 
@@ -1332,8 +1358,8 @@ def _traps():
         (get("QgsMapLayer"), "saveNamedStyle", _path_arg(1, "uri"), False),
         (get("QgsMapLayer"), "saveSldStyle", _path_arg(1, "uri"), False),
         (get("QgsMapLayer"), "saveDefaultStyle", _deletes("replaces the layer's default style file"), False),
-        (get("QgsLayoutExporter"), "exportToImage", _page_export, False),
-        (get("QgsLayoutExporter"), "exportToPdf", _page_export, False),
+        (get("QgsLayoutExporter"), "exportToImage", _page_drawn_apart("exportToImage"), False),
+        (get("QgsLayoutExporter"), "exportToPdf", _page_drawn_apart("exportToPdf"), False),
         (get("QgsLayoutExporter"), "exportToSvg", _page_export, False),
         (get("QgsLayout"), "removeLayoutItem", _page_removal, False),
         (get("QgsCoordinateReferenceSystem"), "saveAsUserCrs", _refuses(_SETTING), False),

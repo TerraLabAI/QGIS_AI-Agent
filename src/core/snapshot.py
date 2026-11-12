@@ -466,6 +466,8 @@ def _backup_folder(snapshot_dir: str, lid: str) -> str:
 
 
 class RunSnapshot:
+    copy_kind = "none"
+    capture_ms = None
     def __init__(self, run_id: str):
         self.run_id = run_id
         self.captured = False
@@ -864,6 +866,7 @@ class RunSnapshot:
             os.makedirs(self.dir, exist_ok=True)
         except OSError as exc:
             log_warning(f"Snapshot folder not writable: {exc}")
+            self.copy_kind = "failed"
             return False
 
 
@@ -935,6 +938,9 @@ class RunSnapshot:
         self._pass.start(self._adopt_pass)
         self.captured = ok
         self.captured_at = time.time()
+
+        self.copy_kind = "reused" if reused else "written" if ok else "failed"
+        self.capture_ms = int((time.monotonic() - started) * 1000)
         log(f"Snapshot {'captured' if ok else 'FAILED'} for run {self.run_id[:8]} in "
             f"{time.monotonic() - started:.2f} s ({len(self.layers)} layers, {len(self.layers) - light} in full"
             f"{', copy reused' if reused else ''})")

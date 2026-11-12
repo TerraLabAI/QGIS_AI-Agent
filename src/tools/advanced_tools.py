@@ -93,6 +93,10 @@ def register_advanced_tools(registry: ToolRegistry):
 
 
             "x-console-names": True,
+
+
+
+            "x-export-drawn-apart": True,
             "properties": {
                 "code": {
                     "type": "string",

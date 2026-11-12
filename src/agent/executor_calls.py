@@ -11,7 +11,7 @@ import contextlib
 import copy
 import threading
 import time
-from collections import deque
+from collections import OrderedDict, deque
 
 from qgis.core import QgsProject
 from qgis.PyQt.QtCore import QCoreApplication, QTimer
@@ -37,6 +37,11 @@ _HOSTS_AHEAD = 32
 
 
 TURN_WAIT_S = 15.0
+
+UNSENT_KEEP = 200
+
+
+SENT_BEFORE_DROP_S = 120.0
 
 
 CHAT_FILES_THREADS = 64
@@ -153,6 +158,15 @@ class _ExecutorCalls:
         if run_id not in self._run_mode:
 
 
+            if run_id not in self._runs_begun:
+
+
+                self._fail(call, Err.CANCELLED,
+                           tr("QGIS restarted during this request, so this step was not run again. "
+                              "The project may already hold what it changed."),
+                           "This QGIS process never opened this run. Whether the call ran before the "
+                           "restart is not known: read the project before running it again.")
+                return
             self._fail(call, Err.CANCELLED,
                        tr("This run has ended; the call was not executed."),
                        "The run is over.")
@@ -956,8 +970,9 @@ class _ExecutorCalls:
 
             cost_guard.stop_framing()
         if decision == Decision.DENY:
-            self._session.send_permission_response(tool_call_id, run_id, Decision.DENY)
             self._table.put(tool_call_id, "deny", {})
+            self._note_sent(tool_call_id, run_id,
+                            self._session.send_permission_response(tool_call_id, run_id, Decision.DENY))
             if call.get("costly"):
                 self._refused_costly.setdefault(run_id, set()).add(
                     call.get("_refused_key")
@@ -1177,12 +1192,55 @@ class _ExecutorCalls:
         kind, payload = entry.get("kind"), entry.get("payload")
         log(f"Replaying stored answer for {tool_call_id} ({kind})")
         if kind == "result":
-            self._session.send_tool_result(tool_call_id, run_id, payload)
+            sent = self._session.send_tool_result(tool_call_id, run_id, payload)
         elif kind == "error" and isinstance(payload, dict):
-            self._session.send_tool_error(tool_call_id, run_id, payload.get("code", Err.EXECUTION_FAILED),
-                                          payload.get("message", ""), payload.get("suggestion", ""))
+            sent = self._session.send_tool_error(tool_call_id, run_id, payload.get("code", Err.EXECUTION_FAILED),
+                                                 payload.get("message", ""), payload.get("suggestion", ""))
         else:
-            self._session.send_permission_response(tool_call_id, run_id, Decision.DENY)
+            sent = self._session.send_permission_response(tool_call_id, run_id, Decision.DENY)
+        self._note_sent(tool_call_id, run_id, sent)
+
+    def _note_sent(self, tool_call_id: str, run_id: str, sent) -> None:
+
+        if sent is False:
+            self._unsent[tool_call_id] = run_id
+            self._unsent.move_to_end(tool_call_id)
+            while len(self._unsent) > UNSENT_KEEP:
+                self._unsent.popitem(last=False)
+        else:
+            self._unsent.pop(tool_call_id, None)
+            self._sent_recently[tool_call_id] = (run_id, time.monotonic())
+            self._sent_recently.move_to_end(tool_call_id)
+            while len(self._sent_recently) > UNSENT_KEEP:
+                self._sent_recently.popitem(last=False)
+
+    def _socket_state(self, state: str = "", _detail: str = "") -> None:
+
+
+        if state == "online":
+            return
+        now = time.monotonic()
+        recent, self._sent_recently = self._sent_recently, OrderedDict()
+        for tool_call_id, (run_id, at) in recent.items():
+            if now - at <= SENT_BEFORE_DROP_S:
+                self._unsent[tool_call_id] = run_id
+
+    def _resend_unsent(self, frame=None) -> None:
+
+
+
+
+
+
+
+
+        unsent, self._unsent = self._unsent, OrderedDict()
+        if self._closed or not isinstance(frame, dict) or frame.get("resumed") is not True or not self._table.ready:
+            return
+        for tool_call_id, run_id in unsent.items():
+            entry = self._table.get(tool_call_id)
+            if entry is not None:
+                self._replay(entry, tool_call_id, run_id)
 
     def remember_answer(self, tool_call_id: str, result=None, error: dict | None = None) -> None:
 
@@ -1221,10 +1279,12 @@ class _ExecutorCalls:
         if detail:
 
 
-            self._session.send_tool_error(tool_call_id, run_id, code, wire, suggestion, self._code_class_of(call),
-                                          detail=strip_paths(detail, DETAIL_CHARS))
+            sent = self._session.send_tool_error(tool_call_id, run_id, code, wire, suggestion,
+                                                 self._code_class_of(call), detail=strip_paths(detail, DETAIL_CHARS))
         else:
-            self._session.send_tool_error(tool_call_id, run_id, code, wire, suggestion, self._code_class_of(call))
+            sent = self._session.send_tool_error(tool_call_id, run_id, code, wire, suggestion,
+                                                 self._code_class_of(call))
+        self._note_sent(tool_call_id, run_id, sent)
         log_warning(f"{code} {call.get('name')}: {message[:200]}")
 
         self.tool_finished.emit(tool_call_id, False, f"{code}: {message}", duration, detail or suggestion,

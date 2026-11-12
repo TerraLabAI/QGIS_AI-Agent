@@ -357,7 +357,7 @@ class AgentSession(QObject):
 
     connection_ready = pyqtSignal(object)
 
-    project_memory = pyqtSignal(object)
+    transcript = pyqtSignal(str, str, str)
 
     def __init__(self, settings, account, identity_provider: Callable[[], dict],
                  manifest_provider: Callable[[], tuple], parent=None):
@@ -503,7 +503,11 @@ class AgentSession(QObject):
         self._reconnect.stop()
         self._open()
 
-    def disconnect_from_server(self, wait: bool = False) -> None:
+    def disconnect_from_server(self, wait: bool = False, flush: bool = False,
+                               keep_cancels: bool = False) -> None:
+
+
+
 
 
 
@@ -511,12 +515,13 @@ class AgentSession(QObject):
         self._heartbeat.stop()
         self._hello_deadline.stop()
         self._reconnect.stop()
-        if wait and self._pending_cancels:
+        if (wait or flush) and self._pending_cancels:
             self._flush_before_close()
         if wait:
             self._save_session()
-        self._pending_cancels.clear()
-        self._cancel_reasons.clear()
+        if not keep_cancels:
+            self._pending_cancels.clear()
+            self._cancel_reasons.clear()
         self._ws.close(1000, "client closing", wait_ms=1500 if wait else 0)
         self._set_state("offline", "")
 
@@ -756,6 +761,11 @@ class AgentSession(QObject):
 
 
         return self._send(protocol.busy(seconds, where, calls, ended))
+
+    @property
+    def dictation_terms(self) -> dict | None:
+
+        return getattr(self, "_dictation", None) if self.is_online else None
 
     @property
     def steer_available(self) -> bool:
@@ -1521,6 +1531,8 @@ class AgentSession(QObject):
         self._funnel = frame.get("funnel") is True
         self._project_state = frame.get("project_state") is True
         self._edit_last = frame.get("edit_last") is True
+        terms = frame.get("dictation")
+        self._dictation = dict(terms) if isinstance(terms, dict) else None
 
         groups = frame.get("effort_switch")
         self._effort_switch = tuple(tuple(str(e) for e in g) for g in groups
@@ -1676,8 +1688,8 @@ class AgentSession(QObject):
                               str(frame.get("replaces") or ""), str(frame.get("setting") or ""),
                               str(frame.get("value") or ""))
 
-    def _on_project_memory(self, frame: dict) -> None:
-        self.project_memory.emit(frame)
+    def _on_transcript(self, frame: dict) -> None:
+        self.transcript.emit(str(frame.get("id") or ""), str(frame.get("text") or ""), str(frame.get("code") or ""))
 
     def _on_sources(self, frame: dict) -> None:
         raw = frame.get("items") if isinstance(frame.get("items"), list) else []

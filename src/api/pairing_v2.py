@@ -20,6 +20,8 @@
 
 
 
+
+
 from __future__ import annotations
 
 import hashlib
@@ -40,6 +42,7 @@ from .terralab_client import PRODUCT_ID
 CODE_ALPHABET = "23456789ABCDEFGHJKLMNPQRSTUVWXYZ"  # pragma: allowlist secret
 FALLBACK_AFTER_MS = 15_000
 CLAIM_TIMEOUT_MS = 10_000
+CLAIM_AGAIN_MS = 10_000
 START_FAILURES_FOR_LEGACY = 3
 TTL_S = 1800
 _RETRY_CAP_S = 10.0
@@ -187,6 +190,10 @@ class PairingV2(QObject):
         self._waiting_sockets: list = []
         self._succeeded = False
         self._not_found_held = False
+
+
+        self._grant = ""
+        self._grant_retry = one_shot(self, self._claim_grant_again, CLAIM_AGAIN_MS)
         self._fallback_timer = one_shot(self, self._show_fallback, FALLBACK_AFTER_MS)
 
     @property
@@ -251,13 +258,23 @@ class PairingV2(QObject):
         if not grant or len(grant) > 512:
             self._go_back(socket)
             return
-        client, code, secret = self._client, self._code, self._secret
-        self._claims_in_flight += 1
+        self._grant = grant
+        self._grant_retry.stop()
         self._waiting_sockets.append(socket)
+        self._claim_grant(socket)
+
+    def _claim_grant(self, socket) -> None:
+
+        client, code, secret, grant = self._client, self._code, self._secret, self._grant
+        self._claims_in_flight += 1
         self._run(_Task(tr("Connecting AI Agent"),
                         lambda task: request_claim(client, code, secret, task.isCanceled,
                                                    grant=grant, attempts=3)),
                   lambda result, s=socket: self._on_grant_claim(s, result))
+
+    def _claim_grant_again(self) -> None:
+        if self._live and self._grant and self._claims_in_flight <= 0:
+            self._claim_grant(None)
 
     def _on_grant_claim(self, socket, result: dict) -> None:
         from ..core import report_bridge
@@ -268,13 +285,19 @@ class PairingV2(QObject):
         status = result.get("status")
         log(f"Sign-in v2: browser claim answered {status}")
         if status == "ready" and self._live:
-            done = f"{self._client.base_url.rstrip('/')}/connect/done?product={PRODUCT_ID}"
-            report_bridge.write_http(socket, "302 Found", [("Location", done)] + _NO_STORE, b"")
+            if socket is not None:
+                done = f"{self._client.base_url.rstrip('/')}/connect/done?product={PRODUCT_ID}"
+                report_bridge.write_http(socket, "302 Found", [("Location", done)] + _NO_STORE, b"")
             _call_back_to_qgis()
             self._succeed(str(result.get("key") or ""))
             return
-        self._go_back(socket)
+        if socket is not None:
+            self._go_back(socket)
         if self._live:
+            if status == "error":
+
+
+                self._grant_retry.start()
             self._settle(status)
             self._settle_held()
 
@@ -329,14 +352,15 @@ class PairingV2(QObject):
         elif status == "locked":
             self._fail(tr("Too many wrong codes: this sign-in is closed. Click Sign in to start again."),
                        "LOCKED")
-        elif status == "not_found" and self._claims_in_flight > 0:
+        elif status == "not_found" and (self._claims_in_flight > 0 or self._grant_retry.isActive()):
             self._not_found_held = True
         elif status == "not_found":
             self._fail(tr("This sign-in has ended. Click Sign in to start again."), "NOT_FOUND")
 
     def _settle_held(self) -> None:
 
-        if self._live and self._not_found_held and self._claims_in_flight <= 0:
+        if (self._live and self._not_found_held and self._claims_in_flight <= 0
+                and not self._grant_retry.isActive()):
             self._settle("not_found")
 
     def _succeed(self, key: str) -> None:
@@ -355,6 +379,8 @@ class PairingV2(QObject):
             return
         self._live = False
         self._fallback_timer.stop()
+        self._grant_retry.stop()
+        self._grant = ""
         from ..core import report_bridge
 
 

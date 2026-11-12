@@ -37,6 +37,7 @@ from qgis.PyQt.QtWidgets import (
 from ..core.logger import log_warning
 from ..core.numbers import as_int
 from ..core.profile import clear_memory_notes
+from ..core.qt_compat import disconnect_quietly
 from ..core.served_state import (
     PRODUCT_ID,
     get_dashboard_url,
@@ -46,13 +47,14 @@ from ..core.served_state import (
     get_served_pro_points,
     get_student_offer,
     get_support_email,
+    offer_text,
 )
-from .account_avatar import AccountAvatarLoader, cached_avatar_pixmap, is_avatar_url_usable
+from .account_avatar import AccountAvatarLoader, cached_avatar_pixmap
 from .confirm_dialog import ask_confirm
 from .delete_account_dialog import ask_delete_account
 from .external_links import open_external_url
 from .font_scale import apply_font_scale_to_tree, scale_px_length, scale_qss_font_px
-from .quota_card import _STUDENT_QSS, note_student_offer_shown, open_student_offer, trial_cta
+from .quota_card import get_pro_label, note_student_offer_shown, open_student_offer, trial_cta
 from .settings_pages import (
     DANGER_GHOST_BTN_QSS,
     GET_PRO_BTN_QSS,
@@ -68,8 +70,10 @@ from .settings_pages import (
     Switch,
 )
 from .settings_retention import RetentionRow
-from .shared import format_reset_date, safe_disconnect
+from .shared import format_reset_date
+from .style import ACCENT_INK, FONT_HINT, WEIGHT_MEDIUM
 from .styles import PANEL_TEXT
+from .thumbnail_cache import is_picture_url_usable
 from .widgets import ElidedLabel
 
 _AVATAR_D = 36
@@ -79,6 +83,8 @@ _ACCOUNT_OFFLINE_CODES = frozenset({
     "NO_INTERNET", "DNS_ERROR", "CONNECTION_REFUSED", "PROXY_ERROR",
     "TIMEOUT", "SSL_ERROR",
 })
+
+_STUDENT_QSS = f"font-size: {FONT_HINT}px; color: {ACCENT_INK}; font-weight: {WEIGHT_MEDIUM};"
 
 
 class _PlanRuns(NamedTuple):
@@ -399,7 +405,7 @@ class AccountPageMixin:
 
 
             manage = self._button(trial_cta() if getattr(self, "trial_offered", False)
-                                  else self.tr("Get Pro"), GET_PRO_BTN_QSS)
+                                  else get_pro_label(), GET_PRO_BTN_QSS)
             manage.clicked.connect(lambda: self._on_upgrade("account"))
         line.addWidget(manage, 0, Qt.AlignmentFlag.AlignVCenter)
         col.addLayout(line)
@@ -428,9 +434,9 @@ class AccountPageMixin:
         if not plan.is_subscriber:
 
             points = get_served_pro_points()
-            adds = QLabel(self.tr("What Pro adds: {points}").format(
-                points=", ".join(points) if points else
-                self.tr("commercial use, more tasks, memory, your instructions and higher effort")), row)
+            adds = QLabel(offer_text("account.adds", self.tr("What Pro adds: {points}"), points=", ".join(
+                points) if points else offer_text("account.adds.shipped", self.tr(
+                    "commercial use, more tasks, your instructions and higher effort"))), row)
             adds.setTextFormat(Qt.TextFormat.PlainText)
             adds.setStyleSheet(ROW_NOTE_QSS)
             adds.setWordWrap(True)
@@ -483,7 +489,7 @@ class AccountPageMixin:
 
     def _show_account_picture(self, url, diameter: int) -> None:
 
-        if not is_avatar_url_usable(url):
+        if not is_picture_url_usable(url):
             return
         pixmap = cached_avatar_pixmap(url, diameter)
         if pixmap is not None:
@@ -508,7 +514,7 @@ class AccountPageMixin:
         loader, self._avatar_loader = self._avatar_loader, None
         if loader is None:
             return
-        safe_disconnect(loader, "loaded")
+        disconnect_quietly(loader, "loaded")
         try:
             loader.abort()
         except RuntimeError:
@@ -659,13 +665,15 @@ class AccountPageMixin:
     def _improve_note(self, subscriber: bool) -> str:
 
         if subscriber:
-            return self.tr("We may read a chat only to fix a bug, never to train AI. Chats are kept 30 days.")
-        return self.tr("We may read a chat only to fix a wrong answer or a bug, never to train AI.")
+            return self.tr("We may read a chat, or have a model score it, to fix bugs and improve the agent, "
+                           "never to train AI. Chats are kept 30 days.")
+        return self.tr("We may read a chat, or have a model score it, to fix a wrong answer or a bug "
+                       "and improve the agent, never to train AI.")
 
     def _improve_tip(self, subscriber: bool) -> str:
         if subscriber:
             return self.tr("Your chats are kept 30 days so a conversation survives an update. "
-                           "Off, the team never reads them. 0 days of history stores nothing.")
+                           "Off, we never read or score them. 0 days of history stores nothing.")
         return self.tr("Turn it off any time, with no other effect.")
 
     def _sync_improve_plan(self, info: dict) -> None:

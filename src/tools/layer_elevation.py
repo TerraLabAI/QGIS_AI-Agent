@@ -31,6 +31,7 @@ from __future__ import annotations
 
 import math
 import statistics
+import threading
 
 from qgis.core import (
     Qgis,
@@ -39,6 +40,8 @@ from qgis.core import (
     QgsExpressionContext,
     QgsExpressionContextUtils,
     QgsFeatureRequest,
+    QgsFeedback,
+    QgsGeometry,
     QgsMapLayerElevationProperties,
     QgsMeshLayer,
     QgsPointCloudLayer,
@@ -47,12 +50,15 @@ from qgis.core import (
     QgsPropertyCollection,
     QgsRasterLayer,
     QgsVectorLayer,
+    QgsVectorLayerFeatureSource,
     QgsWkbTypes,
 )
 from qgis.PyQt.QtCore import QT_TRANSLATE_NOOP
 
-from ..core import limits, net
+from ..core import background, limits, net
 from ..core.background import run_on_main_thread
+from ..core.geometry_budget import VertexBudget
+from ..core.layer_order import is_remote_vector
 from ..core.numbers import as_float
 from ..core.qt_compat import enum_member
 from ..core.tool_registry import Tool, ToolRegistry, tool_error
@@ -289,7 +295,15 @@ def _open(plan: dict) -> dict:
     if state["geometry"] == "polygon" and "size" in plan["given"]:
         state["not_applied"]["size"] = "point or line only"
     state["has_z"] = QgsWkbTypes.hasZ(layer.wkbType())
-    context = QgsExpressionContext(QgsExpressionContextUtils.globalProjectLayerScopes(layer))
+    if state["geometry"] == "polygon" and not is_remote_vector(layer) and (
+            plan.get("extrusion") or kept_renderer(layer, "polygon")[0] is not None):
+        request = QgsFeatureRequest()
+        request.setNoAttributes()
+        feedback = QgsFeedback()
+        if hasattr(request, "setFeedback"):
+            request.setFeedback(feedback)
+        state["rings"] = {"source": QgsVectorLayerFeatureSource(layer), "request": request, "feedback": feedback}
+    context =QgsExpressionContext(QgsExpressionContextUtils.globalProjectLayerScopes(layer))
     for key, positive in (("height_from", True), ("z_from", False)):
         if not plan.get(key):
             continue
@@ -788,6 +802,81 @@ def _read_back(layer) -> dict:
     return out
 
 
+def _rings_meet(read: dict, cancelled) -> dict:
+
+
+
+
+
+
+
+    halted, over, failure = threading.Event(), threading.Event(), []
+    meet = {"count": 0, "fids": [], "read": 0, "oversize": 0, "cut": None}
+
+    def reader(source, request, feedback):
+        try:
+            with background.on_any_failure(failure.append):
+                _scan_rings(source, request, meet, halted)
+        finally:
+            over.set()
+
+    background.start_kept_thread(reader, read["source"], read["request"], read["feedback"],
+                                 name="set_layer_elevation rings")
+    if background.stop_came_first(over, cancelled):
+        halted.set()
+        read["feedback"].cancel()
+        raise InterruptedError("Stopped while the polygons' rings were read")
+    if failure:
+        raise failure[0]
+    return meet
+
+
+def _scan_rings(source, request, meet: dict, halted) -> None:
+    budget = VertexBudget()
+    features = source.getFeatures(request)
+    try:
+        for count, feature in enumerate(features, 1):
+            if halted.is_set():
+                return
+            geometry = feature.geometry()
+            if geometry is None or geometry.isEmpty():
+                continue
+            meet["read"] += 1
+            if budget.oversize(geometry) is not None:
+                meet["oversize"] += 1
+            elif _a_vertex_repeats(geometry):
+                meet["count"] += 1
+                if len(meet["fids"]) < 3:
+                    meet["fids"].append(feature.id())
+            why = budget.exhausted()
+            if why:
+                meet["cut"] = budget.stop_reason(why)
+                return
+            background.breathe(count)
+    finally:
+        features.close()
+
+
+def _a_vertex_repeats(geometry) -> bool:
+
+
+    if QgsWkbTypes.isCurvedType(geometry.wkbType()):
+        geometry = QgsGeometry(geometry.constGet().segmentize())
+    for rings in geometry.asMultiPolygon() if geometry.isMultipart() else [geometry.asPolygon()]:
+        seen = set()
+        for ring in rings:
+            last = None
+            for point in ring[:-1]:
+                key = (point.x(), point.y())
+                if key == last:
+                    continue
+                if key in seen:
+                    return True
+                seen.add(key)
+                last = key
+    return False
+
+
 def _stopped() -> dict:
     return tool_error("Stopped while the layer's heights were read.", "CANCELLED", hint="elevation_stopped")
 
@@ -797,6 +886,7 @@ def _set_layer_elevation(args: dict) -> dict:
     if "_error" in plan:
         return plan
     cancelled = net.current_cancel_check()
+    meet = None
     try:
         state = run_on_main_thread(_open, plan, timeout=60)
         if "_error" in state:
@@ -810,9 +900,21 @@ def _set_layer_elevation(args: dict) -> dict:
                         break
             finally:
                 run_on_main_thread(_close, state, timeout=30)
+        if state.get("rings"):
+            meet = _rings_meet(state.pop("rings"), cancelled)
+            if meet["count"]:
+                return tool_error(
+                    f"{meet['count']:,} polygon(s) of {state['layer_name']} have rings that meet at a point "
+                    f"(fid {', '.join(str(fid) for fid in meet['fids'])}): QGIS 3.44 to 4.2 crash drawing such a "
+                    "polygon in 3D, so nothing was set on the layer.", "GEOMETRY_CRASHES_3D",
+                    hint="elevation_rings_meet", layer=state["layer_name"], count=meet["count"], fids=meet["fids"])
         decided = _decide(state)
         if "_error" in decided:
             return decided
+        if meet and meet.get("cut"):
+            decided["notes"].append(f"Rings checked on the first {meet['read']:,} polygons ({meet['cut']}).")
+        if meet and meet["oversize"]:
+            decided["notes"].append(f"Rings not checked on {meet['oversize']:,} polygons past the vertex cap.")
         return run_on_main_thread(_apply, state, decided, timeout=60)
     except InterruptedError:
         return _stopped()

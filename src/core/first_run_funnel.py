@@ -36,8 +36,6 @@ CODE_RE = re.compile(r"^[A-Za-z0-9_.-]{1,40}$")
 _STATES = frozenset({"connecting", "online", "offline", "signed_out", "error"})
 _LEN_CAP = 100_000
 
-_FIRST_RUN_KEY = "AIAgent/telemetry_first_run_sent"
-
 _sender = None
 _loaded_at = time.monotonic()
 _state: dict = {}
@@ -77,11 +75,11 @@ def _active() -> bool:
     try:
         from .privacy_notice import has_accepted_privacy_notice
         from .settings import profile_settings
-        from .telemetry import is_telemetry_enabled
+        from .telemetry import FIRST_RUN_KEY, is_telemetry_enabled
 
         if not is_telemetry_enabled():
             return False
-        if has_accepted_privacy_notice() or profile_settings().value(_FIRST_RUN_KEY, False, type=bool):
+        if has_accepted_privacy_notice() or profile_settings().value(FIRST_RUN_KEY, False, type=bool):
             _stopped = True
             return False
         return True

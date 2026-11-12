@@ -612,29 +612,6 @@ def _export_layout_with(args: dict, ready, separate: bool = False):
     return out
 
 
-def _put_in_place(staged: str, output_path: str) -> None:
-
-
-    import shutil
-
-    try:
-        retry_file_op(os.replace, staged, output_path)
-        return
-    except OSError as exc:
-        if not os.path.exists(staged) or os.path.dirname(os.path.abspath(staged)) == os.path.dirname(
-                os.path.abspath(output_path)):
-            raise
-        near = output_path + ".part"
-        try:
-            shutil.copyfile(staged, near)
-            retry_file_op(os.replace, near, output_path)
-        except OSError:
-            if os.path.exists(near):
-                os.remove(near)
-            raise exc from None
-    os.remove(staged)
-
-
 def _drawn_in_separate_qgis(layout_name, fmt, output_path, dpi, args, held):
 
 
@@ -667,7 +644,7 @@ def _drawn_in_separate_qgis(layout_name, fmt, output_path, dpi, args, held):
     success = int(getattr(success, "value", success))
     if report.get("ok") and report.get("result") == success and os.path.exists(staged):
         try:
-            _put_in_place(staged, output_path)
+            layout_child.put_in_place(staged, output_path)
         except OSError as exc:
             return {"drawn": False, "reason": f"the page could not take the place of {output_path}: {exc}",
                     **facts}, None

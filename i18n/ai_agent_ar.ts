@@ -1714,6 +1714,98 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <source>expired</source>
             <translation>منتهي</translation>
         </message>
+        <message>
+            <source>Flow lines: {}</source>
+            <translation>خطوط التدفق: {}</translation>
+        </message>
+        <message>
+            <source>Voice dictation</source>
+            <translation>الإملاء الصوتي</translation>
+        </message>
+        <message>
+            <source>Talk to your AI agent</source>
+            <translation>تحدّث إلى وكيل الذكاء الاصطناعي</translation>
+        </message>
+        <message>
+            <source>Speak, and your words become text you can edit before sending.</source>
+            <translation>تحدّث، وستتحول كلماتك إلى نص يمكنك تعديله قبل الإرسال.</translation>
+        </message>
+        <message>
+            <source>Your voice stays private</source>
+            <translation>صوتك يبقى خاصًا</translation>
+        </message>
+        <message>
+            <source>Recorded only when you press the microphone, transcribed in the EU, never stored by TerraLab and never used to train AI.</source>
+            <translation>يُسجَّل فقط عند الضغط على الميكروفون، ويُحوَّل إلى نص داخل الاتحاد الأوروبي، ولا تخزّنه TerraLab أبدًا ولا يُستخدم أبدًا لتدريب الذكاء الاصطناعي.</translation>
+        </message>
+        <message>
+            <source>Start dictating</source>
+            <translation>ابدأ الإملاء</translation>
+        </message>
+        <message>
+            <source>Not now</source>
+            <translation>ليس الآن</translation>
+        </message>
+        <message>
+            <source>AI can make mistakes</source>
+            <translation>قد يخطئ الذكاء الاصطناعي</translation>
+        </message>
+        <message>
+            <source>Adding the layer</source>
+            <translation>جارٍ إضافة الطبقة</translation>
+        </message>
+        <message>
+            <source>Cutting to the area</source>
+            <translation>جارٍ القص على المنطقة</translation>
+        </message>
+        <message>
+            <source>Failed</source>
+            <translation>فشل</translation>
+        </message>
+        <message>
+            <source>Finding the place</source>
+            <translation>جارٍ البحث عن المكان</translation>
+        </message>
+        <message>
+            <source>Paused</source>
+            <translation>متوقف مؤقتًا</translation>
+        </message>
+        <message>
+            <source>Querying the source</source>
+            <translation>جارٍ الاستعلام من المصدر</translation>
+        </message>
+        <message>
+            <source>Queued</source>
+            <translation>في الانتظار</translation>
+        </message>
+        <message>
+            <source>Stopped</source>
+            <translation>تم الإيقاف</translation>
+        </message>
+        <message>
+            <source>Working</source>
+            <translation>جارٍ العمل</translation>
+        </message>
+        <message>
+            <source>about {n} min left</source>
+            <translation>تبقّى نحو {n} د</translation>
+        </message>
+        <message>
+            <source>about {n} s left</source>
+            <translation>تبقّى نحو {n} ث</translation>
+        </message>
+        <message>
+            <source>{done} MB</source>
+            <translation>{done} MB</translation>
+        </message>
+        <message>
+            <source>{done} of {total} MB</source>
+            <translation>{done} من {total} MB</translation>
+        </message>
+        <message>
+            <source>{words} · {done} of {total}</source>
+            <translation>{words} · {done} من {total}</translation>
+        </message>
     </context>
     <context>
         <name>AIAgentContext</name>
@@ -2189,6 +2281,18 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <source>Sign in or create an account</source>
             <translation>سجّل الدخول أو أنشئ حسابًا</translation>
+        </message>
+        <message>
+            <source>Opens your browser, takes about 15 seconds</source>
+            <translation>يفتح متصفحك ويستغرق نحو 15 ثانية</translation>
+        </message>
+        <message>
+            <source>Sign in or create a free account</source>
+            <translation>سجّل الدخول أو أنشئ حسابًا مجانيًا</translation>
+        </message>
+        <message>
+            <source>The AI agent loads data, styles layers, runs analyses and edits features for you.</source>
+            <translation>يحمّل وكيل الذكاء الاصطناعي البيانات وينسّق الطبقات ويشغّل التحليلات ويعدّل العناصر نيابةً عنك.</translation>
         </message>
     </context>
     <context>
@@ -3101,6 +3205,22 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <source>Removed from the queue</source>
             <translation>تمت الإزالة من قائمة الانتظار</translation>
         </message>
+        <message>
+            <source>No free tasks left on this computer</source>
+            <translation>لا توجد مهام مجانية متبقية على هذا الحاسوب</translation>
+        </message>
+        <message>
+            <source>No free tasks left this month</source>
+            <translation>لا توجد مهام مجانية متبقية هذا الشهر</translation>
+        </message>
+        <message>
+            <source>Ask or describe a task in QGIS</source>
+            <translation>اسأل أو صف مهمة في QGIS</translation>
+        </message>
+        <message>
+            <source>Reply</source>
+            <translation>ردّ</translation>
+        </message>
     </context>
     <context>
         <name>ChatSidebar</name>
@@ -3380,6 +3500,26 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <source>{n} left out, {total} at most</source>
             <translation>المتروكة: {n}، الحد الأقصى: {total}</translation>
         </message>
+        <message>
+            <source>Send this as it is?</source>
+            <translation>هل ترسل هذا كما هو؟</translation>
+        </message>
+        <message>
+            <source>It looks like a typing slip. Edit it, or press Send again.</source>
+            <translation>يبدو أنه خطأ في الكتابة. عدّله، أو اضغط إرسال مرة أخرى.</translation>
+        </message>
+        <message>
+            <source>Ask or describe a task in QGIS</source>
+            <translation>اسأل أو صف مهمة في QGIS</translation>
+        </message>
+        <message>
+            <source>Done: write what I said (Enter)</source>
+            <translation>تم: اكتب ما قلته (Enter)</translation>
+        </message>
+        <message>
+            <source>Finish dictation</source>
+            <translation>إنهاء الإملاء</translation>
+        </message>
     </context>
     <context>
         <name>ComposerInput</name>
@@ -3561,6 +3701,30 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <source>{sources} sources the AI agent finds and loads by itself: {datasets} datasets in {countries} countries.</source>
             <translation>{sources} مصدرًا يجدها AI Agent ويحمّلها بنفسه: {datasets} مجموعة بيانات في {countries} بلدًا.</translation>
         </message>
+        <message>
+            <source>%n datasets from other providers</source>
+            <translation>%n مجموعات بيانات من جهات أخرى</translation>
+        </message>
+        <message>
+            <source>Popular</source>
+            <translation>الأكثر شيوعاً</translation>
+        </message>
+        <message>
+            <source>Europe</source>
+            <translation>أوروبا</translation>
+        </message>
+        <message>
+            <source>Americas</source>
+            <translation>الأمريكتان</translation>
+        </message>
+        <message>
+            <source>Asia and Pacific</source>
+            <translation>آسيا والمحيط الهادئ</translation>
+        </message>
+        <message>
+            <source>Africa and Middle East</source>
+            <translation>أفريقيا والشرق الأوسط</translation>
+        </message>
     </context>
     <context>
         <name>DiffTableCard</name>
@@ -3678,6 +3842,10 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <source>{level} needs Pro. Pick Low to send.</source>
             <translation>يتطلب {level} اشتراك Pro. اختر Low للإرسال.</translation>
         </message>
+        <message>
+            <source>Effort {level}: how hard the AI agent works on the next message</source>
+            <translation>الجهد {level}: مدى اجتهاد وكيل الذكاء الاصطناعي في الرسالة التالية</translation>
+        </message>
     </context>
     <context>
         <name>EmptyState</name>
@@ -3700,6 +3868,10 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <source>AI can make mistakes. Check its changes.</source>
             <translation>قد يخطئ الذكاء الاصطناعي. تحقق من تغييراته.</translation>
+        </message>
+        <message>
+            <source>How can I help?</source>
+            <translation>كيف يمكنني مساعدتك؟</translation>
         </message>
     </context>
     <context>
@@ -3858,6 +4030,26 @@ This file is no longer where the run wrote it.</source>
         <message>
             <source>Send feedback</source>
             <translation>إرسال ملاحظات</translation>
+        </message>
+        <message>
+            <source>Free trial</source>
+            <translation>تجربة مجانية</translation>
+        </message>
+        <message>
+            <source>Your Pro is set to end. Keep it in one click.</source>
+            <translation>اشتراك Pro الخاص بك سينتهي قريباً. أبقِه بنقرة واحدة.</translation>
+        </message>
+        <message>
+            <source>Keep Pro</source>
+            <translation>الإبقاء على Pro</translation>
+        </message>
+        <message>
+            <source>Open the AI Agent page on terra-lab.ai</source>
+            <translation>فتح صفحة AI Agent على terra-lab.ai</translation>
+        </message>
+        <message>
+            <source>Your Pro ends on {date}. Keep it in one click.</source>
+            <translation>ينتهي اشتراك Pro الخاص بك في {date}. أبقِه بنقرة واحدة.</translation>
         </message>
     </context>
     <context>
@@ -4440,6 +4632,46 @@ Click to show it in the Layers panel.</source>
             <source>{mode}: what AI Agent may do without asking</source>
             <translation>{mode}: ما يمكن لـ AI Agent فعله دون سؤال</translation>
         </message>
+        <message>
+            <source>Free trial</source>
+            <translation>تجربة مجانية</translation>
+        </message>
+        <message>
+            <source>Asks before every change.</source>
+            <translation>يسأل قبل كل تغيير.</translation>
+        </message>
+        <message>
+            <source>Asks only before risky changes.</source>
+            <translation>يسأل فقط قبل التغييرات الخطرة.</translation>
+        </message>
+        <message>
+            <source>It brings your project back. Files on disk are not covered.</source>
+            <translation>يعيد مشروعك كما كان. الملفات على القرص غير مشمولة.</translation>
+        </message>
+        <message>
+            <source>Spending credits or reaching an unknown site.</source>
+            <translation>إنفاق الرصيد أو الوصول إلى موقع مجهول.</translation>
+        </message>
+        <message>
+            <source>Still asks for what matters</source>
+            <translation>لا يزال يسأل عما يهم</translation>
+        </message>
+        <message>
+            <source>The AI agent runs every step without asking, even to delete a layer or run code.</source>
+            <translation>ينفّذ وكيل الذكاء الاصطناعي كل خطوة دون سؤال، حتى لحذف طبقة أو تشغيل شيفرة.</translation>
+        </message>
+        <message>
+            <source>Undo is there</source>
+            <translation>التراجع متاح</translation>
+        </message>
+        <message>
+            <source>Works on its own</source>
+            <translation>يعمل بمفرده</translation>
+        </message>
+        <message>
+            <source>Works on its own and rarely asks.</source>
+            <translation>يعمل بمفرده وناذرًا ما يسأل.</translation>
+        </message>
     </context>
     <context>
         <name>PlanCard</name>
@@ -4496,6 +4728,22 @@ Click to show it in the Layers panel.</source>
         <message>
             <source>Question {n} of {count}</source>
             <translation>السؤال {n} من {count}</translation>
+        </message>
+        <message>
+            <source>Checkbox</source>
+            <translation>مربع اختيار</translation>
+        </message>
+        <message>
+            <source>Radio button</source>
+            <translation>زر اختيار</translation>
+        </message>
+        <message>
+            <source>selected</source>
+            <translation>محدد</translation>
+        </message>
+        <message>
+            <source>not selected</source>
+            <translation>غير محدد</translation>
         </message>
     </context>
     <context>
@@ -4597,7 +4845,7 @@ Click to show it in the Layers panel.</source>
             <translation>Pro: {n} مهمة شهريًا ومهام أصعب</translation>
         </message>
         <message>
-            <source>Start 7-day free trial</source>
+            <source>Start 7 day free trial</source>
             <translation>ابدأ تجربة مجانية لمدة 7 أيام</translation>
         </message>
         <message>
@@ -4704,6 +4952,134 @@ Click to show it in the Layers panel.</source>
         <message>
             <source>Medium effort now, High after the trial</source>
             <translation>مستوى الجهد Medium الآن، وHigh بعد التجربة</translation>
+        </message>
+        <message>
+            <source>For a company or team</source>
+            <translation>للشركات والفرق</translation>
+        </message>
+        <message>
+            <source>Your custom instructions</source>
+            <translation>تعليماتك الخاصة</translation>
+        </message>
+        <message>
+            <source>1 free task left this month</source>
+            <translation>بقيت مهمة مجانية واحدة هذا الشهر</translation>
+        </message>
+        <message>
+            <source>AI Agent Pro for work, by invoice</source>
+            <translation>AI Agent Pro للعمل، بفاتورة</translation>
+        </message>
+        <message>
+            <source>AI Agent Pro for work, without a card</source>
+            <translation>AI Agent Pro للعمل، بدون بطاقة</translation>
+        </message>
+        <message>
+            <source>Copy</source>
+            <translation>نسخ</translation>
+        </message>
+        <message>
+            <source>Free trial</source>
+            <translation>تجربة مجانية</translation>
+        </message>
+        <message>
+            <source>Hello,
+
+I used all my AI Agent tasks this month. Could you raise my quota?
+
+Thank you</source>
+            <translation>مرحبًا،
+
+لقد استخدمت جميع مهام AI Agent هذا الشهر. هل يمكنكم رفع حصتي؟
+
+شكرًا لكم</translation>
+        </message>
+        <message>
+            <source>Hello,
+
+I'd like to use AI Agent Pro at work but I can't pay by card. Could you send my company an invoice or a quote?
+
+Company:
+Name:
+
+Thank you</source>
+            <translation>مرحبًا،
+
+أرغب في استخدام AI Agent Pro في العمل لكن لا يمكنني الدفع بالبطاقة. هل يمكنكم إرسال فاتورة أو عرض سعر إلى شركتي؟
+
+الشركة:
+الاسم:
+
+شكرًا لكم</translation>
+        </message>
+        <message>
+            <source>Hello,
+
+I'd like to use AI Agent Pro at work but I can't pay by card. Could you set up the 7 free days for us?
+
+Company:
+Name:
+
+Thank you</source>
+            <translation>مرحبًا،
+
+أرغب في استخدام AI Agent Pro في العمل لكن لا يمكنني الدفع بالبطاقة. هل يمكنكم تفعيل الأيام السبعة المجانية لنا؟
+
+الشركة:
+الاسم:
+
+شكرًا لكم</translation>
+        </message>
+        <message>
+            <source>More AI Agent tasks this month</source>
+            <translation>المزيد من مهام AI Agent هذا الشهر</translation>
+        </message>
+        <message>
+            <source>Need it for work?</source>
+            <translation>تحتاجه للعمل؟</translation>
+        </message>
+        <message>
+            <source>Need more this month? Write to us</source>
+            <translation>تحتاج المزيد هذا الشهر؟ راسلنا</translation>
+        </message>
+        <message>
+            <source>No card to pay with? Write to us and we'll send your company an invoice.</source>
+            <translation>لا تملك بطاقة للدفع؟ راسلنا وسنرسل فاتورة إلى شركتك.</translation>
+        </message>
+        <message>
+            <source>No card to pay with? Write to us and we'll set up your 7 free days.</source>
+            <translation>لا تملك بطاقة للدفع؟ راسلنا وسنفعّل لك الأيام السبعة المجانية.</translation>
+        </message>
+        <message>
+            <source>Nothing to pay today</source>
+            <translation>لا شيء للدفع اليوم</translation>
+        </message>
+        <message>
+            <source>Pro is off until it's paid.</source>
+            <translation>Pro متوقف حتى يتم الدفع.</translation>
+        </message>
+        <message>
+            <source>That was your last free task</source>
+            <translation>كانت هذه آخر مهمة مجانية لك</translation>
+        </message>
+        <message>
+            <source>Want more? Come back to Pro: {n} tasks a month.</source>
+            <translation>تريد المزيد؟ عُد إلى Pro: {n} مهمة في الشهر.</translation>
+        </message>
+        <message>
+            <source>Want more? Pro has {n} tasks a month.</source>
+            <translation>تريد المزيد؟ يتيح Pro {n} مهمة في الشهر.</translation>
+        </message>
+        <message>
+            <source>Want more? Pro is free for a week.</source>
+            <translation>تريد المزيد؟ Pro مجاني لمدة أسبوع.</translation>
+        </message>
+        <message>
+            <source>{n} free tasks left this month</source>
+            <translation>بقيت {n} مهام مجانية هذا الشهر</translation>
+        </message>
+        <message>
+            <source>{n} tasks a month, cancel anytime</source>
+            <translation>{n} مهمة في الشهر، ويمكنك الإلغاء في أي وقت</translation>
         </message>
     </context>
     <context>
@@ -5111,12 +5487,12 @@ Click to show it in the Layers panel.</source>
             <translation>تعود اللغة والأسلوب والأذونات وملفك الشخصي وملاحظات الذاكرة إلى قيمها الافتراضية. يبقى تسجيل دخولك قائمًا.</translation>
         </message>
         <message>
-            <source>We may read a chat only to fix a bug, never to train AI. Chats are kept 30 days.</source>
-            <translation>قد نقرأ محادثة فقط لإصلاح خلل، وليس لتدريب الذكاء الاصطناعي أبدًا. تُحفظ المحادثات 30 يومًا.</translation>
+            <source>We may read a chat, or have a model score it, to fix bugs and improve the agent, never to train AI. Chats are kept 30 days.</source>
+            <translation>قد نقرأ محادثة، أو نجعل نموذجًا يقيّمها، لإصلاح الأخطاء وتحسين الوكيل، وليس لتدريب الذكاء الاصطناعي أبدًا. تُحفظ المحادثات 30 يومًا.</translation>
         </message>
         <message>
-            <source>We may read a chat only to fix a wrong answer or a bug, never to train AI.</source>
-            <translation>قد نقرأ محادثة فقط لإصلاح إجابة خاطئة أو خلل، وليس لتدريب الذكاء الاصطناعي أبدًا.</translation>
+            <source>We may read a chat, or have a model score it, to fix a wrong answer or a bug and improve the agent, never to train AI.</source>
+            <translation>قد نقرأ محادثة، أو نجعل نموذجًا يقيّمها، لإصلاح إجابة خاطئة أو خلل وتحسين الوكيل، وليس لتدريب الذكاء الاصطناعي أبدًا.</translation>
         </message>
         <message>
             <source>Loading account info...</source>
@@ -5335,8 +5711,8 @@ Click to show it in the Layers panel.</source>
             <translation>يمكنك تسجيل الدخول مجددًا في أي وقت من QGIS.</translation>
         </message>
         <message>
-            <source>Your chats are kept 30 days so a conversation survives an update. Off, the team never reads them. 0 days of history stores nothing.</source>
-            <translation>تُحفظ دردشاتك 30 يوماً حتى تبقى المحادثة بعد التحديث. عند الإيقاف، لا يقرأها الفريق أبداً. 0 يوم من السجل يعني عدم حفظ أي شيء.</translation>
+            <source>Your chats are kept 30 days so a conversation survives an update. Off, we never read or score them. 0 days of history stores nothing.</source>
+            <translation>تُحفظ دردشاتك 30 يوماً حتى تبقى المحادثة بعد التحديث. عند الإيقاف، لا نقرأها ولا نقيّمها أبداً. 0 يوم من السجل يعني عدم حفظ أي شيء.</translation>
         </message>
         <message>
             <source>Your first name</source>
@@ -5458,6 +5834,38 @@ Click to show it in the Layers panel.</source>
         <message>
             <source>Delete this note? The AI will not add it back.</source>
             <translation>هل تريد حذف هذه الملاحظة؟ لن يعيد الذكاء الاصطناعي إضافتها.</translation>
+        </message>
+        <message>
+            <source>Everywhere · {n}</source>
+            <translation>في كل مكان · {n}</translation>
+        </message>
+        <message>
+            <source>Other projects · {n}</source>
+            <translation>مشاريع أخرى · {n}</translation>
+        </message>
+        <message>
+            <source>The rules you give it and the corrections that hold for later.</source>
+            <translation>القواعد التي تعطيها له والتصحيحات التي تبقى سارية لاحقًا.</translation>
+        </message>
+        <message>
+            <source>This project · {n}</source>
+            <translation>هذا المشروع · {n}</translation>
+        </message>
+        <message>
+            <source>What the AI keeps between conversations, stored on this computer.</source>
+            <translation>ما يحتفظ به الذكاء الاصطناعي بين المحادثات، ويُخزَّن على هذا الكمبيوتر.</translation>
+        </message>
+        <message>
+            <source>commercial use, more tasks, your instructions and higher effort</source>
+            <translation>الاستخدام التجاري، ومهام أكثر، وتعليماتك، وجهد أعلى</translation>
+        </message>
+        <message>
+            <source>Animate the mascot</source>
+            <translation>تحريك التميمة</translation>
+        </message>
+        <message>
+            <source>The AI agent's mark moves and follows the work. Off keeps it still.</source>
+            <translation>تتحرك علامة وكيل الذكاء الاصطناعي وتتابع العمل. عند الإيقاف تبقى ثابتة.</translation>
         </message>
     </context>
     <context>
@@ -5837,6 +6245,26 @@ Click to show it in the Layers panel.</source>
         <message>
             <source>could not be put back, so what it changed is still in the project</source>
             <translation>تعذّر إعادته، لذا لا تزال التغييرات التي أجراها موجودة في المشروع</translation>
+        </message>
+        <message>
+            <source>QGIS restarted during this request, so this step was not run again. The project may already hold what it changed.</source>
+            <translation>أُعيد تشغيل QGIS أثناء هذا الطلب، لذلك لم تُنفَّذ هذه الخطوة مرة أخرى. قد يحتوي المشروع بالفعل على ما غيّرته.</translation>
+        </message>
+        <message>
+            <source>Stopped after this step had finished: its changes are in the project.</source>
+            <translation>توقف التشغيل بعد انتهاء هذه الخطوة: تغييراتها موجودة في المشروع.</translation>
+        </message>
+        <message>
+            <source>{area} km²</source>
+            <translation>{area} km²</translation>
+        </message>
+        <message>
+            <source>{area} ha</source>
+            <translation>{area} ha</translation>
+        </message>
+        <message>
+            <source>{area} m²</source>
+            <translation>{area} m²</translation>
         </message>
     </context>
     <context>
@@ -7554,6 +7982,211 @@ Click to show it in the Layers panel.</source>
         <message>
             <source>Edit this note</source>
             <translation>عدّل هذه الملاحظة</translation>
+        </message>
+    </context>
+    <context>
+        <name>QgisLinks</name>
+        <message>
+            <source>Project Properties</source>
+            <translation>خصائص المشروع</translation>
+        </message>
+        <message>
+            <source>Open the project's properties</source>
+            <translation>فتح خصائص المشروع</translation>
+        </message>
+        <message>
+            <source>3D Map View</source>
+            <translation>عرض الخريطة ثلاثية الأبعاد</translation>
+        </message>
+        <message>
+            <source>Bring this 3D map view to the front</source>
+            <translation>إحضار عرض الخريطة ثلاثية الأبعاد هذا إلى الأمام</translation>
+        </message>
+        <message>
+            <source>Layout Designer</source>
+            <translation>مصمم التخطيط</translation>
+        </message>
+        <message>
+            <source>Open this layout in the layout designer</source>
+            <translation>فتح هذا التخطيط في مصمم التخطيط</translation>
+        </message>
+        <message>
+            <source>Attribute Table</source>
+            <translation>جدول السمات</translation>
+        </message>
+        <message>
+            <source>Open the attribute table of {layer}</source>
+            <translation>فتح جدول السمات للطبقة {layer}</translation>
+        </message>
+        <message>
+            <source>Layer Properties › {tab}</source>
+            <translation>خصائص الطبقة › {tab}</translation>
+        </message>
+        <message>
+            <source>Open the properties of {layer} on the {tab} tab</source>
+            <translation>فتح خصائص الطبقة {layer} في تبويب {tab}</translation>
+        </message>
+    </context>
+    <context>
+        <name>OvertureExtract</name>
+        <message>
+            <source>{names}: loaded in full, {count} features.</source>
+            <translation>{names}: تم التحميل بالكامل، {count} ميزة.</translation>
+        </message>
+        <message>
+            <source>{names}: {count} features loaded; part of the area could not be read.</source>
+            <translation>{names}: تم تحميل {count} ميزة؛ تعذرت قراءة جزء من المنطقة.</translation>
+        </message>
+        <message>
+            <source>Reading {names}</source>
+            <translation>جارٍ قراءة {names}</translation>
+        </message>
+    </context>
+    <context>
+        <name>GtfsTools</name>
+        <message>
+            <source>{lo} - {hi} trips/day</source>
+            <translation>{lo} - {hi} رحلة/يوم</translation>
+        </message>
+        <message>
+            <source>{name} stops</source>
+            <translation>محطات {name}</translation>
+        </message>
+        <message>
+            <source>{name} routes</source>
+            <translation>مسارات {name}</translation>
+        </message>
+    </context>
+    <context>
+        <name>Dictation</name>
+        <message>
+            <source>The AI Agent plugin in QGIS listens only while you dictate a message, to turn your voice into text.</source>
+            <translation>تستمع إضافة AI Agent في QGIS فقط أثناء إملاء رسالة، لتحويل صوتك إلى نص.</translation>
+        </message>
+        <message>
+            <source>Animate the mascot</source>
+            <translation>تحريك التميمة</translation>
+        </message>
+        <message>
+            <source>The AI agent's mark moves and follows the work. Off keeps it still.</source>
+            <translation>يتحرك شعار وكيل الذكاء الاصطناعي ويتابع العمل. عند الإيقاف يبقى ثابتاً.</translation>
+        </message>
+    </context>
+    <context>
+        <name>CodeLayoutExport</name>
+        <message>
+            <source>the layout export</source>
+            <translation>تصدير التخطيط</translation>
+        </message>
+    </context>
+    <context>
+        <name>ComposerDictation</name>
+        <message>
+            <source>Cancel (Esc)</source>
+            <translation>إلغاء (Esc)</translation>
+        </message>
+        <message>
+            <source>Cancel dictation</source>
+            <translation>إلغاء الإملاء</translation>
+        </message>
+        <message>
+            <source>Dictate</source>
+            <translation>إملاء</translation>
+        </message>
+        <message>
+            <source>Dictate ({shortcut})</source>
+            <translation>إملاء ({shortcut})</translation>
+        </message>
+        <message>
+            <source>Dictation is busy right now.</source>
+            <translation>الإملاء مشغول حاليًا.</translation>
+        </message>
+        <message>
+            <source>Dictation is not available right now.</source>
+            <translation>الإملاء غير متاح حاليًا.</translation>
+        </message>
+        <message>
+            <source>Listening</source>
+            <translation>جارٍ الاستماع</translation>
+        </message>
+        <message>
+            <source>No connection to TerraLab, so nothing was transcribed.</source>
+            <translation>لا يوجد اتصال بـ TerraLab، لذا لم يتم تحويل أي كلام إلى نص.</translation>
+        </message>
+        <message>
+            <source>No microphone found. Plug one in or check your sound settings.</source>
+            <translation>لم يتم العثور على ميكروفون. وصّل واحدًا أو تحقق من إعدادات الصوت.</translation>
+        </message>
+        <message>
+            <source>No sound came from the microphone. Check that it is not muted.</source>
+            <translation>لم يصل أي صوت من الميكروفون. تأكد من أنه غير مكتوم.</translation>
+        </message>
+        <message>
+            <source>No sound came from the microphone. In Windows settings, Privacy, Microphone, let desktop apps use it.</source>
+            <translation>لم يصل أي صوت من الميكروفون. في إعدادات Windows، الخصوصية، الميكروفون، اسمح لتطبيقات سطح المكتب باستخدامه.</translation>
+        </message>
+        <message>
+            <source>Nothing was heard. Speak closer to the microphone and try again.</source>
+            <translation>لم يُسمع شيء. تحدّث أقرب إلى الميكروفون وحاول مرة أخرى.</translation>
+        </message>
+        <message>
+            <source>Open settings</source>
+            <translation>فتح الإعدادات</translation>
+        </message>
+        <message>
+            <source>Stopped at {n} minutes, the longest one recording can be.</source>
+            <translation>توقف التسجيل عند {n} دقيقة، وهي أطول مدة ممكنة للتسجيل الواحد.</translation>
+        </message>
+        <message>
+            <source>That recording is too long to transcribe. Record a shorter one.</source>
+            <translation>هذا التسجيل طويل جدًا ليتم تحويله إلى نص. سجّل تسجيلًا أقصر.</translation>
+        </message>
+        <message>
+            <source>The microphone could not be opened. Check that no other app holds it, then try again.</source>
+            <translation>تعذّر فتح الميكروفون. تأكد من أن أي تطبيق آخر لا يستخدمه، ثم حاول مرة أخرى.</translation>
+        </message>
+        <message>
+            <source>The microphone is blocked for QGIS in your system's privacy settings.</source>
+            <translation>الميكروفون محظور على QGIS في إعدادات الخصوصية بنظامك.</translation>
+        </message>
+        <message>
+            <source>The microphone is off for "AI Agent for QGIS". Turn it on in System Settings, Privacy &amp; Security, Microphone.</source>
+            <translation>الميكروفون متوقف لـ "AI Agent for QGIS". فعّله في إعدادات النظام، الخصوصية والأمان، الميكروفون.</translation>
+        </message>
+        <message>
+            <source>The recording could not be transcribed.</source>
+            <translation>تعذّر تحويل التسجيل إلى نص.</translation>
+        </message>
+        <message>
+            <source>This QGIS installation cannot record sound, so dictation is not available here.</source>
+            <translation>لا يمكن لتثبيت QGIS هذا تسجيل الصوت، لذا الإملاء غير متاح هنا.</translation>
+        </message>
+        <message>
+            <source>Too many recordings in a minute. Wait a little.</source>
+            <translation>تسجيلات كثيرة جدًا في الدقيقة. انتظر قليلًا.</translation>
+        </message>
+        <message>
+            <source>Transcribing...</source>
+            <translation>جارٍ التحويل إلى نص...</translation>
+        </message>
+        <message>
+            <source>Try again</source>
+            <translation>حاول مرة أخرى</translation>
+        </message>
+        <message>
+            <source>You reached today's dictation limit. It opens again tomorrow.</source>
+            <translation>وصلت إلى حد الإملاء اليوم. سيُفتح من جديد غدًا.</translation>
+        </message>
+        <message>
+            <source>macOS asked to use the microphone and got no answer. Press the microphone to see the question again.</source>
+            <translation>طلب macOS استخدام الميكروفون ولم يتلقَّ ردًا. اضغط على الميكروفون لرؤية السؤال مرة أخرى.</translation>
+        </message>
+    </context>
+    <context>
+        <name>DictationBar</name>
+        <message>
+            <source>Recording</source>
+            <translation>جارٍ التسجيل</translation>
         </message>
     </context>
 </TS>

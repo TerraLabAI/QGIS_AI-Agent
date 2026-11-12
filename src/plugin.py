@@ -28,9 +28,9 @@ from .core import telemetry_events as ev
 from .core.dev_env import dev_env
 from .core.logger import log, log_warning, start_log_capture, stop_log_capture
 from .core.qt_compat import disconnect_quietly
-from .core.served_state import set_server_config
+from .core.served_state import PRODUCT_ID, set_server_config
 from .core.settings import Settings
-from .ui.shared import TOGGLE_PANEL_KEYS
+from .ui.shared import TOGGLE_DOCK_OBJECT, TOGGLE_PANEL_KEYS
 from .ui.terralab_menu import (
     add_plugin_to_menu,
     add_to_plugins_menu,
@@ -40,7 +40,6 @@ from .ui.terralab_menu import (
 )
 from .ui.terralab_toolbar import add_action_to_toolbar, get_or_create_terralab_toolbar, remove_action_from_toolbar
 
-PRODUCT_ID = "ai-agent"
 PLUGIN_NAME = "AI Agent"
 
 
@@ -110,6 +109,7 @@ class AIAgentPlugin:
         self._settings = None
         self._unloading = False
         self._config_task = None
+        self._config_again = False
         self._shortcut_registered = False
         self._config_refresh_timer = None
         self._shown_update_version = ""
@@ -205,7 +205,7 @@ class AIAgentPlugin:
             log_warning(f"Plugin icon not loaded: {exc}")
             icon = QIcon()
         self.action = QAction(icon, PLUGIN_NAME, self.iface.mainWindow())
-        self.action.setObjectName("aiAgentToggleDock")
+        self.action.setObjectName(TOGGLE_DOCK_OBJECT)
         self.action.setToolTip("AI Agent by TerraLab\n" + tr("Your AI agent inside QGIS"))
         self.action.setWhatsThis(tr("Open the AI Agent panel: ask for anything in QGIS and it does the work."))
 
@@ -396,7 +396,10 @@ class AIAgentPlugin:
             previous = settings.last_run_version
             if previous != current:
                 if previous:
-                    telemetry.track(ev.PLUGIN_UPDATED, {"previous_version": previous})
+                    telemetry.track(ev.PLUGIN_UPDATED, {
+                        "previous_version": previous,
+                        "via": "one_click" if settings.update_pressed == current else "other"})
+                settings.update_pressed = ""
                 settings.last_run_version = current
         except Exception as exc:  # noqa: BLE001
             log_warning(f"Version bookkeeping skipped: {exc}")
@@ -574,9 +577,20 @@ class AIAgentPlugin:
         except (RuntimeError, AttributeError) as exc:
             log_warning(f"Panel size not adjusted: {exc}")
 
+    def _on_account_changed(self, *_args) -> None:
+
+
+        if self._unloading:
+            return
+        if self._config_task is not None and self._config_task.is_active():
+            self._config_again = True
+            return
+        self._refresh_server_config()
+
     def _refresh_server_config(self) -> None:
         if self._config_task is not None and self._config_task.is_active():
             return
+        self._config_again = False
         self._config_asked_at = time.monotonic()
         try:
             from .api.account import GenericRequestTask
@@ -585,9 +599,10 @@ class AIAgentPlugin:
             locale = self._settings.locale if self._settings is not None else ""
             account = self.controller.account if self.controller is not None else None
             auth = account.get_auth_header() if account is not None else {}
+            counted = account is not None and not auth and telemetry.first_signed_out_open_today()
             task = GenericRequestTask(
                 tr("Refreshing AI Agent settings"),
-                lambda: TerraLabClient().get_config(lang=locale, auth=auth),
+                lambda: TerraLabClient().get_config(lang=locale, auth=auth, signed_out_open=counted),
                 hidden=True,
             )
             task.succeeded.connect(self._on_server_config_loaded)
@@ -602,6 +617,8 @@ class AIAgentPlugin:
         if self._unloading:
             return
         log_warning(f"AI Agent settings not refreshed ({code}): {message}")
+        if self._config_again:
+            QTimer.singleShot(0, self._refresh_server_config)
 
 
 
@@ -625,6 +642,9 @@ class AIAgentPlugin:
         if self.panel is not None:
             self.panel.apply_server_config(payload)
         plugin_self_update.offer_upgradeable_update(self, payload)
+        if self._config_again:
+
+            QTimer.singleShot(0, self._refresh_server_config)
 
     def _read_released(self) -> None:
 
@@ -915,7 +935,7 @@ class AIAgentPlugin:
         with contextlib.suppress(Exception):
 
             from .core import sibling_sign_in
-            sibling_sign_in.cancel("ai-agent")
+            sibling_sign_in.cancel(PRODUCT_ID)
         if self._update_refresh_requested:
 
             with contextlib.suppress(Exception):
@@ -1269,6 +1289,8 @@ class AIAgentPlugin:
             self.controller.notice.connect(self._on_notice)
             self.controller.approval_waiting.connect(self._on_approval_waiting)
             self.controller.run_finished.connect(self._on_run_finished)
+            self.controller.account.paired.connect(self._on_account_changed)
+            self.controller.account.signed_out.connect(self._on_account_changed)
             self._add_dock(dock)
             self.dock = dock
             self._watch_screen(dock)

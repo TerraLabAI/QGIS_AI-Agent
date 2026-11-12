@@ -20,6 +20,7 @@ from ..core.numbers import as_int
 from ..core.privacy_notice import current_notice_version, has_accepted_privacy_notice, save_privacy_notice_accepted
 from ..core.served_state import (
     LEGACY_FREE_RUNS_MAX,
+    build_utm_url,
     get_contact_call_url,
     get_dashboard_url,
     get_free_runs,
@@ -61,6 +62,7 @@ class _ChatPanelLayout:
         h.settings_clicked.connect(self.open_settings_requested.emit)
         h.feedback_clicked.connect(lambda: self.open_feedback("header"))
         h.pro_pill_clicked.connect(self._on_pro_pill)
+        h.site_requested.connect(lambda: open_external_url(build_utm_url("/ai-agent", "header_wordmark"), self))
         h.pro_pill_shown.connect(lambda: self._note_upsell("header_pill"))
 
         self.update_banner.update_clicked.connect(self._update_now)
@@ -88,8 +90,7 @@ class _ChatPanelLayout:
         self._wire_history_keys()
 
         self.quota_card.plans_requested.connect(self.plans_requested.emit)
-        self.quota_card.invoice_requested.connect(self.invoice_requested.emit)
-        self.quota_card.contact_requested.connect(self._on_return_contact)
+        self.quota_card.contact_requested.connect(self.pro_contact_requested.emit)
         self.quota_card.return_closed.connect(self._close_checkout_return)
         self.quota_card.low_closed.connect(self._close_low_card)
         self.quota_card.welcome_closed.connect(self._close_pro_welcome)
@@ -250,6 +251,8 @@ class _ChatPanelLayout:
 
 
         if self._paid_plan:
+            if self._keep_pro:
+                self.keep_pro_requested.emit()
             return
         self.pro_pill_requested.emit()
 
@@ -263,11 +266,21 @@ class _ChatPanelLayout:
 
     def _sync_pro_pill(self) -> None:
 
-        offer = self.trial_offer()
-        self.header.set_pro_pill_trial(trial_promise(*offer) if offer else "")
 
+        offer = self.trial_offer()
+        keep = self._keep_pro if self._paid_plan and self._signed_in and self._plan_known else None
+        self.header.set_pro_pill_trial(trial_promise(*offer) if offer else "", keep)
+        if keep and not self._payfail and getattr(self, "_quota_view", None) != quota_view.EXHAUSTED:
+            self.header.set_pro_pill_visible(True)
+            return
+
+
+        view = getattr(self, "_quota_view", None)
+        used, limit = self._usage[0], self._usage[1]
+        card_offers = view in (quota_view.LOW_CARD, quota_view.EXHAUSTED, quota_view.CHECKOUT_RETURN) or (
+            view == quota_view.RUNS_LINE and quota_view.is_low(quota_view.runs_left(used, limit)))
         self.header.set_pro_pill_visible(self._signed_in and self._plan_known and not self._paid_plan
-                                         and not self._payfail)
+                                         and not self._payfail and not card_offers)
 
     def open_help(self, kind: str) -> None:
 
@@ -309,6 +322,7 @@ class _ChatPanelLayout:
             event.setDropAction(Qt.DropAction.CopyAction)
             event.accept()
             self._drop_overlay.show_over(self, "layers" if mime_has_layers(mime) else "photo_file")
+            self.mascot_stage.fire("drop.enter")
         else:
             event.ignore()
 
@@ -322,11 +336,14 @@ class _ChatPanelLayout:
 
     def dragLeaveEvent(self, event):  # noqa: N802
         self._drop_overlay.hide()
+        self.mascot_stage.mascot.hover(None)
         event.accept()
 
     def dropEvent(self, event):  # noqa: N802
         self._drop_overlay.hide()
+        self.mascot_stage.mascot.hover(None)
         if self.composer.take_drop(event.mimeData()):
+            self.mascot_stage.fire("drop.done")
             event.setDropAction(Qt.DropAction.CopyAction)
             event.accept()
             return
@@ -414,7 +431,9 @@ class _ChatPanelLayout:
         view = self._quota_view = quota_view.choose(
             signed_in=self._signed_in, used=used, limit=limit, is_subscriber=bool(is_subscriber),
             payfail=bool(self._payfail), pro_welcome=self._pro_welcome is not None,
-            checkout_return=self._checkout_return, low_closed=self._low_card_closed)
+            checkout_return=self._checkout_return, low_closed=self._low_card_closed,
+            running=getattr(self, "_current_run", None) is not None)
+        self._sync_pro_pill()
         if view == quota_view.HIDDEN:
             self.quota_card.clear()
             self._quota_host.hide()
@@ -450,9 +469,9 @@ class _ChatPanelLayout:
 
 
             self._runs_host.hide()
-            self.quota_card.show_checkout_return()
+            self.quota_card.show_checkout_return(self.trial_offer())
             self._quota_host.show()
-            self.composer.set_blocked(left <= 0, self.tr("Keep working with Pro") if left <= 0 else "")
+            self.composer.set_blocked(left <= 0, self._free_wall_text() if left <= 0 else "")
             self._low_balance_visible = False
             return
         if view == quota_view.EXHAUSTED:
@@ -462,7 +481,7 @@ class _ChatPanelLayout:
                                            getattr(self, "_account_cap", None),
                                            bool(is_subscriber and getattr(self, "_start_now_url", "")))
             self.composer.set_blocked(True, self.tr("More tasks next month") if is_subscriber
-                                      else self.tr("Keep working with Pro"))
+                                      else self._free_wall_text())
             self._quota_host.show()
             self._low_balance_visible = False
             if not self._limit_said:
@@ -499,6 +518,12 @@ class _ChatPanelLayout:
         if low and not self._low_balance_visible:
             self.low_balance_shown.emit(left)
         self._low_balance_visible = low
+
+    def _free_wall_text(self) -> str:
+
+        if getattr(self, "_account_cap", None) is not None:
+            return self.tr("No free tasks left on this computer")
+        return self.tr("No free tasks left this month")
 
     def _payfail_surface(self) -> str:
         used, limit, _end, _paid = self._usage
@@ -556,6 +581,7 @@ class _ChatPanelLayout:
             used, old_limit, end, _paid = self._usage
             self._usage = (used, limit or old_limit, end, True)
         self._apply_quota()
+        self.mascot_stage.fire("plan.started")
 
     def _close_low_card(self) -> None:
         self._low_card_closed = True
@@ -569,10 +595,6 @@ class _ChatPanelLayout:
         self._checkout_return = False
         self._return_view_pending = False
         self._apply_quota()
-
-    def _on_return_contact(self) -> None:
-        self.pro_contact_requested.emit("checkout_return")
-        show_contact_dialog(self, get_support_email(), get_contact_call_url())
 
     def focus_composer(self) -> None:
 
@@ -651,6 +673,8 @@ class _ChatPanelLayout:
         self._connection = state
         first_run_funnel.note_connection(state)
         if state == "signed_out":
+            if self._signed_in:
+                self.mascot_stage.fire("signout")
             self._signed_in = False
             self._checkout_return = False
             self._return_view_pending = False
@@ -659,6 +683,9 @@ class _ChatPanelLayout:
             self._payfail = None
             self._start_now_url = ""
             self._plan_known = False
+            self._keep_pro = None
+            self._returning = False
+            set_pro_offer("trial" if self.trial_offer() else "none")
             self._sync_pro_pill()
 
 
@@ -666,6 +693,8 @@ class _ChatPanelLayout:
             self._show_thread_surface()
             return
         if state == "online":
+            if not self._signed_in:
+                self.mascot_stage.fire("signin.success")
             self._signed_in = True
             self._sync_pro_pill()
             self.activation.pairing_finished()
@@ -713,6 +742,9 @@ class _ChatPanelLayout:
             is_subscriber = self._paid_plan if self._plan_known else limit > max(get_free_runs(), LEGACY_FREE_RUNS_MAX)
         self._usage = (used, limit, str(period_end_iso or "")[:80], bool(is_subscriber))
         self._apply_quota()
+        stage = getattr(self, "mascot_stage", None)
+        if stage is not None:
+            stage.rest()
         sidebar = getattr(self, "sidebar", None)
         if sidebar is not None:
             sidebar.set_paid(bool(is_subscriber))
@@ -732,9 +764,32 @@ class _ChatPanelLayout:
         if offer == self.trial_offer():
             return
         self._trial_days = offer
-        set_pro_offer(bool(offer))
+        self._sync_offer_kind()
+
+    def set_returning(self, returning: bool) -> None:
+
+
+        if bool(returning) == self._returning:
+            return
+        self._returning = bool(returning)
+        self._sync_offer_kind()
+
+    def _sync_offer_kind(self) -> None:
+        set_pro_offer("trial" if self.trial_offer() else "return" if self._returning else "none")
         self._apply_quota()
         self._sync_pro_pill()
+
+    def set_keep_pro(self, url: str, ends_on: str) -> None:
+
+
+        keep = (url, format_reset_date(ends_on) or ends_on) if url else None
+        if keep == self._keep_pro:
+            return
+        self._keep_pro = keep
+        self._sync_pro_pill()
+
+    def keep_pro_url(self) -> str:
+        return self._keep_pro[0] if self._keep_pro else ""
 
     def set_start_now_url(self, url: str) -> None:
 
@@ -807,6 +862,9 @@ class _ChatPanelLayout:
 
         self.composer.set_mention_provider(provider)
 
+    def set_dictation(self, dictation) -> None:
+        self.composer.set_dictation(dictation)
+
     def set_permission_mode(self, approval: str) -> None:
 
         self.composer.set_permission_mode(approval)
@@ -830,6 +888,7 @@ class _ChatPanelLayout:
             self.activation.show_pairing_waiting(code, url)
         else:
             self.activation.show_signed_out()
+        self.mascot_stage.fire("signin.wait" if waiting else "rest")
 
     def show_pairing_code_input(self) -> None:
 

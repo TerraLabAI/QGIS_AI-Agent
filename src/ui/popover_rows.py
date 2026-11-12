@@ -16,6 +16,7 @@ from qgis.PyQt.QtGui import QBrush, QPainter
 from qgis.PyQt.QtWidgets import QHBoxLayout, QLabel, QSizePolicy, QVBoxLayout, QWidget
 
 from .font_scale import scale_qss_font_px
+from .icons import pixmap_for
 from .permission_chip import glyph_tile
 from .shared import event_pos
 from .style import (
@@ -40,6 +41,7 @@ _ROW_RADIUS = RADIUS_CONTROL
 _ROW_PAD_X = 8
 _ROW_PAD_Y = 5
 _TILE = 26
+_BARE_GLYPH = 18
 
 
 _POPOVER_QSS = scale_qss_font_px(
@@ -79,9 +81,11 @@ _POPOVER_QSS = scale_qss_font_px(
 class _Row(QWidget):
 
 
+
     clicked = pyqtSignal()
 
-    def __init__(self, glyph: str, accent: str, title: str, note: str, tag: str = "", parent=None):
+    def __init__(self, glyph: str, accent: str, title: str, note: str, tag: str = "", parent=None,
+                 bare: bool = False):
         super().__init__(parent)
         self.setCursor(Qt.CursorShape.PointingHandCursor)
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
@@ -99,7 +103,15 @@ class _Row(QWidget):
         row = QHBoxLayout(self)
         row.setContentsMargins(_ROW_PAD_X, _ROW_PAD_Y, _ROW_PAD_X, _ROW_PAD_Y)
         row.setSpacing(8)
-        row.addWidget(glyph_tile(self, glyph, accent, _TILE, 15, tinted=bool(accent)), 0, Qt.AlignmentFlag.AlignVCenter)
+        if bare:
+            mark = QLabel(self)
+            mark.setFixedSize(_TILE, _TILE)
+            mark.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            mark.setStyleSheet("background: transparent; border: none;")
+            mark.setPixmap(pixmap_for(self, glyph, _BARE_GLYPH, qcolor(INK_2)))
+        else:
+            mark = glyph_tile(self, glyph, accent, _TILE, 15, tinted=bool(accent))
+        row.addWidget(mark, 0, Qt.AlignmentFlag.AlignVCenter)
         col = QVBoxLayout()
         col.setContentsMargins(0, 0, 0, 0)
         col.setSpacing(1)

@@ -47,6 +47,7 @@ from ..core.geometry_budget import VertexBudget
 from ..core.layer_order import is_remote_vector
 from ._layers import _source_key, loaded_feature_count, resolve_layer
 from .processing_crs_checks import _TERRAIN_BY_CELL, is_metric
+from .processing_guards import _INPUT_KEYS
 
 
 
@@ -186,9 +187,6 @@ def _layer_reading(path: str):
     matches = [layer for layer in QgsProject.instance().mapLayers().values()
                if _source_key(layer.source()) == wanted]
     return matches[0] if len(matches) == 1 else None
-
-
-_INPUT_KEYS = ("INPUT", "INPUT_LAYER", "LAYER", "SOURCE", "INPUT_VECTOR")
 
 
 def _input_layer(parameters: dict):

@@ -216,6 +216,10 @@ class _ExecutorRuns:
 
 
                 continue
+            if background.committed(tool_call_id):
+
+
+                continue
             self._inflight.pop(tool_call_id, None)
             entry = self._background.pop(tool_call_id, None)
             if entry is not None:
@@ -336,6 +340,9 @@ class _ExecutorRuns:
         self._refresh_proxy()
         self.record_pending_after()
         self._run_mode[run_id] = (mode, approval)
+        self._runs_begun[run_id] = None
+        while len(self._runs_begun) > CANCELLED_KEEP:
+            self._runs_begun.popitem(last=False)
         self._threads[run_id] = thread_id or ""
         self._prompts[run_id] = str(prompt or "")
         self._journal[run_id] = []
@@ -380,8 +387,9 @@ class _ExecutorRuns:
             if call.get("run_id") == run_id:
                 self._pending.pop(tool_call_id, None)
                 self._card_closed_unallowed(call)
-                self._session.send_permission_response(tool_call_id, run_id, Decision.DENY)
                 self._table.put(tool_call_id, "deny", {})
+                self._note_sent(tool_call_id, run_id,
+                                self._session.send_permission_response(tool_call_id, run_id, Decision.DENY))
                 self.permission_resolved.emit(tool_call_id, Decision.DENY)
         for tool_call_id, call in list(self._questions.items()):
             if call.get("run_id") == run_id:

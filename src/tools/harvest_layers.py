@@ -24,7 +24,7 @@ from qgis.core import (
     QgsVectorLayer,
     QgsVectorLayerJoinInfo,
 )
-from qgis.PyQt.QtCore import QT_TRANSLATE_NOOP, QDate, QDateTime, QLocale, Qt, QTime
+from qgis.PyQt.QtCore import QT_TRANSLATE_NOOP, QCoreApplication, QDate, QDateTime, QLocale, Qt, QTime
 
 from ..core import layer_order, limits
 from ..core.context_layers import crs_units
@@ -861,6 +861,11 @@ def _long_tail(layer, band: int, lo: float, hi: float, notes: dict) -> tuple:
     return cut["min"], cut["max"]
 
 
+
+_PROVIDER_LOADED = "Loaded from Provider"
+_QGIS_PROVIDER_LOADED = ("QObject", _PROVIDER_LOADED)
+
+
 def _apply_style_qml(args: dict) -> dict:
     layer, error = _layer(args["layer_name"])
     if error:
@@ -913,8 +918,10 @@ def _apply_style_qml(args: dict) -> dict:
         out["classification_field"] = classification_field
 
 
-    if message and message.strip() and "loaded" not in message.lower():
-        out["partial"] = message.strip()
+
+    said = (message or "").strip()
+    if said and said not in (_PROVIDER_LOADED, QCoreApplication.translate(*_QGIS_PROVIDER_LOADED)):
+        out["partial"] = said
     return out
 
 

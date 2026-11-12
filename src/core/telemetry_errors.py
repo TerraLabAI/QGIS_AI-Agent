@@ -29,7 +29,8 @@ def short_traceback_hash(error: BaseException) -> str:
 def track_plugin_error(stage: str, error_code: str, run_id: str = "", module: str = "",
                        traceback_hash: str = "", slot: str = "", where: str = "", reason: str = "",
                        retryable: bool | None = None, in_run: bool | None = None,
-                       os_error: int | None = None, synced: bool | None = None) -> None:
+                       os_error: int | None = None, synced: bool | None = None,
+                       missing_module: str = "") -> None:
 
     props = {"stage": stage or "other", "error_code": error_code or "UNKNOWN"}
     if run_id:
@@ -58,6 +59,8 @@ def track_plugin_error(stage: str, error_code: str, run_id: str = "", module: st
         props["os_error"] = os_error
     if synced is not None:
         props["synced"] = synced
+    if missing_module:
+        props["missing_module"] = missing_module[:64]
     try:
         from . import telemetry
         telemetry.track(ev.PLUGIN_ERROR, props)
@@ -89,7 +92,11 @@ def report_exception(error: BaseException, stage: str, module: str = "", run_id:
     code = error.__class__.__name__ or "Exception"
     fingerprint = short_traceback_hash(error)
     where = innermost_frame(error)
-    track_plugin_error(stage, code, run_id, module, fingerprint, slot=slot, where=where)
+
+
+    missing = (getattr(error, "name", None) or "").split(".")[0] if isinstance(error, ImportError) else ""
+    track_plugin_error(stage, code, run_id, module, fingerprint, slot=slot, where=where,
+                       missing_module=missing if missing.isidentifier() else "")
     detail = scrub_secrets(scrub_user_paths(str(error).splitlines()[0] if str(error) else ""))
     log_warning(f"Unhandled {code} in {module or 'unknown'}{'.' + slot if slot else ''} ({stage}) at {where or '?'} "
                 f"[{fingerprint or '-'}]: {detail[:160]}")
@@ -115,6 +122,7 @@ def slot_guard(stage: str):
 
 
 _PLUGIN_DIR = os.path.normcase(os.path.dirname(os.path.dirname(os.path.abspath(__file__))) + os.sep)
+_PLUGINS_ROOT = os.path.dirname(_PLUGIN_DIR.rstrip(os.sep)) + os.sep
 _hooks: dict = {}
 _reporting = threading.local()
 
@@ -128,6 +136,18 @@ def _from_this_plugin(error: BaseException) -> bool:
         return False
 
 
+def _raised_by_another_plugin(error: BaseException) -> bool:
+
+
+
+    try:
+        frames = traceback.extract_tb(error.__traceback__)
+        raised_in = os.path.normcase(os.path.abspath(frames[-1].filename))
+        return raised_in.startswith(_PLUGINS_ROOT) and not raised_in.startswith(_PLUGIN_DIR)
+    except Exception:  # nosec B110
+        return False
+
+
 
 _CONTROL_FLOW_SIGNALS = frozenset({"NeedsPermission", "Refused", "CodeTimeout"})
 
@@ -135,7 +155,7 @@ _CONTROL_FLOW_SIGNALS = frozenset({"NeedsPermission", "Refused", "CodeTimeout"})
 def _report_uncaught(error: BaseException | None) -> None:
     if error is None or getattr(_reporting, "busy", False) or not _from_this_plugin(error):
         return
-    if type(error).__name__ in _CONTROL_FLOW_SIGNALS:
+    if type(error).__name__ in _CONTROL_FLOW_SIGNALS or _raised_by_another_plugin(error):
         return
     _reporting.busy = True
     try:

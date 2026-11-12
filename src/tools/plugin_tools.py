@@ -8,6 +8,7 @@ from qgis.PyQt.QtCore import QT_TRANSLATE_NOOP
 from qgis.utils import active_plugins, available_plugins, pluginMetadata, plugins, reloadPlugin
 
 from ..core import background
+from ..core.host_platform import is_own_folder
 from ..core.logger import log_warning
 
 
@@ -317,6 +318,13 @@ def _resolve_menu_action(root_menu, action_path: str):
 
         return re.sub(r"\s*/\s*", "/", str(text or "").replace("&", "")).strip().lower()
 
+    def names(action) -> set:
+
+
+        submenu = action.menu()
+        ids = {action.objectName(), submenu.objectName() if submenu is not None else ""}
+        return ({key(action.text())} | {str(i).lower() for i in ids if i}) - {""}
+
 
 
 
@@ -331,14 +339,13 @@ def _resolve_menu_action(root_menu, action_path: str):
         span = 1
         for length in range(len(parts) - i, 0, -1):
             candidate = key("/".join(parts[i:i + length]))
-            if any(key(a.text()) == candidate for a in current_menu.actions()):
+            if any(candidate in names(a) for a in current_menu.actions()):
                 part, span = "/".join(parts[i:i + length]).strip(), length
                 break
         part_lower = key(part)
         found = False
         for action in current_menu.actions():
-            text = action.text().replace("&", "")
-            if key(text) == part_lower:
+            if part_lower in names(action):
                 if i + span >= len(parts):
                     if action.menu():
                         return None, {
@@ -646,7 +653,7 @@ def _repository_page(folder: str, name: str = "") -> str:
 def _reload_plugin(args: dict) -> dict:
     asked = args["plugin_name"]
     folder = resolve_plugin(asked) or asked
-    if folder in ("AI_Agent", "QGIS_AI-Agent", "QGIS_AI-Agent-Team", "QGIS_AI_Agent", "qgis_ai_agent"):
+    if is_own_folder(folder):
         return tool_error("AI Agent cannot reload itself mid-run.", "PERMISSION_DENIED",
                           hint="reload_self_refused")
 

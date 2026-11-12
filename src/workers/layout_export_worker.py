@@ -144,6 +144,30 @@ def _vertices(geometry) -> int:
         return 0
 
 
+def _layout_from_file(project, path: str):
+
+
+    from qgis.core import QgsPrintLayout, QgsReadWriteContext
+    from qgis.PyQt.QtXml import QDomDocument
+
+    document = QDomDocument()
+    with open(path, encoding="utf-8") as handle:
+        document.setContent(handle.read())
+    layout = QgsPrintLayout(project)
+    if not layout.readXml(document.documentElement(), document, QgsReadWriteContext()):
+        return None
+    return layout
+
+
+def _apply(export_settings, changed) -> None:
+
+
+    for name, value in (changed or {}).items():
+        if isinstance(value, dict):
+            value = type(getattr(export_settings, name))(value["enum"])
+        setattr(export_settings, name, value)
+
+
 def _export(job: dict, held: dict) -> dict:
     started = time.monotonic()
     from qgis.core import QgsLayoutExporter, QgsProject, QgsSettings
@@ -155,11 +179,16 @@ def _export(job: dict, held: dict) -> dict:
     if not project.read(job["project_path"]):
         return {"ok": False, "error": f"the project copy did not open: {project.error()}"}
     read = time.monotonic()
-    layout = project.layoutManager().layoutByName(job["layout_name"])
+    if job.get("layout_xml"):
+        layout = _layout_from_file(project, job["layout_xml"])
+    else:
+        layout = project.layoutManager().layoutByName(job["layout_name"])
     if layout is None:
         return {"ok": False, "error": f"layout {job['layout_name']!r} is not in the project copy"}
     fmt, path, dpi = job["format"], job["output_path"], int(job["dpi"])
-    simplified = _simplified_for_print(project, layout, dpi, os.path.dirname(job["project_path"]))
+    simplified = []
+    if job.get("simplify_for_print", True):
+        simplified = _simplified_for_print(project, layout, dpi, os.path.dirname(job["project_path"]))
     simplified_at = time.monotonic()
     exporter = QgsLayoutExporter(layout)
     if fmt == "pdf":
@@ -168,6 +197,7 @@ def _export(job: dict, held: dict) -> dict:
         for flag in ("appendGeoreference", "forceVectorOutput"):
             if job.get(flag) and hasattr(export_settings, flag):
                 setattr(export_settings, flag, True)
+        _apply(export_settings, job.get("export_settings"))
         result = exporter.exportToPdf(path, export_settings)
     elif fmt == "svg":
         export_settings = QgsLayoutExporter.SvgExportSettings()
@@ -176,6 +206,7 @@ def _export(job: dict, held: dict) -> dict:
     else:
         export_settings = QgsLayoutExporter.ImageExportSettings()
         export_settings.dpi = dpi
+        _apply(export_settings, job.get("export_settings"))
         result = exporter.exportToImage(path, export_settings)
     message = exporter.errorMessage() if hasattr(exporter, "errorMessage") else ""
     return {"ok": True, "result": int(getattr(result, "value", result)), "error_text": str(message or ""),

@@ -503,7 +503,7 @@ def _get_features(args: dict) -> dict:
 
 
 
-_STOP_POLL_S = 0.05
+
 
 _REMOTE_COUNT_BUDGET_S = 20.0
 
@@ -534,11 +534,10 @@ def _get_features_off_thread(args: dict) -> dict:
 
     background.start_kept_thread(reader, plan.pop("source"), plan["request"], plan.get("count_request"),
                                  plan["feedback"], name="get_features read")
-    while not over.wait(_STOP_POLL_S):
-        if callable(cancelled) and cancelled():
-            halted.set()
-            plan["feedback"].cancel()
-            return tool_error("Stopped while the features were read from the service.", "CANCELLED")
+    if background.stop_came_first(over, cancelled):
+        halted.set()
+        plan["feedback"].cancel()
+        return tool_error("Stopped while the features were read from the service.", "CANCELLED")
     if failure:
         raise failure[0]
     collected, over_budget = out.get("page", ([], False))
@@ -828,11 +827,10 @@ def _scan_field(args: dict) -> dict:
 
     background.start_kept_thread(reader, state.pop("source"), state.pop("request"), feedback,
                                  name="get_field_statistics read")
-    while not over.wait(_STOP_POLL_S):
-        if net.is_cancelled(cancelled):
-            halted.set()
-            feedback.cancel()
-            return tool_error("The run was stopped.", "CANCELLED")
+    if background.stop_came_first(over, cancelled):
+        halted.set()
+        feedback.cancel()
+        return tool_error("The run was stopped.", "CANCELLED")
     if failure:
         raise failure[0]
 

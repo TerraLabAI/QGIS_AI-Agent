@@ -52,7 +52,7 @@ from .card_controls import (
 )
 from .font_scale import scale_px_length, scale_qss_font_px
 from .icons import pixmap_for
-from .shared import event_pos, exec_menu
+from .shared import AGENT_ACTION, AGENT_CARD_KIND, AGENT_REQUEST_ID, event_pos, exec_menu
 from .style import (
     _MENU_QSS,
     CHIP_PX,
@@ -232,7 +232,30 @@ def _value_pill(parent: QWidget, text: str) -> QLabel:
     return pill
 
 
-class RecommendationCard(_Card, FoldMixin):
+class _DecidedCard(_Card, FoldMixin):
+
+
+    def _fold_to(self, text: str) -> None:
+        self._decision_row.line_label.setText(f"{text} · {self.title}")
+        self._body.setEnabled(False)
+        self.fold_body(self._body, self._show_decision)
+
+    def _show_decision(self) -> None:
+
+
+
+        body, self._body = self._body, None
+        self._decision_row.show()
+        self.set_frame(_ASK_DONE_QSS)
+        self.set_margins(0, 0, 0, 0)
+        self.setMaximumWidth(_UNBOUNDED_PX)
+        if body is not None:
+            body.hide()
+            body.setParent(None)
+            body.deleteLater()
+
+
+class RecommendationCard(_DecidedCard):
 
 
 
@@ -272,9 +295,9 @@ class RecommendationCard(_Card, FoldMixin):
         head = ask_head(self._body, self.title, lambda: self._decide("dismiss"),
                         self.tr("Dismiss"), dismiss_focusable=True)
         head.dismiss_button.setObjectName("agentProposalDismiss")
-        head.dismiss_button.setProperty("agentAction", "dismiss")
-        head.dismiss_button.setProperty("agentRequestId", self.tool_call_id)
-        head.dismiss_button.setProperty("agentCardKind", "proposal")
+        head.dismiss_button.setProperty(AGENT_ACTION, "dismiss")
+        head.dismiss_button.setProperty(AGENT_REQUEST_ID, self.tool_call_id)
+        head.dismiss_button.setProperty(AGENT_CARD_KIND, "proposal")
         body.addWidget(head)
         body.addWidget(self._build_proposal())
         body.addWidget(self._build_footer())
@@ -335,9 +358,9 @@ class RecommendationCard(_Card, FoldMixin):
         accept = _pill(self._button(self.tr("Accept"), _BTN_PRIMARY_PILL,
                                    lambda: self._decide("accept")))
         accept.setObjectName("agentProposalAccept")
-        accept.setProperty("agentAction", "accept")
-        accept.setProperty("agentRequestId", self.tool_call_id)
-        accept.setProperty("agentCardKind", "proposal")
+        accept.setProperty(AGENT_ACTION, "accept")
+        accept.setProperty(AGENT_REQUEST_ID, self.tool_call_id)
+        accept.setProperty(AGENT_CARD_KIND, "proposal")
         answers.append(accept)
         footer.set_widgets(left, answers)
         return footer
@@ -382,23 +405,7 @@ class RecommendationCard(_Card, FoldMixin):
         dismissed = decision == "dismiss"
         self._decision_row.icon_label.setPixmap(
             pixmap_for(self, "dash" if dismissed else "check", 11, qcolor(INK_3)))
-        self._decision_row.line_label.setText(f"{self.decision_text()} · {self.title}")
-        self._body.setEnabled(False)
-        self.fold_body(self._body, self._show_decision)
-
-    def _show_decision(self) -> None:
-
-
-
-        body, self._body = self._body, None
-        self._decision_row.show()
-        self.set_frame(_ASK_DONE_QSS)
-        self.set_margins(0, 0, 0, 0)
-        self.setMaximumWidth(_UNBOUNDED_PX)
-        if body is not None:
-            body.hide()
-            body.setParent(None)
-            body.deleteLater()
+        self._fold_to(self.decision_text())
 
     def to_markdown(self) -> str:
         decision = self.decision_text() if self.decision else self.tr("pending")
@@ -641,7 +648,7 @@ class _DiffHead(QWidget):
         self._place(self._title.sizeHint().width() + SPACE_OUTER + self._hint.sizeHint().width() > room)
 
 
-class DiffTableCard(_Card, FoldMixin):
+class DiffTableCard(_DecidedCard):
 
 
 
@@ -744,9 +751,9 @@ class DiffTableCard(_Card, FoldMixin):
         self._count_label.setStyleSheet(_DIFF_FOOTER_QSS)
         self._count_label.setMinimumHeight(pill)
         self._apply_btn.setObjectName("agentEditsApply")
-        self._apply_btn.setProperty("agentAction", "apply")
-        self._apply_btn.setProperty("agentRequestId", self.run_id)
-        self._apply_btn.setProperty("agentCardKind", "edits")
+        self._apply_btn.setProperty(AGENT_ACTION, "apply")
+        self._apply_btn.setProperty(AGENT_REQUEST_ID, self.run_id)
+        self._apply_btn.setProperty(AGENT_CARD_KIND, "edits")
         footer.set_widgets(self._count_label, [self._apply_btn])
         return footer
 
@@ -786,23 +793,7 @@ class DiffTableCard(_Card, FoldMixin):
         count = len(self.applied_ids)
         text = (self.tr("Applied {n} change").format(n=count) if count == 1
                 else self.tr("Applied {n} changes").format(n=count))
-        self._decision_row.line_label.setText(f"{text} · {self.title}")
-        self._body.setEnabled(False)
-        self.fold_body(self._body, self._show_decision)
-
-    def _show_decision(self) -> None:
-
-
-
-        body, self._body = self._body, None
-        self._decision_row.show()
-        self.set_frame(_ASK_DONE_QSS)
-        self.set_margins(0, 0, 0, 0)
-        self.setMaximumWidth(_UNBOUNDED_PX)
-        if body is not None:
-            body.hide()
-            body.setParent(None)
-            body.deleteLater()
+        self._fold_to(text)
 
     def to_markdown(self) -> str:
         removed, added = self._counts()

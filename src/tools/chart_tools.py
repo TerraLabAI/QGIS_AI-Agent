@@ -68,8 +68,6 @@ _DPI = 200
 
 _BATCH = 1_000
 
-_STOP_POLL_S = 0.05
-
 _TABLE_ROWS = 40
 _TABLE_HEAD = 30
 
@@ -383,11 +381,10 @@ def _read(state: dict, plan: dict, values: _Values, cancelled) -> None:
 
     background.start_kept_thread(reader, state["source"], state["request"], state["feedback"],
                                  name="create_chart read")
-    while not over.wait(_STOP_POLL_S):
-        if net.is_cancelled(cancelled):
-            halted.set()
-            state["feedback"].cancel()
-            raise InterruptedError("Stopped while the features were read")
+    if background.stop_came_first(over, cancelled):
+        halted.set()
+        state["feedback"].cancel()
+        raise InterruptedError("Stopped while the features were read")
     if failure:
         raise failure[0]
 

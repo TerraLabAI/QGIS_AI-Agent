@@ -11,6 +11,9 @@ from qgis.PyQt.QtWidgets import QToolBar
 _TOOLBAR_OBJECT_NAME = "TerraLabToolbar"
 _TOOLBAR_TITLE = "TerraLab Toolbar"
 
+PRODUCT_ID_PROPERTY = "terralab_product_id"
+CROSS_PROMO_PROPERTY = "terralab_is_cross_promo"
+
 
 def get_or_create_terralab_toolbar(iface):
 
@@ -30,19 +33,28 @@ def add_action_to_toolbar(toolbar, action, product_id, is_cross_promo=False):
 
 
 
-    action.setProperty("terralab_product_id", product_id)
-    action.setProperty("terralab_is_cross_promo", is_cross_promo)
+    action.setProperty(PRODUCT_ID_PROPERTY, product_id)
+    action.setProperty(CROSS_PROMO_PROPERTY, is_cross_promo)
     for existing in toolbar.actions():
-        if existing.property("terralab_product_id") == product_id and existing is not action:
-            if is_cross_promo and not existing.property("terralab_is_cross_promo"):
+        if existing.property(PRODUCT_ID_PROPERTY) == product_id and existing is not action:
+            if is_cross_promo and not existing.property(CROSS_PROMO_PROPERTY):
                 return
             toolbar.removeAction(existing)
             break
     for existing in toolbar.actions():
-        if existing.text() > action.text():
+        if _toolbar_sort_key(existing) > _toolbar_sort_key(action):
             toolbar.insertAction(existing, action)
             return
     toolbar.addAction(action)
+
+
+def _toolbar_sort_key(action) -> str:
+
+
+
+
+
+    return str(action.property(PRODUCT_ID_PROPERTY) or action.text())
 
 
 def remove_action_from_toolbar(toolbar, action, main_window):

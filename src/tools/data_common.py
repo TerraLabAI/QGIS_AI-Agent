@@ -499,8 +499,6 @@ _CACHE_GEOCODE_S = 600
 _CACHE_CATALOG_S = 300
 _MAX_ROUTE_WAYPOINTS = 25
 
-_SOCRATA_GEOMETRY_TYPES = ("point", "multipoint", "line", "multiline", "polygon", "multipolygon", "location")
-
 
 
 
@@ -678,7 +676,6 @@ __all__ = [
     "_PORTAL_TIMEOUT",
     "_ROUTE_TIMEOUT",
     "_SINGLE_LAYER_EXTENSIONS",
-    "_SOCRATA_GEOMETRY_TYPES",
     "_TOTAL_TIMEOUT_FACTOR",
     "_bbox_km2",
     "_canvas_viewbox_4326",

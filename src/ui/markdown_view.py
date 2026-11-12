@@ -194,6 +194,16 @@ def _private_place(url: str) -> str:
     return host
 
 
+
+_RTL_LETTER = re.compile("[\u0590-\u08ff\ufb1d-\ufdff\ufe70-\ufefc]")
+_LTR_LETTER = re.compile("[A-Za-z\u00c0-\u024f\u0370-\u03ff\u0400-\u04ff]")
+
+
+def _reads_right_to_left(text: str) -> bool:
+
+    return len(_RTL_LETTER.findall(text)) > len(_LTR_LETTER.findall(text))
+
+
 def _utf16_len(text: str) -> int:
 
     return len(text.encode("utf-16-le")) // 2
@@ -551,6 +561,10 @@ class MarkdownView(QTextBrowser):
 
 
         doc = self.document()
+
+
+
+        rtl = _reads_right_to_left(doc.toPlainText())
         anchors, inline_code, code_spans, code_blocks = [], [], [], []
         prose, headings, quotes = [], [], []
         empties, rules, sources, gone = [], [], [], []
@@ -579,7 +593,8 @@ class MarkdownView(QTextBrowser):
                 is_item = block.textList() is not None
 
                 is_last = not block.next().isValid() or _in_table(doc, block.position())
-                prose.append((block.position(), is_item, is_last))
+                prose.append((block.position(), is_item, is_last,
+                              rtl and bool(_RTL_LETTER.search(block.text()))))
                 if level:
                     headings.append((block.position(), max(0, block.length() - 1), level, fresh))
                 if _BLOCK_QUOTE_LEVEL is not None and block_format.hasProperty(_BLOCK_QUOTE_LEVEL):
@@ -607,8 +622,10 @@ class MarkdownView(QTextBrowser):
         line_percent = max(100, int(round(_LINE_HEIGHT_PERCENT * base_px / natural)))
         cursor = QTextCursor(doc)
         cursor.beginEditBlock()
-        for position, is_item, is_last in prose:
+        for position, is_item, is_last, right_to_left in prose:
             fmt = QTextBlockFormat()
+            if right_to_left:
+                fmt.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
             fmt.setLineHeight(line_percent, _proportional_height())
             fmt.setTopMargin(0)
             fmt.setBottomMargin(0 if is_last else (_ITEM_GAP if is_item else _PARAGRAPH_GAP))

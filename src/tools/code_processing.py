@@ -88,7 +88,7 @@ class _Feedback(QgsProcessingFeedback):
         super().reportError(error, fatalError)
 
 
-class _Wait(QObject):
+class Wait(QObject):
 
 
     clock_out = pyqtSignal()
@@ -155,7 +155,7 @@ def threaded(real_run):
         if code_clock.clock_ran_out():
             raise code_clock.CodeTimeout()
         parameters = args[0] if args else kwargs.get("parameters")
-        context = _call_context()
+        context = call_context()
         alg = None
 
         if (context is not None and isinstance(algorithm, str) and isinstance(parameters, dict)
@@ -168,7 +168,7 @@ def threaded(real_run):
     return run
 
 
-def _call_context():
+def call_context():
 
     context = code_runtime.current()
     if not context.run_id or not background.on_main_thread() or background.marshalled():
@@ -196,30 +196,53 @@ def _run_in_task(alg, parameters: dict, call_context) -> dict:
 
         raise QgsProcessingException(feedback.errors[-1] if feedback.errors
                                      else Processing.tr("There were errors executing the algorithm."))
-    wait = _Wait(task, call_context.run_id, call_context.stop)
+    wait = Wait(task, call_context.run_id, call_context.stop)
 
 
     task.executed.connect(lambda done, results, w=wait, keep=(context, feedback): w.finished(done, results))
     task.taskTerminated.connect(lambda w=wait: w.finished(False, {}))
+
+
+    readers_key = "code-" + uuid.uuid4().hex[:12]
+    entry = {"status": "running", "algorithm": alg.id(), "task": task, "parameters": dict(parameters)}
+
+    def start() -> None:
+        PROCESSING_TASKS[readers_key] = entry
+        watch_removals()
+        QgsApplication.taskManager().addTask(task)
+
+    def settle() -> None:
+        PROCESSING_TASKS.pop(readers_key, None)
+        let_go(entry)
+
+    wait_under_window(wait, alg.displayName(), feedback, start, settle)
+    if not wait.ok:
+        raise QgsProcessingException(feedback.errors[-1] if feedback.errors
+                                     else Processing.tr("There were errors executing the algorithm."))
+    return _layers_out(alg, wait.results, context)
+
+
+def wait_under_window(wait: Wait, name: str, feedback, start, settle=None) -> None:
+
+
+
+
+
+
+
     with code_clock.CLOCK_LOCK:
         if code_clock.clock_ran_out():
             raise code_clock.CodeTimeout()
         code_clock.TASK_WAITS.append(wait.ran_out)
     _WAITS.append(wait)
-
-
-    readers_key = "code-" + uuid.uuid4().hex[:12]
-    PROCESSING_TASKS[readers_key] = entry = {
-        "status": "running", "algorithm": alg.id(), "task": task, "parameters": dict(parameters)}
-    watch_removals()
     try:
-        QgsApplication.taskManager().addTask(task)
+        start()
         if not wait.done:
             wait.loop = quiet = QEventLoop()
             QTimer.singleShot(QUIET_MS, quiet.quit)
             QEventLoop.exec(quiet, enum_member(QEventLoop, "ProcessEventsFlag", "ExcludeUserInputEvents"))
         if not wait.done:
-            _window(wait, alg.displayName(), feedback)
+            _window(wait, name, feedback)
             wait.loop = QEventLoop()
             QEventLoop.exec(wait.loop)
     finally:
@@ -227,8 +250,8 @@ def _run_in_task(alg, parameters: dict, call_context) -> dict:
         wait.loop = None
         _close(wait, feedback)
         _WAITS.remove(wait)
-        PROCESSING_TASKS.pop(readers_key, None)
-        let_go(entry)
+        if settle is not None:
+            settle()
         with code_clock.CLOCK_LOCK:
             code_clock.TASK_WAITS.remove(wait.ran_out)
     if wait.ended_by in ("user", "stop"):
@@ -236,10 +259,6 @@ def _run_in_task(alg, parameters: dict, call_context) -> dict:
         raise Stopped()
     if wait.ended_by or code_clock.clock_ran_out():
         raise code_clock.CodeTimeout()
-    if not wait.ok:
-        raise QgsProcessingException(feedback.errors[-1] if feedback.errors
-                                     else Processing.tr("There were errors executing the algorithm."))
-    return _layers_out(alg, wait.results, context)
 
 
 class _Window(QDialog):
@@ -251,7 +270,7 @@ class _Window(QDialog):
 
 
 
-    def __init__(self, wait: _Wait, name: str, parent):
+    def __init__(self, wait: Wait, name: str, parent):
         super().__init__(parent)
         self._wait = wait
         self.setObjectName(WINDOW_NAME)
@@ -278,6 +297,10 @@ class _Window(QDialog):
     def setValue(self, value) -> None:  # noqa: N802
         self._bar.setValue(max(0, min(100, int(value))))
 
+    def busy(self) -> None:
+
+        self._bar.setRange(0, 0)
+
     def stopping(self) -> None:
         self._label.setText(tr("Stopping..."))
         self._button.setEnabled(False)
@@ -296,7 +319,7 @@ class _Window(QDialog):
         self._wait.end("user")
 
 
-def _window(wait: _Wait, name: str, feedback) -> None:
+def _window(wait: Wait, name: str, feedback) -> None:
 
     try:
         from qgis.utils import iface
@@ -314,7 +337,7 @@ def _window(wait: _Wait, name: str, feedback) -> None:
     window.show()
 
 
-def _close(wait: _Wait, feedback) -> None:
+def _close(wait: Wait, feedback) -> None:
     window, wait.window = wait.window, None
     if wait.progress is not None:
         disconnect_quietly(feedback, "progressChanged", wait.progress)

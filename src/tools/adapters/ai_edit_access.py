@@ -23,6 +23,7 @@ from ...core.logger import log_warning
 from ...core.numbers import as_int
 from ...core.provider_uri import encode_uri_url
 from ...core.tool_registry import coded_fact, tool_error
+from .._layers import resolve_layer
 from .._widgets import process_events
 from ..handoff_reads import edit_prompt, interactive_state, raster_layer
 from ..zone_facts import _to_canvas_crs, zone_from_args
@@ -134,27 +135,11 @@ def _basemap_url(name: str) -> str:
     return ""
 
 
-def _find_project_layer(name: str):
-
-    from qgis.core import QgsProject
-    if not name:
-        return None
-    target = name.strip().lower()
-    best = None
-    for lyr in QgsProject.instance().mapLayers().values():
-        ln = (lyr.name() or "").strip().lower()
-        if ln == target:
-            return lyr
-        if best is None and target and target in ln:
-            best = lyr
-    return best
-
-
 def _ensure_basemap_layer(name: str):
 
 
 
-    found = _find_project_layer(name)
+    found = resolve_layer(name)
     if found is not None:
         return found
     url = _basemap_url(name)
@@ -479,7 +464,6 @@ class AiEditAccess:
                 missing.append(name)
                 continue
             real = layer.name()
-
 
 
             if (real or "").strip().lower() != (name or "").strip().lower():
@@ -1263,7 +1247,7 @@ class AiEditAccess:
 
         layer_name = (params.get("layer_name") or "").strip()
         if layer_name:
-            raster = _find_project_layer(layer_name)
+            raster = resolve_layer(layer_name)
             if raster is None:
                 return tool_error(f"No project layer named '{layer_name}'.", "INVALID_ARGS")
         else:

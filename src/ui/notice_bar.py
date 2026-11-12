@@ -24,6 +24,7 @@ from qgis.core import QgsSettings
 from qgis.PyQt.QtCore import Qt, pyqtSignal
 from qgis.PyQt.QtWidgets import QHBoxLayout, QLabel, QSizePolicy, QVBoxLayout, QWidget
 
+from ..core.settings import GROUP as SETTINGS_GROUP
 from .external_links import open_external_url
 from .font_scale import scale_qss_font_px
 from .style import (
@@ -43,8 +44,7 @@ from .style import (
 from .widgets import IconButton, break_anywhere
 
 
-
-_SETTINGS_KEY = "TerraLab/AIAgent/dismissed_notices"
+_SETTINGS_KEY = f"{SETTINGS_GROUP}/dismissed_notices"
 _DISMISSED_CAP = 50
 
 LEVELS = ("info", "warning")

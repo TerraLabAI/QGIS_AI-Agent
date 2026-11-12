@@ -19,11 +19,11 @@ from ..core.checkpoints import KIND_BEFORE
 from ..core.context import build_context
 from ..core.logger import log_warning
 from ..core.profile import driven_session, profile_context
+from ..core.project_identity import open_project_file
 from ..core.protocol import CANCEL_SERVER_SILENT, CANCEL_STOP, Approval, Mode, RunStatus
 from ..core.security import allow_attached_paths, remember_user_text, vouched_for_thread
 from ..core.telemetry_errors import report_exception, track_plugin_error
 from ..core.threads import user_message_record
-from .controller_actions import _project_path
 from .controller_shared import (
     CANCEL_GRACE_MS,
     CONTINUE_TEXT,
@@ -32,6 +32,8 @@ from .controller_shared import (
     _dump_context,
     tr,
 )
+
+RESTORE_RECHECK_MS = 200
 
 
 def _context_bytes(context: dict) -> int | None:
@@ -54,6 +56,14 @@ class _ControllerRuns:
 
         text = (text or "").strip()
         if not text:
+            return
+        if self._restoring:
+
+
+
+
+            QTimer.singleShot(RESTORE_RECHECK_MS, lambda: self._on_send(
+                text, mode, approval, chips, attachments, reuse_layers, replaces))
             return
         from ..ui.plugin_self_update import updated_on_disk_note
 
@@ -112,7 +122,7 @@ class _ControllerRuns:
                   else self._load_file_attachments(attachments))
         new_thread = not self._thread_id
         if not self._thread_id:
-            self._thread_id = self._store.create(project_path=_project_path())["id"]
+            self._thread_id = self._store.create(project_path=open_project_file())["id"]
             telemetry.track(ev.THREAD_CREATED)
 
 
@@ -129,7 +139,7 @@ class _ControllerRuns:
             log_warning(f"Context build failed: {exc}")
             context = {"error": str(exc)[:200], "layers": [], "chips": chips}
         try:
-            user = profile_context(self._settings, _project_path())
+            user = profile_context(self._settings, open_project_file())
         except Exception as exc:  # noqa: BLE001
             log_warning(f"Profile context failed: {exc}")
             user = {}
@@ -217,7 +227,7 @@ class _ControllerRuns:
                 self._run.setdefault("sent_at", time.perf_counter())
             trace.mark("send.queued", run_id=run_id)
             self._touch_watchdog()
-        self._panel_call("set_threads", self._store.list_threads(), _project_path())
+        self._panel_call("set_threads", self._store.list_threads(), open_project_file())
         self._panel_call("set_current_thread", self._thread_id)
 
     def _earlier_turns(self, thread_id: str, run_id: str, replaces: str = ""):
@@ -438,8 +448,15 @@ class _ControllerRuns:
 
     def _flush_steers(self, run_id: str) -> None:
 
-        for steer_id in getattr(self, "_steers", {}).pop(run_id, None) or {}:
+        steers = getattr(self, "_steers", {}).pop(run_id, None) or {}
+        for steer_id in steers:
             self._panel_call("steer_refused", steer_id)
+        cut, self._cut_run = getattr(self, "_cut_run", None) == run_id, None
+        if steers and cut:
+
+
+
+            self._panel_call("pause_queue")
 
     def _on_stop(self, run_id: str) -> None:
         again = self._runs.cancelled()
@@ -526,7 +543,10 @@ class _ControllerRuns:
             self._panel_call("set_status_line", run["run_id"], tr("Thinking..."))
             self._touch_watchdog(grace)
         else:
+
+
             self._runs.resend_later()
+            self._touch_watchdog()
 
 
     def _touch_watchdog(self, seconds: int = RUN_SILENCE_S) -> None:

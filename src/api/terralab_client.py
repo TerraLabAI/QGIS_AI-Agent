@@ -38,8 +38,8 @@ from ..core.dev_env import dev_env
 from ..core.host_platform import os_info, plugin_version, qgis_version
 from ..core.log_scrub import scrub_secrets
 from ..core.net_hosts import retry_after_seconds
+from ..core.served_state import PRODUCT_ID
 
-PRODUCT_ID = "ai-agent"
 TERRALAB_BASE_URL_DEFAULT = "https://terra-lab.ai"
 _LOG_TAG = "AI Agent"
 
@@ -141,8 +141,12 @@ def own_cache_entry(url: str) -> str:
     return f"{url}{'&' if '?' in url else '?'}_={secrets.token_hex(6)}"
 
 
-def config_query(product: str, lang: str = "") -> str:
+def config_query(product: str, lang: str = "", signed_out_open: bool = False) -> str:
     params = {"product": product}
+    if signed_out_open:
+
+
+        params["so"] = "1"
     if lang:
         params["lang"] = lang[:5]
     params["v"] = plugin_version()
@@ -415,9 +419,10 @@ class TerraLabClient:
         return self._request("POST", "/api/plugin/data-retention", auth=auth, body=body,
                              timeout_ms=_TIMEOUT_INTERACTIVE, require_body=True)
 
-    def get_config(self, product: str = PRODUCT_ID, lang: str = "", auth: dict | None = None) -> dict:
+    def get_config(self, product: str = PRODUCT_ID, lang: str = "", auth: dict | None = None,
+                   signed_out_open: bool = False) -> dict:
 
-        return self._request("GET", config_query(product, lang), auth=auth or None,
+        return self._request("GET", config_query(product, lang, signed_out_open and not auth), auth=auth or None,
                              timeout_ms=_TIMEOUT_INTERACTIVE, require_body=True)
 
     def send_telemetry_batch(self, events: list, auth: dict, timeout_ms: int | None = None) -> dict:

@@ -1815,6 +1815,98 @@ Setelah masa tenggang berakhir, penghapusan tidak dapat dibatalkan. Sebelum itu,
             <source>expired</source>
             <translation>kedaluwarsa</translation>
         </message>
+        <message>
+            <source>Flow lines: {}</source>
+            <translation>Garis alir: {}</translation>
+        </message>
+        <message>
+            <source>Voice dictation</source>
+            <translation>Dikte suara</translation>
+        </message>
+        <message>
+            <source>Talk to your AI agent</source>
+            <translation>Bicara dengan agen AI Anda</translation>
+        </message>
+        <message>
+            <source>Speak, and your words become text you can edit before sending.</source>
+            <translation>Bicaralah, dan kata-kata Anda menjadi teks yang bisa Anda edit sebelum dikirim.</translation>
+        </message>
+        <message>
+            <source>Your voice stays private</source>
+            <translation>Suara Anda tetap privat</translation>
+        </message>
+        <message>
+            <source>Recorded only when you press the microphone, transcribed in the EU, never stored by TerraLab and never used to train AI.</source>
+            <translation>Direkam hanya saat Anda menekan mikrofon, ditranskripsikan di UE, tidak pernah disimpan oleh TerraLab, dan tidak pernah dipakai untuk melatih AI.</translation>
+        </message>
+        <message>
+            <source>Start dictating</source>
+            <translation>Mulai mendikte</translation>
+        </message>
+        <message>
+            <source>Not now</source>
+            <translation>Nanti saja</translation>
+        </message>
+        <message>
+            <source>AI can make mistakes</source>
+            <translation>AI bisa membuat kesalahan</translation>
+        </message>
+        <message>
+            <source>Adding the layer</source>
+            <translation>Menambahkan layer</translation>
+        </message>
+        <message>
+            <source>Cutting to the area</source>
+            <translation>Memotong ke area</translation>
+        </message>
+        <message>
+            <source>Failed</source>
+            <translation>Gagal</translation>
+        </message>
+        <message>
+            <source>Finding the place</source>
+            <translation>Mencari lokasi</translation>
+        </message>
+        <message>
+            <source>Paused</source>
+            <translation>Dijeda</translation>
+        </message>
+        <message>
+            <source>Querying the source</source>
+            <translation>Menanyakan sumber data</translation>
+        </message>
+        <message>
+            <source>Queued</source>
+            <translation>Mengantre</translation>
+        </message>
+        <message>
+            <source>Stopped</source>
+            <translation>Dihentikan</translation>
+        </message>
+        <message>
+            <source>Working</source>
+            <translation>Bekerja</translation>
+        </message>
+        <message>
+            <source>about {n} min left</source>
+            <translation>sisa sekitar {n} mnt</translation>
+        </message>
+        <message>
+            <source>about {n} s left</source>
+            <translation>sisa sekitar {n} dtk</translation>
+        </message>
+        <message>
+            <source>{done} MB</source>
+            <translation>{done} MB</translation>
+        </message>
+        <message>
+            <source>{done} of {total} MB</source>
+            <translation>{done} dari {total} MB</translation>
+        </message>
+        <message>
+            <source>{words} · {done} of {total}</source>
+            <translation>{words} · {done} dari {total}</translation>
+        </message>
     </context>
     <context>
         <name>AIAgentContext</name>
@@ -2315,6 +2407,18 @@ Setelah masa tenggang berakhir, penghapusan tidak dapat dibatalkan. Sebelum itu,
         <message>
             <source>Sign in or create an account</source>
             <translation>Masuk atau buat akun</translation>
+        </message>
+        <message>
+            <source>Opens your browser, takes about 15 seconds</source>
+            <translation>Membuka browser Anda, butuh sekitar 15 detik</translation>
+        </message>
+        <message>
+            <source>Sign in or create a free account</source>
+            <translation>Masuk atau buat akun gratis</translation>
+        </message>
+        <message>
+            <source>The AI agent loads data, styles layers, runs analyses and edits features for you.</source>
+            <translation>AI agent memuat data, mengatur gaya layer, menjalankan analisis, dan mengedit fitur untuk Anda.</translation>
         </message>
     </context>
     <context>
@@ -3304,6 +3408,22 @@ Setelah masa tenggang berakhir, penghapusan tidak dapat dibatalkan. Sebelum itu,
             <source>Removed from the queue</source>
             <translation>Dihapus dari antrean</translation>
         </message>
+        <message>
+            <source>No free tasks left on this computer</source>
+            <translation>Tidak ada tugas gratis tersisa di komputer ini</translation>
+        </message>
+        <message>
+            <source>No free tasks left this month</source>
+            <translation>Tidak ada tugas gratis tersisa bulan ini</translation>
+        </message>
+        <message>
+            <source>Ask or describe a task in QGIS</source>
+            <translation>Tanyakan atau jelaskan tugas di QGIS</translation>
+        </message>
+        <message>
+            <source>Reply</source>
+            <translation>Balas</translation>
+        </message>
     </context>
     <context>
         <name>ChatSidebar</name>
@@ -3606,6 +3726,26 @@ Setelah masa tenggang berakhir, penghapusan tidak dapat dibatalkan. Sebelum itu,
             <source>Add files or one of this project's layers. A layer can also be dragged from the Layers panel; Ctrl+V pastes a picture.</source>
             <translation>Tambahkan file atau salah satu layer proyek ini. Layer juga dapat diseret dari panel Layers; Ctrl+V menempelkan gambar.</translation>
         </message>
+        <message>
+            <source>Send this as it is?</source>
+            <translation>Kirim pesan ini apa adanya?</translation>
+        </message>
+        <message>
+            <source>It looks like a typing slip. Edit it, or press Send again.</source>
+            <translation>Sepertinya ini salah ketik. Ubah pesannya, atau tekan Kirim lagi.</translation>
+        </message>
+        <message>
+            <source>Ask or describe a task in QGIS</source>
+            <translation>Tanyakan atau jelaskan tugas di QGIS</translation>
+        </message>
+        <message>
+            <source>Done: write what I said (Enter)</source>
+            <translation>Selesai: tulis ucapan saya (Enter)</translation>
+        </message>
+        <message>
+            <source>Finish dictation</source>
+            <translation>Selesaikan dikte</translation>
+        </message>
     </context>
     <context>
         <name>ComposerInput</name>
@@ -3837,6 +3977,30 @@ Setelah masa tenggang berakhir, penghapusan tidak dapat dibatalkan. Sebelum itu,
             <source>{sources} sources the AI agent finds and loads by itself: {datasets} datasets in {countries} countries.</source>
             <translation>{sources} sumber yang ditemukan dan dimuat sendiri oleh AI Agent: {datasets} dataset di {countries} negara.</translation>
         </message>
+        <message>
+            <source>%n datasets from other providers</source>
+            <translation>%n dataset dari penyedia lain</translation>
+        </message>
+        <message>
+            <source>Popular</source>
+            <translation>Populer</translation>
+        </message>
+        <message>
+            <source>Europe</source>
+            <translation>Eropa</translation>
+        </message>
+        <message>
+            <source>Americas</source>
+            <translation>Amerika</translation>
+        </message>
+        <message>
+            <source>Asia and Pacific</source>
+            <translation>Asia dan Pasifik</translation>
+        </message>
+        <message>
+            <source>Africa and Middle East</source>
+            <translation>Afrika dan Timur Tengah</translation>
+        </message>
     </context>
     <context>
         <name>DiffTableCard</name>
@@ -3979,6 +4143,10 @@ Setelah masa tenggang berakhir, penghapusan tidak dapat dibatalkan. Sebelum itu,
             <source>Applies from your next message.</source>
             <translation>Berlaku mulai pesan Anda berikutnya.</translation>
         </message>
+        <message>
+            <source>Effort {level}: how hard the AI agent works on the next message</source>
+            <translation>Upaya {level}: seberapa keras agen AI bekerja pada pesan berikutnya</translation>
+        </message>
     </context>
     <context>
         <name>EmptyState</name>
@@ -4002,6 +4170,10 @@ Setelah masa tenggang berakhir, penghapusan tidak dapat dibatalkan. Sebelum itu,
         <message>
             <source>Data</source>
             <translation>Data</translation>
+        </message>
+        <message>
+            <source>How can I help?</source>
+            <translation>Ada yang bisa saya bantu?</translation>
         </message>
     </context>
     <context>
@@ -4112,6 +4284,26 @@ Setelah masa tenggang berakhir, penghapusan tidak dapat dibatalkan. Sebelum itu,
         <message>
             <source>Send feedback</source>
             <translation>Kirim masukan</translation>
+        </message>
+        <message>
+            <source>Free trial</source>
+            <translation>Uji coba gratis</translation>
+        </message>
+        <message>
+            <source>Your Pro is set to end. Keep it in one click.</source>
+            <translation>Pro Anda akan berakhir. Pertahankan dengan satu klik.</translation>
+        </message>
+        <message>
+            <source>Keep Pro</source>
+            <translation>Pertahankan Pro</translation>
+        </message>
+        <message>
+            <source>Open the AI Agent page on terra-lab.ai</source>
+            <translation>Buka halaman AI Agent di terra-lab.ai</translation>
+        </message>
+        <message>
+            <source>Your Pro ends on {date}. Keep it in one click.</source>
+            <translation>Pro Anda berakhir pada {date}. Pertahankan dengan satu klik.</translation>
         </message>
     </context>
     <context>
@@ -4661,6 +4853,46 @@ Klik untuk membuka halamannya.</translation>
             <source>{mode}: what AI Agent may do without asking</source>
             <translation>{mode}: apa yang boleh dilakukan AI Agent tanpa bertanya</translation>
         </message>
+        <message>
+            <source>Free trial</source>
+            <translation>Uji coba gratis</translation>
+        </message>
+        <message>
+            <source>Asks before every change.</source>
+            <translation>Bertanya sebelum setiap perubahan.</translation>
+        </message>
+        <message>
+            <source>Asks only before risky changes.</source>
+            <translation>Bertanya hanya sebelum perubahan berisiko.</translation>
+        </message>
+        <message>
+            <source>It brings your project back. Files on disk are not covered.</source>
+            <translation>Ini mengembalikan proyek Anda. File di disk tidak tercakup.</translation>
+        </message>
+        <message>
+            <source>Spending credits or reaching an unknown site.</source>
+            <translation>Memakai kredit atau mengakses situs yang tidak dikenal.</translation>
+        </message>
+        <message>
+            <source>Still asks for what matters</source>
+            <translation>Tetap bertanya untuk hal penting</translation>
+        </message>
+        <message>
+            <source>The AI agent runs every step without asking, even to delete a layer or run code.</source>
+            <translation>Agen AI menjalankan setiap langkah tanpa bertanya, bahkan untuk menghapus layer atau menjalankan kode.</translation>
+        </message>
+        <message>
+            <source>Undo is there</source>
+            <translation>Urungkan tersedia</translation>
+        </message>
+        <message>
+            <source>Works on its own</source>
+            <translation>Bekerja sendiri</translation>
+        </message>
+        <message>
+            <source>Works on its own and rarely asks.</source>
+            <translation>Bekerja sendiri dan jarang bertanya.</translation>
+        </message>
     </context>
     <context>
         <name>PlanCard</name>
@@ -4727,6 +4959,22 @@ Klik untuk membuka halamannya.</translation>
             <source>Question {n} of {count}</source>
             <translation>Pertanyaan {n} dari {count}</translation>
         </message>
+        <message>
+            <source>Checkbox</source>
+            <translation>Kotak centang</translation>
+        </message>
+        <message>
+            <source>Radio button</source>
+            <translation>Tombol radio</translation>
+        </message>
+        <message>
+            <source>selected</source>
+            <translation>dipilih</translation>
+        </message>
+        <message>
+            <source>not selected</source>
+            <translation>tidak dipilih</translation>
+        </message>
     </context>
     <context>
         <name>QuotaCard</name>
@@ -4775,7 +5023,7 @@ Klik untuk membuka halamannya.</translation>
         </message>
         <message>
             <location filename="src/ui/quota_card.py" />
-            <source>Start 7-day free trial</source>
+            <source>Start 7 day free trial</source>
             <translation>Mulai uji coba gratis 7 hari</translation>
         </message>
         <message>
@@ -4952,6 +5200,134 @@ Klik untuk membuka halamannya.</translation>
             <source>Medium effort now, High after the trial</source>
             <translation>Upaya Medium sekarang, High setelah uji coba</translation>
         </message>
+        <message>
+            <source>For a company or team</source>
+            <translation>Untuk perusahaan atau tim</translation>
+        </message>
+        <message>
+            <source>Your custom instructions</source>
+            <translation>Instruksi kustom Anda</translation>
+        </message>
+        <message>
+            <source>1 free task left this month</source>
+            <translation>Sisa 1 tugas gratis bulan ini</translation>
+        </message>
+        <message>
+            <source>AI Agent Pro for work, by invoice</source>
+            <translation>AI Agent Pro untuk kerja, dengan faktur</translation>
+        </message>
+        <message>
+            <source>AI Agent Pro for work, without a card</source>
+            <translation>AI Agent Pro untuk kerja, tanpa kartu</translation>
+        </message>
+        <message>
+            <source>Copy</source>
+            <translation>Salin</translation>
+        </message>
+        <message>
+            <source>Free trial</source>
+            <translation>Uji coba gratis</translation>
+        </message>
+        <message>
+            <source>Hello,
+
+I used all my AI Agent tasks this month. Could you raise my quota?
+
+Thank you</source>
+            <translation>Halo,
+
+Saya sudah memakai semua tugas AI Agent bulan ini. Bisakah kuota saya dinaikkan?
+
+Terima kasih</translation>
+        </message>
+        <message>
+            <source>Hello,
+
+I'd like to use AI Agent Pro at work but I can't pay by card. Could you send my company an invoice or a quote?
+
+Company:
+Name:
+
+Thank you</source>
+            <translation>Halo,
+
+Saya ingin memakai AI Agent Pro untuk pekerjaan, tetapi saya tidak bisa membayar dengan kartu. Bisakah Anda mengirim faktur atau penawaran harga ke perusahaan saya?
+
+Perusahaan:
+Nama:
+
+Terima kasih</translation>
+        </message>
+        <message>
+            <source>Hello,
+
+I'd like to use AI Agent Pro at work but I can't pay by card. Could you set up the 7 free days for us?
+
+Company:
+Name:
+
+Thank you</source>
+            <translation>Halo,
+
+Saya ingin memakai AI Agent Pro untuk pekerjaan, tetapi saya tidak bisa membayar dengan kartu. Bisakah Anda mengaktifkan 7 hari gratis untuk kami?
+
+Perusahaan:
+Nama:
+
+Terima kasih</translation>
+        </message>
+        <message>
+            <source>More AI Agent tasks this month</source>
+            <translation>Tugas AI Agent lebih banyak bulan ini</translation>
+        </message>
+        <message>
+            <source>Need it for work?</source>
+            <translation>Perlu untuk pekerjaan?</translation>
+        </message>
+        <message>
+            <source>Need more this month? Write to us</source>
+            <translation>Butuh lebih bulan ini? Tulis ke kami</translation>
+        </message>
+        <message>
+            <source>No card to pay with? Write to us and we'll send your company an invoice.</source>
+            <translation>Tidak punya kartu untuk membayar? Tulis ke kami dan kami akan mengirim faktur ke perusahaan Anda.</translation>
+        </message>
+        <message>
+            <source>No card to pay with? Write to us and we'll set up your 7 free days.</source>
+            <translation>Tidak punya kartu untuk membayar? Tulis ke kami dan kami akan mengatur 7 hari gratis Anda.</translation>
+        </message>
+        <message>
+            <source>Nothing to pay today</source>
+            <translation>Tidak ada yang dibayar hari ini</translation>
+        </message>
+        <message>
+            <source>Pro is off until it's paid.</source>
+            <translation>Pro nonaktif sampai dibayar.</translation>
+        </message>
+        <message>
+            <source>That was your last free task</source>
+            <translation>Itu tugas gratis terakhir Anda</translation>
+        </message>
+        <message>
+            <source>Want more? Come back to Pro: {n} tasks a month.</source>
+            <translation>Mau lebih? Kembali ke Pro: {n} tugas per bulan.</translation>
+        </message>
+        <message>
+            <source>Want more? Pro has {n} tasks a month.</source>
+            <translation>Mau lebih? Pro punya {n} tugas per bulan.</translation>
+        </message>
+        <message>
+            <source>Want more? Pro is free for a week.</source>
+            <translation>Mau lebih? Pro gratis selama seminggu.</translation>
+        </message>
+        <message>
+            <source>{n} free tasks left this month</source>
+            <translation>Sisa {n} tugas gratis bulan ini</translation>
+        </message>
+        <message>
+            <source>{n} tasks a month, cancel anytime</source>
+            <translation>{n} tugas per bulan, batalkan kapan saja</translation>
+        </message>
     </context>
     <context>
         <name>QuotaPauseCard</name>
@@ -5108,16 +5484,16 @@ Klik untuk membuka halamannya.</translation>
             <translation>Hapus semua {n} catatan? AI tidak akan menambahkannya lagi.</translation>
         </message>
         <message>
-            <source>We may read a chat only to fix a bug, never to train AI. Chats are kept 30 days.</source>
-            <translation>Kami hanya boleh membaca chat untuk memperbaiki bug, tidak pernah untuk melatih AI. Chat disimpan 30 hari.</translation>
+            <source>We may read a chat, or have a model score it, to fix bugs and improve the agent, never to train AI. Chats are kept 30 days.</source>
+            <translation>Kami boleh membaca chat, atau meminta model memberinya skor, untuk memperbaiki bug dan meningkatkan agen, tidak pernah untuk melatih AI. Chat disimpan 30 hari.</translation>
         </message>
         <message>
             <source>The AI saves notes on its own</source>
             <translation>AI menyimpan catatan sendiri</translation>
         </message>
         <message>
-            <source>Your chats are kept 30 days so a conversation survives an update. Off, the team never reads them. 0 days of history stores nothing.</source>
-            <translation>Chat Anda disimpan 30 hari agar percakapan tetap ada setelah pembaruan. Jika dimatikan, tim tidak pernah membacanya. Riwayat 0 hari tidak menyimpan apa pun.</translation>
+            <source>Your chats are kept 30 days so a conversation survives an update. Off, we never read or score them. 0 days of history stores nothing.</source>
+            <translation>Chat Anda disimpan 30 hari agar percakapan tetap ada setelah pembaruan. Jika dimatikan, kami tidak pernah membaca atau memberinya skor. Riwayat 0 hari tidak menyimpan apa pun.</translation>
         </message>
         <message>
             <location filename="src/ui/settings_dialog.py" />
@@ -5491,8 +5867,8 @@ Klik untuk membuka halamannya.</translation>
         </message>
         <message>
             <location filename="src/ui/settings_account.py" />
-            <source>We may read a chat only to fix a wrong answer or a bug, never to train AI.</source>
-            <translation>Kami hanya boleh membaca chat untuk memperbaiki jawaban yang salah atau bug, tidak pernah untuk melatih AI.</translation>
+            <source>We may read a chat, or have a model score it, to fix a wrong answer or a bug and improve the agent, never to train AI.</source>
+            <translation>Kami boleh membaca chat, atau meminta model memberinya skor, untuk memperbaiki jawaban yang salah atau bug dan meningkatkan agen, tidak pernah untuk melatih AI.</translation>
         </message>
         <message>
             <location filename="src/ui/settings_account.py" />
@@ -5707,6 +6083,38 @@ Klik untuk membuka halamannya.</translation>
         <message>
             <source>Delete this note? The AI will not add it back.</source>
             <translation>Hapus catatan ini? Asisten AI tidak akan menambahkannya lagi.</translation>
+        </message>
+        <message>
+            <source>Everywhere · {n}</source>
+            <translation>Di mana saja · {n}</translation>
+        </message>
+        <message>
+            <source>Other projects · {n}</source>
+            <translation>Proyek lain · {n}</translation>
+        </message>
+        <message>
+            <source>The rules you give it and the corrections that hold for later.</source>
+            <translation>Aturan yang Anda berikan dan koreksi yang berlaku untuk selanjutnya.</translation>
+        </message>
+        <message>
+            <source>This project · {n}</source>
+            <translation>Proyek ini · {n}</translation>
+        </message>
+        <message>
+            <source>What the AI keeps between conversations, stored on this computer.</source>
+            <translation>Yang disimpan AI di antara percakapan, tersimpan di komputer ini.</translation>
+        </message>
+        <message>
+            <source>commercial use, more tasks, your instructions and higher effort</source>
+            <translation>penggunaan komersial, lebih banyak tugas, instruksi Anda, dan upaya lebih tinggi</translation>
+        </message>
+        <message>
+            <source>Animate the mascot</source>
+            <translation>Animasikan maskot</translation>
+        </message>
+        <message>
+            <source>The AI agent's mark moves and follows the work. Off keeps it still.</source>
+            <translation>Logo agen AI bergerak dan mengikuti pekerjaan. Jika nonaktif, logo diam.</translation>
         </message>
     </context>
     <context>
@@ -6104,6 +6512,26 @@ Klik untuk membuka halamannya.</translation>
         <message>
             <source>could not be put back, so what it changed is still in the project</source>
             <translation>tidak dapat dikembalikan, jadi perubahan yang dibuatnya masih ada di proyek</translation>
+        </message>
+        <message>
+            <source>QGIS restarted during this request, so this step was not run again. The project may already hold what it changed.</source>
+            <translation>QGIS dimulai ulang selama permintaan ini, jadi langkah ini tidak dijalankan lagi. Proyek mungkin sudah memuat perubahan yang dibuatnya.</translation>
+        </message>
+        <message>
+            <source>Stopped after this step had finished: its changes are in the project.</source>
+            <translation>Dihentikan setelah langkah ini selesai: perubahannya sudah ada di proyek.</translation>
+        </message>
+        <message>
+            <source>{area} km²</source>
+            <translation>{area} km²</translation>
+        </message>
+        <message>
+            <source>{area} ha</source>
+            <translation>{area} ha</translation>
+        </message>
+        <message>
+            <source>{area} m²</source>
+            <translation>{area} m²</translation>
         </message>
     </context>
     <context>
@@ -8508,6 +8936,211 @@ File ini tidak lagi berada di tempat proses menuliskannya.</translation>
         <message>
             <source>Edit this note</source>
             <translation>Ubah catatan ini</translation>
+        </message>
+    </context>
+    <context>
+        <name>QgisLinks</name>
+        <message>
+            <source>Project Properties</source>
+            <translation>Properti Proyek</translation>
+        </message>
+        <message>
+            <source>Open the project's properties</source>
+            <translation>Buka properti proyek</translation>
+        </message>
+        <message>
+            <source>3D Map View</source>
+            <translation>Tampilan Peta 3D</translation>
+        </message>
+        <message>
+            <source>Bring this 3D map view to the front</source>
+            <translation>Tampilkan tampilan peta 3D ini di depan</translation>
+        </message>
+        <message>
+            <source>Layout Designer</source>
+            <translation>Desainer Tata Letak</translation>
+        </message>
+        <message>
+            <source>Open this layout in the layout designer</source>
+            <translation>Buka tata letak ini di desainer tata letak</translation>
+        </message>
+        <message>
+            <source>Attribute Table</source>
+            <translation>Tabel Atribut</translation>
+        </message>
+        <message>
+            <source>Open the attribute table of {layer}</source>
+            <translation>Buka tabel atribut {layer}</translation>
+        </message>
+        <message>
+            <source>Layer Properties › {tab}</source>
+            <translation>Properti Layer › {tab}</translation>
+        </message>
+        <message>
+            <source>Open the properties of {layer} on the {tab} tab</source>
+            <translation>Buka properti {layer} pada tab {tab}</translation>
+        </message>
+    </context>
+    <context>
+        <name>OvertureExtract</name>
+        <message>
+            <source>{names}: loaded in full, {count} features.</source>
+            <translation>{names}: dimuat seluruhnya, {count} fitur.</translation>
+        </message>
+        <message>
+            <source>{names}: {count} features loaded; part of the area could not be read.</source>
+            <translation>{names}: {count} fitur dimuat; sebagian area tidak dapat dibaca.</translation>
+        </message>
+        <message>
+            <source>Reading {names}</source>
+            <translation>Membaca {names}</translation>
+        </message>
+    </context>
+    <context>
+        <name>GtfsTools</name>
+        <message>
+            <source>{lo} - {hi} trips/day</source>
+            <translation>{lo} - {hi} perjalanan/hari</translation>
+        </message>
+        <message>
+            <source>{name} stops</source>
+            <translation>Halte {name}</translation>
+        </message>
+        <message>
+            <source>{name} routes</source>
+            <translation>Rute {name}</translation>
+        </message>
+    </context>
+    <context>
+        <name>Dictation</name>
+        <message>
+            <source>The AI Agent plugin in QGIS listens only while you dictate a message, to turn your voice into text.</source>
+            <translation>Plugin AI Agent di QGIS hanya mendengarkan saat Anda mendikte pesan, untuk mengubah suara Anda menjadi teks.</translation>
+        </message>
+        <message>
+            <source>Animate the mascot</source>
+            <translation>Animasikan maskot</translation>
+        </message>
+        <message>
+            <source>The AI agent's mark moves and follows the work. Off keeps it still.</source>
+            <translation>Logo agen AI bergerak dan mengikuti pekerjaan. Jika dimatikan, logo tetap diam.</translation>
+        </message>
+    </context>
+    <context>
+        <name>CodeLayoutExport</name>
+        <message>
+            <source>the layout export</source>
+            <translation>ekspor layout</translation>
+        </message>
+    </context>
+    <context>
+        <name>ComposerDictation</name>
+        <message>
+            <source>Cancel (Esc)</source>
+            <translation>Batal (Esc)</translation>
+        </message>
+        <message>
+            <source>Cancel dictation</source>
+            <translation>Batalkan dikte</translation>
+        </message>
+        <message>
+            <source>Dictate</source>
+            <translation>Dikte</translation>
+        </message>
+        <message>
+            <source>Dictate ({shortcut})</source>
+            <translation>Dikte ({shortcut})</translation>
+        </message>
+        <message>
+            <source>Dictation is busy right now.</source>
+            <translation>Dikte sedang sibuk.</translation>
+        </message>
+        <message>
+            <source>Dictation is not available right now.</source>
+            <translation>Dikte belum tersedia saat ini.</translation>
+        </message>
+        <message>
+            <source>Listening</source>
+            <translation>Mendengarkan</translation>
+        </message>
+        <message>
+            <source>No connection to TerraLab, so nothing was transcribed.</source>
+            <translation>Tidak ada koneksi ke TerraLab, jadi tidak ada yang ditranskripsikan.</translation>
+        </message>
+        <message>
+            <source>No microphone found. Plug one in or check your sound settings.</source>
+            <translation>Mikrofon tidak ditemukan. Colokkan satu atau periksa pengaturan suara Anda.</translation>
+        </message>
+        <message>
+            <source>No sound came from the microphone. Check that it is not muted.</source>
+            <translation>Tidak ada suara dari mikrofon. Pastikan mikrofon tidak dibisukan.</translation>
+        </message>
+        <message>
+            <source>No sound came from the microphone. In Windows settings, Privacy, Microphone, let desktop apps use it.</source>
+            <translation>Tidak ada suara dari mikrofon. Di pengaturan Windows, Privasi, Mikrofon, izinkan aplikasi desktop memakainya.</translation>
+        </message>
+        <message>
+            <source>Nothing was heard. Speak closer to the microphone and try again.</source>
+            <translation>Tidak ada suara yang terdengar. Bicaralah lebih dekat ke mikrofon dan coba lagi.</translation>
+        </message>
+        <message>
+            <source>Open settings</source>
+            <translation>Buka pengaturan</translation>
+        </message>
+        <message>
+            <source>Stopped at {n} minutes, the longest one recording can be.</source>
+            <translation>Dihentikan pada {n} menit, durasi terpanjang untuk satu rekaman.</translation>
+        </message>
+        <message>
+            <source>That recording is too long to transcribe. Record a shorter one.</source>
+            <translation>Rekaman itu terlalu panjang untuk ditranskripsikan. Buat rekaman yang lebih pendek.</translation>
+        </message>
+        <message>
+            <source>The microphone could not be opened. Check that no other app holds it, then try again.</source>
+            <translation>Mikrofon tidak bisa dibuka. Pastikan tidak ada aplikasi lain yang memakainya, lalu coba lagi.</translation>
+        </message>
+        <message>
+            <source>The microphone is blocked for QGIS in your system's privacy settings.</source>
+            <translation>Mikrofon diblokir untuk QGIS di pengaturan privasi sistem Anda.</translation>
+        </message>
+        <message>
+            <source>The microphone is off for "AI Agent for QGIS". Turn it on in System Settings, Privacy &amp; Security, Microphone.</source>
+            <translation>Mikrofon nonaktif untuk "AI Agent for QGIS". Aktifkan di Pengaturan Sistem, Privasi &amp; Keamanan, Mikrofon.</translation>
+        </message>
+        <message>
+            <source>The recording could not be transcribed.</source>
+            <translation>Rekaman tidak bisa ditranskripsikan.</translation>
+        </message>
+        <message>
+            <source>This QGIS installation cannot record sound, so dictation is not available here.</source>
+            <translation>Instalasi QGIS ini tidak bisa merekam suara, jadi dikte tidak tersedia di sini.</translation>
+        </message>
+        <message>
+            <source>Too many recordings in a minute. Wait a little.</source>
+            <translation>Terlalu banyak rekaman dalam satu menit. Tunggu sebentar.</translation>
+        </message>
+        <message>
+            <source>Transcribing...</source>
+            <translation>Mentranskripsikan...</translation>
+        </message>
+        <message>
+            <source>Try again</source>
+            <translation>Coba lagi</translation>
+        </message>
+        <message>
+            <source>You reached today's dictation limit. It opens again tomorrow.</source>
+            <translation>Anda mencapai batas dikte hari ini. Dibuka lagi besok.</translation>
+        </message>
+        <message>
+            <source>macOS asked to use the microphone and got no answer. Press the microphone to see the question again.</source>
+            <translation>macOS meminta izin memakai mikrofon dan tidak mendapat jawaban. Tekan mikrofon untuk melihat pertanyaannya lagi.</translation>
+        </message>
+    </context>
+    <context>
+        <name>DictationBar</name>
+        <message>
+            <source>Recording</source>
+            <translation>Merekam</translation>
         </message>
     </context>
 </TS>

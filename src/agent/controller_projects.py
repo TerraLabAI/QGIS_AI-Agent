@@ -10,12 +10,12 @@ from qgis.PyQt import sip
 from qgis.PyQt.QtCore import QTimer
 
 from ..core import layer_removed
-from ..core.checkpoints import _in_snapshots, _open_project_file
+from ..core.checkpoints import _in_snapshots
 from ..core.logger import log, log_warning
+from ..core.project_identity import open_project_file
 from ..core.protocol import CANCEL_PROJECT_CLOSED, RunStatus
 from ..core.security import warm_layer_roots
 from ..core.snapshot import changed_layer_items
-from .controller_actions import _project_path
 from .controller_shared import tr
 
 
@@ -26,7 +26,7 @@ class _ControllerProjects:
             from qgis.core import QgsProject
             project = QgsProject.instance()
             refresh = lambda *_: self._panel_call(  # noqa: E731
-                "set_threads", self._store.list_threads(), _project_path())
+                "set_threads", self._store.list_threads(), open_project_file())
 
 
 
@@ -122,7 +122,7 @@ class _ControllerProjects:
         if getattr(self, "_storing_layers", False) or self._restoring:
             return
 
-        path = _open_project_file()
+        path = open_project_file()
         if not path or _in_snapshots(path):
             return
         if self._run is not None:

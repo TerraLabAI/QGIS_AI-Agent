@@ -14,27 +14,20 @@
 
 
 
-
-
-
-
-
 from __future__ import annotations
 
 from qgis.PyQt.QtCore import QPoint, Qt, pyqtSignal
 from qgis.PyQt.QtWidgets import QFrame, QVBoxLayout, QWidget
 
 from .popover_rows import _POPOVER_QSS, _Row
-from .shared import keep_on_screen, paint_styled_ground, round_popup_corners, screen_area_at
-from .style import INK_3, LINE_STRONG, RADIUS_CARD, SURFACE, WEIGHT_MEDIUM
+from .shared import keep_on_screen, paint_styled_ground, place_by_box, round_popup_corners, screen_area_at, show_popped
+from .style import INK_3, LINE_STRONG, RADIUS_PANEL, SURFACE
 
-
-SHEET_WIDTH = 280
+SHEET_WIDTH = 260
 _MIN_WIDTH = 200
 _SHEET_QSS = _POPOVER_QSS + (
     f"QFrame#attachPopover {{ background: {SURFACE};"
-    f" border: 1px solid {LINE_STRONG}; border-radius: {RADIUS_CARD}px; }}"
-    f"QFrame#attachPopover QLabel#exampleTitle {{ font-weight: {WEIGHT_MEDIUM}; }}"
+    f" border: 1px solid {LINE_STRONG}; border-radius: {RADIUS_PANEL}px; }}"
     f"QFrame#attachPopover QLabel#exampleTitle:disabled {{ color: {INK_3}; }}"
 )
 
@@ -107,18 +100,26 @@ class AttachPopover(QFrame):
         self._col.setContentsMargins(6, 6, 6, 6)
         self._col.setSpacing(2)
         self._add_row(
-            _Row("file", "", self.tr("Add files from your computer"), "", "", self),
+            _Row("lu.paperclip", "", self.tr("Add files from your computer"), "", "", self, bare=True),
             self.add_files_requested)
         self._layer_row = _Row(
-            "layers", "", self.tr("Attach a layer of this project"), "", "", self)
+            "lu.layers", "", self.tr("Attach a layer of this project"), "", "", self, bare=True)
         self._add_row(
 
 
 
             self._layer_row,
             self.add_layer_requested)
+        rule = QFrame(self)
+        rule.setObjectName("examplesRule")
+        rule.setFixedHeight(1)
+        holder = QVBoxLayout()
+        holder.setContentsMargins(8, 3, 8, 3)
+        holder.addWidget(rule)
+        self._col.addLayout(holder)
+
         self._add_row(
-            _Row("globe", "", self.tr("Data sources"), "", "", self),
+            _Row("lu.database", "", self.tr("Data sources"), "", "", self, bare=True),
             self.sources_requested)
 
     def set_layers_available(self, available: bool) -> None:
@@ -145,9 +146,9 @@ class AttachPopover(QFrame):
         self.hide()
         signal.emit()
 
-    def show_above(self, anchor: QWidget, panel: QWidget | None = None) -> None:
+    def show_by(self, box: QWidget, panel: QWidget | None = None) -> None:
 
-        panel = panel or anchor.window()
+        panel = panel or box.window()
         width = SHEET_WIDTH
         if panel is not None:
             width = max(_MIN_WIDTH, min(SHEET_WIDTH, panel.width() - 8))
@@ -158,8 +159,7 @@ class AttachPopover(QFrame):
             row._elide()
         self._col.activate()
         self.setFixedHeight(self._col.sizeHint().height())
-        place_above(self, anchor, panel, width)
-        self.show()
+        show_popped(self, place_by_box(self, box))
         self.setFocus(Qt.FocusReason.PopupFocusReason)
 
     def resizeEvent(self, event):  # noqa: N802

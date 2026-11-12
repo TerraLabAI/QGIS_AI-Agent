@@ -55,6 +55,28 @@ def register_pointcloud_style_tools(registry: ToolRegistry):
     ))
 
 
+def give_3d_renderer(layer) -> bool:
+
+
+
+
+
+
+
+    if not isinstance(layer, QgsPointCloudLayer) or layer.renderer3D() is not None:
+        return False
+    if not layer.sync3DRendererTo2DRenderer():
+        return False
+    try:
+        from qgis._3d import QgsPointCloudLayer3DRenderer
+    except ImportError:
+        return False
+    renderer = QgsPointCloudLayer3DRenderer()
+    renderer.convertFrom2DRenderer(layer.renderer())
+    layer.setRenderer3D(renderer)
+    return True
+
+
 def _attributes(layer) -> dict:
 
     attrs = layer.attributes()
@@ -159,6 +181,8 @@ def _configure_pointcloud_style(args: dict) -> dict:
                        **({"color_ramp": ramp_name} if ramp_name else {})})
 
     layer.setRenderer(renderer)
+    if give_3d_renderer(layer):
+        result["renderer_3d"] = "from 2D style"
     elevation = layer.elevationProperties()
     if args.get("z_scale") is not None:
         elevation.setZScale(float(args["z_scale"]))

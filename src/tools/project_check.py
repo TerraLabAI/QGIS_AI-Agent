@@ -25,9 +25,10 @@ from ..core import net, tuning
 from ..core.background import run_on_main_thread
 from ..core.host_platform import IS_WINDOWS
 from ..core.policy import create_managed_temp_dir
+from ..core.project_identity import open_project_file
 from ..core.security import validate_path
 from ..core.tool_registry import Tool, ToolRegistry, tool_error
-from .child_python import _child_environment, _qgis_python, _read_json, _tail, start_refused
+from .child_python import _child_environment, _qgis_python, _tail, read_json, start_refused
 
 _PLUGIN_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 _WORKER = os.path.join(_PLUGIN_ROOT, "src", "workers", "project_check_worker.py")
@@ -109,7 +110,7 @@ def _run_child(path: str, stopped, python_executable: str) -> dict:
                     "TIMEOUT", hint="project_check_timeout", seconds=_MAX_SECONDS)
             time.sleep(0.2)
 
-    report = _read_json(status_path)
+    report = read_json(status_path)
     if not report.get("ok"):
         detail = str(report.get("error") or _tail(log_path) or "no result was reported")
 
@@ -125,7 +126,7 @@ def _check_saved_project(args: dict) -> dict:
 
     path = str(args.get("path") or "").strip()
     if not path:
-        path = run_on_main_thread(_open_project_file, timeout=10)
+        path = run_on_main_thread(open_project_file, timeout=10)
         if not path:
             return tool_error(
                 "This QGIS has no saved project to reopen.", "INVALID_ARGS", hint="no_saved_project")
@@ -137,12 +138,6 @@ def _check_saved_project(args: dict) -> dict:
 
     python_executable = run_on_main_thread(_qgis_python, timeout=10)
     return _run_child(path, net.current_cancel_check(), python_executable)
-
-
-def _open_project_file() -> str:
-    from qgis.core import QgsProject
-
-    return str(QgsProject.instance().fileName() or "")
 
 
 def register_project_check_tools(registry: ToolRegistry) -> None:

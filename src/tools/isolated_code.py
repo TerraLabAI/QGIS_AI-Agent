@@ -64,7 +64,7 @@ from ..core.serialization import cut_string
 from ..core.tool_registry import tool_error
 from . import code_guard, code_guard_runtime, code_hints, code_namespace, code_runtime, code_split, code_tripwire
 from .child_python import environment as _environment
-from .child_python import python_for_child, start_refused
+from .child_python import python_for_child, read_json, start_refused
 
 _PLUGIN_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 _WORKER = os.path.join(_PLUGIN_ROOT, "src", "workers", "isolated_code_worker.py")
@@ -569,15 +569,6 @@ def _stop(process) -> None:
         log_warning(f"execute_code child did not exit after kill: {exc}")
 
 
-def _read_status(path: str) -> dict:
-    try:
-        with open(path, encoding="utf-8") as handle:
-            value = json.load(handle)
-        return value if isinstance(value, dict) else {}
-    except (OSError, ValueError, TypeError):
-        return {}
-
-
 def _read_text(path: str, limit: int) -> str:
     try:
         with open(path, encoding="utf-8", errors="replace") as handle:
@@ -896,7 +887,7 @@ def run_child(code: str, planned: dict, python: str, cancel_check, timeout_s: fl
         finally:
             if process.poll() is None:
                 _stop(process)
-        status = _read_status(status_path)
+        status = read_json(status_path)
         _CHILD_CREATED.paths = [str(p) for p in (status.get("created") or []) if isinstance(p, str)]
 
 

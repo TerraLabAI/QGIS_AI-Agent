@@ -15,8 +15,10 @@
 from __future__ import annotations
 
 from qgis.PyQt.QtCore import QEasingCurve, Qt, QVariantAnimation, pyqtSignal
-from qgis.PyQt.QtWidgets import QSizePolicy, QVBoxLayout, QWidget
+from qgis.PyQt.QtWidgets import QPushButton, QSizePolicy, QVBoxLayout, QWidget
 
+from ..core import quota_view
+from ..core.settings import Settings
 from .bubbles import AgentBubble, StatusLine
 from .chat_panel_layout import _ChatPanelLayout
 from .chat_panel_prompts import _ChatPanelPrompts
@@ -31,9 +33,11 @@ from .drop_overlay import DropOverlay
 from .empty_state import EmptyState, feedback_foot
 from .header import Header
 from .layer_watch import LayerWatch
+from .mascot_stage import MascotStage
 from .message_list import MessageList
 from .notice_bar import NoticeBar
 from .quota_card import QuotaCard, RunsLeftLine
+from .shared import CHAT_PANEL_OBJECT
 from .style import MIN_PANEL_WIDTH, SPACE_CARD, SPACE_TIGHT, panel_qss
 from .tasks_panel import TasksPanel
 from .toast import Toast
@@ -98,7 +102,6 @@ class ChatPanel(_ChatPanelRuns, _ChatPanelQueue, _ChatPanelPrompts, _ChatPanelTh
 
 
     plans_requested = pyqtSignal(str)
-    invoice_requested = pyqtSignal(str)
     pro_contact_requested = pyqtSignal(str)
 
 
@@ -108,6 +111,8 @@ class ChatPanel(_ChatPanelRuns, _ChatPanelQueue, _ChatPanelPrompts, _ChatPanelTh
     pay_requested = pyqtSignal(str)
     limit_reached = pyqtSignal(bool, int)
     pro_pill_requested = pyqtSignal()
+
+    keep_pro_requested = pyqtSignal()
     start_now_requested = pyqtSignal(str)
     reconnect_requested = pyqtSignal()
     memory_undo_requested = pyqtSignal(str)
@@ -123,7 +128,7 @@ class ChatPanel(_ChatPanelRuns, _ChatPanelQueue, _ChatPanelPrompts, _ChatPanelTh
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setObjectName("chatPanel")
+        self.setObjectName(CHAT_PANEL_OBJECT)
 
 
 
@@ -153,6 +158,10 @@ class ChatPanel(_ChatPanelRuns, _ChatPanelQueue, _ChatPanelPrompts, _ChatPanelTh
         self._pro_welcome = None
 
         self._payfail = None
+
+        self._keep_pro = None
+
+        self._returning = False
         self._limit_said = False
         self._attachment_count = 0
         self._privacy_dialog = None
@@ -239,8 +248,8 @@ class ChatPanel(_ChatPanelRuns, _ChatPanelQueue, _ChatPanelPrompts, _ChatPanelTh
         self._center_spacer.setFixedHeight(0)
         self._col.addWidget(self._center_spacer)
         self._feedback_foot = _wrap(feedback_foot(self), (8, 0, 12, 6), self)
-        self._feedback_foot.layout().setAlignment(Qt.AlignmentFlag.AlignLeft)
-        self._feedback_foot.layout().itemAt(0).widget().clicked.connect(lambda: self.open_feedback("home"))
+        self._feedback_foot.findChild(QPushButton, "feedbackFoot").clicked.connect(
+            lambda: self.open_feedback("home"))
         self._col.addWidget(self._feedback_foot)
         self._center_anim = QVariantAnimation(self)
         self._center_anim.setDuration(_CENTER_MS)
@@ -248,6 +257,57 @@ class ChatPanel(_ChatPanelRuns, _ChatPanelQueue, _ChatPanelPrompts, _ChatPanelTh
         self._center_anim.valueChanged.connect(
             lambda value: self._center_spacer.setFixedHeight(max(0, int(value))))
         self._drop_overlay = DropOverlay(self)
+
+        self.mascot_stage = stage = MascotStage(self, Settings())
+        self.header.mark_pressed.connect(lambda: stage.fire("head.click"))
+        self.composer._input.textChanged.connect(stage.rest)
+        self.permission_decided.connect(self._mascot_decided)
+        self.question_answered.connect(self._mascot_answered)
+        self.message_list.verticalScrollBar().valueChanged.connect(stage.sync)
+        stage.watch(self.composer._send_btn, "compose.send.hover")
+        stage.watch(self.activation.sign_in_button(), "signin.hover")
+        for row in self.empty_state.hover_rows():
+            stage.watch(row, "home.row.hover")
+
+        h, c, e = self.header, self.composer, self.empty_state
+
+
+        for widget, name in ((c, "composer"), (c._send_btn, "send"), (c._attach_btn, "attach"),
+                             (c._permission_chip, "permission"), (c._effort_chip, "effort"),
+                             (c._dictation_ui.button, "mic"), (e._examples_row, "examples"),
+                             (e._tutorial_row, "tutorial"), (e._sources_row, "data")):
+            stage.solid(widget, name, perch=c)
+        for widget, name in ((h._history_btn, "history"), (h._new_btn, "new"), (h._feedback_btn, "feedback"),
+                             (h._settings_btn, "settings"), (h._pro_pill, "plan"),
+                             (self.activation.sign_in_button(), "signin")):
+            stage.solid(widget, name)
+        stage.keep_clear(e.question())
+
+
+
+
+
+        for widget in (self.header._pro_pill, self.runs_line._label):
+            stage.watch(widget, "plan.hover")
+        stage.watch(self.quota_card._button, "plan.hover", when=self.quota_card.offers)
+        self.quota_card.moment_changed.connect(stage.offer_moment)
+        self.quota_card.low_closed.connect(stage.offer_closed)
+        self.quota_card.return_closed.connect(stage.offer_closed)
+        self.plans_requested.connect(lambda where: where != "checkout_return" and stage.fire("plan.open"))
+        self.pro_pill_requested.connect(lambda: stage.fire("plan.open"))
+        stage.watch(self.header._history_btn, "history.hover")
+        stage.watch(self.header._feedback_btn, "feedback.hover")
+        for widget in (self.composer._attach_btn, self.composer._permission_chip, self.composer._effort_chip):
+            stage.watch(widget, "chip.hover")
+        self.mode_changed.connect(lambda _run, _mode: stage.fire("mode.changed"))
+        self.effort_changed.connect(lambda _level: stage.fire("effort.changed"))
+        self.composer.files_attached.connect(lambda _files: stage.fire("attach.done"))
+        self.composer.example_chosen.connect(lambda _prompt: stage.fire("example.picked"))
+        self.composer._dictation_ui.button.clicked.connect(lambda: stage.fire("dictate.press"))
+        self.composer._dictation_ui.attached.connect(stage.listen_to)
+        self.answer_rated.connect(lambda _run, rating: stage.fire(f"rate.{rating}") if rating else None)
+        self.answer_reason.connect(lambda *_args: stage.fire("feedback.sent"))
+        self.restore_requested.connect(lambda _cid, _confirmed: stage.fire("undo"))
 
         self._wire()
         self._init_queue()
@@ -280,6 +340,17 @@ class ChatPanel(_ChatPanelRuns, _ChatPanelQueue, _ChatPanelPrompts, _ChatPanelTh
             bubble.run_id = str(frame.get("task_id") or "")
             bubble.set_text(summary)
             self._add(bubble)
+
+    def _mascot_decided(self, _tool_call_id: str, decision: str, _values=None) -> None:
+        self.mascot_stage.fire("permission.allow" if str(decision).startswith("allow") else "permission.deny")
+
+    def _mascot_answered(self, _tool_call_id: str, answer: str) -> None:
+        if answer:
+            self.mascot_stage.fire("question.answer")
+
+    def quota_walled(self) -> bool:
+
+        return self._quota_view in (quota_view.EXHAUSTED, quota_view.PAYMENT_FAILED)
 
     def detach_header(self) -> Header:
 

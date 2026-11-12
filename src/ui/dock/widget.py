@@ -104,6 +104,7 @@ class AIAgentDock(QgsDockWidget):
         header = self.panel.detach_header()
         header.set_dock(self)
         self.setTitleBarWidget(header)
+        self.panel.mascot_stage.set_host(self)
         self.setAcceptDrops(True)
         self._veil = _SeparatorVeil(self)
 

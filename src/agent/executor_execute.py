@@ -423,6 +423,7 @@ class _ExecutorExecute:
 
         def done(result, error_text: str):
             self._background.pop(tool_call_id, None)
+            background.forget_commit(tool_call_id)
             self._heard.pop(tool_call_id, None)
             task_id = self._handed_back.pop(tool_call_id, None)
             if task_id is not None:

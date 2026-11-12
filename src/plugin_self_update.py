@@ -33,8 +33,14 @@ from .core.served_state import get_latest_version, get_min_supported_version, ge
 _REPOSITORY_WAIT_S = 90
 _REPOSITORY_WAIT_S_RANGE = (5, 600)
 
+
+
+
+
 _LIST_WAIT_MS = 5000
-_LIST_WAITS_MAX = 6
+_LIST_WAITS_FAST = 6
+_LIST_WAIT_SLOW_MS = 30000
+_LIST_WAITS_MAX = 46
 
 
 def offer_upgradeable_update(plugin, payload: dict | None = None) -> None:
@@ -78,6 +84,11 @@ def offer_upgradeable_update(plugin, payload: dict | None = None) -> None:
         if (panel is not None and released and plugin._update_no_repository
                 and put_off_version() != released):
             panel.show_update_download(released)
+            if plugin._shown_update_version != released:
+                plugin._shown_update_version = released
+                telemetry.track(ev.PLUGIN_UPDATE_PROMPT_SHOWN, {
+                    "offered_version": released, "required": False,
+                    "trigger": "marketplace_download"})
         elif panel is not None:
             panel.clear_update()
         return
@@ -145,13 +156,17 @@ def refresh_plugin_repository(plugin, served_version: str) -> None:
         from .ui.plugin_self_update import request_repository_fetch
 
         enabled = list(repositories.allEnabled())
-        if not enabled and not repositories.all() and plugin._update_list_waits < _LIST_WAITS_MAX:
+        if not enabled and not repositories.all():
 
 
 
-            plugin._update_list_waits += 1
             plugin._update_refresh_requested = False
-            QTimer.singleShot(_LIST_WAIT_MS, partial(_offer_again, plugin))
+            if plugin._update_list_waits >= _LIST_WAITS_MAX:
+                suppress_update(plugin, served_version, "list_not_loaded")
+                return
+            plugin._update_list_waits += 1
+            QTimer.singleShot(_LIST_WAIT_MS if plugin._update_list_waits <= _LIST_WAITS_FAST
+                              else _LIST_WAIT_SLOW_MS, partial(_offer_again, plugin))
             return
         if not enabled:
 

@@ -24,10 +24,11 @@ from qgis.PyQt.QtWidgets import (
 
 from ..core import trace
 from ..core.background import gc_paused, run_sliced
+from . import memory_mascot
 from .bubbles import UserBubble
 from .chat_panel_shared import RestoreDivider
 from .checkpoint_sheet import changes_tooltip, history_rows, long_reason, losses, not_restored_line, row_target, usable
-from .shared import CHECKPOINTS_KEYS, STEP_BACK_KEYS, STEP_FORWARD_KEYS
+from .shared import CHECKPOINTS_KEYS, STEP_BACK_KEYS, STEP_FORWARD_KEYS, TURN_DIVIDER_OBJECT
 from .style import MUTED
 from .thread_replay import replay_steps
 from .trace import RunFootnote
@@ -55,7 +56,14 @@ class _ChatPanelThreads:
         self.header.set_history_available(signed_in and empty and not gated)
         self.header.set_feedback_available(signed_in and not empty and not gated)
         self.header.set_new_chat_available(signed_in and not gated)
+        stage = getattr(self, "mascot_stage", None)
+        if stage is not None:
+            stage.rest()
+            stage.sync()
         if gated:
+            host = getattr(self, "_thread_host", None)
+            if host is not None:
+                host.hide()
             self._quota_host.hide()
             self._runs_host.hide()
             self.update_banner.hide()
@@ -76,14 +84,16 @@ class _ChatPanelThreads:
             sidebar.thread_selected.connect(self.thread_selected.emit)
             sidebar.upgrade_requested.connect(lambda: self._on_upgrade("sidebar"))
             sidebar.upgrade_shown.connect(lambda: self._note_upsell("sidebar"))
+            self.mascot_stage.watch(sidebar._upgrade_row, "plan.hover")
             self.header.set_sidebar(sidebar)
         sidebar.sync_visible(signed_in and empty)
 
 
+        self._thread_host.setVisible(signed_in)
 
 
-
-        self.composer.set_placeholder(self.tr("Give the AI agent a task in QGIS..."))
+        self.composer.set_placeholder(
+            self.tr("Ask or describe a task in QGIS") if empty else self.tr("Reply"))
         self.composer.set_empty_chat(empty)
         self._apply_quota()
         centred = signed_in and empty
@@ -332,7 +342,7 @@ class _ChatPanelThreads:
                 if dim and first is None and widget.run_id in self._redo_runs:
                     first = (index, first_turn)
                 first_turn = False
-            elif widget.objectName() == "turnDivider":
+            elif widget.objectName() == TURN_DIVIDER_OBJECT:
                 continue
             try:
                 self._dim(widget, dim)
@@ -364,7 +374,7 @@ class _ChatPanelThreads:
         divider.set_link_enabled(self._current_run is None)
         bubble = widgets[index]
         above = widgets[index - 1] if index > 0 else None
-        if above is not None and above.objectName() == "turnDivider":
+        if above is not None and above.objectName() == TURN_DIVIDER_OBJECT:
             above.hide()
             self._restore_hidden_rule = above
         layout = self.message_list._layout
@@ -482,6 +492,7 @@ class _ChatPanelThreads:
                 line.setTextFormat(Qt.TextFormat.PlainText)
                 line.setText(undone)
                 self.memory_undo_requested.emit(wanted)
+                memory_mascot.play(self.mascot_stage.mascot, memory_mascot.UNDONE, line)
 
             note.linkActivated.connect(_undo)
         else:
@@ -493,6 +504,8 @@ class _ChatPanelThreads:
         self._add(note)
         if follow:
             self.message_list.scroll_to_bottom()
+
+        memory_mascot.play(self.mascot_stage.mascot, memory_mascot.SAVED, note)
 
     def clear_draft(self) -> None:
 

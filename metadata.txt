@@ -13,7 +13,7 @@ about=
 
     • 190 open data connectors: OpenStreetMap, Copernicus, NASA, USGS, IGN, Overture, Planetary Computer and 183 more
 
-    • A catalog of 9,818 ready datasets, from national sources in 191 countries and from EU-wide and global ones, each with its licence
+    • A catalog of 9,865 ready datasets, from national sources in 194 countries and from EU-wide and global ones, each with its licence
 
     • You stay in control: you see every step before it runs, changes wait for your approval, and one click undoes anything it changed
 
@@ -35,7 +35,7 @@ about=
 
     By TerraLab, terra-lab.ai
 
-version=1.9.5
+version=2.0.0
 author=TerraLab
 email=lilien.auger@terra-lab.ai
 homepage=https://terra-lab.ai/ai-agent?utm_source=plugins.qgis.org&utm_medium=referral
@@ -43,6 +43,12 @@ repository=https://github.com/TerraLabAI/QGIS_AI-Agent
 tracker=https://github.com/TerraLabAI/QGIS_AI-Agent/issues
 license=GPL-2.0-or-later
 changelog=
+    2.0.0
+    - Voice dictation in the message box: speak your task, with a clear notice of what happens to the voice
+    - A live AI agent mascot on the panel, the toolbar and the menu icons (it can be turned off in Settings)
+    - A Memory page on every plan, a new effort slider, and calmer permission and effort menus
+    - Fewer freezes and crashes: WFS layers added together, layout exports from code, 3D views, Stop and Undo
+
     1.9.5
     - Question cards show their choices as tiles, with the recommended one marked on its label
     - An opened step shows what came back first, with layer icons, colour swatches and a link into QGIS
@@ -66,13 +72,6 @@ changelog=
     - Works behind company proxies and certificates; netCDF, HDF and .xls open from any Windows folder
     - The AI agent reads a file's layers, fields and bands before loading it; rasters say their nodata
     - Faster first open; Balanced runs code that only adds layers without a card; new layers are saved
-
-    1.9.1
-    - A running step says what it is doing on a second line and counts its seconds
-    - Start the 7-day free trial straight from Settings or the plan wall, through a secure checkout
-    - Fewer freezes: field statistics, GeoPackage files, styles and code runs leave QGIS responsive
-    - Place searches find more places, in any script; a basemap keeps the CRS you chose
-
 
 tags=ai,ai agent,artificial intelligence,agent,assistant,ai assistant,chatgpt,copilot,chat,llm,large language model,automation,natural language,geoai,ai gis,gis ai,ai for gis,agentic ai,geospatial,gis,spatial analysis,geoprocessing,processing,data loading,open data,styling,symbology,labeling,layout,print layout,map making,feature editing,attribute,vector,raster,basemap,openstreetmap,productivity,pyqgis,terralab,terra lab,ai edit,ai segmentation
 icon=icons/icon.png

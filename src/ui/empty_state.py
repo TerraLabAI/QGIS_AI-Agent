@@ -17,14 +17,15 @@ from __future__ import annotations
 from qgis.PyQt.QtCore import QSize, Qt, pyqtSignal
 from qgis.PyQt.QtGui import QColor
 from qgis.PyQt.QtWidgets import (
+    QHBoxLayout,
     QLabel,
     QPushButton,
     QVBoxLayout,
     QWidget,
 )
 
-from .font_scale import scale_qss_font_px
-from .icons import icon_for
+from .font_scale import scale_px_length, scale_qss_font_px
+from .icons import icon_for, logo_size
 from .shared import tr
 from .style import (
     ACCENT_TINT,
@@ -42,18 +43,16 @@ from .widgets import FlowLayout
 
 
 
-
-
 _DISCLOSURE_QSS = scale_qss_font_px(
     f"font-size: {FONT_HINT}px; color: {MUTED}; background: transparent;"
-    " border: none; padding: 0 8px;")
+    " border: none; padding: 0 2px;")
 
 
 
 
 
 _QUESTION_QSS = scale_qss_font_px(
-    f"font-size: {FONT_BASE + 4}px; font-weight: {WEIGHT_MEDIUM}; color: {INK};"
+    f"font-size: {FONT_BASE + 8}px; font-weight: {WEIGHT_MEDIUM}; color: {INK};"
     " background: transparent; border: none;")
 
 
@@ -64,6 +63,9 @@ _ROW_QSS = scale_qss_font_px(
     f"QPushButton:pressed {{ background: {ACCENT_TINT_ON}; }}"
 )
 _ROW_GLYPH = 18
+
+_MARK_PX = 40
+_MARK_GAP = 14
 
 
 _FOOT_QSS = scale_qss_font_px(
@@ -85,9 +87,22 @@ def _row(parent: QWidget, glyph: str, text: str) -> QPushButton:
     return button
 
 
-def feedback_foot(parent: QWidget) -> QPushButton:
+def feedback_foot(parent: QWidget) -> QWidget:
 
-    button = QPushButton(tr("Send feedback"), parent)
+
+
+
+
+
+
+
+
+
+    foot = QWidget(parent)
+    line = QHBoxLayout(foot)
+    line.setContentsMargins(0, 0, 0, 0)
+    line.setSpacing(SPACE_TIGHT)
+    button = QPushButton(tr("Send feedback"), foot)
     button.setObjectName("feedbackFoot")
     button.setStyleSheet(_FOOT_QSS)
     button.setCursor(Qt.CursorShape.PointingHandCursor)
@@ -95,7 +110,14 @@ def feedback_foot(parent: QWidget) -> QPushButton:
     button.setIcon(icon_for(button, "lu.bug", _FOOT_GLYPH, QColor(MUTED)))
     button.setIconSize(QSize(_FOOT_GLYPH, _FOOT_GLYPH))
     button.setToolTip(tr("Report a bug, suggest an idea, or share what's working well."))
-    return button
+    line.addWidget(button, 0, Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
+    disclosure = QLabel(tr("AI can make mistakes"), foot)
+    disclosure.setObjectName("aiDisclosure")
+    disclosure.setStyleSheet(_DISCLOSURE_QSS)
+    disclosure.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+    disclosure.setWordWrap(True)
+    line.addWidget(disclosure, 1)
+    return foot
 
 
 class EmptyState(QWidget):
@@ -117,12 +139,33 @@ class EmptyState(QWidget):
         col.setContentsMargins(0, 0, 0, 0)
         col.setSpacing(SPACE_OUTER + 4)
 
-        question = QLabel(self.tr("What are we working on?"), block)
-        question.setStyleSheet(_QUESTION_QSS)
-        question.setAlignment(Qt.AlignmentFlag.AlignHCenter)
-        question.setWordWrap(True)
-        col.addWidget(question)
 
+
+
+        hero = QHBoxLayout()
+        hero.setContentsMargins(0, 0, 0, 0)
+        hero.setSpacing(scale_px_length(_MARK_GAP))
+
+
+
+        self._mark_seat = QWidget(block)
+        self._mark_seat.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, True)
+        seat = QVBoxLayout(self._mark_seat)
+        seat.setContentsMargins(0, 0, 0, 0)
+        seat.setSpacing(0)
+        self._mark_slot = QWidget(self._mark_seat)
+        self._mark_slot.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, True)
+        seat.addWidget(self._mark_slot)
+        self.set_mark_px(scale_px_length(_MARK_PX))
+        hero.addStretch(1)
+        hero.addWidget(self._mark_seat, 0, Qt.AlignmentFlag.AlignBottom)
+        self._question = question = QLabel(self.tr("How can I help?"), block)
+        question.setStyleSheet(_QUESTION_QSS)
+        question.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
+        hero.addWidget(question, 0, Qt.AlignmentFlag.AlignBottom)
+        hero.addStretch(1)
+        self._hero = hero
+        col.addLayout(hero)
 
 
 
@@ -158,22 +201,6 @@ class EmptyState(QWidget):
 
 
 
-
-
-
-
-
-
-
-
-
-
-        disclosure = QLabel(self.tr("AI can make mistakes. Check its changes."), rows)
-        disclosure.setObjectName("aiDisclosure")
-        disclosure.setStyleSheet(_DISCLOSURE_QSS)
-        disclosure.setAlignment(Qt.AlignmentFlag.AlignHCenter)
-        disclosure.setWordWrap(True)
-        rows_outer.addWidget(disclosure)
         self._rows = rows
 
         outer.addWidget(block)
@@ -181,6 +208,55 @@ class EmptyState(QWidget):
 
 
         self._outer = outer
+
+    def mark_slot(self) -> QWidget:
+
+        return self._mark_slot
+
+    def set_mark_shown(self, shown: bool) -> None:
+
+
+
+        if self._mark_seat.isHidden() != shown:
+            return
+        self._mark_seat.setVisible(shown)
+        self.layout().activate()
+
+    def question(self) -> QLabel:
+        return self._question
+
+    def set_mark_px(self, px: int) -> None:
+        self._mark_slot.setFixedSize(logo_size(int(px)).width(), int(px))
+        if hasattr(self, "_question"):
+            self._fit_question()
+
+    def _fit_question(self) -> None:
+
+        question = self._question
+        question.ensurePolished()
+        room = self.width() - 32 - self._mark_slot.width() - scale_px_length(_MARK_GAP)
+        metrics = question.fontMetrics()
+        wide = metrics.horizontalAdvance(question.text()) + 2
+        wrapped = wide > room
+        question.setWordWrap(wrapped)
+        question.setFixedWidth(max(40, min(wide, room)))
+
+
+
+
+
+        under = round((self._mark_slot.height() * 0.85 - metrics.capHeight()) / 2) - metrics.descent()
+        question.setContentsMargins(0, 0, 0, 0 if wrapped else max(0, under))
+        align = Qt.AlignmentFlag.AlignVCenter if wrapped else Qt.AlignmentFlag.AlignBottom
+        self._hero.setAlignment(self._mark_seat, align)
+        self._hero.setAlignment(question, align)
+
+    def resizeEvent(self, event):  # noqa: N802
+        super().resizeEvent(event)
+        self._fit_question()
+
+    def hover_rows(self) -> tuple:
+        return self._examples_row, self._tutorial_row, self._sources_row
 
     def rows_widget(self) -> QWidget:
 

@@ -1815,6 +1815,98 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <source>expired</source>
             <translation>已過期</translation>
         </message>
+        <message>
+            <source>Flow lines: {}</source>
+            <translation>流向線：{}</translation>
+        </message>
+        <message>
+            <source>Voice dictation</source>
+            <translation>語音聽寫</translation>
+        </message>
+        <message>
+            <source>Talk to your AI agent</source>
+            <translation>與你的 AI 代理對話</translation>
+        </message>
+        <message>
+            <source>Speak, and your words become text you can edit before sending.</source>
+            <translation>開口說話，你的話會變成文字，傳送前可以先修改。</translation>
+        </message>
+        <message>
+            <source>Your voice stays private</source>
+            <translation>你的語音不會外流</translation>
+        </message>
+        <message>
+            <source>Recorded only when you press the microphone, transcribed in the EU, never stored by TerraLab and never used to train AI.</source>
+            <translation>只有在你按下麥克風時才會錄音，並在歐盟境內轉成文字，TerraLab 不會儲存，也絕不會用來訓練 AI。</translation>
+        </message>
+        <message>
+            <source>Start dictating</source>
+            <translation>開始聽寫</translation>
+        </message>
+        <message>
+            <source>Not now</source>
+            <translation>暫時不要</translation>
+        </message>
+        <message>
+            <source>AI can make mistakes</source>
+            <translation>AI 可能會出錯</translation>
+        </message>
+        <message>
+            <source>Adding the layer</source>
+            <translation>正在加入圖層</translation>
+        </message>
+        <message>
+            <source>Cutting to the area</source>
+            <translation>正在裁切到該區域</translation>
+        </message>
+        <message>
+            <source>Failed</source>
+            <translation>失敗</translation>
+        </message>
+        <message>
+            <source>Finding the place</source>
+            <translation>正在尋找地點</translation>
+        </message>
+        <message>
+            <source>Paused</source>
+            <translation>已暫停</translation>
+        </message>
+        <message>
+            <source>Querying the source</source>
+            <translation>正在查詢來源</translation>
+        </message>
+        <message>
+            <source>Queued</source>
+            <translation>排隊中</translation>
+        </message>
+        <message>
+            <source>Stopped</source>
+            <translation>已停止</translation>
+        </message>
+        <message>
+            <source>Working</source>
+            <translation>處理中</translation>
+        </message>
+        <message>
+            <source>about {n} min left</source>
+            <translation>約剩 {n} 分鐘</translation>
+        </message>
+        <message>
+            <source>about {n} s left</source>
+            <translation>約剩 {n} 秒</translation>
+        </message>
+        <message>
+            <source>{done} MB</source>
+            <translation>{done} MB</translation>
+        </message>
+        <message>
+            <source>{done} of {total} MB</source>
+            <translation>{done} / {total} MB</translation>
+        </message>
+        <message>
+            <source>{words} · {done} of {total}</source>
+            <translation>{words} · {done} / {total}</translation>
+        </message>
     </context>
     <context>
         <name>AIAgentContext</name>
@@ -2315,6 +2407,18 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <source>Sign in or create an account</source>
             <translation>登入或建立帳號</translation>
+        </message>
+        <message>
+            <source>Opens your browser, takes about 15 seconds</source>
+            <translation>會開啟瀏覽器，約需 15 秒</translation>
+        </message>
+        <message>
+            <source>Sign in or create a free account</source>
+            <translation>登入或建立免費帳號</translation>
+        </message>
+        <message>
+            <source>The AI agent loads data, styles layers, runs analyses and edits features for you.</source>
+            <translation>AI 代理會為你載入資料、設定圖層樣式、執行分析並編輯要素。</translation>
         </message>
     </context>
     <context>
@@ -3304,6 +3408,22 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <source>Removed from the queue</source>
             <translation>已從佇列中移除</translation>
         </message>
+        <message>
+            <source>No free tasks left on this computer</source>
+            <translation>這台電腦已無免費任務</translation>
+        </message>
+        <message>
+            <source>No free tasks left this month</source>
+            <translation>本月已無免費任務</translation>
+        </message>
+        <message>
+            <source>Ask or describe a task in QGIS</source>
+            <translation>在 QGIS 中提問或描述任務</translation>
+        </message>
+        <message>
+            <source>Reply</source>
+            <translation>回覆</translation>
+        </message>
     </context>
     <context>
         <name>ChatSidebar</name>
@@ -3606,6 +3726,26 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <source>Add files or one of this project's layers. A layer can also be dragged from the Layers panel; Ctrl+V pastes a picture.</source>
             <translation>新增檔案或此專案的圖層。也可以從圖層面板拖曳圖層;按 Ctrl+V 可貼上圖片。</translation>
         </message>
+        <message>
+            <source>Send this as it is?</source>
+            <translation>要直接傳送嗎？</translation>
+        </message>
+        <message>
+            <source>It looks like a typing slip. Edit it, or press Send again.</source>
+            <translation>這看起來像是打錯了。請修改，或再按一次「傳送」。</translation>
+        </message>
+        <message>
+            <source>Ask or describe a task in QGIS</source>
+            <translation>在 QGIS 中提問或描述任務</translation>
+        </message>
+        <message>
+            <source>Done: write what I said (Enter)</source>
+            <translation>完成：寫下我說的內容（Enter）</translation>
+        </message>
+        <message>
+            <source>Finish dictation</source>
+            <translation>結束語音輸入</translation>
+        </message>
     </context>
     <context>
         <name>ComposerInput</name>
@@ -3837,6 +3977,30 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <source>{sources} sources the AI agent finds and loads by itself: {datasets} datasets in {countries} countries.</source>
             <translation>AI 代理可自行尋找並載入 {sources} 個資料來源：{countries} 個國家共 {datasets} 個資料集。</translation>
         </message>
+        <message>
+            <source>%n datasets from other providers</source>
+            <translation>%n 個來自其他提供者的資料集</translation>
+        </message>
+        <message>
+            <source>Popular</source>
+            <translation>熱門</translation>
+        </message>
+        <message>
+            <source>Europe</source>
+            <translation>歐洲</translation>
+        </message>
+        <message>
+            <source>Americas</source>
+            <translation>美洲</translation>
+        </message>
+        <message>
+            <source>Asia and Pacific</source>
+            <translation>亞洲與太平洋</translation>
+        </message>
+        <message>
+            <source>Africa and Middle East</source>
+            <translation>非洲與中東</translation>
+        </message>
     </context>
     <context>
         <name>DiffTableCard</name>
@@ -3979,6 +4143,10 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <source>Applies from your next message.</source>
             <translation>從你的下一則訊息開始套用。</translation>
         </message>
+        <message>
+            <source>Effort {level}: how hard the AI agent works on the next message</source>
+            <translation>強度 {level}：AI Agent 處理下一則訊息的投入程度</translation>
+        </message>
     </context>
     <context>
         <name>EmptyState</name>
@@ -4002,6 +4170,10 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <source>Data</source>
             <translation>資料</translation>
+        </message>
+        <message>
+            <source>How can I help?</source>
+            <translation>需要我幫什麼忙？</translation>
         </message>
     </context>
     <context>
@@ -4112,6 +4284,26 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <source>Send feedback</source>
             <translation>傳送意見回饋</translation>
+        </message>
+        <message>
+            <source>Free trial</source>
+            <translation>免費試用</translation>
+        </message>
+        <message>
+            <source>Your Pro is set to end. Keep it in one click.</source>
+            <translation>你的 Pro 即將結束。一鍵即可保留。</translation>
+        </message>
+        <message>
+            <source>Keep Pro</source>
+            <translation>保留 Pro</translation>
+        </message>
+        <message>
+            <source>Open the AI Agent page on terra-lab.ai</source>
+            <translation>開啟 terra-lab.ai 上的 AI Agent 頁面</translation>
+        </message>
+        <message>
+            <source>Your Pro ends on {date}. Keep it in one click.</source>
+            <translation>你的 Pro 將於 {date} 結束。一鍵即可續用。</translation>
         </message>
     </context>
     <context>
@@ -4661,6 +4853,46 @@ Click to open its page.</source>
             <source>{mode}: what AI Agent may do without asking</source>
             <translation>{mode}：AI Agent 不需詢問即可執行的操作</translation>
         </message>
+        <message>
+            <source>Free trial</source>
+            <translation>免費試用</translation>
+        </message>
+        <message>
+            <source>Asks before every change.</source>
+            <translation>每次變更前都會詢問。</translation>
+        </message>
+        <message>
+            <source>Asks only before risky changes.</source>
+            <translation>只在有風險的變更前詢問。</translation>
+        </message>
+        <message>
+            <source>It brings your project back. Files on disk are not covered.</source>
+            <translation>它能還原你的專案。磁碟上的檔案不在範圍內。</translation>
+        </message>
+        <message>
+            <source>Spending credits or reaching an unknown site.</source>
+            <translation>花費點數或連到不明網站。</translation>
+        </message>
+        <message>
+            <source>Still asks for what matters</source>
+            <translation>重要的事仍會詢問</translation>
+        </message>
+        <message>
+            <source>The AI agent runs every step without asking, even to delete a layer or run code.</source>
+            <translation>AI Agent 會不經詢問執行每個步驟，連刪除圖層或執行程式碼也一樣。</translation>
+        </message>
+        <message>
+            <source>Undo is there</source>
+            <translation>可以復原</translation>
+        </message>
+        <message>
+            <source>Works on its own</source>
+            <translation>自行作業</translation>
+        </message>
+        <message>
+            <source>Works on its own and rarely asks.</source>
+            <translation>自行作業，很少詢問。</translation>
+        </message>
     </context>
     <context>
         <name>PlanCard</name>
@@ -4727,6 +4959,22 @@ Click to open its page.</source>
             <source>Question {n} of {count}</source>
             <translation>第 {n} 個問題，共 {count} 個</translation>
         </message>
+        <message>
+            <source>Checkbox</source>
+            <translation>核取方塊</translation>
+        </message>
+        <message>
+            <source>Radio button</source>
+            <translation>選項按鈕</translation>
+        </message>
+        <message>
+            <source>selected</source>
+            <translation>已選取</translation>
+        </message>
+        <message>
+            <source>not selected</source>
+            <translation>未選取</translation>
+        </message>
     </context>
     <context>
         <name>QuotaCard</name>
@@ -4775,7 +5023,7 @@ Click to open its page.</source>
         </message>
         <message>
             <location filename="src/ui/quota_card.py" />
-            <source>Start 7-day free trial</source>
+            <source>Start 7 day free trial</source>
             <translation>開始 7 天免費試用</translation>
         </message>
         <message>
@@ -4952,6 +5200,134 @@ Click to open its page.</source>
             <source>Medium effort now, High after the trial</source>
             <translation>試用期間使用 Medium 強度，試用結束後使用 High 強度</translation>
         </message>
+        <message>
+            <source>For a company or team</source>
+            <translation>適用於公司或團隊</translation>
+        </message>
+        <message>
+            <source>Your custom instructions</source>
+            <translation>您的自訂指示</translation>
+        </message>
+        <message>
+            <source>1 free task left this month</source>
+            <translation>本月剩 1 次免費任務</translation>
+        </message>
+        <message>
+            <source>AI Agent Pro for work, by invoice</source>
+            <translation>工作用 AI Agent Pro，以發票付款</translation>
+        </message>
+        <message>
+            <source>AI Agent Pro for work, without a card</source>
+            <translation>工作用 AI Agent Pro，無需信用卡</translation>
+        </message>
+        <message>
+            <source>Copy</source>
+            <translation>複製</translation>
+        </message>
+        <message>
+            <source>Free trial</source>
+            <translation>免費試用</translation>
+        </message>
+        <message>
+            <source>Hello,
+
+I used all my AI Agent tasks this month. Could you raise my quota?
+
+Thank you</source>
+            <translation>你好，
+
+我這個月的 AI Agent 任務已經用完了。可以幫我提高額度嗎？
+
+謝謝</translation>
+        </message>
+        <message>
+            <source>Hello,
+
+I'd like to use AI Agent Pro at work but I can't pay by card. Could you send my company an invoice or a quote?
+
+Company:
+Name:
+
+Thank you</source>
+            <translation>你好，
+
+我想在工作中使用 AI Agent Pro，但無法用信用卡付款。可以請你們寄發票或報價單給我的公司嗎？
+
+公司：
+姓名：
+
+謝謝</translation>
+        </message>
+        <message>
+            <source>Hello,
+
+I'd like to use AI Agent Pro at work but I can't pay by card. Could you set up the 7 free days for us?
+
+Company:
+Name:
+
+Thank you</source>
+            <translation>你好，
+
+我想在工作中使用 AI Agent Pro，但無法用信用卡付款。可以請你們為我們設定 7 天免費試用嗎？
+
+公司：
+姓名：
+
+謝謝</translation>
+        </message>
+        <message>
+            <source>More AI Agent tasks this month</source>
+            <translation>本月更多 AI Agent 任務</translation>
+        </message>
+        <message>
+            <source>Need it for work?</source>
+            <translation>工作上需要嗎？</translation>
+        </message>
+        <message>
+            <source>Need more this month? Write to us</source>
+            <translation>本月需要更多嗎？寫信給我們</translation>
+        </message>
+        <message>
+            <source>No card to pay with? Write to us and we'll send your company an invoice.</source>
+            <translation>沒有信用卡可付款嗎？寫信給我們，我們會寄發票給你的公司。</translation>
+        </message>
+        <message>
+            <source>No card to pay with? Write to us and we'll set up your 7 free days.</source>
+            <translation>沒有信用卡可付款嗎？寫信給我們，我們會為你設定 7 天免費試用。</translation>
+        </message>
+        <message>
+            <source>Nothing to pay today</source>
+            <translation>今天無需付款</translation>
+        </message>
+        <message>
+            <source>Pro is off until it's paid.</source>
+            <translation>付款前 Pro 會暫停。</translation>
+        </message>
+        <message>
+            <source>That was your last free task</source>
+            <translation>這是你最後一次免費任務</translation>
+        </message>
+        <message>
+            <source>Want more? Come back to Pro: {n} tasks a month.</source>
+            <translation>想要更多嗎？回到 Pro：每月 {n} 次任務。</translation>
+        </message>
+        <message>
+            <source>Want more? Pro has {n} tasks a month.</source>
+            <translation>想要更多嗎？Pro 每月有 {n} 次任務。</translation>
+        </message>
+        <message>
+            <source>Want more? Pro is free for a week.</source>
+            <translation>想要更多嗎？Pro 可免費試用一週。</translation>
+        </message>
+        <message>
+            <source>{n} free tasks left this month</source>
+            <translation>本月剩 {n} 次免費任務</translation>
+        </message>
+        <message>
+            <source>{n} tasks a month, cancel anytime</source>
+            <translation>每月 {n} 次任務，隨時可取消</translation>
+        </message>
     </context>
     <context>
         <name>QuotaPauseCard</name>
@@ -5108,16 +5484,16 @@ Click to open its page.</source>
             <translation>要刪除全部 {n} 則筆記嗎？AI 不會再把它們加回來。</translation>
         </message>
         <message>
-            <source>We may read a chat only to fix a bug, never to train AI. Chats are kept 30 days.</source>
-            <translation>我們只會為了修正程式錯誤而查看對話，絕不會用來訓練 AI。對話會保留 30 天。</translation>
+            <source>We may read a chat, or have a model score it, to fix bugs and improve the agent, never to train AI. Chats are kept 30 days.</source>
+            <translation>我們可能會查看對話，或請模型為其評分，以修正程式錯誤並改進 AI Agent，絕不會用來訓練 AI。對話會保留 30 天。</translation>
         </message>
         <message>
             <source>The AI saves notes on its own</source>
             <translation>AI 會自行儲存筆記</translation>
         </message>
         <message>
-            <source>Your chats are kept 30 days so a conversation survives an update. Off, the team never reads them. 0 days of history stores nothing.</source>
-            <translation>你的對話會保留 30 天，讓對話在更新後仍可接續。關閉時，團隊永遠不會讀取這些對話。保留天數設為 0 天時，不會儲存任何紀錄。</translation>
+            <source>Your chats are kept 30 days so a conversation survives an update. Off, we never read or score them. 0 days of history stores nothing.</source>
+            <translation>你的對話會保留 30 天，讓對話在更新後仍可接續。關閉時，我們永遠不會讀取或評分這些對話。保留天數設為 0 天時，不會儲存任何紀錄。</translation>
         </message>
         <message>
             <location filename="src/ui/settings_dialog.py" />
@@ -5491,8 +5867,8 @@ Click to open its page.</source>
         </message>
         <message>
             <location filename="src/ui/settings_account.py" />
-            <source>We may read a chat only to fix a wrong answer or a bug, never to train AI.</source>
-            <translation>我們只會為了修正錯誤的回答或程式錯誤而查看對話，絕不會用來訓練 AI。</translation>
+            <source>We may read a chat, or have a model score it, to fix a wrong answer or a bug and improve the agent, never to train AI.</source>
+            <translation>我們可能會查看對話，或請模型為其評分，以修正錯誤的回答或程式錯誤並改進 AI Agent，絕不會用來訓練 AI。</translation>
         </message>
         <message>
             <location filename="src/ui/settings_account.py" />
@@ -5707,6 +6083,38 @@ Click to open its page.</source>
         <message>
             <source>Delete this note? The AI will not add it back.</source>
             <translation>要刪除這則筆記嗎？AI 不會再把它加回來。</translation>
+        </message>
+        <message>
+            <source>Everywhere · {n}</source>
+            <translation>所有專案 · {n}</translation>
+        </message>
+        <message>
+            <source>Other projects · {n}</source>
+            <translation>其他專案 · {n}</translation>
+        </message>
+        <message>
+            <source>The rules you give it and the corrections that hold for later.</source>
+            <translation>您給它的規則，以及之後仍然適用的修正。</translation>
+        </message>
+        <message>
+            <source>This project · {n}</source>
+            <translation>此專案 · {n}</translation>
+        </message>
+        <message>
+            <source>What the AI keeps between conversations, stored on this computer.</source>
+            <translation>AI 在對話之間保留的內容，儲存在這台電腦上。</translation>
+        </message>
+        <message>
+            <source>commercial use, more tasks, your instructions and higher effort</source>
+            <translation>商業用途、更多任務、你的指示和更高的投入程度</translation>
+        </message>
+        <message>
+            <source>Animate the mascot</source>
+            <translation>讓吉祥物動起來</translation>
+        </message>
+        <message>
+            <source>The AI agent's mark moves and follows the work. Off keeps it still.</source>
+            <translation>AI Agent 的標誌會隨著工作移動。關閉後則保持不動。</translation>
         </message>
     </context>
     <context>
@@ -6104,6 +6512,26 @@ Click to open its page.</source>
         <message>
             <source>could not be put back, so what it changed is still in the project</source>
             <translation>無法放回，因此它所做的變更仍保留在專案中</translation>
+        </message>
+        <message>
+            <source>QGIS restarted during this request, so this step was not run again. The project may already hold what it changed.</source>
+            <translation>QGIS 在此請求期間重新啟動，因此這個步驟沒有再次執行。專案中可能已經包含它所做的變更。</translation>
+        </message>
+        <message>
+            <source>Stopped after this step had finished: its changes are in the project.</source>
+            <translation>已在這個步驟完成後停止：它的變更已在專案中。</translation>
+        </message>
+        <message>
+            <source>{area} km²</source>
+            <translation>{area} km²</translation>
+        </message>
+        <message>
+            <source>{area} ha</source>
+            <translation>{area} ha</translation>
+        </message>
+        <message>
+            <source>{area} m²</source>
+            <translation>{area} m²</translation>
         </message>
     </context>
     <context>
@@ -8508,6 +8936,211 @@ This file is no longer where the run wrote it.</source>
         <message>
             <source>Edit this note</source>
             <translation>編輯這則筆記</translation>
+        </message>
+    </context>
+    <context>
+        <name>QgisLinks</name>
+        <message>
+            <source>Project Properties</source>
+            <translation>專案屬性</translation>
+        </message>
+        <message>
+            <source>Open the project's properties</source>
+            <translation>開啟專案的屬性</translation>
+        </message>
+        <message>
+            <source>3D Map View</source>
+            <translation>3D 地圖檢視</translation>
+        </message>
+        <message>
+            <source>Bring this 3D map view to the front</source>
+            <translation>將此 3D 地圖檢視移到最前面</translation>
+        </message>
+        <message>
+            <source>Layout Designer</source>
+            <translation>版面配置設計工具</translation>
+        </message>
+        <message>
+            <source>Open this layout in the layout designer</source>
+            <translation>在版面配置設計工具中開啟此版面配置</translation>
+        </message>
+        <message>
+            <source>Attribute Table</source>
+            <translation>屬性表</translation>
+        </message>
+        <message>
+            <source>Open the attribute table of {layer}</source>
+            <translation>開啟 {layer} 的屬性表</translation>
+        </message>
+        <message>
+            <source>Layer Properties › {tab}</source>
+            <translation>圖層屬性 › {tab}</translation>
+        </message>
+        <message>
+            <source>Open the properties of {layer} on the {tab} tab</source>
+            <translation>開啟 {layer} 的屬性，並切換到「{tab}」分頁</translation>
+        </message>
+    </context>
+    <context>
+        <name>OvertureExtract</name>
+        <message>
+            <source>{names}: loaded in full, {count} features.</source>
+            <translation>{names}：已完整載入，共 {count} 個圖徵。</translation>
+        </message>
+        <message>
+            <source>{names}: {count} features loaded; part of the area could not be read.</source>
+            <translation>{names}：已載入 {count} 個圖徵；部分區域無法讀取。</translation>
+        </message>
+        <message>
+            <source>Reading {names}</source>
+            <translation>正在讀取 {names}</translation>
+        </message>
+    </context>
+    <context>
+        <name>GtfsTools</name>
+        <message>
+            <source>{lo} - {hi} trips/day</source>
+            <translation>{lo} - {hi} 班次/天</translation>
+        </message>
+        <message>
+            <source>{name} stops</source>
+            <translation>{name} 站點</translation>
+        </message>
+        <message>
+            <source>{name} routes</source>
+            <translation>{name} 路線</translation>
+        </message>
+    </context>
+    <context>
+        <name>Dictation</name>
+        <message>
+            <source>The AI Agent plugin in QGIS listens only while you dictate a message, to turn your voice into text.</source>
+            <translation>QGIS 中的 AI Agent 外掛程式只會在您口述訊息時收音，用來將語音轉成文字。</translation>
+        </message>
+        <message>
+            <source>Animate the mascot</source>
+            <translation>讓吉祥物動起來</translation>
+        </message>
+        <message>
+            <source>The AI agent's mark moves and follows the work. Off keeps it still.</source>
+            <translation>AI 代理的標誌會動，並跟著工作進度變化。關閉後它會保持不動。</translation>
+        </message>
+    </context>
+    <context>
+        <name>CodeLayoutExport</name>
+        <message>
+            <source>the layout export</source>
+            <translation>版面配置匯出</translation>
+        </message>
+    </context>
+    <context>
+        <name>ComposerDictation</name>
+        <message>
+            <source>Cancel (Esc)</source>
+            <translation>取消（Esc）</translation>
+        </message>
+        <message>
+            <source>Cancel dictation</source>
+            <translation>取消語音輸入</translation>
+        </message>
+        <message>
+            <source>Dictate</source>
+            <translation>語音輸入</translation>
+        </message>
+        <message>
+            <source>Dictate ({shortcut})</source>
+            <translation>語音輸入（{shortcut}）</translation>
+        </message>
+        <message>
+            <source>Dictation is busy right now.</source>
+            <translation>語音輸入目前忙碌中。</translation>
+        </message>
+        <message>
+            <source>Dictation is not available right now.</source>
+            <translation>語音輸入目前無法使用。</translation>
+        </message>
+        <message>
+            <source>Listening</source>
+            <translation>聆聽中</translation>
+        </message>
+        <message>
+            <source>No connection to TerraLab, so nothing was transcribed.</source>
+            <translation>無法連線到 TerraLab，因此沒有轉成文字。</translation>
+        </message>
+        <message>
+            <source>No microphone found. Plug one in or check your sound settings.</source>
+            <translation>找不到麥克風。請接上麥克風或檢查音效設定。</translation>
+        </message>
+        <message>
+            <source>No sound came from the microphone. Check that it is not muted.</source>
+            <translation>麥克風沒有收到聲音。請確認它沒有被靜音。</translation>
+        </message>
+        <message>
+            <source>No sound came from the microphone. In Windows settings, Privacy, Microphone, let desktop apps use it.</source>
+            <translation>麥克風沒有收到聲音。請在 Windows 設定的「隱私權」、「麥克風」中，允許傳統型應用程式使用。</translation>
+        </message>
+        <message>
+            <source>Nothing was heard. Speak closer to the microphone and try again.</source>
+            <translation>沒有聽到聲音。請靠近麥克風說話，然後再試一次。</translation>
+        </message>
+        <message>
+            <source>Open settings</source>
+            <translation>開啟設定</translation>
+        </message>
+        <message>
+            <source>Stopped at {n} minutes, the longest one recording can be.</source>
+            <translation>已在 {n} 分鐘時停止，這是單次錄音的最長時間。</translation>
+        </message>
+        <message>
+            <source>That recording is too long to transcribe. Record a shorter one.</source>
+            <translation>這段錄音太長，無法轉成文字。請錄短一點。</translation>
+        </message>
+        <message>
+            <source>The microphone could not be opened. Check that no other app holds it, then try again.</source>
+            <translation>無法開啟麥克風。請確認沒有其他應用程式正在使用，然後再試一次。</translation>
+        </message>
+        <message>
+            <source>The microphone is blocked for QGIS in your system's privacy settings.</source>
+            <translation>系統的隱私權設定封鎖了 QGIS 使用麥克風。</translation>
+        </message>
+        <message>
+            <source>The microphone is off for "AI Agent for QGIS". Turn it on in System Settings, Privacy &amp; Security, Microphone.</source>
+            <translation>「AI Agent for QGIS」的麥克風已關閉。請在「系統設定」、「隱私權與安全性」、「麥克風」中開啟。</translation>
+        </message>
+        <message>
+            <source>The recording could not be transcribed.</source>
+            <translation>無法將錄音轉成文字。</translation>
+        </message>
+        <message>
+            <source>This QGIS installation cannot record sound, so dictation is not available here.</source>
+            <translation>這個 QGIS 安裝版本無法錄音，因此這裡無法使用語音輸入。</translation>
+        </message>
+        <message>
+            <source>Too many recordings in a minute. Wait a little.</source>
+            <translation>一分鐘內錄音次數過多。請稍等一下。</translation>
+        </message>
+        <message>
+            <source>Transcribing...</source>
+            <translation>轉成文字中...</translation>
+        </message>
+        <message>
+            <source>Try again</source>
+            <translation>再試一次</translation>
+        </message>
+        <message>
+            <source>You reached today's dictation limit. It opens again tomorrow.</source>
+            <translation>你已達到今天的語音輸入上限。明天會重新開放。</translation>
+        </message>
+        <message>
+            <source>macOS asked to use the microphone and got no answer. Press the microphone to see the question again.</source>
+            <translation>macOS 請求使用麥克風，但沒有得到回應。按一下麥克風即可再次看到該詢問。</translation>
+        </message>
+    </context>
+    <context>
+        <name>DictationBar</name>
+        <message>
+            <source>Recording</source>
+            <translation>錄音中</translation>
         </message>
     </context>
 </TS>

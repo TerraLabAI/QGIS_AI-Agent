@@ -26,6 +26,8 @@
 
 
 
+
+
 from __future__ import annotations
 
 from qgis.PyQt.QtCore import Qt
@@ -128,7 +130,7 @@ class ExampleTile(PictureHover, Pressable):
 
 
     def __init__(self, case, parent=None, show_note: bool = True):
-        super().__init__(parent, radius=C.RADIUS_TILE)
+        super().__init__(parent, radius=C.RADIUS_TILE, hover=lambda: None, press=lambda: None)
         self.case = case
         self._title_text = str(case.title or "")
         self._note_text = tile_line(case)
@@ -208,7 +210,7 @@ class ExampleRow(PictureHover, Pressable):
 
 
     def __init__(self, case, parent=None):
-        super().__init__(parent, radius=C.RADIUS_TILE)
+        super().__init__(parent, radius=C.RADIUS_TILE, hover=lambda: None, press=lambda: None)
         self.case = case
         self._title_text = str(case.title or "")
         self.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Fixed)

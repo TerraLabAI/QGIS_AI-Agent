@@ -8,7 +8,7 @@
 
 from __future__ import annotations
 
-from qgis.core import QgsProject, QgsVectorLayer
+from qgis.core import QgsProcessingUtils, QgsProject, QgsVectorLayer
 
 from ..core import policy
 from ._layers import _source_key
@@ -30,7 +30,11 @@ def scratch_layers(project: QgsProject) -> tuple[list, list]:
 
 
 
-    scratch_prefix = _source_key(policy.AGENT_TMP_DIR).rstrip("/") + "/"
+
+
+
+    prefixes = tuple(_source_key(folder).rstrip("/") + "/"
+                     for folder in (policy.AGENT_TMP_DIR, QgsProcessingUtils.tempFolder()) if folder)
     being_written = writing()
     memory_layers: list = []
     temporary_layers: list = []
@@ -39,6 +43,6 @@ def scratch_layers(project: QgsProject) -> tuple[list, list]:
             continue
         if isinstance(layer, QgsVectorLayer) and layer.providerType() == "memory":
             memory_layers.append(layer)
-        elif _source_key(str(layer.source() or "")).startswith(scratch_prefix):
+        elif _source_key(str(layer.source() or "")).startswith(prefixes):
             temporary_layers.append(layer)
     return memory_layers, temporary_layers

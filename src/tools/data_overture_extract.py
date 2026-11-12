@@ -1502,13 +1502,14 @@ class ExtractContinuation(QgsTask):
     def _tell_user(self, total: int, partial: bool) -> None:
         try:
             from qgis.core import Qgis
+            from qgis.PyQt.QtCore import QLocale
             from qgis.utils import iface
 
             names = ", ".join(sorted({reader.name for reader in self.readers}))
             text = (_tr("{names}: loaded in full, {count} features.") if not partial
                     else _tr("{names}: {count} features loaded; part of the area could not be read."))
             level = Qgis.MessageLevel.Warning if partial else Qgis.MessageLevel.Success
-            iface.messageBar().pushMessage("AI Agent", text.format(names=names, count=f"{total:,}"),
+            iface.messageBar().pushMessage("AI Agent", text.format(names=names, count=QLocale().toString(int(total))),
                                            level=level, duration=10)
         except Exception as exc:  # noqa: BLE001
             log_warning(f"lifted extract continuation: message bar: {exc}")

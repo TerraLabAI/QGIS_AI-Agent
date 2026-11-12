@@ -15,8 +15,9 @@ import re
 from qgis.PyQt.QtCore import Qt, QTimer
 from qgis.PyQt.QtWidgets import QHBoxLayout, QLabel, QPushButton, QVBoxLayout, QWidget
 
-from ..core import first_run_funnel
+from ..core import first_run_funnel, telemetry, telemetry_events
 from ..core.protocol import StopCode
+from ..core.settings import Settings
 from . import style as S
 from .account_card import AccountCard
 from .cards_proposal import DiffTableCard, RecommendationCard
@@ -26,8 +27,9 @@ from .confirm_dialog import BADGE_PX, ROW_SPACING, SIDE_PAD, ConfirmDialog
 from .font_scale import scale_px_length, scale_qss_font_px
 from .icons import pixmap_for
 from .loader import DotsLoader, ElapsedClock, ShimmerLabel, user_waiting
+from .mascot_stage import CARD, QUESTION
 from .plugin_self_update import one_click_result_tracker, start_plugin_self_update
-from .shared import PLUGIN_DIR
+from .shared import AGENT_ACTION, PLUGIN_DIR
 from .terralab_menu import open_plugin_manager_updates
 from .widgets import ElidedLabel, Spinner
 
@@ -81,6 +83,11 @@ class _ChatPanelPrompts:
         self.message_list.register_permission_card(tool_call_id, card)
         run.permissions.append(card)
         self._add(card)
+        self.mascot_stage.card_shown(CARD, card, "card.permission")
+        for button in card.findChildren(QPushButton):
+            action = button.property(AGENT_ACTION)
+            if action in ("allow", "deny"):
+                self.mascot_stage.watch(button, f"permission.hover.{action}")
 
 
 
@@ -122,9 +129,11 @@ class _ChatPanelPrompts:
         for kind in (Spinner, ShimmerLabel, DotsLoader):
             for part in block.findChildren(kind):
 
-                if not part.isHidden() and not any(part is h for h in held):
+
+                if not part.isHidden():
                     part.stop()
-                    held.append(part)
+                    if not any(part is h for h in held):
+                        held.append(part)
         for clock in block.findChildren(ElapsedClock):
             if not clock.isHidden():
                 clock.stop()
@@ -150,6 +159,7 @@ class _ChatPanelPrompts:
 
 
 
+        self.mascot_stage.cards_changed()
         run = self._live_run(run_id) if run_id else None
         if run is None or run_id != self._current_run:
             self._release_motion()
@@ -163,15 +173,12 @@ class _ChatPanelPrompts:
         line = ""
         if tool is not None and getattr(tool, "ok", True) is None:
             line = tool.line()
-        text = line or self.tr("Thinking...")
+
+
+
+
         self._drop_status()
-        if run.trace is not None and run.trace.is_live():
-
-
-            run.trace.set_activity(text)
-            if not self._block_is_tail(run.trace):
-                return
-        self.set_status_line(run_id, text)
+        self.set_status_line(run_id, line or self.tr("Thinking..."))
 
     def _show_pending_card(self) -> None:
         try:
@@ -208,6 +215,8 @@ class _ChatPanelPrompts:
                                recommended=recommended, why=why,
                                multiple=multiple, details=details, header=header)
             self.message_list.register_permission_card(tool_call_id, open_card)
+            for row in open_card.option_rows():
+                self.mascot_stage.watch(row, "question.hover")
             return
         card = QuestionCard(tool_call_id, question, list(options or []), allow_free_text,
                             recommended=recommended, why=why,
@@ -215,10 +224,13 @@ class _ChatPanelPrompts:
         card.answered.connect(self.question_answered.emit)
         if not task:
             self._wait_on_user(run_id, self.tr("Waiting for your answer"))
-        self.composer.set_reply_placeholder(self.tr("Reply to the question..."))
+        self.composer.set_reply_placeholder(self.tr("Reply"))
         self.message_list.register_permission_card(tool_call_id, card)
         cards.append(card)
         self._add(card)
+        self.mascot_stage.card_shown(QUESTION, card, "card.question")
+        for row in card.option_rows():
+            self.mascot_stage.watch(row, "question.hover")
         if not self._composer_is_being_typed_in():
             card.focus()
 
@@ -410,6 +422,7 @@ class _ChatPanelPrompts:
         message = str(message or "")[:2000]
         details = str(details or "")[:4000]
         self._last_error = message or code
+        self.mascot_stage.troubled()
 
 
 
@@ -574,6 +587,12 @@ class _ChatPanelPrompts:
 
 
         self.update_clicked.emit(version)
+
+
+
+        telemetry.track(telemetry_events.PLUGIN_UPDATE_PROMPT_CLICKED, {
+            "offered_version": version, "action": "one_click", "result": "started"})
+        Settings().update_pressed = version
         self.update_banner.set_busy(True)
         self.update_gate.set_busy(True)
 
@@ -599,17 +618,23 @@ class _ChatPanelPrompts:
 _LIST_SHOWN = 4
 
 
-def _layer_glyph(name: str) -> str:
+def _layer_glyph(name: str, layer_id: str = "") -> str:
+
+
+
 
     try:
         from qgis.core import QgsProject
 
         from .layer_links import _glyph_from_project
 
-        found = QgsProject.instance().mapLayersByName(name)
-        if not found:
+        project = QgsProject.instance()
+        layer = project.mapLayer(layer_id) if layer_id else None
+        if layer is None and not layer_id:
+            found = project.mapLayersByName(name)
+            layer = found[0] if len(found) == 1 else None
+        if layer is None:
             return "layers"
-        layer = found[0]
         provider = str(layer.providerType() or "").lower()
         if provider in ("wms", "xyz", "arcgismapserver") or "vectortile" in provider:
             return "globe"
@@ -655,7 +680,7 @@ class _LayerList(QWidget):
                 head.hide()
                 self._hidden.append(head)
             for item in members:
-                row = self._row(str(item["name"]))
+                row = self._row(str(item["name"]), str(item.get("id") or ""))
                 col.addWidget(row)
                 if shown >= _LIST_SHOWN:
                     row.hide()
@@ -673,7 +698,7 @@ class _LayerList(QWidget):
             self._more.clicked.connect(self._expand)
             col.addWidget(self._more, 0, Qt.AlignmentFlag.AlignLeft)
 
-    def _row(self, name: str) -> QWidget:
+    def _row(self, name: str, layer_id: str = "") -> QWidget:
         from qgis.PyQt.QtGui import QColor
 
         row = QWidget(self)
@@ -682,7 +707,7 @@ class _LayerList(QWidget):
         line.setSpacing(8)
         glyph = QLabel(row)
         glyph.setFixedSize(14, 14)
-        glyph.setPixmap(pixmap_for(row, _layer_glyph(name), 14, QColor(self._ink)))
+        glyph.setPixmap(pixmap_for(row, _layer_glyph(name, layer_id), 14, QColor(self._ink)))
         line.addWidget(glyph, 0, Qt.AlignmentFlag.AlignVCenter)
         label = ElidedLabel(name, row, mode=Qt.TextElideMode.ElideMiddle)
         label.setStyleSheet(self._qss_name)

@@ -19,12 +19,13 @@ from ..api.account import Account
 from ..core import crash_note, first_run_funnel, telemetry, trace
 from ..core import telemetry_events as ev
 from ..core.context import mention_candidates
+from ..core.dictation import Dictation
 from ..core.host_platform import os_label, plugin_version, qgis_version
 from ..core.logger import log, log_warning
 from ..core.machine import desk_classes
 from ..core.plan import autopilot_allowed, effort_allowed, efforts_stated
-from ..core.project_identity import project_key
-from ..core.protocol import CANCEL_QGIS_CLOSED, Approval, Effort, RunStatus, project_memory_request
+from ..core.project_identity import open_project_file
+from ..core.protocol import CANCEL_QGIS_CLOSED, Approval, Effort, RunStatus
 from ..core.qt_compat import one_shot
 from ..core.run_state import RunMachine
 from ..core.session import AgentSession
@@ -32,7 +33,7 @@ from ..core.settings import DEFAULT_SERVER_URL, Settings
 from ..core.telemetry_errors import report_exception
 from ..core.threads import ThreadStore
 from .controller_account import _ControllerAccount
-from .controller_actions import PanelActionsMixin, _project_path
+from .controller_actions import PanelActionsMixin
 from .controller_frames import _ControllerFrames
 from .controller_offers import _ControllerOffers
 from .controller_projects import _ControllerProjects
@@ -61,11 +62,6 @@ def _panel_deleted(panel) -> bool:
         return bool(sip.isdeleted(panel))
     except (ImportError, TypeError):
         return False
-
-
-def _message_box():
-    from qgis.PyQt.QtWidgets import QApplication, QMessageBox
-    return QApplication.activeWindow(), QMessageBox
 
 
 class AgentController(_ControllerRuns, _ControllerFrames, _ControllerProjects, _ControllerOffers,
@@ -128,6 +124,8 @@ class AgentController(_ControllerRuns, _ControllerFrames, _ControllerProjects, _
 
 
         self._replay_run: str | None = None
+
+        self._cut_run: str | None = None
         self._call_runs = self._runs.calls
         self._call_names: dict[str, tuple] = {}
         self._missing_slots: set[str] = set()
@@ -163,18 +161,19 @@ class AgentController(_ControllerRuns, _ControllerFrames, _ControllerProjects, _
         self._wire_session()
         self._wire_executor()
         self._wire_account()
-        if hasattr(self._session, "project_memory"):
-            self._session.project_memory.connect(self._on_project_memory)
+        self._dictation = Dictation(self._session, self) if hasattr(self._session, "transcript") else None
 
 
     def start(self) -> None:
         self._panel_call("set_mention_provider", mention_candidates)
+        if self._dictation is not None:
+            self._panel_call("set_dictation", self._dictation)
         self._panel_call("set_permission_mode", self._approval())
 
 
         self._panel_call("set_paid_plan", self._settings.last_paid)
         self._panel_call("set_effort", self._landing_effort())
-        self._panel_call("set_threads", self._store.list_threads(), _project_path())
+        self._panel_call("set_threads", self._store.list_threads(), open_project_file())
         self._watch_project()
         telemetry.set_auth_provider(self._account.get_auth_header)
         telemetry.new_session()
@@ -230,7 +229,7 @@ class AgentController(_ControllerRuns, _ControllerFrames, _ControllerProjects, _
 
     def _on_thread_index_ready(self) -> None:
 
-        self._panel_call("set_threads", self._store.list_threads(), _project_path())
+        self._panel_call("set_threads", self._store.list_threads(), open_project_file())
 
     def _set_report_provider(self, provider) -> None:
         try:
@@ -242,6 +241,8 @@ class AgentController(_ControllerRuns, _ControllerFrames, _ControllerProjects, _
     def shutdown(self) -> None:
 
         self._shut_down = True
+        if self._dictation is not None:
+            self._dictation.shutdown()
         self._unwatch_project()
         if hasattr(self._account, "unwatch_focus"):
             self._account.unwatch_focus()
@@ -355,7 +356,9 @@ class AgentController(_ControllerRuns, _ControllerFrames, _ControllerProjects, _
             return
         self._plan_resync = False
         log("Plan or sibling plugin tools changed; reconnecting so the server sends the new session")
-        self._session.disconnect_from_server()
+
+
+        self._session.disconnect_from_server(keep_cancels=True)
         self._session.connect_to_server()
 
 
@@ -453,11 +456,11 @@ class AgentController(_ControllerRuns, _ControllerFrames, _ControllerProjects, _
         self._connect("pro_contact_requested", self._on_pro_contact_requested)
         self._connect("plans_requested", self._on_plans_requested)
         self._connect("start_now_requested", self._on_start_now_requested)
-        self._connect("invoice_requested", self._on_invoice_requested)
         self._connect("upsell_shown", self._on_upsell_shown)
         self._connect("payment_card_shown", lambda surface, amount_shown: telemetry.track(
             ev.PAYMENT_FAILED_CARD_SHOWN, {"surface": surface, "amount_shown": amount_shown}))
         self._connect("pay_requested", self._account.open_payment)
+        self._connect("keep_pro_requested", self._on_keep_pro_requested)
         self._connect("limit_reached", self._on_limit_reached)
         self._connect("reconnect_requested", self._on_reconnect_requested)
         self._connect("help_requested", self._on_help_requested)
@@ -602,28 +605,3 @@ class AgentController(_ControllerRuns, _ControllerFrames, _ControllerProjects, _
 
     def _on_task_stop(self, task_id: str) -> None:
         self._session.send_task_stop(task_id)
-
-    def request_project_memory(self, action: str) -> None:
-
-
-        if action not in ("show", "clear"):
-            return
-        parent, box = _message_box()
-        key = project_key()
-        if not key:
-            box.information(parent, tr("Project memory"),
-                            tr("Save the project first: its memory is kept under the project file."))
-            return
-        if action == "clear" and box.question(
-                parent, tr("Project memory"),
-                tr("Clear what the AI agent remembers about this project?")) != box.StandardButton.Yes:
-            return
-        if not (self._session.is_online and self._session.send_frame(project_memory_request(action, key))):
-            box.information(parent, tr("Project memory"),
-                            tr("The AI agent is not connected. Try again in a moment."))
-
-    def _on_project_memory(self, frame: dict) -> None:
-        parent, box = _message_box()
-        text = str(frame.get("text") or "") or (tr("Project memory cleared.") if frame.get("cleared")
-                                                 else tr("Nothing is kept about this project yet."))
-        box.information(parent, tr("Project memory"), text)

@@ -244,6 +244,18 @@ class _ExecutorDeliver:
         if run_id in self._cancelled:
 
 
+            if (danger != Danger.READ and isinstance(result, dict) and self._error_of(result) is None
+                    and not started_task_ids and not result.get("needs_permission")
+                    and "wait_for_plugin" not in result and accounts.MARK not in result):
+
+
+
+                self._journal_note(run_id, call, result, True)
+                self._fail(call, Err.CANCELLED,
+                           tr("Stopped after this step had finished: its changes are in the project."),
+                           "The user stopped the run after this call had changed the project. Its changes "
+                           "are in place: do not run it again. The chat's Undo takes them back.", duration)
+                return
             self._fail(call, Err.CANCELLED, tr("The run was cancelled by the user."),
                        "The user stopped the run.", duration)
             return
@@ -382,7 +394,8 @@ class _ExecutorDeliver:
 
 
             security_urls.vouch_for_urls(shown)
-        self._session.send_tool_result(tool_call_id, run_id, result, self._code_class_of(call))
+        self._note_sent(tool_call_id, run_id,
+                        self._session.send_tool_result(tool_call_id, run_id, result, self._code_class_of(call)))
         self.tool_finished.emit(tool_call_id, True, self._summary(name, result), duration, detail, shown)
 
 
@@ -474,15 +487,7 @@ class _ExecutorDeliver:
         message = str(message)
 
 
-        code = str(result.get("code") or result.get("_code") or "")
-        if not code:
-            lowered = message.lower()
-            if "layer" in lowered and ("not found" in lowered or "no layer" in lowered):
-                code = Err.LAYER_NOT_FOUND
-            elif any(word in lowered for word in ("invalid", "required", "must be", "unknown parameter", "missing")):
-                code = Err.INVALID_ARGS
-            else:
-                code = Err.EXECUTION_FAILED
+        code = str(result.get("code") or result.get("_code") or Err.EXECUTION_FAILED)
         suggestion = str(result.get("suggestion") or "")
         if not suggestion and code == Err.CANCELLED:
             suggestion = "The call was cancelled."

@@ -13,12 +13,10 @@ from qgis.PyQt.QtWidgets import QMenu
 
 from ..core.served_state import TERRALAB_MORE_URL
 from .external_links import open_external_url
-from .shared import TERRALAB_LOGO_PATH, tr
+from .shared import PLUGIN_DIR, TERRALAB_LOGO_PATH, tr
+from .terralab_toolbar import CROSS_PROMO_PROPERTY, PRODUCT_ID_PROPERTY
 
 TERRALAB_URL = TERRALAB_MORE_URL
-
-
-_THIS_PLUGIN_NAME = "AI Agent by TerraLab"
 _UTILITY_SEPARATOR = "_terralab_utility_sep"
 _PLUGINS_MENU_NAME = "TerraLab"
 
@@ -49,7 +47,7 @@ def open_plugin_manager_updates(fallback_url: str | None = None) -> bool:
         from qgis.PyQt.QtCore import QTimer
         from qgis.utils import iface
 
-        from .cross_plugin_discovery import reveal_in_open_manager, show_plugin_manager
+        from .cross_plugin_discovery import TAB_UPGRADEABLE, reveal_in_open_manager, show_plugin_manager
         manager = iface.pluginManagerInterface()
         if manager is None:
             raise RuntimeError("plugin manager unavailable")
@@ -59,8 +57,11 @@ def open_plugin_manager_updates(fallback_url: str | None = None) -> bool:
 
 
 
-        QTimer.singleShot(0, lambda: reveal_in_open_manager(_THIS_PLUGIN_NAME, tab=3))
-        show_plugin_manager(3)
+
+
+        own_key = os.path.basename(PLUGIN_DIR)
+        QTimer.singleShot(0, lambda: reveal_in_open_manager(own_key, tab=TAB_UPGRADEABLE))
+        show_plugin_manager(TAB_UPGRADEABLE)
         return True
     except Exception:  # noqa: BLE001
         pass  # nosec B110
@@ -114,19 +115,19 @@ def get_or_create_terralab_menu(main_window) -> QMenu:
 
 def _sort_key(action) -> str:
 
-    return str(action.property("terralab_product_id") or action.text())
+    return str(action.property(PRODUCT_ID_PROPERTY) or action.text())
 
 
 def add_plugin_to_menu(menu: QMenu, action, product_id: str, is_cross_promo: bool = False):
-    action.setProperty("terralab_product_id", product_id)
-    action.setProperty("terralab_is_cross_promo", is_cross_promo)
+    action.setProperty(PRODUCT_ID_PROPERTY, product_id)
+    action.setProperty(CROSS_PROMO_PROPERTY, is_cross_promo)
 
 
     for a in menu.actions():
         if a.objectName() == _UTILITY_SEPARATOR:
             break
-        if a.property("terralab_product_id") == product_id and a is not action:
-            if is_cross_promo and not a.property("terralab_is_cross_promo"):
+        if a.property(PRODUCT_ID_PROPERTY) == product_id and a is not action:
+            if is_cross_promo and not a.property(CROSS_PROMO_PROPERTY):
                 return
             menu.removeAction(a)
             break
@@ -190,12 +191,12 @@ def _get_or_create_plugins_submenu(iface) -> QMenu:
 
 def add_to_plugins_menu(iface, action):
     submenu = _get_or_create_plugins_submenu(iface)
-    product_id = action.property("terralab_product_id")
+    product_id = action.property(PRODUCT_ID_PROPERTY)
     if product_id:
         for a in submenu.actions():
             if a.objectName() == _UTILITY_SEPARATOR:
                 break
-            if a.property("terralab_product_id") == product_id and a is not action:
+            if a.property(PRODUCT_ID_PROPERTY) == product_id and a is not action:
                 submenu.removeAction(a)
                 break
     sep_action = None

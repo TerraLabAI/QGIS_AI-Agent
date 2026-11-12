@@ -54,13 +54,14 @@ def _words(text: str) -> tuple[str, ...]:
 
 
 @lru_cache(maxsize=4096)
-def _fold(text: str) -> str:
+def fold(text: str) -> str:
+
     value = unicodedata.normalize("NFKD", text or "").casefold()
     return unicodedata.normalize("NFC", "".join(c for c in value if not unicodedata.combining(c)))
 
 
 def _initials(text: str) -> str:
-    return _fold("".join(word[0] for word in _words(text)))
+    return fold("".join(word[0] for word in _words(text)))
 
 
 def score_mention(query: str, label: str, group: str = "") -> tuple[int, int, int]:
@@ -70,8 +71,8 @@ def score_mention(query: str, label: str, group: str = "") -> tuple[int, int, in
 
 
 
-    q = _fold((query or "").strip())
-    name = _fold(label)
+    q = fold((query or "").strip())
+    name = fold(label)
     inexact = 0 if name == q else 1
     if not q:
         return (0, 0, 1)
@@ -85,15 +86,15 @@ def score_mention(query: str, label: str, group: str = "") -> tuple[int, int, in
 
     at = 0
     for word in _words(label):
-        at = name.find(_fold(word), at)
+        at = name.find(fold(word), at)
         if at < 0:
             at = 0
-        if _fold(word).startswith(q):
+        if fold(word).startswith(q):
             return (1, at, inexact)
 
 
 
-        at += len(_fold(word))
+        at += len(fold(word))
 
     if len(q) >= 2:
         acronym = _initials(label)
@@ -101,7 +102,7 @@ def score_mention(query: str, label: str, group: str = "") -> tuple[int, int, in
             return (2, 0, inexact)
 
         for word in _words(group):
-            if _fold(word).startswith(q):
+            if fold(word).startswith(q):
                 return (3, 0, inexact)
 
     if len(q) >= 3:

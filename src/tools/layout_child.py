@@ -26,7 +26,7 @@ import time
 
 from qgis.core import QgsProject, QgsSettings
 
-from ..core.host_platform import IS_WINDOWS
+from ..core.host_platform import IS_WINDOWS, retry_file_op
 from ..core.policy import create_managed_temp_dir
 from ..core.snapshot_project import _paths_absolute, _signals_blocked
 from .child_python import environment as _environment
@@ -210,3 +210,27 @@ def run(job: dict, stopped, budget_s: float) -> dict:
                                         + (f": {' '.join(tail.split())}" if tail else "")}
     report["wall_s"] = round(time.monotonic() - started, 2)
     return report
+
+
+def put_in_place(staged: str, output_path: str) -> None:
+
+
+
+    import errno
+    import shutil
+
+    try:
+        retry_file_op(os.replace, staged, output_path)
+        return
+    except OSError as exc:
+        if exc.errno != errno.EXDEV and getattr(exc, "winerror", None) != 17:
+            raise
+        near = output_path + ".part"
+        try:
+            shutil.copyfile(staged, near)
+            retry_file_op(os.replace, near, output_path)
+        except OSError:
+            if os.path.exists(near):
+                os.remove(near)
+            raise exc from None
+    os.remove(staged)

@@ -17,6 +17,7 @@ from ..core import telemetry_events as ev
 from ..core.logger import log, log_warning
 from ..core.plan import set_plan_features
 from ..core.profile import project_key
+from ..core.project_identity import open_project_file
 from ..core.protocol import Decision, RunStatus, ServerErrorCode
 from ..core.run_state import AWAIT_OUTCOME, AWAIT_RESUME, RESEND
 from ..core.security_urls import vouch_for_urls
@@ -27,7 +28,6 @@ from ..core.snapshot import changed_layer_items, describe_diff
 from ..core.snapshot_report import run_change_items
 from ..core.telemetry_errors import report_exception, track_plugin_error
 from ..core.tool_registry import spec
-from .controller_actions import _project_path
 from .controller_shared import (
     BUSY_RESEND_MS,
     BUSY_RESENDS,
@@ -38,7 +38,6 @@ from .controller_shared import (
     RESUME_OUTCOME_MS,
     RUN_PROJECTS_KEPT,
     RUN_SILENCE_S,
-    strip_followups,
     tr,
 )
 from .run_report import VERIFY_RUN
@@ -134,6 +133,8 @@ class _ControllerFrames:
 
     def _on_session_started(self, session: dict) -> None:
         self._session_error_shown = None
+
+        self._panel.mascot_stage.apply_served(session.get("mascot"))
         self._note_crashed_chat()
         resumed = bool(session.get("resumed"))
         action = self._runs.session_started(session.get("resumed"))
@@ -155,7 +156,7 @@ class _ControllerFrames:
             run_id = run["run_id"]
             log_warning(f"Run {run_id[:8]}: the server did not resume the session, waiting for its outcome")
             self._panel_call("set_status_line", run_id, tr("Reconnected. Checking how the run ended..."))
-            self._replay_run = run_id
+            self._replay_run = self._cut_run = run_id
             self._watchdog.stop()
             self._lost_timer.start(RESUME_OUTCOME_MS)
         elif action == AWAIT_RESUME:
@@ -258,10 +259,12 @@ class _ControllerFrames:
 
         self._panel_call("set_trial_offer", usage.get("trial_days_available"), usage.get("trial_ends_on"))
         try:
-            self._panel_call("set_usage", int(usage.get("runs_used") or 0), int(usage.get("runs_limit") or 0),
-                             str(usage.get("period_end") or ""), usage.get("is_subscriber"))
+            used, limit = int(usage.get("runs_used") or 0), int(usage.get("runs_limit") or 0)
         except (TypeError, ValueError):
-            pass
+            return
+        period_end = str(usage.get("period_end") or "")
+        self._panel_call("set_usage", used, limit, period_end, usage.get("is_subscriber"))
+        self._account.note_balance(used, limit, period_end)
 
     def _on_website_usage(self, payload: object) -> None:
 
@@ -279,6 +282,9 @@ class _ControllerFrames:
         usage = usage_to_runs(payload)
         cap = usage.get("trial_cap") or {}
         self._panel_call("set_start_now_url", site_url(cap.get("start_now_url")))
+        self._panel_call("set_returning", usage.get("offer_kind") == "return")
+        self._panel_call("set_keep_pro", usage.get("keep_url") or "",
+                         str(usage.get("plan_trial_ends_on") or usage.get("keep_ends_on") or ""))
         self._on_usage(usage)
         paid = usage.get("is_subscriber")
         if isinstance(paid, bool):
@@ -402,20 +408,25 @@ class _ControllerFrames:
 
             self._on_proposal(call)
             return
-        if not getattr(spec(str(call.get("name") or "")), "waits_on_user", False):
+        try:
+            if not getattr(spec(str(call.get("name") or "")), "waits_on_user", False):
 
 
 
-            self._panel_later("add_tool_call", tool_call_id, run_id, str(call.get("name") or ""), args,
-                              str(call.get("danger") or "read"), str(call.get("sentence") or ""))
-        else:
-            self._question_args[tool_call_id] = args
-        self._text_break[run_id] = True
-        self._answer_start[run_id] = len(self._agent_text.get(run_id, ""))
-        if self._thread_id:
-            self._store.append_tool_call(self._thread_id, run_id, {
-                "tool_call_id": tool_call_id, "name": call.get("name"), "args": args,
-                "danger": call.get("danger"), "sentence": call.get("sentence"), "ok": None})
+                self._panel_later("add_tool_call", tool_call_id, run_id, str(call.get("name") or ""), args,
+                                  str(call.get("danger") or "read"), str(call.get("sentence") or ""))
+            else:
+                self._question_args[tool_call_id] = args
+            self._text_break[run_id] = True
+            self._answer_start[run_id] = len(self._agent_text.get(run_id, ""))
+            if self._thread_id:
+                self._store.append_tool_call(self._thread_id, run_id, {
+                    "tool_call_id": tool_call_id, "name": call.get("name"), "args": args,
+                    "danger": call.get("danger"), "sentence": call.get("sentence"), "ok": None})
+        except Exception as exc:  # noqa: BLE001
+
+
+            report_exception(exc, "tool_call_row", module=__name__, run_id=run_id)
         self._executor.handle_tool_call(call)
 
     def _on_server_tool(self, frame: dict) -> None:
@@ -914,6 +925,11 @@ class _ControllerFrames:
             "stream_slow_renders": drawn[1] if drawn else None,
             "stream_longest_ms": int(drawn[2]) if drawn else None,
             "resends": open_run.get("resends"), "stop_code": stop_code or None,
+            "undo_copy": getattr(snapshot, "copy_kind", "none"),
+            "undo_copy_ms": getattr(snapshot, "capture_ms", None),
+            "project_layers": len(snapshot.layer_ids) if snapshot and snapshot.captured else None,
+            "project_clean": (bool(snapshot.original_file) and not snapshot.was_dirty
+                              if snapshot and snapshot.captured else None),
             "layers_changed": changed, "input_tokens": usage.get("input_tokens"),
             "output_tokens": usage.get("output_tokens"), "cached_tokens": usage.get("cached_tokens"),
             "cost_eur": usage.get("cost_eur"),
@@ -931,10 +947,10 @@ class _ControllerFrames:
             self._store.update_agent_message(thread_id, run_id, {
                 "status": status, "summary": summary, "usage": usage or {}, "verification": merged,
                 "run_changes": run_changes or None,
-                "text": self._take_agent_text(run_id),
+                "text": self._agent_text.pop(run_id, ""),
                 "answer_start": self._answer_start.pop(run_id, 0)})
             ended.append("stored")
-            self._panel_call("set_threads", self._store.list_threads(), _project_path())
+            self._panel_call("set_threads", self._store.list_threads(), open_project_file())
         log(f"Run {run_id[:8]} {status}: {changed} layers changed")
         try:
             dock_hidden = not self._panel.isVisible()
@@ -987,9 +1003,12 @@ class _ControllerFrames:
         if (code != ServerErrorCode.QUOTA_EXHAUSTED or not self._run) and not on_sign_in_card:
             self._panel_call("show_error", run_id if isinstance(run_id, str) else None, code, message, retryable, "",
                              "", str(error.get("reason") or "")[:64])
-        track_plugin_error("server", code, run_id if isinstance(run_id, str) else "",
-                           reason=str(error.get("reason") or ""), retryable=bool(error.get("retryable")),
-                           in_run=names_run)
+        if code != ServerErrorCode.QUOTA_EXHAUSTED:
+
+
+            track_plugin_error("server", code, run_id if isinstance(run_id, str) else "",
+                               reason=str(error.get("reason") or ""), retryable=bool(error.get("retryable")),
+                               in_run=names_run)
         if code == ServerErrorCode.QUOTA_EXHAUSTED:
 
 
@@ -1014,13 +1033,13 @@ class _ControllerFrames:
 
     def _on_thread_title(self, thread_id: str, title: str) -> None:
         self._store.set_title(thread_id, title)
-        self._panel_call("set_threads", self._store.list_threads(), _project_path())
+        self._panel_call("set_threads", self._store.list_threads(), open_project_file())
 
 
     def _remember_run_project(self, run_id: str) -> None:
 
         try:
-            self._run_projects[run_id] = project_key(_project_path())
+            self._run_projects[run_id] = project_key(open_project_file())
         except Exception as exc:  # noqa: BLE001
             log_warning(f"Run project not recorded: {exc}")
             return
@@ -1035,13 +1054,9 @@ class _ControllerFrames:
         try:
             self._store.update_agent_message(thread_id, run_id, {
                 "status": status, "summary": summary, "usage": usage if isinstance(usage, dict) else {},
-                "text": self._take_agent_text(run_id), "answer_start": self._answer_start.get(run_id, 0)})
+                "text": self._agent_text.pop(run_id, ""), "answer_start": self._answer_start.get(run_id, 0)})
         except Exception as exc:  # noqa: BLE001
             log_warning(f"Run {run_id[:8]}: its ending was not stored: {exc}")
-
-    def _take_agent_text(self, run_id: str) -> str:
-
-        return strip_followups(self._agent_text.pop(run_id, ""))
 
     def _on_sources(self, run_id: str, items) -> None:
         rows = []
@@ -1055,10 +1070,11 @@ class _ControllerFrames:
 
 
             for key in ("product", "data_date", "license", "page_url", "via", "kind", "logo_url", "resolution",
-                        "attribution"):
+                        "attribution", "address"):
                 value = str(item.get(key) or "").strip()
-                if value and (key not in ("page_url", "logo_url") or value.startswith(("https://", "http://"))):
-                    row[key] = value[:500 if key == "attribution" else 300]
+                if value and (key not in ("page_url", "logo_url", "address")
+                              or value.startswith(("https://", "http://"))):
+                    row[key] = value[:500 if key in ("attribution", "address") else 300]
             if isinstance(item.get("dates"), list):
                 row["dates"] = [str(day)[:10] for day in item["dates"][:31]]
             if isinstance(item.get("files"), int) and not isinstance(item.get("files"), bool):

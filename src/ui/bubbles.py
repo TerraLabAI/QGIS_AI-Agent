@@ -51,6 +51,7 @@ from .layer_icons import follows_layers
 from .layer_links import LAYER_URL, follow_layer_links
 from .loader import GAP_PX, LINE_PX, DotsLoader, ShimmerLabel
 from .markdown_view import MarkdownView
+from .shared import AGENT_ACTION
 from .source_marks import SourcesButton
 from .style import (
     _BTN_PRIMARY,
@@ -445,7 +446,7 @@ class RatingCard(QFrame):
         head.addWidget(question, 1)
         self._close = IconButton(self, "lu.x", 14, self.tr("Close"))
         self._close.setFixedSize(HIT_PX, HIT_PX)
-        self._close.setProperty("agentAction", "rating_close")
+        self._close.setProperty(AGENT_ACTION, "rating_close")
         self._close.clicked.connect(self.dismiss)
         head.addWidget(self._close, 0, Qt.AlignmentFlag.AlignTop)
         col.addLayout(head)
@@ -460,7 +461,7 @@ class RatingCard(QFrame):
                 chip.setObjectName("ratingReason")
                 chip.setCheckable(True)
                 chip.setCursor(Qt.CursorShape.PointingHandCursor)
-                chip.setProperty("agentAction", "rating_reason_" + code)
+                chip.setProperty(AGENT_ACTION, "rating_reason_" + code)
                 chip.toggled.connect(lambda on, c=code: self._on_reason(c, on))
                 flow.addWidget(chip)
                 self._reasons[code] = chip
@@ -489,7 +490,7 @@ class RatingCard(QFrame):
         keyboard_ring(self._send)
         self._send.setFixedHeight(BTN_SMALL_PX)
         self._send.setCursor(Qt.CursorShape.PointingHandCursor)
-        self._send.setProperty("agentAction", "rating_send")
+        self._send.setProperty(AGENT_ACTION, "rating_send")
         self._send.clicked.connect(self._on_send)
         foot.addWidget(self._send, 0, Qt.AlignmentFlag.AlignVCenter)
         body.addLayout(foot)
@@ -659,7 +660,7 @@ class AgentBubble(QWidget):
 
         self._report = QPushButton(self.tr("Make a report"), self._actions)
         self._report.setObjectName("answerReport")
-        self._report.setProperty("agentAction", "report")
+        self._report.setProperty(AGENT_ACTION, "report")
         self._report.setStyleSheet(_BTN_QUIET)
         keyboard_ring(self._report)
         self._report.setIcon(icon_for(self._report, "lu.file-text", 14, QColor(INK_2)))
@@ -678,7 +679,7 @@ class AgentBubble(QWidget):
 
         self._restore = QPushButton(self._actions)
         self._restore.setObjectName("answerRestore")
-        self._restore.setProperty("agentAction", "restore")
+        self._restore.setProperty(AGENT_ACTION, "restore")
         self._restore.setStyleSheet(_BTN_QUIET)
         keyboard_ring(self._restore)
         self._restore.setCursor(Qt.CursorShape.PointingHandCursor)
@@ -695,7 +696,7 @@ class AgentBubble(QWidget):
             "down": _Thumb(self._actions, "lu.thumbs-down", self.tr("Bad answer"), RED),
         }
         for rating, thumb in self._thumbs.items():
-            thumb.setProperty("agentAction", "rate_" + rating)
+            thumb.setProperty(AGENT_ACTION, "rate_" + rating)
             thumb.clicked.connect(lambda _=False, r=rating: self._on_thumb(r))
             thumb.hide()
             actions.addWidget(thumb, 0, Qt.AlignmentFlag.AlignVCenter)

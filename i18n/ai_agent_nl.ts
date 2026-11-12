@@ -1815,6 +1815,98 @@ De verwijdering is definitief zodra de respijtperiode is verstreken. Tot die tij
             <source>expired</source>
             <translation>verlopen</translation>
         </message>
+        <message>
+            <source>Flow lines: {}</source>
+            <translation>Stroomlijnen: {}</translation>
+        </message>
+        <message>
+            <source>Voice dictation</source>
+            <translation>Spraakdictaat</translation>
+        </message>
+        <message>
+            <source>Talk to your AI agent</source>
+            <translation>Praat met je AI-agent</translation>
+        </message>
+        <message>
+            <source>Speak, and your words become text you can edit before sending.</source>
+            <translation>Spreek, en je woorden worden tekst die je kunt bewerken voordat je verstuurt.</translation>
+        </message>
+        <message>
+            <source>Your voice stays private</source>
+            <translation>Je stem blijft privé</translation>
+        </message>
+        <message>
+            <source>Recorded only when you press the microphone, transcribed in the EU, never stored by TerraLab and never used to train AI.</source>
+            <translation>Alleen opgenomen wanneer je op de microfoon drukt, getranscribeerd in de EU, nooit door TerraLab opgeslagen en nooit gebruikt om AI te trainen.</translation>
+        </message>
+        <message>
+            <source>Start dictating</source>
+            <translation>Begin met dicteren</translation>
+        </message>
+        <message>
+            <source>Not now</source>
+            <translation>Nu niet</translation>
+        </message>
+        <message>
+            <source>AI can make mistakes</source>
+            <translation>AI kan fouten maken</translation>
+        </message>
+        <message>
+            <source>Adding the layer</source>
+            <translation>De laag toevoegen</translation>
+        </message>
+        <message>
+            <source>Cutting to the area</source>
+            <translation>Bijsnijden tot het gebied</translation>
+        </message>
+        <message>
+            <source>Failed</source>
+            <translation>Mislukt</translation>
+        </message>
+        <message>
+            <source>Finding the place</source>
+            <translation>De plaats zoeken</translation>
+        </message>
+        <message>
+            <source>Paused</source>
+            <translation>Gepauzeerd</translation>
+        </message>
+        <message>
+            <source>Querying the source</source>
+            <translation>De bron bevragen</translation>
+        </message>
+        <message>
+            <source>Queued</source>
+            <translation>In de wachtrij</translation>
+        </message>
+        <message>
+            <source>Stopped</source>
+            <translation>Gestopt</translation>
+        </message>
+        <message>
+            <source>Working</source>
+            <translation>Bezig</translation>
+        </message>
+        <message>
+            <source>about {n} min left</source>
+            <translation>nog ongeveer {n} min</translation>
+        </message>
+        <message>
+            <source>about {n} s left</source>
+            <translation>nog ongeveer {n} s</translation>
+        </message>
+        <message>
+            <source>{done} MB</source>
+            <translation>{done} MB</translation>
+        </message>
+        <message>
+            <source>{done} of {total} MB</source>
+            <translation>{done} van {total} MB</translation>
+        </message>
+        <message>
+            <source>{words} · {done} of {total}</source>
+            <translation>{words} · {done} van {total}</translation>
+        </message>
     </context>
     <context>
         <name>AIAgentContext</name>
@@ -2315,6 +2407,18 @@ De verwijdering is definitief zodra de respijtperiode is verstreken. Tot die tij
         <message>
             <source>Sign in or create an account</source>
             <translation>Log in of maak een account aan</translation>
+        </message>
+        <message>
+            <source>Opens your browser, takes about 15 seconds</source>
+            <translation>Opent je browser, duurt ongeveer 15 seconden</translation>
+        </message>
+        <message>
+            <source>Sign in or create a free account</source>
+            <translation>Inloggen of een gratis account maken</translation>
+        </message>
+        <message>
+            <source>The AI agent loads data, styles layers, runs analyses and edits features for you.</source>
+            <translation>De AI-agent laadt gegevens, maakt lagen op, voert analyses uit en bewerkt objecten voor je.</translation>
         </message>
     </context>
     <context>
@@ -3304,6 +3408,22 @@ De verwijdering is definitief zodra de respijtperiode is verstreken. Tot die tij
             <source>Removed from the queue</source>
             <translation>Uit de wachtrij verwijderd</translation>
         </message>
+        <message>
+            <source>No free tasks left on this computer</source>
+            <translation>Geen gratis taken meer op deze computer</translation>
+        </message>
+        <message>
+            <source>No free tasks left this month</source>
+            <translation>Geen gratis taken meer deze maand</translation>
+        </message>
+        <message>
+            <source>Ask or describe a task in QGIS</source>
+            <translation>Vraag iets of beschrijf een taak in QGIS</translation>
+        </message>
+        <message>
+            <source>Reply</source>
+            <translation>Antwoorden</translation>
+        </message>
     </context>
     <context>
         <name>ChatSidebar</name>
@@ -3606,6 +3726,26 @@ De verwijdering is definitief zodra de respijtperiode is verstreken. Tot die tij
             <source>Add files or one of this project's layers. A layer can also be dragged from the Layers panel; Ctrl+V pastes a picture.</source>
             <translation>Voeg bestanden of een laag van dit project toe. Je kunt ook een laag uit het paneel Lagen slepen; met Ctrl+V plak je een afbeelding.</translation>
         </message>
+        <message>
+            <source>Send this as it is?</source>
+            <translation>Dit verzenden zoals het is?</translation>
+        </message>
+        <message>
+            <source>It looks like a typing slip. Edit it, or press Send again.</source>
+            <translation>Het lijkt op een typefout. Pas het aan of druk nog een keer op Verzenden.</translation>
+        </message>
+        <message>
+            <source>Ask or describe a task in QGIS</source>
+            <translation>Vraag iets of beschrijf een taak in QGIS</translation>
+        </message>
+        <message>
+            <source>Done: write what I said (Enter)</source>
+            <translation>Klaar: schrijf wat ik zei (Enter)</translation>
+        </message>
+        <message>
+            <source>Finish dictation</source>
+            <translation>Dicteren afronden</translation>
+        </message>
     </context>
     <context>
         <name>ComposerInput</name>
@@ -3837,6 +3977,30 @@ De verwijdering is definitief zodra de respijtperiode is verstreken. Tot die tij
             <source>{sources} sources the AI agent finds and loads by itself: {datasets} datasets in {countries} countries.</source>
             <translation>{sources} bronnen die de AI-agent zelf vindt en laadt: {datasets} datasets in {countries} landen.</translation>
         </message>
+        <message>
+            <source>%n datasets from other providers</source>
+            <translation>%n datasets van andere aanbieders</translation>
+        </message>
+        <message>
+            <source>Popular</source>
+            <translation>Populair</translation>
+        </message>
+        <message>
+            <source>Europe</source>
+            <translation>Europa</translation>
+        </message>
+        <message>
+            <source>Americas</source>
+            <translation>Amerika</translation>
+        </message>
+        <message>
+            <source>Asia and Pacific</source>
+            <translation>Azië en Stille Oceaan</translation>
+        </message>
+        <message>
+            <source>Africa and Middle East</source>
+            <translation>Afrika en Midden-Oosten</translation>
+        </message>
     </context>
     <context>
         <name>DiffTableCard</name>
@@ -3979,6 +4143,10 @@ De verwijdering is definitief zodra de respijtperiode is verstreken. Tot die tij
             <source>Applies from your next message.</source>
             <translation>Geldt vanaf je volgende bericht.</translation>
         </message>
+        <message>
+            <source>Effort {level}: how hard the AI agent works on the next message</source>
+            <translation>Inspanning {level}: hoe hard de AI-agent werkt aan het volgende bericht</translation>
+        </message>
     </context>
     <context>
         <name>EmptyState</name>
@@ -4002,6 +4170,10 @@ De verwijdering is definitief zodra de respijtperiode is verstreken. Tot die tij
         <message>
             <source>Data</source>
             <translation>Gegevens</translation>
+        </message>
+        <message>
+            <source>How can I help?</source>
+            <translation>Waarmee kan ik helpen?</translation>
         </message>
     </context>
     <context>
@@ -4112,6 +4284,26 @@ De verwijdering is definitief zodra de respijtperiode is verstreken. Tot die tij
         <message>
             <source>Send feedback</source>
             <translation>Feedback sturen</translation>
+        </message>
+        <message>
+            <source>Free trial</source>
+            <translation>Gratis proef</translation>
+        </message>
+        <message>
+            <source>Your Pro is set to end. Keep it in one click.</source>
+            <translation>Je Pro loopt af. Behoud het met één klik.</translation>
+        </message>
+        <message>
+            <source>Keep Pro</source>
+            <translation>Pro behouden</translation>
+        </message>
+        <message>
+            <source>Open the AI Agent page on terra-lab.ai</source>
+            <translation>Open de AI Agent-pagina op terra-lab.ai</translation>
+        </message>
+        <message>
+            <source>Your Pro ends on {date}. Keep it in one click.</source>
+            <translation>Je Pro eindigt op {date}. Behoud het met één klik.</translation>
         </message>
     </context>
     <context>
@@ -4661,6 +4853,46 @@ Klik om de pagina te openen.</translation>
             <source>{mode}: what AI Agent may do without asking</source>
             <translation>{mode}: wat AI Agent mag doen zonder te vragen</translation>
         </message>
+        <message>
+            <source>Free trial</source>
+            <translation>Gratis proef</translation>
+        </message>
+        <message>
+            <source>Asks before every change.</source>
+            <translation>Vraagt voor elke wijziging.</translation>
+        </message>
+        <message>
+            <source>Asks only before risky changes.</source>
+            <translation>Vraagt alleen bij riskante wijzigingen.</translation>
+        </message>
+        <message>
+            <source>It brings your project back. Files on disk are not covered.</source>
+            <translation>Het zet je project terug. Bestanden op schijf vallen er niet onder.</translation>
+        </message>
+        <message>
+            <source>Spending credits or reaching an unknown site.</source>
+            <translation>Credits uitgeven of een onbekende site bereiken.</translation>
+        </message>
+        <message>
+            <source>Still asks for what matters</source>
+            <translation>Vraagt nog steeds om wat telt</translation>
+        </message>
+        <message>
+            <source>The AI agent runs every step without asking, even to delete a layer or run code.</source>
+            <translation>De AI-agent voert elke stap uit zonder te vragen, ook om een laag te verwijderen of code uit te voeren.</translation>
+        </message>
+        <message>
+            <source>Undo is there</source>
+            <translation>Ongedaan maken kan</translation>
+        </message>
+        <message>
+            <source>Works on its own</source>
+            <translation>Werkt zelfstandig</translation>
+        </message>
+        <message>
+            <source>Works on its own and rarely asks.</source>
+            <translation>Werkt zelfstandig en vraagt zelden iets.</translation>
+        </message>
     </context>
     <context>
         <name>PlanCard</name>
@@ -4727,6 +4959,22 @@ Klik om de pagina te openen.</translation>
             <source>Question {n} of {count}</source>
             <translation>Vraag {n} van {count}</translation>
         </message>
+        <message>
+            <source>Checkbox</source>
+            <translation>Selectievakje</translation>
+        </message>
+        <message>
+            <source>Radio button</source>
+            <translation>Keuzerondje</translation>
+        </message>
+        <message>
+            <source>selected</source>
+            <translation>geselecteerd</translation>
+        </message>
+        <message>
+            <source>not selected</source>
+            <translation>niet geselecteerd</translation>
+        </message>
     </context>
     <context>
         <name>QuotaCard</name>
@@ -4775,7 +5023,7 @@ Klik om de pagina te openen.</translation>
         </message>
         <message>
             <location filename="src/ui/quota_card.py" />
-            <source>Start 7-day free trial</source>
+            <source>Start 7 day free trial</source>
             <translation>Start gratis proef van 7 dagen</translation>
         </message>
         <message>
@@ -4952,6 +5200,134 @@ Klik om de pagina te openen.</translation>
             <source>Medium effort now, High after the trial</source>
             <translation>Medium-inspanning nu, High na de proefperiode</translation>
         </message>
+        <message>
+            <source>For a company or team</source>
+            <translation>Voor een bedrijf of team</translation>
+        </message>
+        <message>
+            <source>Your custom instructions</source>
+            <translation>Je aangepaste instructies</translation>
+        </message>
+        <message>
+            <source>1 free task left this month</source>
+            <translation>Nog 1 gratis taak deze maand</translation>
+        </message>
+        <message>
+            <source>AI Agent Pro for work, by invoice</source>
+            <translation>AI Agent Pro voor werk, op factuur</translation>
+        </message>
+        <message>
+            <source>AI Agent Pro for work, without a card</source>
+            <translation>AI Agent Pro voor werk, zonder kaart</translation>
+        </message>
+        <message>
+            <source>Copy</source>
+            <translation>Kopiëren</translation>
+        </message>
+        <message>
+            <source>Free trial</source>
+            <translation>Gratis proefperiode</translation>
+        </message>
+        <message>
+            <source>Hello,
+
+I used all my AI Agent tasks this month. Could you raise my quota?
+
+Thank you</source>
+            <translation>Hallo,
+
+Ik heb al mijn AI Agent-taken van deze maand gebruikt. Kunt u mijn quotum verhogen?
+
+Bedankt</translation>
+        </message>
+        <message>
+            <source>Hello,
+
+I'd like to use AI Agent Pro at work but I can't pay by card. Could you send my company an invoice or a quote?
+
+Company:
+Name:
+
+Thank you</source>
+            <translation>Hallo,
+
+Ik wil AI Agent Pro graag voor mijn werk gebruiken, maar ik kan niet met een kaart betalen. Kunt u mijn bedrijf een factuur of een offerte sturen?
+
+Bedrijf:
+Naam:
+
+Bedankt</translation>
+        </message>
+        <message>
+            <source>Hello,
+
+I'd like to use AI Agent Pro at work but I can't pay by card. Could you set up the 7 free days for us?
+
+Company:
+Name:
+
+Thank you</source>
+            <translation>Hallo,
+
+Ik wil AI Agent Pro graag voor mijn werk gebruiken, maar ik kan niet met een kaart betalen. Kunt u de 7 gratis dagen voor ons instellen?
+
+Bedrijf:
+Naam:
+
+Bedankt</translation>
+        </message>
+        <message>
+            <source>More AI Agent tasks this month</source>
+            <translation>Meer AI Agent-taken deze maand</translation>
+        </message>
+        <message>
+            <source>Need it for work?</source>
+            <translation>Nodig voor je werk?</translation>
+        </message>
+        <message>
+            <source>Need more this month? Write to us</source>
+            <translation>Meer nodig deze maand? Schrijf ons</translation>
+        </message>
+        <message>
+            <source>No card to pay with? Write to us and we'll send your company an invoice.</source>
+            <translation>Geen kaart om mee te betalen? Schrijf ons en we sturen je bedrijf een factuur.</translation>
+        </message>
+        <message>
+            <source>No card to pay with? Write to us and we'll set up your 7 free days.</source>
+            <translation>Geen kaart om mee te betalen? Schrijf ons en we regelen je 7 gratis dagen.</translation>
+        </message>
+        <message>
+            <source>Nothing to pay today</source>
+            <translation>Vandaag niets te betalen</translation>
+        </message>
+        <message>
+            <source>Pro is off until it's paid.</source>
+            <translation>Pro staat uit tot het is betaald.</translation>
+        </message>
+        <message>
+            <source>That was your last free task</source>
+            <translation>Dat was je laatste gratis taak</translation>
+        </message>
+        <message>
+            <source>Want more? Come back to Pro: {n} tasks a month.</source>
+            <translation>Meer nodig? Kom terug naar Pro: {n} taken per maand.</translation>
+        </message>
+        <message>
+            <source>Want more? Pro has {n} tasks a month.</source>
+            <translation>Meer nodig? Pro heeft {n} taken per maand.</translation>
+        </message>
+        <message>
+            <source>Want more? Pro is free for a week.</source>
+            <translation>Meer nodig? Pro is een week gratis.</translation>
+        </message>
+        <message>
+            <source>{n} free tasks left this month</source>
+            <translation>Nog {n} gratis taken deze maand</translation>
+        </message>
+        <message>
+            <source>{n} tasks a month, cancel anytime</source>
+            <translation>{n} taken per maand, altijd opzegbaar</translation>
+        </message>
     </context>
     <context>
         <name>QuotaPauseCard</name>
@@ -5108,16 +5484,16 @@ Klik om de pagina te openen.</translation>
             <translation>Alle {n} notities verwijderen? De AI voegt ze niet terug toe.</translation>
         </message>
         <message>
-            <source>We may read a chat only to fix a bug, never to train AI. Chats are kept 30 days.</source>
-            <translation>Wij mogen een chat alleen lezen om een bug te herstellen, nooit om AI te trainen. Chats worden 30 dagen bewaard.</translation>
+            <source>We may read a chat, or have a model score it, to fix bugs and improve the agent, never to train AI. Chats are kept 30 days.</source>
+            <translation>Wij mogen een chat lezen, of door een model laten scoren, om bugs te herstellen en de agent te verbeteren, nooit om AI te trainen. Chats worden 30 dagen bewaard.</translation>
         </message>
         <message>
             <source>The AI saves notes on its own</source>
             <translation>De AI slaat notities zelf op</translation>
         </message>
         <message>
-            <source>Your chats are kept 30 days so a conversation survives an update. Off, the team never reads them. 0 days of history stores nothing.</source>
-            <translation>Je chats worden 30 dagen bewaard, zodat een gesprek een update overleeft. Uit: het team leest ze nooit. 0 dagen geschiedenis slaat niets op.</translation>
+            <source>Your chats are kept 30 days so a conversation survives an update. Off, we never read or score them. 0 days of history stores nothing.</source>
+            <translation>Je chats worden 30 dagen bewaard, zodat een gesprek een update overleeft. Uit: we lezen of scoren ze nooit. 0 dagen geschiedenis slaat niets op.</translation>
         </message>
         <message>
             <location filename="src/ui/settings_dialog.py" />
@@ -5491,8 +5867,8 @@ Klik om de pagina te openen.</translation>
         </message>
         <message>
             <location filename="src/ui/settings_account.py" />
-            <source>We may read a chat only to fix a wrong answer or a bug, never to train AI.</source>
-            <translation>Wij mogen een chat alleen lezen om een fout antwoord of een bug te herstellen, nooit om AI te trainen.</translation>
+            <source>We may read a chat, or have a model score it, to fix a wrong answer or a bug and improve the agent, never to train AI.</source>
+            <translation>Wij mogen een chat lezen, of door een model laten scoren, om een fout antwoord of een bug te herstellen en de agent te verbeteren, nooit om AI te trainen.</translation>
         </message>
         <message>
             <location filename="src/ui/settings_account.py" />
@@ -5707,6 +6083,38 @@ Klik om de pagina te openen.</translation>
         <message>
             <source>Delete this note? The AI will not add it back.</source>
             <translation>Deze notitie verwijderen? De AI voegt hem niet opnieuw toe.</translation>
+        </message>
+        <message>
+            <source>Everywhere · {n}</source>
+            <translation>Overal · {n}</translation>
+        </message>
+        <message>
+            <source>Other projects · {n}</source>
+            <translation>Andere projecten · {n}</translation>
+        </message>
+        <message>
+            <source>The rules you give it and the corrections that hold for later.</source>
+            <translation>De regels die je meegeeft en de correcties die later blijven gelden.</translation>
+        </message>
+        <message>
+            <source>This project · {n}</source>
+            <translation>Dit project · {n}</translation>
+        </message>
+        <message>
+            <source>What the AI keeps between conversations, stored on this computer.</source>
+            <translation>Wat de AI tussen gesprekken bewaart, opgeslagen op deze computer.</translation>
+        </message>
+        <message>
+            <source>commercial use, more tasks, your instructions and higher effort</source>
+            <translation>commercieel gebruik, meer taken, je instructies en meer inspanning</translation>
+        </message>
+        <message>
+            <source>Animate the mascot</source>
+            <translation>De mascotte animeren</translation>
+        </message>
+        <message>
+            <source>The AI agent's mark moves and follows the work. Off keeps it still.</source>
+            <translation>Het beeldmerk van de AI-agent beweegt en volgt het werk. Uitgeschakeld blijft het stil.</translation>
         </message>
     </context>
     <context>
@@ -6104,6 +6512,26 @@ Klik om de pagina te openen.</translation>
         <message>
             <source>could not be put back, so what it changed is still in the project</source>
             <translation>kon niet worden teruggezet, dus wat het heeft gewijzigd staat nog steeds in het project</translation>
+        </message>
+        <message>
+            <source>QGIS restarted during this request, so this step was not run again. The project may already hold what it changed.</source>
+            <translation>QGIS is tijdens dit verzoek opnieuw gestart, dus deze stap is niet opnieuw uitgevoerd. Het project bevat mogelijk al wat de stap heeft gewijzigd.</translation>
+        </message>
+        <message>
+            <source>Stopped after this step had finished: its changes are in the project.</source>
+            <translation>Gestopt nadat deze stap was afgerond: de wijzigingen staan in het project.</translation>
+        </message>
+        <message>
+            <source>{area} km²</source>
+            <translation>{area} km²</translation>
+        </message>
+        <message>
+            <source>{area} ha</source>
+            <translation>{area} ha</translation>
+        </message>
+        <message>
+            <source>{area} m²</source>
+            <translation>{area} m²</translation>
         </message>
     </context>
     <context>
@@ -8508,6 +8936,211 @@ Dit bestand staat niet meer op de plek waar het is weggeschreven.</translation>
         <message>
             <source>Edit this note</source>
             <translation>Deze notitie bewerken</translation>
+        </message>
+    </context>
+    <context>
+        <name>QgisLinks</name>
+        <message>
+            <source>Project Properties</source>
+            <translation>Projecteigenschappen</translation>
+        </message>
+        <message>
+            <source>Open the project's properties</source>
+            <translation>De eigenschappen van het project openen</translation>
+        </message>
+        <message>
+            <source>3D Map View</source>
+            <translation>3D-kaartweergave</translation>
+        </message>
+        <message>
+            <source>Bring this 3D map view to the front</source>
+            <translation>Deze 3D-kaartweergave op de voorgrond brengen</translation>
+        </message>
+        <message>
+            <source>Layout Designer</source>
+            <translation>Lay-outontwerper</translation>
+        </message>
+        <message>
+            <source>Open this layout in the layout designer</source>
+            <translation>Deze lay-out openen in de lay-outontwerper</translation>
+        </message>
+        <message>
+            <source>Attribute Table</source>
+            <translation>Attributentabel</translation>
+        </message>
+        <message>
+            <source>Open the attribute table of {layer}</source>
+            <translation>De attributentabel van {layer} openen</translation>
+        </message>
+        <message>
+            <source>Layer Properties › {tab}</source>
+            <translation>Laageigenschappen › {tab}</translation>
+        </message>
+        <message>
+            <source>Open the properties of {layer} on the {tab} tab</source>
+            <translation>De eigenschappen van {layer} openen op het tabblad {tab}</translation>
+        </message>
+    </context>
+    <context>
+        <name>OvertureExtract</name>
+        <message>
+            <source>{names}: loaded in full, {count} features.</source>
+            <translation>{names}: volledig geladen, {count} objecten.</translation>
+        </message>
+        <message>
+            <source>{names}: {count} features loaded; part of the area could not be read.</source>
+            <translation>{names}: {count} objecten geladen; een deel van het gebied kon niet worden gelezen.</translation>
+        </message>
+        <message>
+            <source>Reading {names}</source>
+            <translation>{names} wordt gelezen</translation>
+        </message>
+    </context>
+    <context>
+        <name>GtfsTools</name>
+        <message>
+            <source>{lo} - {hi} trips/day</source>
+            <translation>{lo} - {hi} ritten/dag</translation>
+        </message>
+        <message>
+            <source>{name} stops</source>
+            <translation>{name} haltes</translation>
+        </message>
+        <message>
+            <source>{name} routes</source>
+            <translation>{name} routes</translation>
+        </message>
+    </context>
+    <context>
+        <name>Dictation</name>
+        <message>
+            <source>The AI Agent plugin in QGIS listens only while you dictate a message, to turn your voice into text.</source>
+            <translation>De AI Agent-plugin in QGIS luistert alleen terwijl je een bericht dicteert, om je stem om te zetten in tekst.</translation>
+        </message>
+        <message>
+            <source>Animate the mascot</source>
+            <translation>Mascotte animeren</translation>
+        </message>
+        <message>
+            <source>The AI agent's mark moves and follows the work. Off keeps it still.</source>
+            <translation>Het logo van de AI-agent beweegt en volgt het werk. Uit houdt het stil.</translation>
+        </message>
+    </context>
+    <context>
+        <name>CodeLayoutExport</name>
+        <message>
+            <source>the layout export</source>
+            <translation>de lay-outexport</translation>
+        </message>
+    </context>
+    <context>
+        <name>ComposerDictation</name>
+        <message>
+            <source>Cancel (Esc)</source>
+            <translation>Annuleren (Esc)</translation>
+        </message>
+        <message>
+            <source>Cancel dictation</source>
+            <translation>Dicteren annuleren</translation>
+        </message>
+        <message>
+            <source>Dictate</source>
+            <translation>Dicteren</translation>
+        </message>
+        <message>
+            <source>Dictate ({shortcut})</source>
+            <translation>Dicteren ({shortcut})</translation>
+        </message>
+        <message>
+            <source>Dictation is busy right now.</source>
+            <translation>Dicteren is momenteel bezet.</translation>
+        </message>
+        <message>
+            <source>Dictation is not available right now.</source>
+            <translation>Dicteren is op dit moment niet beschikbaar.</translation>
+        </message>
+        <message>
+            <source>Listening</source>
+            <translation>Luisteren</translation>
+        </message>
+        <message>
+            <source>No connection to TerraLab, so nothing was transcribed.</source>
+            <translation>Geen verbinding met TerraLab, dus er is niets getranscribeerd.</translation>
+        </message>
+        <message>
+            <source>No microphone found. Plug one in or check your sound settings.</source>
+            <translation>Geen microfoon gevonden. Sluit er een aan of controleer je geluidsinstellingen.</translation>
+        </message>
+        <message>
+            <source>No sound came from the microphone. Check that it is not muted.</source>
+            <translation>Er kwam geen geluid van de microfoon. Controleer of hij niet gedempt is.</translation>
+        </message>
+        <message>
+            <source>No sound came from the microphone. In Windows settings, Privacy, Microphone, let desktop apps use it.</source>
+            <translation>Er kwam geen geluid van de microfoon. Sta in de Windows-instellingen, bij Privacy, Microfoon, desktop-apps toe hem te gebruiken.</translation>
+        </message>
+        <message>
+            <source>Nothing was heard. Speak closer to the microphone and try again.</source>
+            <translation>Er was niets te horen. Spreek dichter bij de microfoon en probeer het opnieuw.</translation>
+        </message>
+        <message>
+            <source>Open settings</source>
+            <translation>Instellingen openen</translation>
+        </message>
+        <message>
+            <source>Stopped at {n} minutes, the longest one recording can be.</source>
+            <translation>Gestopt na {n} minuten, de maximale duur van één opname.</translation>
+        </message>
+        <message>
+            <source>That recording is too long to transcribe. Record a shorter one.</source>
+            <translation>Die opname is te lang om te transcriberen. Maak een kortere opname.</translation>
+        </message>
+        <message>
+            <source>The microphone could not be opened. Check that no other app holds it, then try again.</source>
+            <translation>De microfoon kon niet worden geopend. Controleer of geen andere app hem gebruikt en probeer het opnieuw.</translation>
+        </message>
+        <message>
+            <source>The microphone is blocked for QGIS in your system's privacy settings.</source>
+            <translation>De microfoon is voor QGIS geblokkeerd in de privacyinstellingen van je systeem.</translation>
+        </message>
+        <message>
+            <source>The microphone is off for "AI Agent for QGIS". Turn it on in System Settings, Privacy &amp; Security, Microphone.</source>
+            <translation>De microfoon staat uit voor "AI Agent for QGIS". Zet hem aan in Systeeminstellingen, Privacy en beveiliging, Microfoon.</translation>
+        </message>
+        <message>
+            <source>The recording could not be transcribed.</source>
+            <translation>De opname kon niet worden getranscribeerd.</translation>
+        </message>
+        <message>
+            <source>This QGIS installation cannot record sound, so dictation is not available here.</source>
+            <translation>Deze QGIS-installatie kan geen geluid opnemen, dus dicteren is hier niet beschikbaar.</translation>
+        </message>
+        <message>
+            <source>Too many recordings in a minute. Wait a little.</source>
+            <translation>Te veel opnames in één minuut. Wacht even.</translation>
+        </message>
+        <message>
+            <source>Transcribing...</source>
+            <translation>Transcriberen...</translation>
+        </message>
+        <message>
+            <source>Try again</source>
+            <translation>Opnieuw proberen</translation>
+        </message>
+        <message>
+            <source>You reached today's dictation limit. It opens again tomorrow.</source>
+            <translation>Je hebt de dicteerlimiet van vandaag bereikt. Morgen kun je weer dicteren.</translation>
+        </message>
+        <message>
+            <source>macOS asked to use the microphone and got no answer. Press the microphone to see the question again.</source>
+            <translation>macOS vroeg om de microfoon te gebruiken en kreeg geen antwoord. Druk op de microfoon om de vraag opnieuw te zien.</translation>
+        </message>
+    </context>
+    <context>
+        <name>DictationBar</name>
+        <message>
+            <source>Recording</source>
+            <translation>Opname</translation>
         </message>
     </context>
 </TS>

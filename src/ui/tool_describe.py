@@ -323,7 +323,7 @@ def _project_layer(value):
         if layer is not None:
             return layer
         named = project.mapLayersByName(value)
-        if named:
+        if len(named) == 1:
             return named[0]
 
 

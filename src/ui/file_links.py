@@ -474,42 +474,66 @@ def _link_inline_code(match, budget: _ExistsBudget) -> str:
     return file_link(path)
 
 
+_KEPT_MARK = re.compile(r"\x00(\d+)\x00")
+
+
+class KeptSpans:
+
+
+
+
+
+
+
+
+
+    def __init__(self):
+        self._spans: list[str] = []
+
+    @staticmethod
+    def clean(text) -> str:
+        return (text or "").replace("\x00", "")
+
+    def keep(self, match) -> str:
+
+        self._spans.append(match.group(0))
+        return f"\x00{len(self._spans) - 1}\x00"
+
+    def restore(self, text: str) -> str:
+        whole: list[str] = []
+
+        def back(match):
+            index = int(match.group(1))
+            return whole[index] if index < len(whole) else match.group(0)
+
+
+
+        for span in self._spans:
+            whole.append(_KEPT_MARK.sub(back, span))
+        return _KEPT_MARK.sub(back, text)
+
+
 def linkify_paths(text: str) -> str:
 
 
 
 
 
-
-
-
-
-
-
-    text = (text or "").replace("\x00", "")
+    text = KeptSpans.clean(text)
     if "/" not in text and "\\" not in text:
         return text
 
-    guarded: list[str] = []
-
-    def keep(match):
-        guarded.append(match.group(0))
-        return f"\x00{len(guarded) - 1}\x00"
-
-    def restore(match):
-        index = int(match.group(1))
-        return guarded[index] if 0 <= index < len(guarded) else match.group(0)
-
+    kept = KeptSpans()
     budget = _ExistsBudget()
-    masked = _FENCED.sub(keep, text)
+    masked = _FENCED.sub(kept.keep, text)
     masked = _INLINE_CODE.sub(lambda m: _link_inline_code(m, budget), masked)
 
 
-    masked = _FENCED.sub(keep, masked)
-    masked = _INLINE_CODE.sub(keep, masked)
+    masked = _FENCED.sub(kept.keep, masked)
+    masked = _INLINE_CODE.sub(kept.keep, masked)
 
 
     masked = _URL.sub(_link_url, masked)
-    masked = _FENCED.sub(keep, masked)
+    masked = _FENCED.sub(kept.keep, masked)
     masked = _CANDIDATE.sub(lambda m: _link_bare(m, budget), masked)
-    return re.sub(r"\x00(\d+)\x00", restore, masked)
+    return kept.restore(masked)

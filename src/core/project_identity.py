@@ -38,3 +38,12 @@ def project_key() -> str:
         return key_of(project.absoluteFilePath()) or key_of_address(project.fileName())
     except Exception:  # noqa: BLE001
         return ""
+
+
+def open_project_file() -> str:
+
+    try:
+        from qgis.core import QgsProject
+        return QgsProject.instance().fileName() or ""
+    except Exception:  # noqa: BLE001
+        return ""

@@ -18,14 +18,10 @@
 
 
 
-
-
-
-
-
 from __future__ import annotations
 
 import html
+from urllib.parse import quote, urlencode
 
 from qgis.PyQt.QtCore import QCoreApplication, Qt, pyqtSignal
 from qgis.PyQt.QtGui import QColor, QIcon
@@ -43,64 +39,77 @@ from qgis.PyQt.QtWidgets import (
 from ..core.qt_compat import disconnect_quietly, one_shot
 from ..core.quota_view import WARN_AT_RUNS_LEFT
 from ..core.served_state import (
+    get_pro_offer,
     get_pro_price,
     get_pro_price_excludes_tax,
     get_pro_runs_per_month,
     get_promo_active,
     get_student_offer,
     get_support_email,
+    offer_text,
 )
-from .external_links import open_external_url
+from .external_links import open_email, open_external_url
 from .font_scale import scale_px_length, scale_qss_font_px
 from .icons import pixmap_for
 from .style import (
-    _BTN_GHOST,
-    _BTN_PRIMARY_WIDE,
-    ACCENT,
+    _BTN_OFFER_PILL,
     ACCENT_INK,
-    BTN_PILL_PX,
-    BTN_PRIMARY_WIDE_PX,
     FONT_BASE,
     FONT_BODY,
     FONT_HINT,
-    HAIRLINE,
+    HOVER,
+    HOVER_ON,
     INK,
+    INK_2,
     INK_3,
-    MUTED,
+    INSET,
+    LINE,
+    OFFER_PILL_PX,
+    RADIUS_CONTROL,
     RADIUS_PANEL,
+    SPACE_CARD,
+    SPACE_OUTER,
     SPACE_TIGHT,
+    SURFACE,
     WEIGHT_MEDIUM,
     keyboard_ring,
 )
-from .styles import PANEL_BASE, PANEL_TEXT
+
+
 
 _CARD_QSS = (
-    f"QWidget#quotaCard {{ background: {PANEL_BASE}; border: 1px solid {HAIRLINE};"
+    f"QWidget#quotaCard {{ background: {SURFACE}; border: 1px solid {LINE};"
     f" border-radius: {RADIUS_PANEL}px; }}"
     "QLabel { background: transparent; border: none; }"
 )
-_TITLE_QSS = f"font-size: {FONT_BASE}px; font-weight: 600; color: {PANEL_TEXT};"
-_BODY_QSS = f"font-size: {FONT_BODY}px; color: {PANEL_TEXT};"
-_MUTED_QSS = f"font-size: {FONT_HINT}px; color: {MUTED};"
-_HEAD_QSS = f"font-size: {FONT_BODY}px; font-weight: 600; color: {PANEL_TEXT};"
-_PRICE_QSS = f"font-size: {FONT_BODY}px; font-weight: {WEIGHT_MEDIUM}; color: {PANEL_TEXT};"
-
-
-_INVOICE_QSS = (
-    "QPushButton { background: transparent; border: none; padding: 2px 4px;"
-    f" color: {INK_3}; font-size: {FONT_HINT}px; font-weight: 400; }}"
-    f"QPushButton:hover {{ color: {MUTED}; text-decoration: underline; }}"
+_TITLE_QSS = f"font-size: {FONT_BASE + 1}px; font-weight: 600; color: {INK};"
+_NOTE_QSS = f"font-size: {FONT_BODY}px; color: {INK_2};"
+_CAPTION_QSS = f"font-size: {FONT_HINT}px; color: {INK_3};"
+_EMAIL_QSS = (f"QWidget#quotaEmail {{ background: {INSET}; border: 1px solid {LINE};"
+              f" border-radius: {RADIUS_CONTROL}px; }}")
+_ADDRESS_QSS = f"font-size: {FONT_BODY}px; color: {INK}; background: transparent; border: none;"
+_COPY_PX = 24
+_BTN_COPY = scale_qss_font_px(
+    f"QPushButton {{ background: {SURFACE}; color: {INK}; border: 1px solid {LINE};"
+    f" border-radius: {RADIUS_CONTROL - 2}px; padding: 0 10px; font-size: {FONT_HINT}px;"
+    f" font-weight: {WEIGHT_MEDIUM}; }}"
+    f"QPushButton:hover {{ background: {HOVER}; }}"
+    f"QPushButton:pressed {{ background: {HOVER_ON}; }}"
+    f'QPushButton[ring="true"]:focus {{ border: 2px solid {ACCENT_INK}; padding: 0 9px; outline: none; }}'
 )
-_STUDENT_QSS = (
-    "QPushButton { background: transparent; border: none; padding: 2px 4px;"
-    f" color: {ACCENT_INK}; font-size: {FONT_HINT}px; font-weight: {WEIGHT_MEDIUM}; }}"
-    "QPushButton:hover { text-decoration: underline; }"
-)
-_CHECK_PX = 12
-_CHEVRON_PX = 16
-_CARD_MARGINS = (16, 14, 16, 14)
+_CARD_MARGINS = (14, 12, 12, 14)
+_CLOSE_PX = 16
+
+_SEAT_W, _SEAT_H = 36, 46
+
+_BUTTON_PAD = 44
 _COPIED_MS = 2000
+_MAILTO_MAX = 1800
 _WARNING_QSS = f"font-size: {FONT_HINT}px; color: {INK}; font-weight: {WEIGHT_MEDIUM}; background: transparent;"
+
+
+def _link(href: str, text: str) -> str:
+    return f'<a href="{href}" style="color: {INK_2}; text-decoration: none;">{html.escape(text)}</a>'
 
 
 _STUDENT_SEEN: set = set()
@@ -166,12 +175,12 @@ class RunsLeftLine(QWidget):
 
         self.where = "warning" if left <= WARN_AT_RUNS_LEFT else ""
         if self.where == "warning":
-            count = (self.tr("1 free task left") if left == 1
-                     else self.tr("{n} free tasks left").format(n=left))
-            link = (trial_cta(trial[0]) if trial
-                    else self.tr("Get more tasks with Pro"))
+            count = (offer_text("runs.left.one", self.tr("1 free task left")) if left == 1
+                     else offer_text("runs.left.many", self.tr("{n} free tasks left"), n=left))
+            link = (trial_short() if trial
+                    else offer_text("runs.link.pro", self.tr("Get more tasks with Pro")))
             self._label.setStyleSheet(scale_qss_font_px(_WARNING_QSS))
-            text = (f'{html.escape(count)}&nbsp; <a href="pro" style="color: {ACCENT_INK};'
+            text = (f'{html.escape(count)} &middot; <a href="pro" style="color: {ACCENT_INK};'
                     f' text-decoration: none;">{html.escape(link)}</a>')
             self._plain = f"{count} {link}"
             student = get_student_offer()
@@ -188,8 +197,9 @@ class RunsLeftLine(QWidget):
         tip = ""
         if self.where == "warning":
             tip = (trial_promise(*trial) if trial else
-                   self.tr("Pro: {n} tasks a month, Medium and High effort for harder work, Autopilot")
-                   .format(n=get_pro_runs_per_month()))
+                   offer_text("runs.tip.pro", self.tr(
+                       "Pro: {n} tasks a month, Medium and High effort for harder work, Autopilot"),
+                       n=get_pro_runs_per_month()))
         self._label.setToolTip(tip)
 
     def text(self) -> str:
@@ -200,63 +210,6 @@ class RunsLeftLine(QWidget):
             open_student_offer("upgrade_line", self.window() or self)
             return
         self.requested.emit(self.where)
-
-
-class _Disclosure(QWidget):
-
-
-
-
-    toggled = pyqtSignal(bool)
-
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        self._open = False
-        row = QHBoxLayout(self)
-        row.setContentsMargins(0, 0, 0, 0)
-        row.setSpacing(SPACE_TIGHT)
-        self._label = QLabel(self)
-        self._label.setStyleSheet(scale_qss_font_px(_MUTED_QSS))
-        self._label.setTextFormat(Qt.TextFormat.PlainText)
-        row.addWidget(self._label, 0, Qt.AlignmentFlag.AlignVCenter)
-        self._chevron = QLabel(self)
-        self._chevron.setFixedSize(_CHEVRON_PX, _CHEVRON_PX)
-        self._chevron.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        row.addWidget(self._chevron, 0, Qt.AlignmentFlag.AlignVCenter)
-        row.addStretch(1)
-        self.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
-        self._paint()
-
-    def set_text(self, text: str) -> None:
-        self._label.setText(text)
-        self.setAccessibleName(text)
-
-    def is_open(self) -> bool:
-        return self._open
-
-    def set_open(self, on: bool) -> None:
-        if bool(on) == self._open:
-            return
-        self._open = bool(on)
-        self._paint()
-        self.toggled.emit(self._open)
-
-    def _paint(self) -> None:
-        self._chevron.setPixmap(pixmap_for(self, "chevron_down" if self._open else "chevron_right",
-                                           _CHEVRON_PX, QColor(INK_3)))
-
-    def mouseReleaseEvent(self, event):  # noqa: N802
-        if event.button() == Qt.MouseButton.LeftButton and self.rect().contains(event.pos()):
-            self.set_open(not self._open)
-            return
-        super().mouseReleaseEvent(event)
-
-    def keyPressEvent(self, event):  # noqa: N802
-        if event.key() in (Qt.Key.Key_Return, Qt.Key.Key_Enter, Qt.Key.Key_Space):
-            self.set_open(not self._open)
-            return
-        super().keyPressEvent(event)
 
 
 def pro_price_per_month() -> str:
@@ -270,13 +223,24 @@ def pro_price_per_month() -> str:
     if not price:
         return ""
     if get_pro_price_excludes_tax():
-        return QCoreApplication.translate("QuotaCard", "{amount}/month excl. VAT").format(amount=price)
-    return QCoreApplication.translate("QuotaCard", "{amount}/month").format(amount=price)
+        return offer_text("price.month.excl_vat",
+                          QCoreApplication.translate("QuotaCard", "{amount}/month excl. VAT"), amount=price)
+    return offer_text("price.month", QCoreApplication.translate("QuotaCard", "{amount}/month"), amount=price)
 
 
 def trial_cta(_days: int = 7) -> str:
 
-    return QCoreApplication.translate("QuotaCard", "Start 7-day free trial")
+    return offer_text("trial.button", QCoreApplication.translate("QuotaCard", "Start 7 day free trial"))
+
+
+def trial_short() -> str:
+
+    return offer_text("trial.short", QCoreApplication.translate("QuotaCard", "Free trial"))
+
+
+def get_pro_label() -> str:
+
+    return offer_text("pro.button", QCoreApplication.translate("QuotaCard", "Get Pro"))
 
 
 def trial_reassurance() -> str:
@@ -284,21 +248,21 @@ def trial_reassurance() -> str:
 
     student = get_student_offer()
     if student and student.get("applied"):
-        return QCoreApplication.translate(
+        return offer_text("trial.reassure.student", QCoreApplication.translate(
             "QuotaCard",
-            "Free for 7 days, nothing to pay today, then monthly at your student price. Cancel in one click.")
+            "Free for 7 days, nothing to pay today, then monthly at your student price. Cancel in one click."))
     price = get_pro_price()
     if not price:
-        return QCoreApplication.translate(
+        return offer_text("trial.reassure.local", QCoreApplication.translate(
             "QuotaCard",
-            "Free for 7 days, nothing to pay today, then monthly at your local price. Cancel in one click.")
+            "Free for 7 days, nothing to pay today, then monthly at your local price. Cancel in one click."))
     if get_pro_price_excludes_tax():
-        return QCoreApplication.translate(
+        return offer_text("trial.reassure.excl_vat", QCoreApplication.translate(
             "QuotaCard",
-            "Free for 7 days, nothing to pay today, then {price}/month excl. VAT. Cancel in one click.").format(
+            "Free for 7 days, nothing to pay today, then {price}/month excl. VAT. Cancel in one click."),
             price=price)
-    return QCoreApplication.translate(
-        "QuotaCard", "Free for 7 days, nothing to pay today, then {price}/month. Cancel in one click.").format(
+    return offer_text("trial.reassure.price", QCoreApplication.translate(
+        "QuotaCard", "Free for 7 days, nothing to pay today, then {price}/month. Cancel in one click."),
         price=price)
 
 
@@ -310,158 +274,155 @@ def trial_promise(days: int, _ends_on: str | None = None) -> str:
 class QuotaCard(QWidget):
 
 
+
+
+
+
+
+
+
     plans_requested = pyqtSignal(str)
-    invoice_requested = pyqtSignal(str)
-    contact_requested = pyqtSignal()
+    contact_requested = pyqtSignal(str)
     return_closed = pyqtSignal()
     low_closed = pyqtSignal()
     welcome_closed = pyqtSignal()
     start_now_requested = pyqtSignal()
     pay_requested = pyqtSignal()
 
+    moment_changed = pyqtSignal(str)
+
     def __init__(self, parent=None):
         super().__init__(parent)
         self.state = ""
-
-
-
-
+        self.moment = ""
+        self._trial = None
+        self._labels = ("", "")
 
         self.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Minimum)
-        outer = QVBoxLayout(self)
+        outer = QHBoxLayout(self)
         outer.setContentsMargins(0, 0, 0, 0)
-        outer.setSpacing(0)
+        outer.setSpacing(SPACE_OUTER)
+
+        self._seat = QWidget(self)
+        self._seat.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, True)
+        self._seat.setFixedSize(scale_px_length(_SEAT_W), scale_px_length(_SEAT_H))
+        self._seat.hide()
+        outer.addWidget(self._seat, 0, Qt.AlignmentFlag.AlignBottom)
         self._card = QWidget(self)
         self._card.setObjectName("quotaCard")
         self._card.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
         self._card.setStyleSheet(_CARD_QSS)
+        outer.addWidget(self._card, 1)
         col = QVBoxLayout(self._card)
         col.setContentsMargins(*_CARD_MARGINS)
         col.setSpacing(SPACE_TIGHT)
 
-        self._title = QLabel(self._card)
-        self._title.setStyleSheet(scale_qss_font_px(_TITLE_QSS))
-        self._note = QLabel(self._card)
-        self._note.setStyleSheet(scale_qss_font_px(_MUTED_QSS))
         head = QHBoxLayout()
         head.setContentsMargins(0, 0, 0, 0)
+        head.setSpacing(SPACE_CARD)
+        self._title = QLabel(self._card)
+        self._title.setTextFormat(Qt.TextFormat.PlainText)
+        self._title.setStyleSheet(scale_qss_font_px(_TITLE_QSS))
         head.addWidget(self._title, 1)
         self._close = QToolButton(self._card)
-        self._close.setIcon(QIcon(pixmap_for(self._close, "close", _CHEVRON_PX, QColor(INK_3))))
+        self._close.setIcon(QIcon(pixmap_for(self._close, "close", _CLOSE_PX, QColor(INK_3))))
         self._close.setAutoRaise(True)
         self._close.setCursor(Qt.CursorShape.PointingHandCursor)
         self._close.setAccessibleName(self.tr("Close"))
         self._close.setToolTip(self.tr("Close"))
         self._close.setStyleSheet("QToolButton { background: transparent; border: none; }")
-        self._close.clicked.connect(
-            lambda: (self.low_closed if self.state == "free_low" else self.return_closed).emit())
-        self._close.hide()
+        self._close.clicked.connect(self._on_close)
         head.addWidget(self._close, 0, Qt.AlignmentFlag.AlignTop)
         col.addLayout(head)
+        self._note = QLabel(self._card)
+        self._note.setTextFormat(Qt.TextFormat.PlainText)
+        self._note.setStyleSheet(scale_qss_font_px(_NOTE_QSS))
         col.addWidget(self._note)
 
-
-
-        self._plan = QWidget(self._card)
-        plan = QVBoxLayout(self._plan)
-        plan.setContentsMargins(0, SPACE_TIGHT, 0, 0)
-        plan.setSpacing(SPACE_TIGHT)
-
-
-        self._button = QPushButton(self._plan)
-        self._button.setStyleSheet(_BTN_PRIMARY_WIDE)
+        self._email = QWidget(self._card)
+        self._email.setObjectName("quotaEmail")
+        self._email.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
+        self._email.setStyleSheet(_EMAIL_QSS)
+        email = QHBoxLayout(self._email)
+        email.setContentsMargins(10, 4, 4, 4)
+        email.setSpacing(SPACE_CARD)
+        self._address = QLabel(self._email)
+        self._address.setStyleSheet(scale_qss_font_px(_ADDRESS_QSS))
+        self._address.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+        self._address.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Preferred)
+        email.addWidget(self._address, 1)
+        self._copy = QPushButton(self._copy_label(), self._email)
+        self._copy.setStyleSheet(_BTN_COPY)
+        keyboard_ring(self._copy)
+        self._copy.setFixedHeight(scale_px_length(_COPY_PX))
+        self._copy.setCursor(Qt.CursorShape.PointingHandCursor)
+        self._copy.setAutoDefault(False)
+        self._copy.clicked.connect(self._copy_email)
+        email.addWidget(self._copy, 0)
+        self._email.hide()
+        col.addSpacing(SPACE_TIGHT)
+        col.addWidget(self._email)
+        self._button = QPushButton(self._card)
+        self._button.setStyleSheet(_BTN_OFFER_PILL)
         keyboard_ring(self._button)
-        self._button.setFixedHeight(scale_px_length(BTN_PRIMARY_WIDE_PX))
+        self._button.setFixedHeight(scale_px_length(OFFER_PILL_PX))
         self._button.setCursor(Qt.CursorShape.PointingHandCursor)
         self._button.setAutoDefault(False)
-        plan.addWidget(self._button)
-        self._promise = QLabel(self._plan)
-        self._promise.setStyleSheet(scale_qss_font_px(_MUTED_QSS))
-        self._promise.setWordWrap(True)
-        self._promise.setTextFormat(Qt.TextFormat.PlainText)
-        self._promise.hide()
-        plan.addWidget(self._promise)
-        self._student = QPushButton(self._plan)
-        self._student.setStyleSheet(scale_qss_font_px(_STUDENT_QSS))
-        self._student.setCursor(Qt.CursorShape.PointingHandCursor)
-        self._student.setAutoDefault(False)
-        self._student.clicked.connect(lambda: open_student_offer(
-            "low_card" if self.state == "free_low" else "wall", self.window() or self))
-        self._student.hide()
-        plan.addWidget(self._student, 0, Qt.AlignmentFlag.AlignHCenter)
-        self._invoice = QPushButton(self.tr("Invoice for my company"), self._plan)
-        self._invoice.setStyleSheet(scale_qss_font_px(_INVOICE_QSS))
-        self._invoice.setCursor(Qt.CursorShape.PointingHandCursor)
-        self._invoice.setAutoDefault(False)
-        self._invoice.clicked.connect(lambda: self.invoice_requested.emit(self._where()))
-        plan.addWidget(self._invoice, 0, Qt.AlignmentFlag.AlignHCenter)
-        self._contact = QPushButton(self.tr("Write to us"), self._plan)
-        self._contact.setStyleSheet(scale_qss_font_px(_INVOICE_QSS))
-        self._contact.setCursor(Qt.CursorShape.PointingHandCursor)
-        self._contact.setAutoDefault(False)
-        self._contact.clicked.connect(self.contact_requested.emit)
-        self._contact.hide()
-        plan.addWidget(self._contact, 0, Qt.AlignmentFlag.AlignHCenter)
-        self._more = _Disclosure(self._plan)
-        plan.addWidget(self._more)
-        self._details = QWidget(self._plan)
-        details = QVBoxLayout(self._details)
-        details.setContentsMargins(0, 0, 0, 0)
-        details.setSpacing(SPACE_TIGHT)
-        self._pitch = QLabel(self._details)
-        self._pitch.setStyleSheet(scale_qss_font_px(_HEAD_QSS))
-        details.addWidget(self._pitch)
-        self._checks: list[QLabel] = []
-        self._check_icons: list[QLabel] = []
-        for _ in range(4):
-            line = QHBoxLayout()
-            line.setContentsMargins(0, 0, 0, 0)
-            line.setSpacing(SPACE_TIGHT + 2)
-            tick = QLabel(self._details)
-            tick.setFixedSize(scale_px_length(_CHECK_PX), scale_px_length(_CHECK_PX))
-            line.addWidget(tick, 0, Qt.AlignmentFlag.AlignTop)
-            text = QLabel(self._details)
-            text.setStyleSheet(scale_qss_font_px(_BODY_QSS))
-            text.setWordWrap(True)
-            text.setTextFormat(Qt.TextFormat.PlainText)
-            line.addWidget(text, 1)
-            details.addLayout(line)
-            self._check_icons.append(tick)
-            self._checks.append(text)
-        self._price = QLabel(self._details)
-        self._price.setStyleSheet(scale_qss_font_px(_PRICE_QSS))
-        details.addSpacing(2)
-        details.addWidget(self._price)
-        self._use = QLabel(self._details)
-        self._use.setStyleSheet(scale_qss_font_px(_MUTED_QSS))
-        details.addWidget(self._use)
-        self._details.hide()
-        self._more.toggled.connect(self._details.setVisible)
-        plan.addWidget(self._details)
-        col.addWidget(self._plan)
+        col.addWidget(self._button, 0, Qt.AlignmentFlag.AlignLeft)
+        self._caption = QLabel(self._card)
+        self._caption.setStyleSheet(scale_qss_font_px(_CAPTION_QSS))
+        col.addWidget(self._caption)
 
-        self._body = QLabel(self._card)
-        self._body.setStyleSheet(scale_qss_font_px(_BODY_QSS))
-        col.addWidget(self._body)
-        self._ghost = QPushButton(self._card)
-        self._ghost.setStyleSheet(_BTN_GHOST)
-        keyboard_ring(self._ghost)
-        self._ghost.setFixedHeight(scale_px_length(BTN_PILL_PX))
-        self._ghost.setCursor(Qt.CursorShape.PointingHandCursor)
-        self._ghost.setAutoDefault(False)
-        self._ghost.clicked.connect(self._copy_email)
-        col.addWidget(self._ghost, 0, Qt.AlignmentFlag.AlignLeft)
-
-        self._escape = QLabel(self._card)
-        self._escape.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
-        self._escape.setStyleSheet(scale_qss_font_px(_MUTED_QSS))
-        col.addWidget(self._escape)
-        for label in (self._title, self._note, self._body, self._escape, self._pitch,
-                      self._price, self._use):
+        self._links = QLabel(self._card)
+        self._links.setStyleSheet(scale_qss_font_px(_CAPTION_QSS))
+        self._links.setTextFormat(Qt.TextFormat.RichText)
+        self._links.setTextInteractionFlags(Qt.TextInteractionFlag.LinksAccessibleByMouse
+                                            | Qt.TextInteractionFlag.LinksAccessibleByKeyboard)
+        self._links.linkActivated.connect(self._on_link)
+        col.addWidget(self._links)
+        for label in (self._title, self._note, self._caption, self._links):
             label.setWordWrap(True)
+        for label in (self._title, self._note, self._caption, self._address):
             label.setTextFormat(Qt.TextFormat.PlainText)
-        outer.addWidget(self._card)
         self.hide()
+
+    def seat(self) -> QWidget:
+
+        return self._seat
+
+    def set_seat_shown(self, shown: bool) -> None:
+
+        if self._seat.isHidden() != shown:
+            return
+        self._seat.setVisible(shown)
+        self.layout().activate()
+
+    def focus_widget(self) -> QWidget:
+
+        return self._email if self._email.isVisible() else self._button
+
+    def offers(self) -> bool:
+
+        return self.moment in ("low", "wall") or (self.state == "paid_out" and self._button.isVisible())
+
+
+
+    def show_low(self, left: int, reset_text: str = "", trial: tuple | None = None) -> None:
+
+
+
+        del reset_text
+        self.state = "free_low"
+        self._set(offer_text("low.title.one", self.tr("1 free task left this month")) if left == 1
+                  else offer_text("low.title.many", self.tr("{n} free tasks left this month"), n=left),
+                  offer_text("low.note.trial", self.tr("Want more? Pro is free for a week.")) if trial
+                  else offer_text("low.note.return", self.tr("Want more? Come back to Pro: {n} tasks a month."),
+                                  n=get_pro_runs_per_month()) if get_pro_offer() == "return"
+                  else offer_text("low.note.pro", self.tr("Want more? Pro has {n} tasks a month."),
+                                  n=get_pro_runs_per_month()),
+                  close=True)
+        self._offer(trial, wall=False)
+        self._moment("low")
 
     def show_exhausted(self, is_subscriber: bool, limit: int, reset_text: str = "",
                        trial: tuple | None = None, account_cap: str | None = None,
@@ -472,194 +433,212 @@ class QuotaCard(QWidget):
 
 
 
-
-
-
-        self._title.show()
-        self._close.hide()
-        self._contact.hide()
         if is_subscriber:
             self.state = "paid_out"
-            self._title.setText(self.tr("Your tasks for this month are used"))
             if limit and reset_text:
-                self._note.setText(self.tr("You used all {n} tasks this month. They come back on {date}.")
-                                   .format(n=limit, date=reset_text))
+                note = offer_text("spent.note.both", self.tr(
+                    "You used all {n} tasks this month. They come back on {date}."), n=limit, date=reset_text)
             elif reset_text:
-                self._note.setText(self.tr("They come back on {date}.").format(date=reset_text))
+                note = offer_text("spent.note.date", self.tr("They come back on {date}."), date=reset_text)
             else:
-                self._note.setText(self.tr("You used all {n} tasks this month.").format(n=limit) if limit else "")
-            self._note.show()
-            self._student.hide()
+                note = offer_text("spent.note.used", self.tr("You used all {n} tasks this month."),
+                                  n=limit) if limit else ""
+            self._set(offer_text("spent.title", self.tr("Your tasks for this month are used")), note)
             if start_now:
-                for w in (self._promise, self._invoice, self._contact, self._more, self._details):
-                    w.hide()
-                self._button.setText(self.tr("Start my plan now"))
+                self._button_says(offer_text("spent.start", self.tr("Start my plan now")))
                 self._route_button(self.start_now_requested.emit)
-                self._plan.show()
             else:
-                self._plan.hide()
-            self._body.setText(self.tr("Need more this month? Write to us and we set up a custom quota."))
-            self._body.show()
-            self._ghost.setText(self.tr("Copy email"))
-            self._ghost.show()
-            self._escape.setText(get_support_email())
-            self._escape.show()
+                self._button.hide()
+            self._links.setText(_link("write", offer_text("spent.write", self.tr("Need more this month? Write to us"))))
+            self._links.show()
+            self._moment("spent")
+            return
+        self.state = "free_out"
+        if account_cap is not None:
+            self._set(self.tr("Free AI Agent was already used by other accounts on this computer."),
+                      account_cap or self.tr("Upgrade to Pro to keep going. Shared computer, or a mistake? "
+                                             "Contact {email} and we will unlock it.").format(
+                          email=get_support_email()))
         else:
-            self._enter_free_state("free_out")
-            if account_cap is not None:
-                self._title.setText(self.tr("Free AI Agent was already used by other accounts on this computer."))
-                self._note.setText(account_cap or self.tr(
-                    "Upgrade to Pro to keep going. Shared computer, or a mistake? "
-                    "Contact {email} and we will unlock it.").format(email=get_support_email()))
-            else:
-                self._title.setText(self.tr("Your free tasks for this month are used"))
-                self._note.setText(self.tr("Free tasks come back on {date}.").format(date=reset_text) if reset_text
-                                   else self.tr("Free tasks come back at your monthly reset."))
-            self._note.show()
-            self._show_free_offer(trial)
-        self.show()
-
-    def show_low(self, left: int, reset_text: str = "", trial: tuple | None = None) -> None:
-
-
-        self._title.show()
-        self._contact.hide()
-        self._close.show()
-        self._enter_free_state("free_low")
-        self._title.setText(self.tr("1 free task left") if left == 1
-                            else self.tr("{n} free tasks left").format(n=left))
-        self._note.setText(self.tr("Free tasks come back on {date}.").format(date=reset_text) if reset_text
-                           else self.tr("Free tasks come back at your monthly reset."))
-        self._note.show()
-        self._show_free_offer(trial)
-        self.show()
-
-    def _where(self) -> str:
-
-        return {"checkout_return": "checkout_return", "free_low": "low_card"}.get(self.state, "exhausted_card")
-
-    def _enter_free_state(self, state: str) -> None:
-
-        if self.state != state:
-            self._more.set_open(False)
-        self.state = state
-        for w in (self._body, self._ghost, self._escape):
-            w.hide()
-
-    def _show_free_offer(self, trial: tuple | None) -> None:
-        where = self._where()
-        self._pitch.setText(self.tr("Pro: {n} tasks a month and harder tasks").format(n=get_pro_runs_per_month()))
-        lines = (
-            self.tr("{n} tasks a month").format(n=get_pro_runs_per_month()),
-            self.tr("Medium effort now, High after the trial") if trial
-            else self.tr("Medium and High effort for harder tasks"),
-            self.tr("Autopilot"),
-            self.tr("Memory and your instructions"),
-        )
-        for label, tick, line in zip(self._checks, self._check_icons, lines):
-            label.setText(line)
-            tick.setPixmap(pixmap_for(tick, "check", _CHECK_PX, QColor(ACCENT)))
-        price = pro_price_per_month()
-        self._price.setText(self.tr("{price} · cancel anytime").format(price=price) if price
-                            else self.tr("Cancel anytime"))
-        self._use.setText(self.tr("Free is for personal and study use. Pro covers work for clients and employers."))
-        if trial:
-            self._button.setText(trial_cta(trial[0]))
-            self._promise.setText(trial_reassurance())
-            self._invoice.setText(self.tr("Company paying by invoice? Get 7 free days"))
-        else:
-            self._button.setText(self.tr("Get Pro"))
-            self._invoice.setText(self.tr("Invoice for my company"))
-        self._promise.setVisible(bool(trial))
-        self._price.setVisible(not trial)
-        self._more.set_text(self.tr("What Pro includes"))
-        self._details.setVisible(self._more.is_open())
-        self._more.show()
-        self._route_button(lambda: self.plans_requested.emit(where))
-        student = get_student_offer()
-        if student and student["state"] == "offer":
-            self._student.setText(student["label"].replace("&", "&&"))
-            self._student.show()
-            note_student_offer_shown("low_card" if where == "low_card" else "wall")
-        else:
-            self._student.hide()
-        self._invoice.show()
-        self._plan.show()
+            self._set(offer_text("wall.title", self.tr("That was your last free task")),
+                      offer_text("wall.note.date", self.tr("Free tasks come back on {date}."), date=reset_text)
+                      if reset_text
+                      else offer_text("wall.note.reset", self.tr("Free tasks come back at your monthly reset.")))
+        self._offer(trial, wall=True)
+        self._moment("wall")
 
     def show_payment_failed(self, amount: str = "") -> None:
 
 
 
         self.state = "payment_failed"
-        self._title.setText(self.tr("Your payment of {amount} failed").format(amount=amount) if amount
-                            else self.tr("Your Pro payment failed"))
-        self._title.show()
-        self._note.setText(self.tr("Pro is off until it's paid. You're on the free plan for now."))
-        self._note.show()
-        for w in (self._body, self._ghost, self._escape, self._promise, self._more, self._details,
-                  self._invoice, self._contact, self._close, self._student):
-            w.hide()
-        self._button.setText(self.tr("Pay {amount} now").format(amount=amount.replace("&", "&&")) if amount
-                             else self.tr("Pay now"))
+        self._set(offer_text("payment.title.amount", self.tr("Your payment of {amount} failed"), amount=amount)
+                  if amount else offer_text("payment.title", self.tr("Your Pro payment failed")),
+                  offer_text("payment.note", self.tr("Pro is off until it's paid.")))
+        self._button_says(offer_text("payment.button.amount", self.tr("Pay {amount} now"),
+                                     amount=amount.replace("&", "&&")) if amount
+                          else offer_text("payment.button", self.tr("Pay now")))
         self._route_button(self.pay_requested.emit)
-        self._plan.show()
-        self.show()
+        self._links.hide()
+        self._moment("payment")
 
-    def show_checkout_return(self) -> None:
+    def show_checkout_return(self, trial: tuple | None = None) -> None:
+
 
 
         self.state = "checkout_return"
-        self._title.setText(self.tr("Didn't finish upgrading?"))
-        self._title.show()
-        self._note.setText(self.tr("Your plan is still Free. If something got in the way:"))
-        self._note.show()
-        for w in (self._body, self._ghost, self._escape, self._promise, self._more, self._details,
-                  self._student):
-            w.hide()
-        self._button.setText(self.tr("Back to the Pro page"))
-        self._route_button(lambda: self.plans_requested.emit("checkout_return"))
-        self._invoice.setText(self.tr("Company paying by invoice? Get 7 free days"))
-        self._invoice.show()
-        self._contact.show()
-        self._close.show()
-        self._plan.show()
-        self.show()
+        self._trial = trial
+        self._set(offer_text("return.title", self.tr("Need it for work?")),
+                  offer_text("return.note.trial", self.tr(
+                      "No card to pay with? Write to us and we'll set up your 7 free days."))
+                  if trial else offer_text("return.note", self.tr(
+                      "No card to pay with? Write to us and we'll send your company an invoice.")), close=True)
+        self._address.setText(get_support_email())
+        self._copy.setText(self._copy_label())
+        self._email.show()
+        self._button_says(offer_text("return.button", self.tr("Write to us")))
+        self._route_button(self._write)
+        self._links.setText(_link("plans", offer_text("return.back", self.tr("Back to the Pro page"))))
+        self._links.show()
+        self._moment("return")
 
     def show_pro_welcome(self, limit: int, trial_until: str = "") -> None:
 
 
         self.state = "pro_welcome"
-        self._title.setText(self.tr("You're on Pro"))
-        self._title.show()
-        lines = [self.tr("{n} tasks a month.").format(n=limit)] if limit > 0 else []
+        lines = [offer_text("welcome.runs", self.tr("{n} tasks a month."), n=limit)] if limit > 0 else []
         if trial_until:
-            lines.append(self.tr("Free trial until {date}.").format(date=trial_until))
-        self._note.setText("\n".join(lines))
-        self._note.setVisible(bool(lines))
-        for w in (self._body, self._ghost, self._escape, self._promise, self._more, self._details,
-                  self._invoice, self._contact, self._close, self._student):
-            w.hide()
-        self._button.setText(self.tr("OK"))
+            lines.append(offer_text("welcome.trial", self.tr("Free trial until {date}."), date=trial_until))
+        self._set(offer_text("welcome.title", self.tr("You're on Pro")), " ".join(lines))
+        self._button_says(offer_text("welcome.ok", self.tr("OK")))
         self._route_button(self.welcome_closed.emit)
-        self._plan.show()
-        self.show()
+        self._links.hide()
+        self._moment("welcome")
 
     def clear(self) -> None:
-        self.state = ""
+        self.state = self.moment = ""
         self.hide()
 
-    def _route_button(self, slot) -> None:
-        disconnect_quietly(self._button, "clicked")
-        if slot is not None:
-            self._button.clicked.connect(slot)
+
+
+    def _set(self, title: str, note: str, close: bool = False) -> None:
+        self._title.setText(title)
+        self._note.setText(note)
+        self._note.setVisible(bool(note))
+        self._close.setVisible(close)
+        self._email.hide()
+        self._caption.hide()
+
+    def _moment(self, moment: str) -> None:
+        self.show()
+        if moment != self.moment:
+            self.moment = moment
+            self.moment_changed.emit(moment)
+
+    def _offer(self, trial: tuple | None, wall: bool) -> None:
+
+        where = self._where()
+        if trial:
+            self._button_says(trial_cta(trial[0]), trial_short())
+            self._button.setToolTip(trial_promise(*trial))
+            text = offer_text("wall.caption.trial", self.tr("Nothing to pay today"))
+        else:
+            self._button_says(get_pro_label())
+            price = pro_price_per_month()
+            text = offer_text("wall.caption.price", self.tr("{price} · cancel anytime"),
+                              price=price) if price else ""
+            if not text and get_pro_offer() == "return":
+                text = offer_text("wall.caption.return", self.tr("{n} tasks a month, cancel anytime"),
+                                  n=get_pro_runs_per_month())
+        self._caption.setText(text)
+        self._caption.setVisible(wall and bool(text))
+        self._route_button(lambda: self.plans_requested.emit(where))
+        student = get_student_offer()
+        student = wall and student and student["state"] == "offer"
+        if student:
+            self._links.setText(_link("student", get_student_offer()["label"]))
+            note_student_offer_shown("wall")
+        self._links.setVisible(bool(student))
+
+    def _button_says(self, label: str, short: str = "") -> None:
+        self._labels = (label, short or label)
+        self._button.setToolTip("")
+        self._button.show()
+        self._fit_button()
+
+    def _fit_button(self) -> None:
+
+
+        label, short = self._labels
+        if not label:
+            return
+        self._button.ensurePolished()
+        room = self._card.width() - _CARD_MARGINS[0] - _CARD_MARGINS[2]
+        need = self._button.fontMetrics().horizontalAdvance(label) + scale_px_length(_BUTTON_PAD)
+        self._button.setText(label if room <= 0 or need <= room else short)
+        self._button.setAccessibleName(label.replace("&&", "&"))
+
+    def resizeEvent(self, event):  # noqa: N802
+        super().resizeEvent(event)
+        self._fit_button()
+
+    def _where(self) -> str:
+
+        return {"checkout_return": "checkout_return", "free_low": "low_card"}.get(self.state, "exhausted_card")
+
+    def _on_link(self, href: str) -> None:
+        if href == "student":
+            open_student_offer("wall", self.window() or self)
+        elif href == "plans":
+            self.plans_requested.emit("checkout_return")
+        elif href == "write":
+            self._write()
+
+    def _on_close(self) -> None:
+        (self.low_closed if self.state == "free_low" else self.return_closed).emit()
+
+    def _write(self) -> None:
+
+        self.contact_requested.emit(self._where())
+        address = get_support_email()
+        if self.state == "paid_out":
+            kind, subject, body = "more", self.tr("More AI Agent tasks this month"), self.tr(
+                "Hello,\n\nI used all my AI Agent tasks this month. Could you raise my quota?\n\nThank you")
+        elif self._trial:
+            kind, subject, body = "trial", self.tr("AI Agent Pro for work, without a card"), self.tr(
+                "Hello,\n\nI'd like to use AI Agent Pro at work but I can't pay by card. "
+                "Could you set up the 7 free days for us?\n\nCompany:\nName:\n\nThank you")
+        else:
+            kind, subject, body = "invoice", self.tr("AI Agent Pro for work, by invoice"), self.tr(
+                "Hello,\n\nI'd like to use AI Agent Pro at work but I can't pay by card. "
+                "Could you send my company an invoice or a quote?\n\nCompany:\nName:\n\nThank you")
+        subject = offer_text(f"mail.{kind}.subject", subject)
+        shipped, body = body, offer_text(f"mail.{kind}.body", body)
+
+
+        query = urlencode({"subject": subject, "body": body.replace("\r\n", "\n").replace("\n", "\r\n")},
+                          quote_via=quote)
+        if len(query) > _MAILTO_MAX:
+            query = urlencode({"subject": subject, "body": shipped.replace("\n", "\r\n")}, quote_via=quote)
+        open_email(f"mailto:{address}?{query}", address, parent=self.window() or self)
 
     def _copy_email(self) -> None:
         try:
             QApplication.clipboard().setText(get_support_email())
         except (RuntimeError, AttributeError):
             return
-        self._ghost.setText(self.tr("Copied"))
+        self.contact_requested.emit(self._where() + ":copy")
+        self._copy.setText(offer_text("return.copied", self.tr("Copied")))
+        self.moment_changed.emit("copied")
 
         if getattr(self, "_copied_timer", None) is None:
-            self._copied_timer = one_shot(self, lambda: self._ghost.setText(self.tr("Copy email")))
+            self._copied_timer = one_shot(self, lambda: self._copy.setText(self._copy_label()))
         self._copied_timer.start(_COPIED_MS)
+
+    def _copy_label(self) -> str:
+        return offer_text("return.copy", self.tr("Copy"))
+
+    def _route_button(self, slot) -> None:
+        disconnect_quietly(self._button, "clicked")
+        if slot is not None:
+            self._button.clicked.connect(slot)

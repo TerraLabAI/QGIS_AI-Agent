@@ -34,6 +34,7 @@ from qgis.PyQt.QtCore import QT_VERSION_STR
 from ..core.host_platform import IS_WINDOWS
 from . import tokens
 from .font_scale import scale_qss_font_px
+from .shared import CHAT_PANEL_OBJECT, TURN_DIVIDER_OBJECT
 from .styles import BTN_GREEN, BTN_GREEN_HOVER, DARK_UI
 
 
@@ -320,7 +321,7 @@ _BTN_ICON = (
 
 
 _BTN_SEND = (
-    f"QToolButton {{ background: {ACCENT}; border: none; border-radius: 16px;"
+    f"QToolButton {{ background: {ACCENT}; border: none; border-radius: {RADIUS_CARD}px;"
     " padding: 0; }"
     f"QToolButton:hover {{ background: {ACCENT_HOVER}; }}"
     f"QToolButton:pressed {{ background: {ACCENT_DARK}; }}"
@@ -333,9 +334,10 @@ _BTN_SEND = (
     f'QToolButton[offline="true"]:hover {{ background: {ACCENT}; }}'
     f'QToolButton[offline="true"]:pressed {{ background: {ACCENT_DARK}; }}'
 
-    f'QToolButton[running="true"] {{ background: {INK}; }}'
-    f'QToolButton[running="true"]:hover {{ background: {INK_HOVER}; }}'
-    f'QToolButton[running="true"]:pressed {{ background: {INK_2}; }}'
+
+    f'QToolButton[running="true"] {{ background: {FIELD}; }}'
+    f'QToolButton[running="true"]:hover {{ background: {HOVER_ON}; }}'
+    f'QToolButton[running="true"]:pressed {{ background: {LINE_STRONG}; }}'
 
 
     f'QToolButton[queue="true"] {{ background: {SURFACE}; border: 1px solid {LINE_STRONG}; }}'
@@ -418,12 +420,15 @@ _BTN_PRIMARY = (
 )
 
 
+OFFER_FILL = BTN_GREEN_HOVER
+OFFER_FILL_HOVER = "#1b5e20"
+ON_OFFER = "#ffffff"
 _BTN_PRIMARY_WIDE = (
-    f"QPushButton {{ background: {ACCENT}; color: {ON_ACCENT};"
+    f"QPushButton {{ background: {OFFER_FILL}; color: {ON_OFFER};"
     f" border: none; border-radius: {RADIUS_CONTROL}px;"
     f" padding: 0 18px; font-size: {FONT_BASE}px; font-weight: {WEIGHT_MEDIUM}; }}"
-    f"QPushButton:hover {{ background: {ACCENT_HOVER}; }}"
-    f"QPushButton:pressed {{ background: {ACCENT_DARK}; }}"
+    f"QPushButton:hover {{ background: {OFFER_FILL_HOVER}; }}"
+    f"QPushButton:pressed {{ background: {OFFER_FILL_HOVER}; }}"
     f"QPushButton:disabled {{ background: {ACCENT_BORDER}; color: {ON_ACCENT}; }}"
     + _focus_ring(INK, "0 16px")
 )
@@ -455,27 +460,42 @@ _BTN_QUIET = (
     + _focus_ring(ACCENT_INK, "2px 4px")
 )
 
-PRO_PILL_PX = 24
+
+OFFER_SOFT = "rgba(67, 160, 71, 0.22)" if DARK else "rgba(67, 160, 71, 0.16)"
+OFFER_SOFT_HOVER = "rgba(67, 160, 71, 0.32)" if DARK else "rgba(67, 160, 71, 0.26)"
+OFFER_SOFT_INK = ACCENT_INK if DARK else OFFER_FILL_HOVER
+
+OFFER_PILL_PX = 32
+_BTN_OFFER_PILL = (
+    f"QPushButton {{ background: {OFFER_FILL}; color: {ON_OFFER}; border: none;"
+    f" border-radius: {OFFER_PILL_PX // 2}px; padding: 0 16px;"
+    f" font-size: {FONT_BASE}px; font-weight: 600; }}"
+    f"QPushButton:hover {{ background: {OFFER_FILL_HOVER}; }}"
+    f"QPushButton:pressed {{ background: {OFFER_FILL_HOVER}; }}"
+    + _focus_ring(INK, "0 14px")
+)
+
+PRO_PILL_PX = 26
 
 
 
 
 _BTN_PRO_PILL = (
-    "QPushButton#hdrProPill { background: transparent;"
-    f" color: {ACCENT_INK}; border: none;"
-    f" padding: 0 8px; font-size: {FONT_BODY}px; }}"
-    f"QPushButton#hdrProPill:hover {{ background: {HOVER}; }}"
-    f"QPushButton#hdrProPill:pressed {{ background: {HOVER_ON}; }}"
-    f"QPushButton#hdrProPill:focus {{ border: 2px solid {ACCENT_INK}; padding: 0 6px; }}"
-    f'QPushButton#hdrProPill[compact="true"] {{ padding: 0 3px; font-size: {FONT_HINT}px; }}'
-    f'QPushButton#hdrProPill[compact="true"]:focus {{ padding: 0 1px; }}'
+    f"QPushButton#hdrProPill {{ background: {OFFER_FILL};"
+    f" color: {ON_OFFER}; border: none;"
+    f" padding: 0 12px; font-size: {FONT_BODY}px; font-weight: 600; }}"
+    f"QPushButton#hdrProPill:hover {{ background: {OFFER_FILL_HOVER}; }}"
+    f"QPushButton#hdrProPill:pressed {{ background: {OFFER_FILL_HOVER}; }}"
+    f"QPushButton#hdrProPill:focus {{ border: 2px solid {INK}; padding: 0 10px; }}"
+    f'QPushButton#hdrProPill[compact="true"] {{ padding: 0 8px; font-size: {FONT_HINT}px; }}'
+    f'QPushButton#hdrProPill[compact="true"]:focus {{ padding: 0 6px; }}'
 )
 
 
 
 
 for _qss_name in ("_BTN_MODE", "_BTN_PRIMARY", "_BTN_PRIMARY_WIDE", "_BTN_GHOST",
-                  "_BTN_DANGER_GHOST", "_BTN_QUIET", "_BTN_PRO_PILL"):
+                  "_BTN_DANGER_GHOST", "_BTN_QUIET", "_BTN_PRO_PILL", "_BTN_OFFER_PILL"):
     globals()[_qss_name] = scale_qss_font_px(globals()[_qss_name])
 del _qss_name
 
@@ -531,7 +551,7 @@ def panel_qss() -> str:
         f" border-radius: {RADIUS_CHIP}px; padding: 1px 6px; font-size: {FONT_HINT}px; color: {INK}; }}"
     )
     return scale_qss_font_px(
-        f"QWidget#chatPanel {{ background: {PAGE}; }}"
+        f"QWidget#{CHAT_PANEL_OBJECT} {{ background: {PAGE}; }}"
 
 
         "QWidget#messageContent { background: transparent; }"
@@ -609,7 +629,7 @@ def panel_qss() -> str:
         f'QLabel#toolLine[failed="true"] {{ color: {INK_2}; }}'
         f"QLabel#traceHead {{ font-size: {FONT_BASE}px; color: {INK_2};"
         " background: transparent; border: none; }"
-        f"QFrame#turnDivider {{ background: {LINE_SOFT}; border: none; }}"
+        f"QFrame#{TURN_DIVIDER_OBJECT} {{ background: {LINE_SOFT}; border: none; }}"
 
 
 

@@ -199,6 +199,16 @@ def qgis_version() -> str:
 
 
 _PLUGIN_VERSION: list[str] = []
+PLUGIN_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+
+
+PLUGIN_FOLDERS = ("AI_Agent", "QGIS_AI-Agent-Team", "QGIS_AI-Agent", "QGIS_AI_Agent", "qgis_ai_agent")
+
+
+def is_own_folder(folder: str) -> bool:
+
+    return bool(folder) and (folder in PLUGIN_FOLDERS or folder == os.path.basename(PLUGIN_ROOT))
 
 
 def plugin_version() -> str:
@@ -206,10 +216,9 @@ def plugin_version() -> str:
 
 
     if not _PLUGIN_VERSION:
-        root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
         version = ""
         try:
-            with open(os.path.join(root, "metadata.txt"), encoding="utf-8") as handle:
+            with open(os.path.join(PLUGIN_ROOT, "metadata.txt"), encoding="utf-8") as handle:
                 for line in handle:
                     if line.strip().lower().startswith("version="):
                         version = line.split("=", 1)[1].strip()

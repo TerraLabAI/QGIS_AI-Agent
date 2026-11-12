@@ -1714,6 +1714,98 @@ Việc xóa là không thể hoàn tác khi thời gian chờ kết thúc. Cho �
             <source>expired</source>
             <translation>đã hết hạn</translation>
         </message>
+        <message>
+            <source>Flow lines: {}</source>
+            <translation>Đường luồng: {}</translation>
+        </message>
+        <message>
+            <source>Voice dictation</source>
+            <translation>Đọc chính tả bằng giọng nói</translation>
+        </message>
+        <message>
+            <source>Talk to your AI agent</source>
+            <translation>Nói chuyện với tác tử AI của bạn</translation>
+        </message>
+        <message>
+            <source>Speak, and your words become text you can edit before sending.</source>
+            <translation>Bạn nói, lời nói sẽ thành văn bản để bạn chỉnh sửa trước khi gửi.</translation>
+        </message>
+        <message>
+            <source>Your voice stays private</source>
+            <translation>Giọng nói của bạn được giữ riêng tư</translation>
+        </message>
+        <message>
+            <source>Recorded only when you press the microphone, transcribed in the EU, never stored by TerraLab and never used to train AI.</source>
+            <translation>Chỉ ghi âm khi bạn nhấn micro, được chuyển thành văn bản tại EU, TerraLab không bao giờ lưu trữ và không bao giờ dùng để huấn luyện AI.</translation>
+        </message>
+        <message>
+            <source>Start dictating</source>
+            <translation>Bắt đầu đọc chính tả</translation>
+        </message>
+        <message>
+            <source>Not now</source>
+            <translation>Để sau</translation>
+        </message>
+        <message>
+            <source>AI can make mistakes</source>
+            <translation>AI có thể mắc lỗi</translation>
+        </message>
+        <message>
+            <source>Adding the layer</source>
+            <translation>Đang thêm lớp</translation>
+        </message>
+        <message>
+            <source>Cutting to the area</source>
+            <translation>Đang cắt theo vùng</translation>
+        </message>
+        <message>
+            <source>Failed</source>
+            <translation>Thất bại</translation>
+        </message>
+        <message>
+            <source>Finding the place</source>
+            <translation>Đang tìm địa điểm</translation>
+        </message>
+        <message>
+            <source>Paused</source>
+            <translation>Đã tạm dừng</translation>
+        </message>
+        <message>
+            <source>Querying the source</source>
+            <translation>Đang truy vấn nguồn dữ liệu</translation>
+        </message>
+        <message>
+            <source>Queued</source>
+            <translation>Đang chờ</translation>
+        </message>
+        <message>
+            <source>Stopped</source>
+            <translation>Đã dừng</translation>
+        </message>
+        <message>
+            <source>Working</source>
+            <translation>Đang xử lý</translation>
+        </message>
+        <message>
+            <source>about {n} min left</source>
+            <translation>còn khoảng {n} phút</translation>
+        </message>
+        <message>
+            <source>about {n} s left</source>
+            <translation>còn khoảng {n} giây</translation>
+        </message>
+        <message>
+            <source>{done} MB</source>
+            <translation>{done} MB</translation>
+        </message>
+        <message>
+            <source>{done} of {total} MB</source>
+            <translation>{done} / {total} MB</translation>
+        </message>
+        <message>
+            <source>{words} · {done} of {total}</source>
+            <translation>{words} · {done} / {total}</translation>
+        </message>
     </context>
     <context>
         <name>AIAgentContext</name>
@@ -2189,6 +2281,18 @@ Việc xóa là không thể hoàn tác khi thời gian chờ kết thúc. Cho �
         <message>
             <source>Sign in or create an account</source>
             <translation>Đăng nhập hoặc tạo tài khoản</translation>
+        </message>
+        <message>
+            <source>Opens your browser, takes about 15 seconds</source>
+            <translation>Mở trình duyệt của bạn, mất khoảng 15 giây</translation>
+        </message>
+        <message>
+            <source>Sign in or create a free account</source>
+            <translation>Đăng nhập hoặc tạo tài khoản miễn phí</translation>
+        </message>
+        <message>
+            <source>The AI agent loads data, styles layers, runs analyses and edits features for you.</source>
+            <translation>AI agent tải dữ liệu, tạo kiểu cho lớp, chạy phân tích và chỉnh sửa đối tượng giúp bạn.</translation>
         </message>
     </context>
     <context>
@@ -3101,6 +3205,22 @@ Việc xóa là không thể hoàn tác khi thời gian chờ kết thúc. Cho �
             <source>Removed from the queue</source>
             <translation>Đã xóa khỏi hàng chờ</translation>
         </message>
+        <message>
+            <source>No free tasks left on this computer</source>
+            <translation>Không còn tác vụ miễn phí trên máy tính này</translation>
+        </message>
+        <message>
+            <source>No free tasks left this month</source>
+            <translation>Không còn tác vụ miễn phí trong tháng này</translation>
+        </message>
+        <message>
+            <source>Ask or describe a task in QGIS</source>
+            <translation>Hỏi hoặc mô tả một tác vụ trong QGIS</translation>
+        </message>
+        <message>
+            <source>Reply</source>
+            <translation>Trả lời</translation>
+        </message>
     </context>
     <context>
         <name>ChatSidebar</name>
@@ -3380,6 +3500,26 @@ Việc xóa là không thể hoàn tác khi thời gian chờ kết thúc. Cho �
             <source>{n} left out, {total} at most</source>
             <translation>{n} bị bỏ qua, tối đa {total}</translation>
         </message>
+        <message>
+            <source>Send this as it is?</source>
+            <translation>Gửi nguyên văn như vậy?</translation>
+        </message>
+        <message>
+            <source>It looks like a typing slip. Edit it, or press Send again.</source>
+            <translation>Có vẻ như bạn gõ nhầm. Hãy sửa lại, hoặc nhấn Gửi lần nữa.</translation>
+        </message>
+        <message>
+            <source>Ask or describe a task in QGIS</source>
+            <translation>Hỏi hoặc mô tả một tác vụ trong QGIS</translation>
+        </message>
+        <message>
+            <source>Done: write what I said (Enter)</source>
+            <translation>Xong: viết lại điều tôi nói (Enter)</translation>
+        </message>
+        <message>
+            <source>Finish dictation</source>
+            <translation>Kết thúc đọc chính tả</translation>
+        </message>
     </context>
     <context>
         <name>ComposerInput</name>
@@ -3561,6 +3701,30 @@ Việc xóa là không thể hoàn tác khi thời gian chờ kết thúc. Cho �
             <source>{sources} sources the AI agent finds and loads by itself: {datasets} datasets in {countries} countries.</source>
             <translation>{sources} nguồn mà AI agent tự tìm và tải: {datasets} bộ dữ liệu ở {countries} quốc gia.</translation>
         </message>
+        <message>
+            <source>%n datasets from other providers</source>
+            <translation>%n bộ dữ liệu từ các nhà cung cấp khác</translation>
+        </message>
+        <message>
+            <source>Popular</source>
+            <translation>Phổ biến</translation>
+        </message>
+        <message>
+            <source>Europe</source>
+            <translation>Châu Âu</translation>
+        </message>
+        <message>
+            <source>Americas</source>
+            <translation>Châu Mỹ</translation>
+        </message>
+        <message>
+            <source>Asia and Pacific</source>
+            <translation>Châu Á và Thái Bình Dương</translation>
+        </message>
+        <message>
+            <source>Africa and Middle East</source>
+            <translation>Châu Phi và Trung Đông</translation>
+        </message>
     </context>
     <context>
         <name>DiffTableCard</name>
@@ -3678,6 +3842,10 @@ Việc xóa là không thể hoàn tác khi thời gian chờ kết thúc. Cho �
             <source>{level} needs Pro. Pick Low to send.</source>
             <translation>{level} cần Pro. Chọn Low để gửi.</translation>
         </message>
+        <message>
+            <source>Effort {level}: how hard the AI agent works on the next message</source>
+            <translation>Mức nỗ lực {level}: AI agent làm việc kỹ đến đâu cho tin nhắn tiếp theo</translation>
+        </message>
     </context>
     <context>
         <name>EmptyState</name>
@@ -3700,6 +3868,10 @@ Việc xóa là không thể hoàn tác khi thời gian chờ kết thúc. Cho �
         <message>
             <source>AI can make mistakes. Check its changes.</source>
             <translation>AI có thể mắc lỗi. Hãy kiểm tra các thay đổi của AI.</translation>
+        </message>
+        <message>
+            <source>How can I help?</source>
+            <translation>Tôi có thể giúp gì cho bạn?</translation>
         </message>
     </context>
     <context>
@@ -3858,6 +4030,26 @@ Tập tin này không còn ở nơi lần chạy đã ghi.</translation>
         <message>
             <source>Send feedback</source>
             <translation>Gửi phản hồi</translation>
+        </message>
+        <message>
+            <source>Free trial</source>
+            <translation>Dùng thử miễn phí</translation>
+        </message>
+        <message>
+            <source>Your Pro is set to end. Keep it in one click.</source>
+            <translation>Gói Pro của bạn sắp kết thúc. Giữ lại chỉ với một cú nhấp.</translation>
+        </message>
+        <message>
+            <source>Keep Pro</source>
+            <translation>Giữ Pro</translation>
+        </message>
+        <message>
+            <source>Open the AI Agent page on terra-lab.ai</source>
+            <translation>Mở trang AI Agent trên terra-lab.ai</translation>
+        </message>
+        <message>
+            <source>Your Pro ends on {date}. Keep it in one click.</source>
+            <translation>Gói Pro của bạn kết thúc vào {date}. Giữ lại chỉ với một cú nhấp.</translation>
         </message>
     </context>
     <context>
@@ -4440,6 +4632,46 @@ Nhấn để hiện trong bảng Lớp.</translation>
             <source>{mode}: what AI Agent may do without asking</source>
             <translation>{mode}: những việc AI Agent được làm mà không cần hỏi</translation>
         </message>
+        <message>
+            <source>Free trial</source>
+            <translation>Dùng thử miễn phí</translation>
+        </message>
+        <message>
+            <source>Asks before every change.</source>
+            <translation>Hỏi trước mọi thay đổi.</translation>
+        </message>
+        <message>
+            <source>Asks only before risky changes.</source>
+            <translation>Chỉ hỏi trước các thay đổi rủi ro.</translation>
+        </message>
+        <message>
+            <source>It brings your project back. Files on disk are not covered.</source>
+            <translation>Nó khôi phục dự án của bạn. Các tệp trên ổ đĩa không được bao gồm.</translation>
+        </message>
+        <message>
+            <source>Spending credits or reaching an unknown site.</source>
+            <translation>Tiêu tín dụng hoặc truy cập một trang web lạ.</translation>
+        </message>
+        <message>
+            <source>Still asks for what matters</source>
+            <translation>Vẫn hỏi những việc quan trọng</translation>
+        </message>
+        <message>
+            <source>The AI agent runs every step without asking, even to delete a layer or run code.</source>
+            <translation>AI agent chạy mọi bước mà không hỏi, kể cả xóa một lớp hay chạy mã.</translation>
+        </message>
+        <message>
+            <source>Undo is there</source>
+            <translation>Luôn có thể hoàn tác</translation>
+        </message>
+        <message>
+            <source>Works on its own</source>
+            <translation>Tự làm việc</translation>
+        </message>
+        <message>
+            <source>Works on its own and rarely asks.</source>
+            <translation>Tự làm việc và hiếm khi hỏi.</translation>
+        </message>
     </context>
     <context>
         <name>PlanCard</name>
@@ -4496,6 +4728,22 @@ Nhấn để hiện trong bảng Lớp.</translation>
         <message>
             <source>Question {n} of {count}</source>
             <translation>Câu hỏi {n} trên {count}</translation>
+        </message>
+        <message>
+            <source>Checkbox</source>
+            <translation>Hộp kiểm</translation>
+        </message>
+        <message>
+            <source>Radio button</source>
+            <translation>Nút radio</translation>
+        </message>
+        <message>
+            <source>selected</source>
+            <translation>đã chọn</translation>
+        </message>
+        <message>
+            <source>not selected</source>
+            <translation>chưa chọn</translation>
         </message>
     </context>
     <context>
@@ -4597,7 +4845,7 @@ Nhấn để hiện trong bảng Lớp.</translation>
             <translation>Pro: {n} tác vụ mỗi tháng và các tác vụ khó hơn</translation>
         </message>
         <message>
-            <source>Start 7-day free trial</source>
+            <source>Start 7 day free trial</source>
             <translation>Bắt đầu dùng thử miễn phí 7 ngày</translation>
         </message>
         <message>
@@ -4704,6 +4952,134 @@ Nhấn để hiện trong bảng Lớp.</translation>
         <message>
             <source>Medium effort now, High after the trial</source>
             <translation>Mức Medium bây giờ, mức High sau thời gian dùng thử</translation>
+        </message>
+        <message>
+            <source>For a company or team</source>
+            <translation>Dành cho công ty hoặc nhóm</translation>
+        </message>
+        <message>
+            <source>Your custom instructions</source>
+            <translation>Hướng dẫn tùy chỉnh của bạn</translation>
+        </message>
+        <message>
+            <source>1 free task left this month</source>
+            <translation>Còn 1 tác vụ miễn phí trong tháng này</translation>
+        </message>
+        <message>
+            <source>AI Agent Pro for work, by invoice</source>
+            <translation>AI Agent Pro cho công việc, thanh toán theo hóa đơn</translation>
+        </message>
+        <message>
+            <source>AI Agent Pro for work, without a card</source>
+            <translation>AI Agent Pro cho công việc, không cần thẻ</translation>
+        </message>
+        <message>
+            <source>Copy</source>
+            <translation>Sao chép</translation>
+        </message>
+        <message>
+            <source>Free trial</source>
+            <translation>Dùng thử miễn phí</translation>
+        </message>
+        <message>
+            <source>Hello,
+
+I used all my AI Agent tasks this month. Could you raise my quota?
+
+Thank you</source>
+            <translation>Xin chào,
+
+Tôi đã dùng hết số tác vụ AI Agent trong tháng này. Bạn có thể tăng hạn mức cho tôi được không?
+
+Cảm ơn</translation>
+        </message>
+        <message>
+            <source>Hello,
+
+I'd like to use AI Agent Pro at work but I can't pay by card. Could you send my company an invoice or a quote?
+
+Company:
+Name:
+
+Thank you</source>
+            <translation>Xin chào,
+
+Tôi muốn dùng AI Agent Pro cho công việc nhưng không thể thanh toán bằng thẻ. Bạn có thể gửi hóa đơn hoặc báo giá cho công ty của tôi được không?
+
+Công ty:
+Tên:
+
+Cảm ơn</translation>
+        </message>
+        <message>
+            <source>Hello,
+
+I'd like to use AI Agent Pro at work but I can't pay by card. Could you set up the 7 free days for us?
+
+Company:
+Name:
+
+Thank you</source>
+            <translation>Xin chào,
+
+Tôi muốn dùng AI Agent Pro cho công việc nhưng không thể thanh toán bằng thẻ. Bạn có thể thiết lập 7 ngày miễn phí cho chúng tôi được không?
+
+Công ty:
+Tên:
+
+Cảm ơn</translation>
+        </message>
+        <message>
+            <source>More AI Agent tasks this month</source>
+            <translation>Thêm tác vụ AI Agent trong tháng này</translation>
+        </message>
+        <message>
+            <source>Need it for work?</source>
+            <translation>Cần dùng cho công việc?</translation>
+        </message>
+        <message>
+            <source>Need more this month? Write to us</source>
+            <translation>Cần thêm trong tháng này? Hãy viết cho chúng tôi</translation>
+        </message>
+        <message>
+            <source>No card to pay with? Write to us and we'll send your company an invoice.</source>
+            <translation>Không có thẻ để thanh toán? Hãy viết cho chúng tôi, chúng tôi sẽ gửi hóa đơn cho công ty bạn.</translation>
+        </message>
+        <message>
+            <source>No card to pay with? Write to us and we'll set up your 7 free days.</source>
+            <translation>Không có thẻ để thanh toán? Hãy viết cho chúng tôi, chúng tôi sẽ thiết lập 7 ngày miễn phí cho bạn.</translation>
+        </message>
+        <message>
+            <source>Nothing to pay today</source>
+            <translation>Hôm nay không phải trả gì</translation>
+        </message>
+        <message>
+            <source>Pro is off until it's paid.</source>
+            <translation>Pro bị tắt cho đến khi được thanh toán.</translation>
+        </message>
+        <message>
+            <source>That was your last free task</source>
+            <translation>Đó là tác vụ miễn phí cuối cùng của bạn</translation>
+        </message>
+        <message>
+            <source>Want more? Come back to Pro: {n} tasks a month.</source>
+            <translation>Muốn thêm? Quay lại Pro: {n} tác vụ mỗi tháng.</translation>
+        </message>
+        <message>
+            <source>Want more? Pro has {n} tasks a month.</source>
+            <translation>Muốn thêm? Pro có {n} tác vụ mỗi tháng.</translation>
+        </message>
+        <message>
+            <source>Want more? Pro is free for a week.</source>
+            <translation>Muốn thêm? Pro miễn phí trong một tuần.</translation>
+        </message>
+        <message>
+            <source>{n} free tasks left this month</source>
+            <translation>Còn {n} tác vụ miễn phí trong tháng này</translation>
+        </message>
+        <message>
+            <source>{n} tasks a month, cancel anytime</source>
+            <translation>{n} tác vụ mỗi tháng, hủy bất cứ lúc nào</translation>
         </message>
     </context>
     <context>
@@ -5111,12 +5487,12 @@ Nhấn để hiện trong bảng Lớp.</translation>
             <translation>Ngôn ngữ, phong cách, quyền, hồ sơ của bạn và các ghi chú bộ nhớ quay về mặc định. Bạn vẫn đăng nhập.</translation>
         </message>
         <message>
-            <source>We may read a chat only to fix a bug, never to train AI. Chats are kept 30 days.</source>
-            <translation>Chúng tôi chỉ có thể đọc một cuộc trò chuyện để sửa lỗi, không bao giờ để huấn luyện AI. Cuộc trò chuyện được lưu 30 ngày.</translation>
+            <source>We may read a chat, or have a model score it, to fix bugs and improve the agent, never to train AI. Chats are kept 30 days.</source>
+            <translation>Chúng tôi có thể đọc một cuộc trò chuyện, hoặc nhờ một mô hình chấm điểm nó, để sửa lỗi và cải thiện agent, không bao giờ để huấn luyện AI. Cuộc trò chuyện được lưu 30 ngày.</translation>
         </message>
         <message>
-            <source>We may read a chat only to fix a wrong answer or a bug, never to train AI.</source>
-            <translation>Chúng tôi chỉ có thể đọc một cuộc trò chuyện để sửa câu trả lời sai hoặc lỗi, không bao giờ để huấn luyện AI.</translation>
+            <source>We may read a chat, or have a model score it, to fix a wrong answer or a bug and improve the agent, never to train AI.</source>
+            <translation>Chúng tôi có thể đọc một cuộc trò chuyện, hoặc nhờ một mô hình chấm điểm nó, để sửa câu trả lời sai hoặc lỗi và cải thiện agent, không bao giờ để huấn luyện AI.</translation>
         </message>
         <message>
             <source>Loading account info...</source>
@@ -5335,8 +5711,8 @@ Nhấn để hiện trong bảng Lớp.</translation>
             <translation>Bạn có thể đăng nhập lại bất cứ lúc nào từ QGIS.</translation>
         </message>
         <message>
-            <source>Your chats are kept 30 days so a conversation survives an update. Off, the team never reads them. 0 days of history stores nothing.</source>
-            <translation>Cuộc trò chuyện của bạn được giữ 30 ngày để không mất sau khi cập nhật. Khi tắt, nhóm không bao giờ đọc chúng. Lịch sử 0 ngày nghĩa là không lưu gì cả.</translation>
+            <source>Your chats are kept 30 days so a conversation survives an update. Off, we never read or score them. 0 days of history stores nothing.</source>
+            <translation>Cuộc trò chuyện của bạn được giữ 30 ngày để không mất sau khi cập nhật. Khi tắt, chúng tôi không bao giờ đọc hay chấm điểm chúng. Lịch sử 0 ngày nghĩa là không lưu gì cả.</translation>
         </message>
         <message>
             <source>Your first name</source>
@@ -5458,6 +5834,38 @@ Nhấn để hiện trong bảng Lớp.</translation>
         <message>
             <source>Delete this note? The AI will not add it back.</source>
             <translation>Xóa ghi chú này? AI sẽ không thêm lại ghi chú này.</translation>
+        </message>
+        <message>
+            <source>Everywhere · {n}</source>
+            <translation>Mọi nơi · {n}</translation>
+        </message>
+        <message>
+            <source>Other projects · {n}</source>
+            <translation>Các dự án khác · {n}</translation>
+        </message>
+        <message>
+            <source>The rules you give it and the corrections that hold for later.</source>
+            <translation>Các quy tắc bạn đặt ra và những chỉnh sửa vẫn có hiệu lực về sau.</translation>
+        </message>
+        <message>
+            <source>This project · {n}</source>
+            <translation>Dự án này · {n}</translation>
+        </message>
+        <message>
+            <source>What the AI keeps between conversations, stored on this computer.</source>
+            <translation>Những gì AI giữ lại giữa các cuộc trò chuyện, được lưu trên máy tính này.</translation>
+        </message>
+        <message>
+            <source>commercial use, more tasks, your instructions and higher effort</source>
+            <translation>dùng cho mục đích thương mại, nhiều tác vụ hơn, hướng dẫn của bạn và mức nỗ lực cao hơn</translation>
+        </message>
+        <message>
+            <source>Animate the mascot</source>
+            <translation>Làm linh vật chuyển động</translation>
+        </message>
+        <message>
+            <source>The AI agent's mark moves and follows the work. Off keeps it still.</source>
+            <translation>Biểu tượng của AI agent chuyển động và theo dõi công việc. Tắt thì nó đứng yên.</translation>
         </message>
     </context>
     <context>
@@ -5837,6 +6245,26 @@ Nhấn để hiện trong bảng Lớp.</translation>
         <message>
             <source>could not be put back, so what it changed is still in the project</source>
             <translation>không thể được khôi phục, vì vậy những gì nó đã thay đổi vẫn còn trong dự án</translation>
+        </message>
+        <message>
+            <source>QGIS restarted during this request, so this step was not run again. The project may already hold what it changed.</source>
+            <translation>QGIS đã khởi động lại trong yêu cầu này nên bước này không được chạy lại. Dự án có thể đã chứa những thay đổi của bước đó.</translation>
+        </message>
+        <message>
+            <source>Stopped after this step had finished: its changes are in the project.</source>
+            <translation>Đã dừng sau khi bước này hoàn tất: các thay đổi của bước đã nằm trong dự án.</translation>
+        </message>
+        <message>
+            <source>{area} km²</source>
+            <translation>{area} km²</translation>
+        </message>
+        <message>
+            <source>{area} ha</source>
+            <translation>{area} ha</translation>
+        </message>
+        <message>
+            <source>{area} m²</source>
+            <translation>{area} m²</translation>
         </message>
     </context>
     <context>
@@ -7554,6 +7982,211 @@ Nhấn để hiện trong bảng Lớp.</translation>
         <message>
             <source>Edit this note</source>
             <translation>Sửa ghi chú này</translation>
+        </message>
+    </context>
+    <context>
+        <name>QgisLinks</name>
+        <message>
+            <source>Project Properties</source>
+            <translation>Thuộc tính dự án</translation>
+        </message>
+        <message>
+            <source>Open the project's properties</source>
+            <translation>Mở thuộc tính của dự án</translation>
+        </message>
+        <message>
+            <source>3D Map View</source>
+            <translation>Chế độ xem bản đồ 3D</translation>
+        </message>
+        <message>
+            <source>Bring this 3D map view to the front</source>
+            <translation>Đưa chế độ xem bản đồ 3D này lên trước</translation>
+        </message>
+        <message>
+            <source>Layout Designer</source>
+            <translation>Trình thiết kế bố cục</translation>
+        </message>
+        <message>
+            <source>Open this layout in the layout designer</source>
+            <translation>Mở bố cục này trong trình thiết kế bố cục</translation>
+        </message>
+        <message>
+            <source>Attribute Table</source>
+            <translation>Bảng thuộc tính</translation>
+        </message>
+        <message>
+            <source>Open the attribute table of {layer}</source>
+            <translation>Mở bảng thuộc tính của {layer}</translation>
+        </message>
+        <message>
+            <source>Layer Properties › {tab}</source>
+            <translation>Thuộc tính lớp › {tab}</translation>
+        </message>
+        <message>
+            <source>Open the properties of {layer} on the {tab} tab</source>
+            <translation>Mở thuộc tính của {layer} ở thẻ {tab}</translation>
+        </message>
+    </context>
+    <context>
+        <name>OvertureExtract</name>
+        <message>
+            <source>{names}: loaded in full, {count} features.</source>
+            <translation>{names}: đã tải đầy đủ, {count} đối tượng.</translation>
+        </message>
+        <message>
+            <source>{names}: {count} features loaded; part of the area could not be read.</source>
+            <translation>{names}: đã tải {count} đối tượng; một phần khu vực không đọc được.</translation>
+        </message>
+        <message>
+            <source>Reading {names}</source>
+            <translation>Đang đọc {names}</translation>
+        </message>
+    </context>
+    <context>
+        <name>GtfsTools</name>
+        <message>
+            <source>{lo} - {hi} trips/day</source>
+            <translation>{lo} - {hi} chuyến/ngày</translation>
+        </message>
+        <message>
+            <source>{name} stops</source>
+            <translation>Điểm dừng {name}</translation>
+        </message>
+        <message>
+            <source>{name} routes</source>
+            <translation>Tuyến {name}</translation>
+        </message>
+    </context>
+    <context>
+        <name>Dictation</name>
+        <message>
+            <source>The AI Agent plugin in QGIS listens only while you dictate a message, to turn your voice into text.</source>
+            <translation>Plugin AI Agent trong QGIS chỉ lắng nghe khi bạn đọc một tin nhắn bằng giọng nói, để chuyển giọng nói của bạn thành văn bản.</translation>
+        </message>
+        <message>
+            <source>Animate the mascot</source>
+            <translation>Cho linh vật chuyển động</translation>
+        </message>
+        <message>
+            <source>The AI agent's mark moves and follows the work. Off keeps it still.</source>
+            <translation>Biểu tượng của tác nhân AI chuyển động và theo dõi công việc. Khi tắt, nó đứng yên.</translation>
+        </message>
+    </context>
+    <context>
+        <name>CodeLayoutExport</name>
+        <message>
+            <source>the layout export</source>
+            <translation>việc xuất bố cục</translation>
+        </message>
+    </context>
+    <context>
+        <name>ComposerDictation</name>
+        <message>
+            <source>Cancel (Esc)</source>
+            <translation>Hủy (Esc)</translation>
+        </message>
+        <message>
+            <source>Cancel dictation</source>
+            <translation>Hủy đọc chính tả</translation>
+        </message>
+        <message>
+            <source>Dictate</source>
+            <translation>Đọc chính tả</translation>
+        </message>
+        <message>
+            <source>Dictate ({shortcut})</source>
+            <translation>Đọc chính tả ({shortcut})</translation>
+        </message>
+        <message>
+            <source>Dictation is busy right now.</source>
+            <translation>Đọc chính tả đang bận.</translation>
+        </message>
+        <message>
+            <source>Dictation is not available right now.</source>
+            <translation>Đọc chính tả hiện không khả dụng.</translation>
+        </message>
+        <message>
+            <source>Listening</source>
+            <translation>Đang nghe</translation>
+        </message>
+        <message>
+            <source>No connection to TerraLab, so nothing was transcribed.</source>
+            <translation>Không có kết nối tới TerraLab nên chưa có gì được chuyển thành văn bản.</translation>
+        </message>
+        <message>
+            <source>No microphone found. Plug one in or check your sound settings.</source>
+            <translation>Không tìm thấy micro. Hãy cắm một micro hoặc kiểm tra cài đặt âm thanh.</translation>
+        </message>
+        <message>
+            <source>No sound came from the microphone. Check that it is not muted.</source>
+            <translation>Micro không thu được âm thanh. Hãy kiểm tra xem micro có bị tắt tiếng không.</translation>
+        </message>
+        <message>
+            <source>No sound came from the microphone. In Windows settings, Privacy, Microphone, let desktop apps use it.</source>
+            <translation>Micro không thu được âm thanh. Trong cài đặt Windows, mở Quyền riêng tư, Micro, rồi cho phép ứng dụng máy tính dùng micro.</translation>
+        </message>
+        <message>
+            <source>Nothing was heard. Speak closer to the microphone and try again.</source>
+            <translation>Không nghe thấy gì. Hãy nói gần micro hơn rồi thử lại.</translation>
+        </message>
+        <message>
+            <source>Open settings</source>
+            <translation>Mở cài đặt</translation>
+        </message>
+        <message>
+            <source>Stopped at {n} minutes, the longest one recording can be.</source>
+            <translation>Đã dừng ở {n} phút, độ dài tối đa của một bản ghi âm.</translation>
+        </message>
+        <message>
+            <source>That recording is too long to transcribe. Record a shorter one.</source>
+            <translation>Bản ghi âm này quá dài để chuyển thành văn bản. Hãy ghi một bản ngắn hơn.</translation>
+        </message>
+        <message>
+            <source>The microphone could not be opened. Check that no other app holds it, then try again.</source>
+            <translation>Không thể mở micro. Hãy kiểm tra xem có ứng dụng nào khác đang dùng micro không, rồi thử lại.</translation>
+        </message>
+        <message>
+            <source>The microphone is blocked for QGIS in your system's privacy settings.</source>
+            <translation>Micro đang bị chặn đối với QGIS trong cài đặt quyền riêng tư của hệ thống.</translation>
+        </message>
+        <message>
+            <source>The microphone is off for "AI Agent for QGIS". Turn it on in System Settings, Privacy &amp; Security, Microphone.</source>
+            <translation>Micro đang tắt đối với "AI Agent for QGIS". Hãy bật micro trong Cài đặt hệ thống, Quyền riêng tư &amp; Bảo mật, Micro.</translation>
+        </message>
+        <message>
+            <source>The recording could not be transcribed.</source>
+            <translation>Không thể chuyển bản ghi âm thành văn bản.</translation>
+        </message>
+        <message>
+            <source>This QGIS installation cannot record sound, so dictation is not available here.</source>
+            <translation>Bản cài đặt QGIS này không thể ghi âm, nên không dùng được đọc chính tả ở đây.</translation>
+        </message>
+        <message>
+            <source>Too many recordings in a minute. Wait a little.</source>
+            <translation>Quá nhiều bản ghi âm trong một phút. Hãy chờ một chút.</translation>
+        </message>
+        <message>
+            <source>Transcribing...</source>
+            <translation>Đang chuyển thành văn bản...</translation>
+        </message>
+        <message>
+            <source>Try again</source>
+            <translation>Thử lại</translation>
+        </message>
+        <message>
+            <source>You reached today's dictation limit. It opens again tomorrow.</source>
+            <translation>Bạn đã dùng hết giới hạn đọc chính tả hôm nay. Ngày mai sẽ mở lại.</translation>
+        </message>
+        <message>
+            <source>macOS asked to use the microphone and got no answer. Press the microphone to see the question again.</source>
+            <translation>macOS đã hỏi quyền dùng micro nhưng chưa nhận được câu trả lời. Nhấn vào micro để xem lại câu hỏi.</translation>
+        </message>
+    </context>
+    <context>
+        <name>DictationBar</name>
+        <message>
+            <source>Recording</source>
+            <translation>Đang ghi âm</translation>
         </message>
     </context>
 </TS>

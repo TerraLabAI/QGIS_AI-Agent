@@ -87,8 +87,7 @@ _CHIP_GLYPH = 13
 
 _CHIP_GLYPH_ROOM = _CHIP_GLYPH + 3
 
-
-EMPTY_CHAT_LINES = 2
+EMPTY_CHAT_LINES = 1
 
 
 
@@ -221,18 +220,19 @@ class ComposerInput(QPlainTextEdit):
             return self._plugins
         self._plugins = []
         try:
+            from ..core.host_platform import is_own_folder
             from ..core.qgis_plugins import installed_plugins, plugin_logo
             from ..core.served_state import get_hidden_plugins, known_plugins_by_folder
-            from .shared import PLUGIN_FOLDERS
 
             local = installed_plugins()
             known = known_plugins_by_folder()
-            skip = set(PLUGIN_FOLDERS) | get_hidden_plugins()
+
+            skip = get_hidden_plugins()
         except Exception:  # noqa: BLE001
             return []
         rows = []
         for folder, row in (local or {}).items():
-            if folder in skip or not row.get("loaded"):
+            if folder in skip or is_own_folder(folder) or not row.get("loaded"):
                 continue
             merged = dict(known.get(folder) or {})
             merged.update(row)

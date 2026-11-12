@@ -19,6 +19,8 @@
 
 
 
+
+
 from __future__ import annotations
 
 HIDDEN = "hidden"
@@ -44,11 +46,13 @@ def is_low(left: int) -> bool:
 
 
 def choose(*, signed_in: bool, used: int, limit: int, is_subscriber: bool, payfail: bool,
-           pro_welcome: bool, checkout_return: bool, low_closed: bool) -> str:
+           pro_welcome: bool, checkout_return: bool, low_closed: bool, running: bool = False) -> str:
 
     if not signed_in or limit <= 0:
         return HIDDEN
     left = runs_left(used, limit)
+    if running and left <= 0:
+        return QUIET
     if not is_subscriber and payfail:
         return PAYMENT_FAILED
     if pro_welcome and is_subscriber and left > 0:

@@ -62,7 +62,7 @@ from .card_controls import (
 from .code_block import CodeBlock
 from .external_links import open_external_url
 from .font_scale import scale_px_length, scale_qss_font_px
-from .shared import tr
+from .shared import AGENT_ACTION, AGENT_CARD_KIND, AGENT_REQUEST_ID, AGENT_REQUEST_IDS, tr
 from .style import (
     FONT_BASE,
     FONT_BODY,
@@ -581,11 +581,11 @@ class PermissionCard(_Card, FoldMixin):
         answers = [(deny, "deny"), (self._allow_btn, "allow")]
         for button, action in answers:
             button.setObjectName("agentPermission" + "".join(p.capitalize() for p in action.split("_")))
-            button.setProperty("agentAction", action)
-            button.setProperty("agentRequestId", self.tool_call_id)
+            button.setProperty(AGENT_ACTION, action)
+            button.setProperty(AGENT_REQUEST_ID, self.tool_call_id)
 
-            button.setProperty("agentRequestIds", ",".join(self._open))
-            button.setProperty("agentCardKind", "permission")
+            button.setProperty(AGENT_REQUEST_IDS, ",".join(self._open))
+            button.setProperty(AGENT_CARD_KIND, "permission")
 
 
         footer.set_widgets(self._edit_btn or self._code_open_btn or self._address_btn,
@@ -897,13 +897,20 @@ def title_and_reasons(sentence: str, name: str = "") -> tuple:
 
     text = " ".join(str(sentence or "").split())
     reasons = ""
+
     head, dot, rest = text.partition(". ")
-    if dot and rest:
-        text, reasons = head, rest
-    text = text.rstrip(". ")
-    if name in _SERVER_SAYS_IT_BETTER and text.endswith(")") and " (" in text:
-        text, _, inner = text[:-1].partition(" (")
-        reasons = f"{inner[:1].upper()}{inner[1:]}" + (f". {reasons}" if reasons else "")
+    if not (dot and rest):
+        head, dot, rest = text.partition("。")
+    if dot and rest.strip():
+        text, reasons = head, rest.strip()
+    text = text.rstrip(". 。")
+    if name in _SERVER_SAYS_IT_BETTER:
+        for opening, closing in ((" (", ")"), ("（", "）")):
+            if text.endswith(closing) and opening in text:
+                text, _, inner = text[:-1].partition(opening)
+                text = text.rstrip()
+                reasons = f"{inner[:1].upper()}{inner[1:]}" + (f"{dot or '. '}{reasons}" if reasons else "")
+                break
     return text, reasons
 
 
@@ -931,8 +938,10 @@ def plain_sentence(sentence: str, args=None, name: str = "") -> str:
         sentence = call_title(name, args) or sentence
     if terms:
         sentence = f"{sentence.rstrip('. ')}. {terms}"
-    if sentence and not sentence.endswith((".", "?", "!")):
-        sentence += "."
+    if sentence and not sentence.endswith((".", "?", "!", "。", "？", "！")):
+
+        cjk = "\u3040" <= sentence[-1] <= "\u9fff" or "\uf900" <= sentence[-1] <= "\ufaff"
+        sentence += "。" if cjk else "."
     effect = card_effect(name, args)
     if sentence and effect:
         sentence = f"{sentence} {effect}"

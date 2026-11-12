@@ -15,7 +15,7 @@ from __future__ import annotations
 import functools
 import json
 
-from qgis.PyQt.QtCore import QCoreApplication, Qt
+from qgis.PyQt.QtCore import QCoreApplication, QLocale, Qt
 from qgis.PyQt.QtGui import QColor
 from qgis.PyQt.QtWidgets import QHBoxLayout, QLabel, QPushButton, QVBoxLayout, QWidget
 
@@ -117,6 +117,11 @@ def tr(text: str) -> str:
     return QCoreApplication.translate(TR_CONTEXT, text)
 
 
+def local_decimal(value: float, digits: int) -> str:
+
+    return QLocale().toString(float(value), "f", digits)
+
+
 def format_duration(seconds) -> str:
 
 
@@ -139,7 +144,7 @@ def format_duration(seconds) -> str:
     if value < 1:
         return tr("{count} ms").format(count=max(1, int(round(value * 1000))))
     if value < 10:
-        return tr("{count} s").format(count=f"{value:.1f}")
+        return tr("{count} s").format(count=local_decimal(value, 1))
     return tr("{count} s").format(count=int(round(value)))
 
 

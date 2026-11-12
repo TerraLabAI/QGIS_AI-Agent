@@ -10,7 +10,6 @@ from __future__ import annotations
 
 import json
 import os
-import re
 
 from qgis.PyQt.QtCore import QCoreApplication
 
@@ -60,21 +59,6 @@ PROPOSAL_TOOLS = ("propose_action", "propose_edits")
 
 CONTINUE_TEXT = "continue"
 PROPOSAL_MAX_ROWS = 500
-
-
-
-_FOLLOWUPS_RE = re.compile(r"(?:^|\n)[ \t]*(?:[-*]\s*)?Follow-ups?\s*:\s*(?P<items>[^\n]*)\s*$", re.IGNORECASE)
-
-
-def strip_followups(text: str) -> str:
-
-    text = text or ""
-    match = _FOLLOWUPS_RE.search(text.rstrip())
-    if match is None:
-        return text
-    return text.rstrip()[: match.start()].rstrip()
-
-
 def _dump_context(context: dict, run_id: str) -> None:
 
 
@@ -115,6 +99,5 @@ __all__ = [
     "SENDING_RECHECK_MS",
     "_DIFF_SETTLE_MS",
     "_dump_context",
-    "strip_followups",
     "tr",
 ]

@@ -18,15 +18,7 @@ from .bubbles import AgentBubble, UserBubble
 from .cards_question import QuestionCard
 from .cards_run import ErrorCard, PermissionCard, RunSummaryCard, _first_sentence, run_ending
 from .cards_tool import ToolCard
-from .shared import tr
-
-
-
-_NOTHING_CHANGED = "No layer, feature or file changed"
-
-
-def _is_nothing_changed(line: str) -> bool:
-    return line in (_NOTHING_CHANGED, tr(_NOTHING_CHANGED))
+from .chat_panel_shared import _is_nothing_changed
 
 
 def replay_steps(panel, messages) -> list:

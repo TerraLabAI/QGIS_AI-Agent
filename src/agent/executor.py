@@ -169,6 +169,15 @@ class ToolExecutor(_ExecutorAccounts, _ExecutorInstallWait, _ExecutorRuns, _Exec
 
         self._answered: OrderedDict[str, None] = OrderedDict()
 
+
+        self._unsent: OrderedDict[str, str] = OrderedDict()
+
+
+        self._sent_recently: OrderedDict[str, tuple[str, float]] = OrderedDict()
+
+
+        self._runs_begun: OrderedDict[str, None] = OrderedDict()
+
         self._blocked: dict[str, str] = {}
 
         self._replaced: set[str] = set()
@@ -206,6 +215,12 @@ class ToolExecutor(_ExecutorAccounts, _ExecutorInstallWait, _ExecutorRuns, _Exec
                                            on_thaw=self._on_main_thread_thawed)
         self.watchdog.start()
         self.tool_finished.connect(self._turn_over)
+        resumed = getattr(session, "session_started", None)
+        if resumed is not None:
+            resumed.connect(self._resend_unsent)
+        state = getattr(session, "state_changed", None)
+        if state is not None:
+            state.connect(self._socket_state)
         stalls.add_context_provider(self._inflight_description)
 
 

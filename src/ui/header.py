@@ -45,23 +45,29 @@
 
 
 
+
+
+
+
+
 from __future__ import annotations
 
-from qgis.PyQt.QtCore import QEvent, QSize, Qt, pyqtSignal
+from qgis.PyQt.QtCore import QEasingCurve, QEvent, QSize, Qt, QVariantAnimation, pyqtSignal
 from qgis.PyQt.QtGui import QKeySequence
 from qgis.PyQt.QtWidgets import QHBoxLayout, QLabel, QPushButton, QVBoxLayout, QWidget
 
+from ..core.served_state import offer_text
+from .card_base import reduced_motion
 from .checkpoint_sheet import CheckpointSheet, history_rows, row_target
 from .font_scale import scale_px_length
 from .history_popup import HistoryPopup
-from .icons import logo_pixmap, logo_size
-from .quota_card import trial_cta
-from .shared import CHECKPOINTS_KEYS
+from .icons import logo_size
+from .quota_card import get_pro_label, trial_cta, trial_short
+from .shared import AGENT_ACTION, CHECKPOINTS_KEYS
 from .style import (
     _BTN_PRO_PILL,
     _HEADER_QSS,
     PRO_PILL_PX,
-    RADIUS_CONTROL,
     SPACE_CARD,
     repolish,
 )
@@ -71,8 +77,44 @@ HEADER_HEIGHT = 36
 
 
 
-_MARK = 20
+_MARK = 24
 _MARK_GAP = 6
+
+
+class _Wordmark(QWidget):
+
+
+
+    clicked = pyqtSignal()
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setCursor(Qt.CursorShape.PointingHandCursor)
+        self._down = False
+
+    def _underline(self, on: bool) -> None:
+        for label in self.findChildren(QLabel):
+            font = label.font()
+            font.setUnderline(on)
+            label.setFont(font)
+
+    def enterEvent(self, event):  # noqa: N802
+        self._underline(True)
+        super().enterEvent(event)
+
+    def leaveEvent(self, event):  # noqa: N802
+        self._underline(False)
+        super().leaveEvent(event)
+
+    def mousePressEvent(self, event):  # noqa: N802
+        self._down = event.button() == Qt.MouseButton.LeftButton
+        event.accept()
+
+    def mouseReleaseEvent(self, event):  # noqa: N802
+        if self._down and self.rect().contains(event.pos()):
+            self.clicked.emit()
+        self._down = False
+        event.accept()
 
 
 class Header(QWidget):
@@ -92,6 +134,8 @@ class Header(QWidget):
     stop_and_restore_requested = pyqtSignal()
     pro_pill_clicked = pyqtSignal()
     pro_pill_shown = pyqtSignal()
+    mark_pressed = pyqtSignal()
+    site_requested = pyqtSignal()
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -100,14 +144,18 @@ class Header(QWidget):
         self.setStyleSheet(_HEADER_QSS)
         self.setFixedHeight(HEADER_HEIGHT)
         self._threads: list = []
+        self._pill_floor = 0
         self._current_project = ""
         self._dock = None
         self._sidebar = None
         row = QHBoxLayout(self)
 
 
-        row.setContentsMargins(12, 2, 8, 2)
+
+
+        row.setContentsMargins(11, 2, 4, 2)
         row.setSpacing(SPACE_CARD)
+
 
 
 
@@ -115,17 +163,24 @@ class Header(QWidget):
         brand_host = QWidget(self)
         brand = QHBoxLayout(brand_host)
         brand.setContentsMargins(0, 0, 0, 0)
-        brand.setSpacing(_MARK_GAP)
-        self._logo = QLabel(brand_host)
-        self._logo.setFixedSize(logo_size(_MARK))
-        self._logo.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self._logo.setPixmap(logo_pixmap(self, _MARK))
+        brand.setSpacing(0)
+
+
+
+        self._logo = QWidget(brand_host)
+        self._logo.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, True)
+        self._mark_px = _MARK
+        self._mark_shown = True
+        self._mark_glide = None
+        self._logo.setFixedSize(self._mark_width(), _MARK)
         brand.addWidget(self._logo, 0, Qt.AlignmentFlag.AlignVCenter)
 
 
 
 
-        wordmark = QWidget(brand_host)
+        wordmark = _Wordmark(brand_host)
+        wordmark.setToolTip(self.tr("Open the AI Agent page on terra-lab.ai"))
+        wordmark.clicked.connect(self.site_requested.emit)
         word_col = QVBoxLayout(wordmark)
         word_col.setContentsMargins(0, 0, 0, 0)
         word_col.setSpacing(0)
@@ -136,16 +191,18 @@ class Header(QWidget):
         self._byline.setObjectName("hdrByline")
         word_col.addWidget(self._byline)
         brand.addWidget(wordmark, 0, Qt.AlignmentFlag.AlignVCenter)
+        self._wordmark = wordmark
         row.addWidget(brand_host, 0)
         self._brand = brand_host
         row.addStretch(1)
 
-        self._pro_pill = QPushButton(self.tr("Get Pro"), self)
+        self._pill_label = self.tr("Get Pro")
+        self._pro_pill = QPushButton(self._pill_label, self)
         self._pro_pill.setObjectName("hdrProPill")
         self._pro_pill.installEventFilter(self)
         pill_px = scale_px_length(PRO_PILL_PX)
         self._pro_pill.setStyleSheet(
-            _BTN_PRO_PILL + f"QPushButton#hdrProPill {{ border-radius: {min(RADIUS_CONTROL, pill_px // 2)}px; }}")
+            _BTN_PRO_PILL + f"QPushButton#hdrProPill {{ border-radius: {pill_px // 2}px; }}")
         self._pro_pill.setFixedHeight(pill_px)
         self._pro_pill.setCursor(Qt.CursorShape.PointingHandCursor)
 
@@ -188,7 +245,7 @@ class Header(QWidget):
 
         self._new_btn = IconButton(self, "new_chat", 18, self.tr("New chat"))
         self._new_btn.setObjectName("agentNewChat")
-        self._new_btn.setProperty("agentAction", "new_chat")
+        self._new_btn.setProperty(AGENT_ACTION, "new_chat")
         self._new_btn.setFixedSize(26, 26)
         self._new_btn.clicked.connect(self.new_thread_requested.emit)
         row.addWidget(self._new_btn, 0, Qt.AlignmentFlag.AlignVCenter)
@@ -228,10 +285,60 @@ class Header(QWidget):
     def minimumSizeHint(self) -> QSize:  # noqa: N802
 
 
+        if self._pill_floor:
+            return QSize(self._pill_floor, HEADER_HEIGHT)
         width = super().minimumSizeHint().width()
         if not self._pro_pill.isHidden():
             width -= self._pro_pill.minimumSizeHint().width() + self.layout().spacing()
         return QSize(width, HEADER_HEIGHT)
+
+    def _mark_width(self) -> int:
+        return logo_size(self._mark_px).width() + _MARK_GAP
+
+    def mark_slot(self) -> QWidget:
+
+        return self._logo
+
+    def set_mark_px(self, px: int) -> None:
+        self._mark_px = max(12, min(int(px), HEADER_HEIGHT - 6))
+        self._logo.setFixedSize(self._mark_width() if self._mark_shown else 0, self._mark_px)
+        self._fit_pro_pill()
+
+    def set_mark_shown(self, shown: bool, animate: bool = True) -> None:
+
+        if shown == self._mark_shown and self._mark_glide is None:
+            return
+        self._mark_shown = bool(shown)
+        if self._mark_glide is not None:
+            self._mark_glide.stop()
+            self._mark_glide = None
+        end = self._mark_width() if shown else 0
+        if not animate or reduced_motion(self):
+            self._logo.setFixedWidth(end)
+            return
+        glide = self._mark_glide = QVariantAnimation(self)
+        glide.setDuration(180)
+        glide.setEasingCurve(QEasingCurve.Type.OutCubic)
+        glide.setStartValue(self._logo.width())
+        glide.setEndValue(end)
+        glide.valueChanged.connect(self._mark_glides)
+        glide.finished.connect(self._mark_glided)
+        glide.start()
+
+    def _mark_glides(self, value) -> None:
+        self._logo.setFixedWidth(int(value))
+
+        self._brand.layout().activate()
+        self.layout().activate()
+
+    def _mark_glided(self) -> None:
+        self._mark_glide = None
+
+    def mousePressEvent(self, event):  # noqa: N802
+
+        if self._mark_shown and self._logo.geometry().contains(self._brand.mapFrom(self, event.pos())):
+            self.mark_pressed.emit()
+        super().mousePressEvent(event)
 
     def set_dock(self, dock) -> None:
 
@@ -246,13 +353,22 @@ class Header(QWidget):
         self._pro_pill.setVisible(self._pro_pill_wanted)
         self._fit_pro_pill()
 
-    def set_pro_pill_trial(self, promise: str) -> None:
+    def set_pro_pill_trial(self, promise: str, keep: tuple | None = None) -> None:
 
 
-        label = trial_cta() if promise else self.tr("Get Pro")
-        tip = promise or self.tr("See what Pro unlocks")
-        if self._pro_pill.text() == label and self._pro_pill.toolTip() == tip:
+
+        if keep:
+            label = offer_text("keep.button", self.tr("Keep Pro"))
+            if keep[1]:
+                tip = offer_text("keep.tip", self.tr("Your Pro ends on {date}. Keep it in one click."), date=keep[1])
+            else:
+                tip = offer_text("keep.tip.nodate", self.tr("Your Pro is set to end. Keep it in one click."))
+        else:
+            label = trial_cta() if promise else get_pro_label()
+            tip = promise or offer_text("header.tip", self.tr("See what Pro unlocks"))
+        if self._pill_label == label and self._pro_pill.toolTip() == tip:
             return
+        self._pill_label = label
         self._pro_pill.setText(label)
         self._pro_pill.setToolTip(tip)
         self._pro_pill.setAccessibleName(tip)
@@ -266,23 +382,56 @@ class Header(QWidget):
 
 
 
+
         if not self._pro_pill_wanted:
+            self._wordmark.setVisible(True)
+            self._byline.setVisible(True)
+            self._set_pill_floor(0)
             return
         row = self.layout()
         margins = row.contentsMargins()
-        others = [w for w in (self._brand, self._restore_btn, self._new_btn, self._history_btn,
-                              self._settings_btn, self._float_btn, self._close_btn)
-                  if not w.isHidden()]
-        used = margins.left() + margins.right()
-        used += sum(w.sizeHint().width() for w in others)
-        used += row.spacing() * (len(others) + 1)
-        room = self.width() - used
 
 
-        compact = room < self._pill_hint(False)
-        visible = room >= self._pill_hint(compact)
-        self._set_pill_compact(compact)
-        self._pro_pill.setVisible(visible)
+        icons = [row.itemAt(i).widget() for i in range(row.count())]
+        icons = [w for w in icons
+                 if w is not None and w is not self._pro_pill and w is not self._brand and not w.isHidden()]
+
+        fixed = margins.left() + margins.right() + row.spacing() * (len(icons) + 2)
+        fixed += sum(w.sizeHint().width() for w in icons)
+        for label in (self._title, self._byline):
+            label.ensurePolished()
+        title_w = self._title.sizeHint().width()
+        mark = self._logo.width()
+        name = mark + _MARK_GAP + title_w
+        full = mark + _MARK_GAP + max(title_w, self._byline.sizeHint().width())
+        labels = [self._pill_label]
+        if self._pill_label == trial_cta():
+            labels.append(trial_short())
+        steps = [(label, compact, brand) for label in labels
+                 for compact, brand in ((False, full), (True, full), (True, name))]
+        steps.append((labels[-1], True, mark))
+        self._pro_pill.setText(labels[-1])
+        self._set_pill_floor(fixed + mark + self._pill_hint(True))
+        for label, compact, brand in steps:
+            if self._pro_pill.text() != label:
+                self._pro_pill.setText(label)
+            if self.width() - fixed - brand >= self._pill_hint(compact):
+                self._set_pill_compact(compact)
+                self._wordmark.setVisible(brand != mark)
+                self._byline.setVisible(brand == full)
+                self._pro_pill.setVisible(True)
+                return
+
+        self._pro_pill.setText(self._pill_label)
+        self._set_pill_compact(False)
+        self._wordmark.setVisible(True)
+        self._byline.setVisible(True)
+        self._pro_pill.setVisible(False)
+
+    def _set_pill_floor(self, width: int) -> None:
+        if width != self._pill_floor:
+            self._pill_floor = width
+            self.updateGeometry()
 
     def _set_pill_compact(self, compact: bool) -> None:
         if bool(self._pro_pill.property("compact")) != compact:
@@ -374,6 +523,7 @@ class Header(QWidget):
     def set_feedback_available(self, available: bool) -> None:
 
         self._feedback_btn.setVisible(bool(available))
+        self._fit_pro_pill()
 
     def set_history_available(self, available: bool) -> None:
 

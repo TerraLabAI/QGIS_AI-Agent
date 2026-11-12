@@ -67,9 +67,6 @@ from .symbology_tools import _set_layer_symbology
 SHAPES = ("straight", "curved", "geodesic")
 
 
-_STOP_POLL_S = 0.05
-
-
 _REPORT_CAP = 20
 
 
@@ -326,11 +323,10 @@ def _read_places_index(state: dict, plan: dict, cancelled) -> dict:
 
     background.start_kept_thread(reader, state["source"], state["request"], state["feedback"],
                                  name="create_flow_lines places")
-    while not over.wait(_STOP_POLL_S):
-        if net.is_cancelled(cancelled):
-            halted.set()
-            state["feedback"].cancel()
-            raise InterruptedError("Stopped while the places were read")
+    if background.stop_came_first(over, cancelled):
+        halted.set()
+        state["feedback"].cancel()
+        raise InterruptedError("Stopped while the places were read")
     if failure:
         raise failure[0]
     return index
@@ -404,11 +400,10 @@ def _read_table(state: dict, plan: dict, cancelled) -> list:
 
     background.start_kept_thread(reader, state["source"], state["request"], state["feedback"],
                                  name="create_flow_lines read")
-    while not over.wait(_STOP_POLL_S):
-        if net.is_cancelled(cancelled):
-            halted.set()
-            state["feedback"].cancel()
-            raise InterruptedError("Stopped while the table was read")
+    if background.stop_came_first(over, cancelled):
+        halted.set()
+        state["feedback"].cancel()
+        raise InterruptedError("Stopped while the table was read")
     if failure:
         raise failure[0]
     return rows

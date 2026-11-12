@@ -41,9 +41,9 @@ from .host_platform import os_info, plugin_version, qgis_version
 from .log_scrub import is_secret_key, scrub_secrets
 from .privacy_notice import has_accepted_privacy_notice
 from .qt_compat import task_flags
+from .served_state import PRODUCT_ID
 from .settings import profile_settings
 
-PRODUCT_ID = "ai-agent"
 SOURCE = "qgis_plugin"
 TELEMETRY_ENABLED_KEY = "TerraLab/telemetry_enabled"
 
@@ -89,7 +89,9 @@ _flush_timer: QTimer | None = None
 _auth_provider = None
 _inflight: list = []
 _first_open_key = "AIAgent/telemetry_first_open_sent"
-_first_run_key = "AIAgent/telemetry_first_run_sent"
+
+FIRST_RUN_KEY = "AIAgent/telemetry_first_run_sent"
+SIGNED_OUT_DAY_KEY = "AIAgent/telemetry_signed_out_day"
 _first_paid_run_key = "AIAgent/telemetry_first_paid_run_sent"
 
 
@@ -171,13 +173,31 @@ def first_open_recorded() -> bool:
         return False
 
 
+def first_signed_out_open_today() -> bool:
+
+
+
+
+    if not is_telemetry_enabled():
+        return False
+    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    try:
+        settings = profile_settings()
+        if str(settings.value(SIGNED_OUT_DAY_KEY, "", type=str)) == today:
+            return False
+        settings.setValue(SIGNED_OUT_DAY_KEY, today)
+    except Exception:  # noqa: BLE001
+        return False
+    return True
+
+
 def first_run_recorded() -> bool:
 
     try:
         settings = profile_settings()
-        if settings.value(_first_run_key, False, type=bool):
+        if settings.value(FIRST_RUN_KEY, False, type=bool):
             return False
-        settings.setValue(_first_run_key, True)
+        settings.setValue(FIRST_RUN_KEY, True)
         return True
     except Exception:  # noqa: BLE001
         return False

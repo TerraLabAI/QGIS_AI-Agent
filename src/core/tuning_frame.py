@@ -88,6 +88,8 @@ _INT_LIMITS: dict[str, dict[str, tuple[int, int]]] = {
         "min_words_with_context": (1, 10),
         "min_chars_with_context": (1, 100),
         "min_chars_unspaced": (1, 50),
+
+        "mash_rules": (0, 1),
     },
 
 

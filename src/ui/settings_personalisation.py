@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import os
 
+from qgis.PyQt import sip
 from qgis.PyQt.QtCore import QDateTime, QLocale, Qt, QUrl, pyqtSignal
 from qgis.PyQt.QtGui import QDesktopServices
 from qgis.PyQt.QtWidgets import (
@@ -45,6 +46,8 @@ from ..core.profile import (
     save_memory_notes,
 )
 from .font_scale import apply_font_scale_to_tree, scale_px_length
+from .mascot_stage import refresh_mascots
+from .memory_mascot import ADD_HOVER, ADDED, CLEARED, DELETED, EDITED, EMPTY, OFF, ON, REST, Companion, HoverWatch
 from .quota_card import trial_cta
 from .settings_pages import (
     GHOST_BTN_QSS,
@@ -55,7 +58,6 @@ from .settings_pages import (
     TEXTAREA_QSS,
     NoteRow,
     Page,
-    ProLock,
     ProNote,
     SectionCard,
     Segmented,
@@ -73,6 +75,10 @@ _TEXTAREA_H = 64
 
 _COUNT_SHOWN_FROM = PROFILE_MAX_CHARS - 200
 _FIELD_LABEL_QSS = f"font-size: 12px; color: {MUTED}; background: transparent;"
+
+
+_MEMORY_MARK_PX = 26
+_MEMORY_EMPTY_PX, _MEMORY_EMPTY_FLOOR = 56, 92
 
 
 class _NoteField(QLineEdit):
@@ -154,6 +160,12 @@ class PersonalisationPageMixin:
             self.tr("Move the map to what it changes"),
             self.tr("The view goes to each edit as it happens. Off keeps your view where you put it."),
             self._follow_switch, group))
+        self._mascot_switch = Switch(group, self._store.mascot_animated)
+        self._mascot_switch.toggled.connect(self._on_mascot_toggled)
+        group.add_row(SettingRow(
+            self.tr("Animate the mascot"),
+            self.tr("The AI agent's mark moves and follows the work. Off keeps it still."),
+            self._mascot_switch, group))
         return group
 
     def _sync_language_combo(self) -> None:
@@ -196,8 +208,15 @@ class PersonalisationPageMixin:
         self._show_saved()
         self._emit_profile()
 
-    def _build_personalisation(self) -> Page:
+    def _on_mascot_toggled(self, on: bool) -> None:
+        self._store.mascot_animated = bool(on)
+        telemetry.track_setting("mascot_animated", bool(on))
+        refresh_mascots()
+        for companion in self._memory_companions():
+            companion.refresh_mode()
+        self._show_saved()
 
+    def _build_personalisation(self) -> Page:
 
         page = Page(self.tr("Personalisation"),
                     self.tr("Read by the AI agent at the start of every conversation."), self)
@@ -239,8 +258,6 @@ class PersonalisationPageMixin:
         page.add_group_title(self.tr("Answers"))
         page.add(self._build_answers(page))
         self._sync_language_combo()
-        self._build_memory(page)
-        self._build_project_memory(page)
         return page
 
     def _field(self, host: QWidget, line: QHBoxLayout, label: str, text: str,
@@ -379,16 +396,14 @@ class PersonalisationPageMixin:
         self._show_saved()
         self._emit_profile()
 
-    def _build_memory(self, page: Page) -> None:
+    def _build_memory_page(self) -> Page:
 
 
 
 
-        locked = self._memory_locked()
-        lock = ProLock()
-        page.add_group_title(self.tr("Memory"), lock)
-        lock.setVisible(locked)
-        self._plan_sections.append((lock, ()))
+
+        page = Page(self.tr("Memory"),
+                    self.tr("What the AI keeps between conversations, stored on this computer."), self)
         card = SectionCard(page)
 
 
@@ -399,18 +414,21 @@ class PersonalisationPageMixin:
         self._memory_switch = Switch(group, self._store.memory_enabled)
         self._memory_switch.toggled.connect(self._on_memory_toggled)
         group.add_row(SettingRow(self.tr("The AI saves notes on its own"),
-                                 "",
+                                 self.tr("The rules you give it and the corrections that hold for later."),
                                  self._memory_switch, group))
         card.add(group)
 
-        self._notes_label = QLabel(card)
-        self._notes_label.setObjectName("memoryNotesLabel")
-        self._notes_label.setStyleSheet(
-            f"font-size: 11px; font-weight: {WEIGHT_MEDIUM}; color: {MUTED}; background: transparent;")
-        self._notes_label.setContentsMargins(14, 6, 14, 0)
-        card.add(self._notes_label)
-        self._notes_group = SettingGroup(card, flat=True)
-        card.add(self._notes_group)
+
+
+        self._memory_mark = Companion(page, self._store, _MEMORY_MARK_PX, beside=page.title_label)
+        self._memory_empty = None
+
+
+        self._notes_host = QWidget(card)
+        notes_col = QVBoxLayout(self._notes_host)
+        notes_col.setContentsMargins(0, 0, 0, 0)
+        notes_col.setSpacing(0)
+        card.add(self._notes_host)
 
         add_host = QWidget(card)
         add_col = QVBoxLayout(add_host)
@@ -425,6 +443,8 @@ class PersonalisationPageMixin:
         self._add_note_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         self._add_note_btn.setAutoDefault(False)
         self._add_note_btn.clicked.connect(self._open_add_note)
+        HoverWatch(self._add_note_btn, lambda: self._memory_moment(ADD_HOVER, self._add_note_btn),
+                   lambda: [c.mascot.hover(None) for c in self._memory_companions()])
         note_actions = QHBoxLayout()
         note_actions.setContentsMargins(0, 0, 0, 0)
         note_actions.addWidget(self._add_note_btn, 0, Qt.AlignmentFlag.AlignLeft)
@@ -490,39 +510,24 @@ class PersonalisationPageMixin:
         folder_btn.setEnabled(bool(memory_dir()))
         folder_lay.addWidget(folder_btn)
         folder_lay.addStretch(1)
-
         card.add(folder)
-        pro = self._pro_note(card, self.tr("Pro reads your notes at the start of every conversation."), "memory")
-        pro.setContentsMargins(12, 0, 12, 0)
-        pro.setVisible(locked)
         self._fill_notes()
+        return page
+
+    def _memory_companions(self) -> list:
+
+        found = [getattr(self, "_memory_mark", None), getattr(self, "_memory_empty", None)]
+        return [c for c in found if c is not None and not sip.isdeleted(c) and not sip.isdeleted(c.mascot)]
+
+    def _memory_moment(self, event: str = "", look=None) -> None:
 
 
-        self._plan_sections.append((pro, (group, self._notes_label, self._notes_group, add_host, folder)))
-        set_section_locked(group, self._notes_label, self._notes_group, add_host, folder, locked=locked)
-
-    def _build_project_memory(self, page: Page) -> None:
-
-
-
-        page.add_group_title(self.tr("Project memory"))
-        mem = SectionCard(page)
-        page.add(mem)
-        buttons = QWidget(mem)
-        blay = QHBoxLayout(buttons)
-        blay.setContentsMargins(0, 0, 0, 0)
-        blay.setSpacing(8)
-        for label, action in ((self.tr("Show project memory"), "show"),
-                              (self.tr("Clear project memory"), "clear")):
-            button = QPushButton(label, buttons)
-            button.setObjectName(f"projectMemory_{action}")
-            button.setStyleSheet(GHOST_BTN_QSS)
-            button.setCursor(Qt.CursorShape.PointingHandCursor)
-            button.setAutoDefault(False)
-            button.clicked.connect(lambda _checked=False, a=action: self.project_memory_requested.emit(a))
-            blay.addWidget(button, 0)
-        blay.addStretch(1)
-        mem.add(buttons)
+        empty = not load_memory_notes(self._store)
+        mood = OFF if not self._store.memory_enabled else EMPTY if empty else REST
+        for companion in self._memory_companions():
+            companion.play(mood)
+            if event:
+                companion.play(event, look)
 
     def _open_add_note(self) -> None:
         self._add_note_btn.hide()
@@ -535,24 +540,54 @@ class PersonalisationPageMixin:
         self._add_note_btn.show()
 
     def _fill_notes(self) -> None:
-        self._notes_group.clear()
+
+
+        column = self._notes_host.layout()
+        while column.count():
+            widget = column.takeAt(0).widget()
+            if widget is not None:
+                widget.deleteLater()
         notes = load_memory_notes(self._store)
-        self._notes_label.setText(self.tr("Saved notes · {n}").format(n=len(notes)))
-        if getattr(self, "_clear_notes_btn", None) is not None:
-            self._clear_notes_btn.setVisible(bool(notes))
+        self._clear_notes_btn.setVisible(bool(notes))
+        self._memory_empty = None
+        self._memory_mark.mascot.setVisible(bool(notes))
+        here = self._open_project_key()
+        pinned = [n for n in notes if n["scope"] == "project"]
+        places = (
+            (self.tr("This project · {n}"), [n for n in pinned if here and n["project"] == here]),
+            (self.tr("Everywhere · {n}"), [n for n in notes if n["scope"] != "project"]),
+            (self.tr("Other projects · {n}"), [n for n in pinned if not (here and n["project"] == here)]),
+        )
         if not notes:
-            empty = QLabel(self.tr("No notes yet."), self._notes_group)
+            floor = QWidget(self._notes_host)
+            floor.setFixedHeight(scale_px_length(_MEMORY_EMPTY_FLOOR))
+            column.addWidget(floor)
+            self._memory_empty = Companion(floor, self._store, _MEMORY_EMPTY_PX)
+            empty = QLabel(self.tr("No notes yet."), self._notes_host)
             empty.setStyleSheet(ROW_NOTE_QSS)
             empty.setWordWrap(True)
-            empty.setContentsMargins(14, 12, 14, 12)
-            self._notes_group.add_row(empty)
+            empty.setAlignment(Qt.AlignmentFlag.AlignHCenter)
+            empty.setContentsMargins(14, 4, 14, 12)
+            column.addWidget(empty)
+            self._memory_moment()
             return
-        for note in reversed(notes):
-            row = NoteRow(note["text"], self._note_caption(note), self._notes_group, note["id"])
-            row.removed.connect(self._on_remove_note)
-            row.edited.connect(self._on_edit_note)
-            self._notes_group.add_row(row)
-        apply_font_scale_to_tree(self._notes_group)
+        for heading, found in places:
+            if not found:
+                continue
+            label = QLabel(heading.format(n=len(found)), self._notes_host)
+            label.setStyleSheet(
+                f"font-size: 11px; font-weight: {WEIGHT_MEDIUM}; color: {MUTED}; background: transparent;")
+            label.setContentsMargins(14, 8, 14, 0)
+            column.addWidget(label)
+            group = SettingGroup(self._notes_host, flat=True)
+            for note in reversed(found):
+                row = NoteRow(note["text"], self._note_caption(note), group, note["id"])
+                row.removed.connect(self._on_remove_note)
+                row.edited.connect(self._on_edit_note)
+                group.add_row(row)
+            column.addWidget(group)
+        apply_font_scale_to_tree(self._notes_host)
+        self._memory_moment()
 
     def _open_project_key(self) -> str:
 
@@ -565,20 +600,7 @@ class PersonalisationPageMixin:
     def _note_caption(self, note: dict) -> str:
 
 
-
-
-
-
-
-
-
-        who = self.tr("Added by the AI") if note.get("source") == "ai" else self.tr("Added by you")
-        parts = [who]
-        if note.get("scope") == "project":
-            key = str(note.get("project") or "")
-            here = self._open_project_key()
-            parts.append(self.tr("This project") if key and key == here
-                         else self.tr("Another project"))
+        parts = [self.tr("Added by the AI") if note.get("source") == "ai" else self.tr("Added by you")]
         stamp = str(note.get("updated_at") or note.get("created_at") or "")
         when = QDateTime.fromString(stamp, Qt.DateFormat.ISODate)
         if when.isValid():
@@ -592,14 +614,18 @@ class PersonalisationPageMixin:
         if add_memory_note(self._store, text, "user") is None:
             self._note_edit.selectAll()
             return
+        telemetry.track_setting("memory_note", "added")
         self._close_add_note()
         self._fill_notes()
+        self._memory_moment(ADDED)
         self._show_saved()
         self._emit_profile()
 
     def _on_remove_note(self, text: str) -> None:
         if remove_memory_note(self._store, text):
+            telemetry.track_setting("memory_note", "deleted")
             self._fill_notes()
+            self._memory_moment(DELETED)
             self._show_saved()
             self._emit_profile()
 
@@ -617,7 +643,9 @@ class PersonalisationPageMixin:
         if answer != QMessageBox.StandardButton.Yes:
             return
         clear_memory_notes(self._store)
+        telemetry.track_setting("memory_note", "cleared")
         self._fill_notes()
+        self._memory_moment(CLEARED)
         self._show_saved()
         self._emit_profile()
 
@@ -635,7 +663,9 @@ class PersonalisationPageMixin:
         if add_memory_note(self._store, text, "user", note["kind"], note["scope"],
                            note["project"], note_id) is None:
             return
+        telemetry.track_setting("memory_note", "edited")
         self._fill_notes()
+        self._memory_moment(EDITED)
         self._show_saved()
         self._emit_profile()
 
@@ -654,6 +684,7 @@ class PersonalisationPageMixin:
     def _on_memory_toggled(self, on: bool) -> None:
         self._store.memory_enabled = bool(on)
         telemetry.track_setting("memory_enabled", bool(on))
+        self._memory_moment(ON if on else "")
         self._show_saved()
         self._emit_profile()
 

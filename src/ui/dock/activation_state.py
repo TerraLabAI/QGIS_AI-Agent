@@ -12,10 +12,13 @@
 
 
 
-
 from __future__ import annotations
 
-from qgis.PyQt.QtCore import Qt, pyqtSignal
+import os
+
+from qgis.core import QgsApplication
+from qgis.PyQt.QtCore import QPointF, QRectF, Qt, pyqtSignal
+from qgis.PyQt.QtGui import QPainter, QPen, QPixmap
 from qgis.PyQt.QtWidgets import (
     QHBoxLayout,
     QLabel,
@@ -25,7 +28,7 @@ from qgis.PyQt.QtWidgets import (
     QWidget,
 )
 
-from ..font_scale import scale_qss_font_px
+from ..font_scale import scale_qss_font_px, ui_font_scale
 from ..style import (
     _BTN_DANGER_GHOST,
     _BTN_GHOST,
@@ -35,24 +38,63 @@ from ..style import (
     FONT_BASE,
     FONT_HINT,
     INK_2,
+    INK_3,
+    LINE,
     MUTED,
     SPACE_CARD,
     SPACE_OUTER,
+    SURFACE,
     keyboard_ring,
+    qcolor,
 )
 from ..styles import PANEL_TEXT, _msg_label_qss
 from ..widgets import Spinner, placeholder_ink
 
-
-_TITLE_QSS = (scale_qss_font_px(f"font-weight: 600; font-size: {FONT_BASE + 3}px; color: {PANEL_TEXT};"
-              " background: transparent; border: none;"))
+_TITLE_QSS = scale_qss_font_px(f"font-weight: 650; font-size: {FONT_BASE + 7}px; color: {PANEL_TEXT};"
+                               " background: transparent; border: none;")
 _PITCH_QSS = scale_qss_font_px(
     f"font-size: {FONT_BASE}px; color: {INK_2}; background: transparent; border: none;")
-
-
-_TOP_MARGIN = 18
-_TITLE_GAP = 14
 _HINT_QSS = scale_qss_font_px(f"font-size: {FONT_HINT}px; color: {MUTED}; background: transparent; border: none;")
+_CARD_QSS = f"#signInCard {{ background: {SURFACE}; border: 1px solid {LINE}; border-radius: 16px; }}"
+
+_SIGN_IN_PX = BTN_PRIMARY_WIDE_PX + 10
+
+
+_SIGN_IN_SIZES = (FONT_BASE + 2, FONT_BASE, FONT_BASE - 1, FONT_BASE - 2)
+_SIGN_IN_PAD = 10
+
+
+def _sign_in_qss(size: int) -> str:
+    return (_BTN_PRIMARY_WIDE.replace(f"font-size: {FONT_BASE}px", f"font-size: {size}px")
+            .replace("padding: 0 18px", f"padding: 0 {_SIGN_IN_PAD}px")
+            .replace("padding: 0 16px", f"padding: 0 {_SIGN_IN_PAD - 2}px"))
+
+
+def _qgis_logo() -> QPixmap:
+
+    big = os.path.join(QgsApplication.iconsPath(), "qgis-icon-512x512.png")
+    return QPixmap(big if os.path.exists(big) else QgsApplication.appIconPath())
+
+
+class _Pair(QWidget):
+
+
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self._qgis = _qgis_logo()
+        self.setFixedHeight(64)
+
+    def paintEvent(self, _event):
+        p = QPainter(self)
+        p.setRenderHint(QPainter.RenderHint.Antialiasing)
+        p.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform)
+        cx, cy = self.width() / 2, self.height() / 2
+        if not self._qgis.isNull():
+            p.drawPixmap(QRectF(cx + 44 - 22, cy - 22, 44, 44), self._qgis, QRectF(self._qgis.rect()))
+        p.setPen(QPen(qcolor(INK_3), 2, Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap))
+        p.drawLine(QPointF(cx - 6, cy), QPointF(cx + 6, cy))
+        p.drawLine(QPointF(cx, cy - 6), QPointF(cx, cy + 6))
 
 
 class ActivationCard(QWidget):
@@ -69,25 +111,30 @@ class ActivationCard(QWidget):
         self.state = "signed_out"
         self.pairing_code = ""
         outer = QVBoxLayout(self)
-        outer.setContentsMargins(12, _TOP_MARGIN, 12, SPACE_OUTER)
+        outer.setContentsMargins(12, 16, 12, 16)
         outer.setSpacing(0)
 
-        col = QVBoxLayout()
-        col.setContentsMargins(0, 0, 0, 0)
+        card = QWidget(self)
+        card.setObjectName("signInCard")
+        card.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
+        card.setStyleSheet(_CARD_QSS)
+        col = QVBoxLayout(card)
+        col.setContentsMargins(16, 26, 16, 18)
         col.setSpacing(SPACE_OUTER)
-
-
         outer.addStretch(1)
-        outer.addLayout(col)
-        outer.addStretch(2)
+        outer.addWidget(card)
+        outer.addStretch(1)
 
+        self._pair = _Pair(self)
+        col.addWidget(self._pair)
+        col.addSpacing(10)
         title = QLabel(self.tr("Your AI agent inside QGIS"), self)
         title.setStyleSheet(_TITLE_QSS)
         title.setWordWrap(True)
         title.setAlignment(Qt.AlignmentFlag.AlignCenter)
         col.addWidget(title)
         self._pitch = QLabel(
-            self.tr("Ask it to load data, style layers, run analyses or edit features."), self)
+            self.tr("The AI agent loads data, styles layers, runs analyses and edits features for you."), self)
         self._pitch.setStyleSheet(_PITCH_QSS)
         self._pitch.setWordWrap(True)
         self._pitch.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -98,7 +145,7 @@ class ActivationCard(QWidget):
         self._subtitle.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self._subtitle.hide()
         col.addWidget(self._subtitle)
-        col.addSpacing(_TITLE_GAP)
+        col.addSpacing(14)
 
         self._connect_section = QWidget(self)
         connect_col = QVBoxLayout(self._connect_section)
@@ -112,41 +159,29 @@ class ActivationCard(QWidget):
         self._reason.setStyleSheet(_msg_label_qss("warning"))
         self._reason.hide()
         connect_col.addWidget(self._reason)
-        self._connect_btn = QPushButton(self.tr("Sign in or create an account"), self._connect_section)
-        self._connect_btn.setToolTip(self.tr("Sign in via your browser to start using AI Agent"))
-        self._connect_btn.setFixedHeight(BTN_PRIMARY_WIDE_PX)
+        self._connect_btn = QPushButton(self.tr("Sign in or create a free account"), self._connect_section)
+        self._connect_btn.setToolTip(self.tr("Opens your browser, takes about 15 seconds"))
+        self._connect_btn.setFixedHeight(_SIGN_IN_PX)
         self._connect_btn.setCursor(Qt.CursorShape.PointingHandCursor)
-        self._connect_btn.setStyleSheet(_BTN_PRIMARY_WIDE)
+        self._sign_in_size = 0
+        self._fit_sign_in()
         keyboard_ring(self._connect_btn)
         self._connect_btn.setAutoDefault(False)
         self._connect_btn.clicked.connect(self.sign_in_requested.emit)
         connect_col.addWidget(self._connect_btn)
-
-        self._hint = QLabel(self.tr("Free. Opens your browser, takes about 15 seconds."),
-                            self._connect_section)
-        self._hint.setStyleSheet(_HINT_QSS)
-        self._hint.setWordWrap(True)
-        self._hint.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        connect_col.addSpacing(4)
-        connect_col.addWidget(self._hint)
         col.addWidget(self._connect_section)
 
         self._wait_section = QWidget(self)
         wait_col = QVBoxLayout(self._wait_section)
         wait_col.setContentsMargins(0, 0, 0, 0)
         wait_col.setSpacing(SPACE_OUTER)
-        status_row = QHBoxLayout()
-        status_row.setSpacing(SPACE_OUTER)
-        status_row.addStretch(1)
         self._spinner = Spinner(16, parent=self._wait_section)
-        status_row.addWidget(self._spinner, 0, Qt.AlignmentFlag.AlignVCenter)
+        wait_col.addWidget(self._spinner, 0, Qt.AlignmentFlag.AlignHCenter)
         self._wait_status = QLabel(self.tr("Waiting for your browser sign-in..."), self._wait_section)
         self._wait_status.setStyleSheet(scale_qss_font_px("font-size: 12px; color: " + PANEL_TEXT + ";"))
-
         self._wait_status.setWordWrap(True)
-        status_row.addWidget(self._wait_status, 0)
-        status_row.addStretch(1)
-        wait_col.addLayout(status_row)
+        self._wait_status.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        wait_col.addWidget(self._wait_status)
         btn_row = QHBoxLayout()
         btn_row.setSpacing(SPACE_CARD)
         self._reopen_btn = QPushButton(self.tr("Open browser"), self._wait_section)
@@ -214,7 +249,29 @@ class ActivationCard(QWidget):
         self._message.hide()
         col.addWidget(self._message)
 
-        outer.addStretch(1)
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        self._fit_sign_in()
+
+    def _fit_sign_in(self) -> None:
+
+        from qgis.PyQt.QtGui import QFont, QFontMetrics
+
+        room = self._connect_btn.width() - 2 * _SIGN_IN_PAD - 4
+        if room <= 0:
+            room = 10_000
+        text = self._connect_btn.text()
+        size = _SIGN_IN_SIZES[-1]
+        for candidate in _SIGN_IN_SIZES:
+            font = QFont(self._connect_btn.font())
+            font.setPixelSize(round(candidate * max(1.0, ui_font_scale())))
+            font.setWeight(QFont.Weight.DemiBold)
+            if QFontMetrics(font).horizontalAdvance(text) <= room:
+                size = candidate
+                break
+        if size != self._sign_in_size:
+            self._sign_in_size = size
+            self._connect_btn.setStyleSheet(scale_qss_font_px(_sign_in_qss(size)))
 
     def show_signed_out(self, message: str = "") -> None:
 
@@ -232,10 +289,17 @@ class ActivationCard(QWidget):
         self.clear_message()
         self._reason.setText(message or "")
         self._reason.setVisible(bool(message))
-        self._hint.setVisible(not message)
         self._pitch.setVisible(not message)
         self._connect_btn.setText(self.tr("Sign in again") if message
-                                  else self.tr("Sign in or create an account"))
+                                  else self.tr("Sign in or create a free account"))
+        self._fit_sign_in()
+
+    def mascot_seat(self) -> tuple:
+
+        return self._pair, QPointF(self._pair.width() / 2.0 - 44, self._pair.height() / 2.0 + 26)
+
+    def sign_in_button(self) -> QPushButton:
+        return self._connect_btn
 
     def show_pairing_waiting(self, code: str = "", url: str = "") -> None:
         self.pairing_code = code or ""

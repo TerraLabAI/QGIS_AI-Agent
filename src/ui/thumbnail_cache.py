@@ -18,6 +18,7 @@ from qgis.PyQt.QtNetwork import QNetworkReply, QNetworkRequest
 
 from ..core.host_platform import retry_file_op
 from ..core.policy import PLUGIN_CACHE_DIR
+from ..core.qt_compat import disconnect_quietly
 from .image_guard import read_bounded_image
 from .shared import resolve_qt_enum
 
@@ -40,7 +41,8 @@ def thumbnail_cache_path(url: str) -> str:
     return os.path.join(THUMBNAIL_CACHE_DIR, f"{digest}.img")
 
 
-def is_thumbnail_url_usable(url: object) -> bool:
+def is_picture_url_usable(url: object) -> bool:
+
 
     if not isinstance(url, str) or not url.lower().startswith("https://"):
         return False
@@ -50,6 +52,19 @@ def is_thumbnail_url_usable(url: object) -> bool:
         return bool(parsed.hostname) and not parsed.username and not parsed.password
     except ValueError:
         return False
+
+
+def drop_reply(reply) -> None:
+
+    if reply is None:
+        return
+    for signal in ("finished", "downloadProgress"):
+        disconnect_quietly(reply, signal)
+    try:
+        reply.abort()
+        reply.deleteLater()
+    except RuntimeError:
+        pass
 
 
 def cached_thumbnail(url: str) -> QImage | None:
