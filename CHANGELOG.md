@@ -9,6 +9,14 @@ is what the QGIS Plugin Manager renders.
 
 ## [Unreleased]
 
+## [2.0.1] - 2026-11-13
+
+### Fixed
+
+- The plugin page shows a sharp 512 px logo, and the update and About cards draw the mark at
+  full resolution instead of an enlarged 64 px icon.
+- A download handed back after more than 60 s keeps its licence and year.
+
 ## [2.0.0] - 2026-11-12
 
 ### Added

@@ -35,7 +35,7 @@ about=
 
     By TerraLab, terra-lab.ai
 
-version=2.0.0
+version=2.0.1
 author=TerraLab
 email=lilien.auger@terra-lab.ai
 homepage=https://terra-lab.ai/ai-agent?utm_source=plugins.qgis.org&utm_medium=referral
@@ -43,6 +43,10 @@ repository=https://github.com/TerraLabAI/QGIS_AI-Agent
 tracker=https://github.com/TerraLabAI/QGIS_AI-Agent/issues
 license=GPL-2.0-or-later
 changelog=
+    2.0.1
+    - A sharp, full-size logo on the plugin page, the update card and the About card
+    - A download that takes over 60 s keeps its licence and year
+
     2.0.0
     - Voice dictation in the message box: speak your task, with a clear notice of what happens to the voice
     - A live AI agent mascot on the panel, the toolbar and the menu icons (it can be turned off in Settings)
@@ -67,14 +71,9 @@ changelog=
     - Ctrl+S, Undo and large projects no longer freeze QGIS; saving works after the temp folder is gone
     - Undo brings back deleted features and files Windows held; one HTML report file per title
 
-    1.9.2
-    - Opens more of your files: shapefiles in any code page, zips inside zips, GRIB, .txt and .tsv tables
-    - Works behind company proxies and certificates; netCDF, HDF and .xls open from any Windows folder
-    - The AI agent reads a file's layers, fields and bands before loading it; rasters say their nodata
-    - Faster first open; Balanced runs code that only adds layers without a card; new layers are saved
 
 tags=ai,ai agent,artificial intelligence,agent,assistant,ai assistant,chatgpt,copilot,chat,llm,large language model,automation,natural language,geoai,ai gis,gis ai,ai for gis,agentic ai,geospatial,gis,spatial analysis,geoprocessing,processing,data loading,open data,styling,symbology,labeling,layout,print layout,map making,feature editing,attribute,vector,raster,basemap,openstreetmap,productivity,pyqgis,terralab,terra lab,ai edit,ai segmentation
-icon=icons/icon.png
+icon=icons/logo.png
 experimental=False
 deprecated=False
 hasProcessingProvider=no

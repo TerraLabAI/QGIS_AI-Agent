@@ -162,7 +162,8 @@ def paint_styled_ground(widget) -> None:
 UI_DIR = os.path.dirname(os.path.abspath(__file__))
 PLUGIN_DIR = os.path.dirname(os.path.dirname(UI_DIR))
 ICONS_DIR = os.path.join(PLUGIN_DIR, "icons")
-PLUGIN_ICON_PATH = os.path.join(ICONS_DIR, "icon.png")
+
+PLUGIN_ICON_PATH = os.path.join(ICONS_DIR, "icon@4x.png")
 TERRALAB_LOGO_PATH = os.path.join(ICONS_DIR, "terralab-logo.png")
 
 

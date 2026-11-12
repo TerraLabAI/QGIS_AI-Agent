@@ -151,7 +151,24 @@ def _first_check_warning(result) -> str:
     return first[:_CHECK_NOTE_CHARS - 1] + "\u2026" if len(first) > _CHECK_NOTE_CHARS else first
 
 
+def _named_layers(result) -> list:
+
+    if not isinstance(result, dict):
+        return []
+    rows = [result] + [row for row in result.get("layers") or () if isinstance(row, dict)]
+    ids = [str(row["layer_id"]) for row in rows if row.get("layer_id")]
+    if not ids:
+        return []
+    project = QgsProject.instance()
+    return [layer for layer in (project.mapLayer(layer_id) for layer_id in dict.fromkeys(ids)) if layer is not None]
+
+
 class _ExecutorDeliver:
+    def _still_coming(self) -> set:
+
+
+        return set(self._inflight) | set(self._handed_back)
+
     def _settle_late_layers(self, call: dict, result: dict) -> None:
 
 
@@ -159,10 +176,17 @@ class _ExecutorDeliver:
 
 
         tool_call_id, run_id = str(call.get("tool_call_id")), str(call.get("run_id") or "")
-        added = [lay for lay in self.stacker.take_added(tool_call_id, self._inflight) if lay is not None]
+        added = [lay for lay in self.stacker.take_added(tool_call_id, self._still_coming()) if lay is not None]
+
+
+
+        named = _named_layers(result)
+        named_ids = {lay.id() for lay in named}
+        mine = [lay for lay in added if self.stacker.added_by(lay) == tool_call_id and lay.id() not in named_ids]
+        mine += named
+        added = [lay for lay in added if lay.id() not in named_ids] + named
         if not added:
             return
-        mine = [lay for lay in added if self.stacker.added_by(lay) == tool_call_id]
         licence.credit_added(mine, result, tool=str(call.get("name")), args=call.get("args") or {},
                              facts=call.get("source_facts"))
         layer_egress.note_run_layers(added)
@@ -286,7 +310,7 @@ class _ExecutorDeliver:
 
 
         with stalls.probe("licence.credit"):
-            added = [lay for lay in self.stacker.take_added(tool_call_id, self._inflight) if lay is not None]
+            added = [lay for lay in self.stacker.take_added(tool_call_id, self._still_coming()) if lay is not None]
 
 
             late = getattr(self.stacker, "from_task", set())
