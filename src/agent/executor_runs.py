@@ -54,28 +54,6 @@ def _open_dialog() -> str | None:
     return str(dialog.windowTitle())
 
 
-def _press_datum_ok() -> bool:
-
-
-
-
-
-
-
-
-
-    try:
-        from qgis.PyQt.QtWidgets import QApplication
-
-        dialog = QApplication.activeModalWidget()
-        if dialog is None or dialog.metaObject().className() != "QgsDatumTransformDialog":
-            return False
-        dialog.accept()
-    except Exception:  # noqa: BLE001
-        return False
-    return True
-
-
 def _stop_snippet_algorithm(run_id: str) -> None:
 
     try:
@@ -248,15 +226,8 @@ class _ExecutorRuns:
 
 
 
-
         last, self._dialog_tick = self._dialog_tick, now
         title = _open_dialog() if self._inflight else None
-        main_calls = [tool_call_id for tool_call_id, entry in self._inflight.items() if not entry[3]]
-        if title is not None and main_calls and _press_datum_ok():
-            for tool_call_id in main_calls:
-                looped, on_dialog, seen, pressed = self._dialog_waits.get(tool_call_id, (0.0, 0.0, "", ()))
-                self._dialog_waits[tool_call_id] = (looped, on_dialog, seen, pressed + (title,))
-            title = None
 
         if title is None:
             code_clock.WAITING_ON_USER.clear()
@@ -269,9 +240,9 @@ class _ExecutorRuns:
             return
         for tool_call_id, (_run_id, _name, _started, in_background) in self._inflight.items():
             if not in_background:
-                looped, on_dialog, seen, pressed = self._dialog_waits.get(tool_call_id, (0.0, 0.0, "", ()))
+                looped, on_dialog, seen = self._dialog_waits.get(tool_call_id, (0.0, 0.0, ""))
                 self._dialog_waits[tool_call_id] = (looped + step, on_dialog + (step if title is not None else 0.0),
-                                                    title if title is not None else seen, pressed)
+                                                    title if title is not None else seen)
 
     def _hand_back(self, tool_call_id: str, spent: float) -> bool:
 
@@ -524,6 +495,7 @@ class _ExecutorRuns:
         warnings = self._call_warnings.pop(run_id, None)
         outputs = self._output_files.pop(run_id, None)
         objects = self._objects.pop(run_id, None)
+        transformations = self._transformations.pop(run_id, None)
         self._run_allowed.pop(run_id, None)
         self._run_code_granted.pop(run_id, None)
         self._run_capture_s.pop(run_id, None)
@@ -550,6 +522,7 @@ class _ExecutorRuns:
         self._ended_run = (("", (), (), ()) if replaced
                            else (run_id, tuple(written or ()), tuple(warnings or ()), tuple(outputs or ())))
         self._ended_objects = () if replaced else tuple(objects or ())
+        self._ended_transformations = () if replaced else tuple(transformations or ())
         if snapshot is not None and snapshot.captured and not replaced:
             self._record_after(run_id, thread_id, run_index, snapshot, prompt)
 
@@ -684,4 +657,7 @@ class _ExecutorRuns:
         objects, self._ended_objects = self._ended_objects, ()
         if objects and isinstance(report, dict):
             report["objects_made"] = list(objects)
+        transformations, self._ended_transformations = self._ended_transformations, ()
+        if transformations and isinstance(report, dict):
+            report["transformations"] = list(transformations)
         return report

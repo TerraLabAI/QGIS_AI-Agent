@@ -15,11 +15,11 @@ from __future__ import annotations
 
 import json
 
-from qgis.PyQt import sip
 from qgis.PyQt.QtCore import QEvent, QObject, QPoint, QTimer
 
 from ..core import mascot as table_of
 from ..core.host_platform import prefers_reduced_motion
+from ..core.qt_compat import qt_deleted
 from .font_scale import scale_px_length
 from .mascot import BOX_H, BOX_W, GAZE, LIVE, STILL, Mascot
 
@@ -46,7 +46,7 @@ _GLANCE_MS = 1800
 
 def play(mascot, event: str, look=None) -> None:
 
-    if mascot is None or sip.isdeleted(mascot):
+    if qt_deleted(mascot):
         return
     if event in mascot.table()["events"]:
         mascot.fire(event, look)
@@ -63,7 +63,7 @@ def play(mascot, event: str, look=None) -> None:
             mascot.react(*move["react"])
     if look is not None and event in (SAVED, UNDONE):
         mascot.look_at(look)
-        QTimer.singleShot(_GLANCE_MS, lambda: None if sip.isdeleted(mascot) else mascot.look_at(None))
+        QTimer.singleShot(_GLANCE_MS, lambda: None if qt_deleted(mascot) else mascot.look_at(None))
 
 
 class HoverWatch(QObject):

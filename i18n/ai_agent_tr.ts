@@ -1806,6 +1806,82 @@ Silme, bekleme süresi bitince kesinleşir. O zamana kadar terra-lab.ai üzerind
             <source>{words} · {done} of {total}</source>
             <translation>{words} · {done} / {total}</translation>
         </message>
+        <message>
+            <source>Allow chat review</source>
+            <translation>Sohbet incelemesine izin ver</translation>
+        </message>
+        <message>
+            <source>Both switches stay in Settings, where you can change them whenever you want.</source>
+            <translation>Her iki anahtar da Ayarlar'da kalır, istediğiniz zaman değiştirebilirsiniz.</translation>
+        </message>
+        <message>
+            <source>Counts and error codes, linked to your account. Never your text or your map.</source>
+            <translation>Sayılar ve hata kodları, hesabınıza bağlı olarak. Metniniz ya da haritanız asla.</translation>
+        </message>
+        <message>
+            <source>Each message sends your text, the map extent, your layer and field names, one sample row and, while it works, pictures of the map. Never your files unless you attach them. No model is trained on them.</source>
+            <translation>Her mesaj metninizi, harita kapsamını, katman ve alan adlarınızı, bir örnek satırı ve çalışırken haritanın görüntülerini gönderir. Siz eklemedikçe dosyalarınız asla gönderilmez. Hiçbir model bunlarla eğitilmez.</translation>
+        </message>
+        <message>
+            <source>Our team may read your chats to fix the AI agent.</source>
+            <translation>Ekibimiz, yapay zeka ajanını düzeltmek için sohbetlerinizi okuyabilir.</translation>
+        </message>
+        <message>
+            <source>Runs on Microsoft Azure in Europe, stored in France.</source>
+            <translation>Avrupa'da Microsoft Azure üzerinde çalışır, Fransa'da saklanır.</translation>
+        </message>
+        <message>
+            <source>Share usage statistics</source>
+            <translation>Kullanım istatistiklerini paylaş</translation>
+        </message>
+        <message>
+            <source>The message you send is the part that reaches us: we keep it 90 days, and with chat review on, our team may read it to fix the AI agent. On {pro}, 30 days, or none at 0 days of history.</source>
+            <translation>Bize ulaşan kısım gönderdiğiniz mesajdır: 90 gün saklarız ve sohbet incelemesi açıksa ekibimiz yapay zeka ajanını düzeltmek için okuyabilir. {pro} planında 30 gün, geçmiş 0 gün ise hiç saklanmaz.</translation>
+        </message>
+        <message>
+            <source>You choose below.</source>
+            <translation>Seçimi aşağıda siz yaparsınız.</translation>
+        </message>
+        <message>
+            <source>Close the open list</source>
+            <translation>Açık listeyi kapat</translation>
+        </message>
+        <message>
+            <source>Press it twice</source>
+            <translation>İki kez bas</translation>
+        </message>
+        <message>
+            <source>Deleted after 90 days at most</source>
+            <translation>En geç 90 gün sonra silinir</translation>
+        </message>
+        <message>
+            <source>Help improve AI Agent</source>
+            <translation>AI Agent'ı geliştirmeye yardımcı olun</translation>
+        </message>
+        <message>
+            <source>Hosted in the EU</source>
+            <translation>AB'de barındırılır</translation>
+        </message>
+        <message>
+            <source>Never used to train AI</source>
+            <translation>Yapay zekâyı eğitmek için asla kullanılmaz</translation>
+        </message>
+        <message>
+            <source>Your chats are private</source>
+            <translation>Sohbetleriniz gizlidir</translation>
+        </message>
+        <message>
+            <source>Your usage and chats help us fix bugs. Turn it off anytime.</source>
+            <translation>Kullanımınız ve sohbetleriniz hataları düzeltmemize yardımcı olur. İstediğiniz zaman kapatabilirsiniz.</translation>
+        </message>
+        <message>
+            <source>included</source>
+            <translation>dahil</translation>
+        </message>
+        <message>
+            <source>left out</source>
+            <translation>hariç</translation>
+        </message>
     </context>
     <context>
         <name>AIAgentContext</name>
@@ -2042,6 +2118,10 @@ Silme, bekleme süresi bitince kesinleşir. O zamana kadar terra-lab.ai üzerind
         <message>
             <source>Your AI agent inside QGIS</source>
             <translation>QGIS içindeki yapay zeka asistanınız</translation>
+        </message>
+        <message>
+            <source>This layer's file can no longer be read, so the map cannot zoom to it.</source>
+            <translation>Bu katmanın dosyası artık okunamıyor, bu yüzden harita katmana yakınlaştırılamıyor.</translation>
         </message>
     </context>
     <context>
@@ -2393,6 +2473,10 @@ Silme, bekleme süresi bitince kesinleşir. O zamana kadar terra-lab.ai üzerind
             <source>{words} · {done} of {total}</source>
             <translation>{words} · {done}/{total}</translation>
         </message>
+        <message>
+            <source>Show on map</source>
+            <translation>Haritada göster</translation>
+        </message>
     </context>
     <context>
         <name>AgentBubble</name>
@@ -2427,6 +2511,18 @@ Silme, bekleme süresi bitince kesinleşir. O zamana kadar terra-lab.ai üzerind
         <message>
             <source>Remove rating</source>
             <translation>Puanı kaldır</translation>
+        </message>
+        <message>
+            <source>Did this do what you wanted?</source>
+            <translation>İstediğin bu muydu?</translation>
+        </message>
+        <message>
+            <source>No</source>
+            <translation>Hayır</translation>
+        </message>
+        <message>
+            <source>Yes</source>
+            <translation>Evet</translation>
         </message>
     </context>
     <context>
@@ -2815,6 +2911,26 @@ Silme, bekleme süresi bitince kesinleşir. O zamana kadar terra-lab.ai üzerind
             <source>Stopped: AI Agent was updated or turned off during this run.</source>
             <translation>Durduruldu: AI Agent bu çalışma sırasında güncellendi veya kapatıldı.</translation>
         </message>
+        <message>
+            <source>Not sent: TerraLab is not connected.</source>
+            <translation>Gönderilmedi: TerraLab bağlı değil.</translation>
+        </message>
+        <message>
+            <source>Thanks. Your note went with the crash report.</source>
+            <translation>Teşekkürler. Notunuz çökme raporuyla birlikte gönderildi.</translation>
+        </message>
+        <message>
+            <source>{layer} lost its file, and QGIS closes when it saves a project that holds it, so nothing was restored. Remove {layer} from the project, or put its file back and turn its editing on and off once, then try again.</source>
+            <translation>{layer} katmanının dosyası kayboldu ve QGIS, onu içeren bir projeyi kaydederken kapanıyor, bu yüzden hiçbir şey geri yüklenmedi. {layer} katmanını projeden kaldırın ya da dosyasını yerine koyup düzenlemeyi bir kez açıp kapatın, ardından tekrar deneyin.</translation>
+        </message>
+        <message>
+            <source>Your note could not be added to the crash report.</source>
+            <translation>Notunuz çökme raporuna eklenemedi.</translation>
+        </message>
+        <message>
+            <source>Your note was sent.</source>
+            <translation>Notunuz gönderildi.</translation>
+        </message>
     </context>
     <context>
         <name>AgentSession</name>
@@ -2961,6 +3077,10 @@ Silme, bekleme süresi bitince kesinleşir. O zamana kadar terra-lab.ai üzerind
     </context>
     <context>
         <name>ChatPanel</name>
+        <message>
+            <source>Try another card</source>
+            <translation>Başka bir kart deneyin</translation>
+        </message>
         <message>
             <source>Add a few words: what should the AI agent do with it?</source>
             <translation>Birkaç söz ekleyin: asistan bununla ne yapsın?</translation>
@@ -3220,6 +3340,14 @@ Silme, bekleme süresi bitince kesinleşir. O zamana kadar terra-lab.ai üzerind
         <message>
             <source>Reply</source>
             <translation>Yanıtla</translation>
+        </message>
+        <message>
+            <source>Esc again to stop</source>
+            <translation>Durdurmak için tekrar Esc</translation>
+        </message>
+        <message>
+            <source>Queue a message for after this run</source>
+            <translation>Bu çalışmadan sonrası için mesajı sıraya al</translation>
         </message>
     </context>
     <context>
@@ -3520,6 +3648,72 @@ Silme, bekleme süresi bitince kesinleşir. O zamana kadar terra-lab.ai üzerind
             <source>Finish dictation</source>
             <translation>Dikteyi bitir</translation>
         </message>
+        <message>
+            <location filename="src/ui/composer.py" />
+            <source>{name} was removed from the project</source>
+            <translation>{name} katmanı projeden kaldırıldı</translation>
+        </message>
+        <message>
+            <location filename="src/ui/composer.py" />
+            <source>{name} is now called {new}</source>
+            <translation>{name} katmanının yeni adı: {new}</translation>
+        </message>
+        <message>
+            <location filename="src/ui/composer.py" />
+            <source>{names} were removed from the project</source>
+            <translation>Şu katmanlar projeden kaldırıldı: {names}</translation>
+        </message>
+        <message>
+            <location filename="src/ui/composer.py" />
+            <source>{n} layers named here were removed or renamed</source>
+            <translation>Burada adı geçen {n} katman kaldırıldı veya yeniden adlandırıldı</translation>
+        </message>
+        <message>
+            <location filename="src/ui/composer.py" />
+            <source>Sent as plain words: the AI agent gets no link to the layer.</source>
+            <translation>Düz metin olarak gönderilir: yapay zekâ ajanı katmana bağlantı almaz.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/composer.py" />
+            <source>removed from the project</source>
+            <translation>projeden kaldırıldı</translation>
+        </message>
+        <message>
+            <location filename="src/ui/composer.py" />
+            <source>renamed {new}</source>
+            <translation>yeniden adlandırıldı: {new}</translation>
+        </message>
+        <message>
+            <location filename="src/ui/composer.py" />
+            <source>Use</source>
+            <translation>Kullan</translation>
+        </message>
+        <message>
+            <location filename="src/ui/composer.py" />
+            <source>Write {new} in the message instead</source>
+            <translation>Bunun yerine mesaja {new} yaz</translation>
+        </message>
+        <message>
+            <location filename="src/ui/composer.py" />
+            <source>and {n} more</source>
+            <translation>ve {n} tane daha</translation>
+        </message>
+        <message>
+            <source>1 layer</source>
+            <translation>1 katman</translation>
+        </message>
+        <message>
+            <source>Edit as text</source>
+            <translation>Metin olarak düzenle</translation>
+        </message>
+        <message>
+            <source>Show on map</source>
+            <translation>Haritada göster</translation>
+        </message>
+        <message>
+            <source>{n} layers</source>
+            <translation>{n} katman</translation>
+        </message>
     </context>
     <context>
         <name>ComposerInput</name>
@@ -3534,6 +3728,14 @@ Silme, bekleme süresi bitince kesinleşir. O zamana kadar terra-lab.ai üzerind
         <message>
             <source>QGIS plugins</source>
             <translation>QGIS eklentileri</translation>
+        </message>
+        <message>
+            <source>Type to search layers, data sources and QGIS plugins</source>
+            <translation>Katmanları, veri kaynaklarını ve QGIS eklentilerini aramak için yazın</translation>
+        </message>
+        <message>
+            <source>Message AI Agent</source>
+            <translation>AI Agent'a mesaj yaz</translation>
         </message>
     </context>
     <context>
@@ -4051,6 +4253,18 @@ Bu dosya artık çalıştırmanın yazdığı yerde değil.</translation>
             <source>Your Pro ends on {date}. Keep it in one click.</source>
             <translation>Pro'nuz {date} tarihinde bitiyor. Tek tıkla sürdürün.</translation>
         </message>
+        <message>
+            <source>AI Agent settings</source>
+            <translation>AI Agent ayarları</translation>
+        </message>
+        <message>
+            <source>Close AI Agent</source>
+            <translation>AI Agent'ı kapat</translation>
+        </message>
+        <message>
+            <source>Dock or undock AI Agent</source>
+            <translation>AI Agent'ı yerleştir veya ayır</translation>
+        </message>
     </context>
     <context>
         <name>HistoryPopup</name>
@@ -4133,6 +4347,19 @@ Bu dosya artık çalıştırmanın yazdığı yerde değil.</translation>
         <message>
             <source>{n} min ago</source>
             <translation>{n} dk önce</translation>
+        </message>
+        <message>
+            <location filename="src/ui/history_popup.py" />
+            <source>Draft</source>
+            <translation>Taslak</translation>
+        </message>
+        <message>
+            <source>Delete chat: {title}</source>
+            <translation>Sohbeti sil: {title}</translation>
+        </message>
+        <message>
+            <source>Open</source>
+            <translation>Aç</translation>
         </message>
     </context>
     <context>
@@ -4534,10 +4761,6 @@ Katmanlar panelinde göstermek için tıklayın.</translation>
             <translation>Bu projede yok: {}</translation>
         </message>
         <message>
-            <source>Other effects the preview could not read: {}</source>
-            <translation>Önizlemenin okuyamadığı diğer etkiler: {}</translation>
-        </message>
-        <message>
             <source>Reads: {}</source>
             <translation>Okur: {}</translation>
         </message>
@@ -4548,6 +4771,94 @@ Katmanlar panelinde göstermek için tıklayın.</translation>
         <message>
             <source>Writes files: {}</source>
             <translation>Dosyalara yazar: {}</translation>
+        </message>
+        <message>
+            <source>Cancel</source>
+            <translation>İptal</translation>
+        </message>
+        <message>
+            <source>Delete 1 feature from {layer}</source>
+            <translation>{layer} katmanından 1 nesneyi sil</translation>
+        </message>
+        <message>
+            <source>Delete {n}</source>
+            <translation>{n} nesneyi sil</translation>
+        </message>
+        <message>
+            <source>Delete {n} features from {layer}</source>
+            <translation>{layer} katmanından {n} nesneyi sil</translation>
+        </message>
+        <message>
+            <source>Details</source>
+            <translation>Ayrıntılar</translation>
+        </message>
+        <message>
+            <source>Feature ids: {ids}</source>
+            <translation>Nesne kimlikleri: {ids}</translation>
+        </message>
+        <message>
+            <source>Feature ids: {ids} and {n} more</source>
+            <translation>Nesne kimlikleri: {ids} ve {n} tane daha</translation>
+        </message>
+        <message>
+            <source>Feature {fid}: {values}</source>
+            <translation>Nesne {fid}: {values}</translation>
+        </message>
+        <message>
+            <source>Hatched in red on the map. Its data source stays as it is; nothing is removed yet.</source>
+            <translation>Haritada kırmızı taramalı gösterilir. Veri kaynağı olduğu gibi kalır; henüz hiçbir şey kaldırılmadı.</translation>
+        </message>
+        <message>
+            <source>Hatched in red on the map. Nothing is deleted yet.</source>
+            <translation>Haritada kırmızı taramalı gösterilir. Henüz hiçbir şey silinmedi.</translation>
+        </message>
+        <message>
+            <source>Hatched in red on the map. Nothing is written yet.</source>
+            <translation>Haritada kırmızı taramalı gösterilir. Henüz hiçbir şey yazılmadı.</translation>
+        </message>
+        <message>
+            <source>Hide details</source>
+            <translation>Ayrıntıları gizle</translation>
+        </message>
+        <message>
+            <source>Its features exist only in this project and go with it. Hatched in red on the map; nothing is removed yet.</source>
+            <translation>Nesneleri yalnızca bu projede bulunur ve onunla birlikte gider. Haritada kırmızı taramalı gösterilir; henüz hiçbir şey kaldırılmadı.</translation>
+        </message>
+        <message>
+            <source>Overwrite 1 feature of {layer}</source>
+            <translation>{layer} katmanındaki 1 nesnenin üzerine yaz</translation>
+        </message>
+        <message>
+            <source>Overwrite {n}</source>
+            <translation>{n} nesnenin üzerine yaz</translation>
+        </message>
+        <message>
+            <source>Overwrite {n} features of {layer}</source>
+            <translation>{layer} katmanındaki {n} nesnenin üzerine yaz</translation>
+        </message>
+        <message>
+            <source>Remove layer</source>
+            <translation>Katmanı kaldır</translation>
+        </message>
+        <message>
+            <source>Remove {layer} from the project</source>
+            <translation>{layer} katmanını projeden kaldır</translation>
+        </message>
+        <message>
+            <source>Rule: {expression}</source>
+            <translation>Kural: {expression}</translation>
+        </message>
+        <message>
+            <source>Show on map</source>
+            <translation>Haritada göster</translation>
+        </message>
+        <message>
+            <source>{n} features in {layer}</source>
+            <translation>{layer} katmanında {n} nesne</translation>
+        </message>
+        <message>
+            <source>{n} of {total} features in {layer}</source>
+            <translation>{layer} katmanındaki {total} nesneden {n} tanesi</translation>
         </message>
     </context>
     <context>
@@ -4755,6 +5066,18 @@ Katmanlar panelinde göstermek için tıklayın.</translation>
     </context>
     <context>
         <name>QuotaCard</name>
+        <message>
+            <source>Card declined</source>
+            <translation>Kart reddedildi</translation>
+        </message>
+        <message>
+            <source>Your trial didn't start. Nothing was charged.</source>
+            <translation>Deneme süreniz başlamadı. Ücret alınmadı.</translation>
+        </message>
+        <message>
+            <source>Try another card</source>
+            <translation>Başka bir kart deneyin</translation>
+        </message>
         <message>
             <location filename="src/ui/quota_card.py" />
             <source>Free for 7 days, nothing to pay today, then monthly at your local price. Cancel in one click.</source>
@@ -5867,6 +6190,22 @@ Teşekkürler</translation>
             <source>The AI agent's mark moves and follows the work. Off keeps it still.</source>
             <translation>Yapay zeka ajanının işareti hareket eder ve işi takip eder. Kapalıyken sabit kalır.</translation>
         </message>
+        <message>
+            <source>Help improve AI Agent</source>
+            <translation>AI Agent'ı geliştirmeye yardımcı olun</translation>
+        </message>
+        <message>
+            <source>Usage stats: errors, versions and the features you use, never your prompts, layers or files. We may read a chat, or have a model score it, to fix bugs, never to train AI.</source>
+            <translation>Kullanım istatistikleri: hatalar, sürümler ve kullandığınız özellikler, mesajlarınız, katmanlarınız veya dosyalarınız asla. Hataları düzeltmek için bir sohbeti okuyabilir veya bir modele puanlatabiliriz, yapay zekâyı eğitmek için asla.</translation>
+        </message>
+        <message>
+            <source>Usage stats: only that you used the app and when. Chats are kept 30 days so a conversation survives an update; we may read one, or have a model score it, to fix bugs, never to train AI. 0 days of history stores nothing.</source>
+            <translation>Kullanım istatistikleri: yalnızca uygulamayı kullandığınız ve ne zaman kullandığınız. Bir konuşma güncellemeden sonra da kalsın diye sohbetler 30 gün saklanır; hataları düzeltmek için birini okuyabilir veya bir modele puanlatabiliriz, yapay zekâyı eğitmek için asla. Geçmiş 0 gün ise hiçbir şey saklanmaz.</translation>
+        </message>
+        <message>
+            <source>Your usage and chats help us fix bugs. Turn it off anytime.</source>
+            <translation>Kullanımınız ve sohbetleriniz hataları düzeltmemize yardımcı olur. İstediğiniz zaman kapatabilirsiniz.</translation>
+        </message>
     </context>
     <context>
         <name>SiblingCard</name>
@@ -6266,6 +6605,10 @@ Teşekkürler</translation>
             <source>{area} m²</source>
             <translation>{area} m²</translation>
         </message>
+        <message>
+            <source>Always allowed</source>
+            <translation>Her zaman izinli</translation>
+        </message>
     </context>
     <context>
         <name>UpdateBanner</name>
@@ -6319,6 +6662,10 @@ Teşekkürler</translation>
         <message>
             <source>{product} {version} is out</source>
             <translation>{product} {version} yayında</translation>
+        </message>
+        <message>
+            <source>Update {product} to continue</source>
+            <translation>Devam etmek için {product} eklentisini güncelleyin</translation>
         </message>
     </context>
     <context>
@@ -6930,6 +7277,18 @@ Teşekkürler</translation>
             <source>Choose in Google Drive</source>
             <translation>Google Drive'da seç</translation>
         </message>
+        <message>
+            <source>More ways to allow</source>
+            <translation>Daha fazla izin seçeneği</translation>
+        </message>
+        <message>
+            <source>Always allow {label}</source>
+            <translation>{label} için her zaman izin ver</translation>
+        </message>
+        <message>
+            <source>Always allowed</source>
+            <translation>Her zaman izinli</translation>
+        </message>
     </context>
     <context>
         <name>ConnectedAccountsPage</name>
@@ -7036,6 +7395,18 @@ Teşekkürler</translation>
         <message>
             <source>{name} sign-in</source>
             <translation>{name} oturumu</translation>
+        </message>
+        <message>
+            <source>Always allow</source>
+            <translation>Her zaman izin ver</translation>
+        </message>
+        <message>
+            <source>Always allow {label}</source>
+            <translation>{label} için her zaman izin ver</translation>
+        </message>
+        <message>
+            <source>Used with no card each time. Off: the AI agent asks first.</source>
+            <translation>Her seferinde kart göstermeden kullanılır. Kapalıyken yapay zekâ ajanı önce sorar.</translation>
         </message>
     </context>
     <context>
@@ -7183,6 +7554,14 @@ Teşekkürler</translation>
         <message>
             <source>Show the plugin's panel.</source>
             <translation>Eklentinin panelini göster.</translation>
+        </message>
+        <message>
+            <source>Install {plugin}</source>
+            <translation>{plugin} eklentisini yükle</translation>
+        </message>
+        <message>
+            <source>Open {plugin}</source>
+            <translation>{plugin} eklentisini aç</translation>
         </message>
     </context>
     <context>
@@ -7610,6 +7989,54 @@ Teşekkürler</translation>
             <source>QGIS will ask you to choose a master password. It locks every sign-in saved in QGIS and cannot be recovered, so keep it somewhere safe.</source>
             <translation>QGIS sizden bir ana parola seçmenizi isteyecek. QGIS'te kayıtlı tüm oturum açma bilgilerini kilitler ve kurtarılamaz, bu yüzden güvenli bir yerde saklayın.</translation>
         </message>
+        <message>
+            <source>Cloud project ID</source>
+            <translation>Cloud proje kimliği</translation>
+        </message>
+        <message>
+            <source>Shown next to the project name at the top of console.cloud.google.com.</source>
+            <translation>console.cloud.google.com sayfasının üstünde, proje adının yanında görünür.</translation>
+        </message>
+        <message>
+            <source>Type the ID of the Google Cloud project Earth Engine runs on.</source>
+            <translation>Earth Engine'in çalıştığı Google Cloud projesinin kimliğini yazın.</translation>
+        </message>
+        <message>
+            <source>Open the Cloud console</source>
+            <translation>Cloud console'u aç</translation>
+        </message>
+        <message>
+            <source>You're signed in</source>
+            <translation>Oturum açtınız</translation>
+        </message>
+        <message>
+            <source>You can close this tab and return to QGIS.</source>
+            <translation>Bu sekmeyi kapatıp QGIS'e dönebilirsiniz.</translation>
+        </message>
+        <message>
+            <source>In QGIS, pick the Cloud project Earth Engine runs on.</source>
+            <translation>QGIS'te, Earth Engine'in çalıştığı Cloud projesini seçin.</translation>
+        </message>
+        <message>
+            <source>Sign-in didn't finish</source>
+            <translation>Oturum açma tamamlanmadı</translation>
+        </message>
+        <message>
+            <source>Close this tab and try again from QGIS.</source>
+            <translation>Bu sekmeyi kapatıp QGIS'ten yeniden deneyin.</translation>
+        </message>
+        <message>
+            <source>Checking {project} with Earth Engine...</source>
+            <translation>{project}, Earth Engine ile denetleniyor...</translation>
+        </message>
+        <message>
+            <source>Earth Engine refused the project {project} ({error}). Check the ID and your role on the project.</source>
+            <translation>Earth Engine {project} projesini reddetti ({error}). Kimliği ve projedeki rolünüzü kontrol edin.</translation>
+        </message>
+        <message>
+            <source>Earth Engine could not be reached ({error}). Check your connection or the proxy in QGIS (Settings &gt; Options &gt; Network).</source>
+            <translation>Earth Engine'e ulaşılamadı ({error}). Bağlantınızı veya QGIS'teki proxy ayarını kontrol edin (Ayarlar &gt; Seçenekler &gt; Ağ).</translation>
+        </message>
     </context>
     <context>
         <name>BrowserWait</name>
@@ -7982,6 +8409,22 @@ Teşekkürler</translation>
             <source>Your words are sent with this chat and recent logs.</source>
             <translation>Yazdıklarınız bu sohbet ve son günlüklerle birlikte gönderilir.</translation>
         </message>
+        <message>
+            <source>Add a comment</source>
+            <translation>Yorum ekle</translation>
+        </message>
+        <message>
+            <source>Ask the AI agent instead</source>
+            <translation>Bunun yerine yapay zeka ajanına sor</translation>
+        </message>
+        <message>
+            <source>Message to the TerraLab team (optional)</source>
+            <translation>TerraLab ekibine mesaj (isteğe bağlı)</translation>
+        </message>
+        <message>
+            <source>Read by the TerraLab team, not by the AI agent. Sent with this chat and recent logs.</source>
+            <translation>TerraLab ekibi okur, yapay zeka ajanı değil. Bu sohbet ve son günlüklerle birlikte gönderilir.</translation>
+        </message>
     </context>
     <context>
         <name>NoteRow</name>
@@ -8197,6 +8640,295 @@ Teşekkürler</translation>
         <message>
             <source>Recording</source>
             <translation>Kaydediliyor</translation>
+        </message>
+    </context>
+    <context>
+        <name>TransformationRow</name>
+        <message>
+            <source>A more accurate one ({accuracy}) needs a grid file this QGIS does not have.</source>
+            <translation>Daha hassas olan ({accuracy}) için bu QGIS'te bulunmayan bir ızgara dosyası gerekir.</translation>
+        </message>
+        <message>
+            <source>Change in Project Properties</source>
+            <translation>Proje Özellikleri'nde değiştir</translation>
+        </message>
+        <message>
+            <source>Coordinate transformation: {what}</source>
+            <translation>Koordinat dönüşümü: {what}</translation>
+        </message>
+        <message>
+            <source>Hide details</source>
+            <translation>Ayrıntıları gizle</translation>
+        </message>
+        <message>
+            <source>Show details</source>
+            <translation>Ayrıntıları göster</translation>
+        </message>
+        <message>
+            <source>The other option is no more accurate.</source>
+            <translation>Diğer seçenek daha hassas değil.</translation>
+        </message>
+        <message>
+            <source>The {count} other options are no more accurate.</source>
+            <translation>Diğer {count} seçenek daha hassas değil.</translation>
+        </message>
+        <message>
+            <source>Transformation</source>
+            <translation>Dönüşüm</translation>
+        </message>
+        <message>
+            <source>{count} transformations</source>
+            <translation>{count} dönüşüm</translation>
+        </message>
+        <message>
+            <source>{layer} goes from {source} to {target} through {operation}, accurate to about {accuracy}.</source>
+            <translation>{layer} katmanı {source} sisteminden {target} sistemine {operation} ile dönüştürülür, hassasiyet yaklaşık {accuracy}.</translation>
+        </message>
+        <message>
+            <source>{layer} goes from {source} to {target} through {operation}, of unknown accuracy.</source>
+            <translation>{layer} katmanı {source} sisteminden {target} sistemine {operation} ile dönüştürülür, hassasiyeti bilinmiyor.</translation>
+        </message>
+    </context>
+    <context>
+        <name>SelectionLine</name>
+        <message>
+            <source>Leave the selection out of this message</source>
+            <translation>Seçimi bu mesajın dışında bırak</translation>
+        </message>
+        <message>
+            <source>The AI agent sees this selection with your message, along with the map view and the project's layers.</source>
+            <translation>AI agent bu seçimi mesajınızla, harita görünümü ve projenin katmanlarıyla birlikte görür.</translation>
+        </message>
+        <message>
+            <source>{layer} · 1 feature selected</source>
+            <translation>{layer} · 1 obje seçili</translation>
+        </message>
+        <message>
+            <source>{layer} · {n} features selected</source>
+            <translation>{layer} · {n} obje seçili</translation>
+        </message>
+    </context>
+    <context>
+        <name>_Row</name>
+        <message>
+            <location filename="src/ui/sidebar.py" />
+            <source>Draft</source>
+            <translation>Taslak</translation>
+        </message>
+        <message>
+            <source>Open</source>
+            <translation>Aç</translation>
+        </message>
+    </context>
+    <context>
+        <name>GeoPaste</name>
+        <message>
+            <source>1 feature</source>
+            <translation>1 nesne</translation>
+        </message>
+        <message>
+            <source>1 vertex</source>
+            <translation>1 köşe</translation>
+        </message>
+        <message>
+            <source>ArcGIS FeatureServer</source>
+            <translation>ArcGIS FeatureServer</translation>
+        </message>
+        <message>
+            <source>ArcGIS ImageServer</source>
+            <translation>ArcGIS ImageServer</translation>
+        </message>
+        <message>
+            <source>ArcGIS MapServer</source>
+            <translation>ArcGIS MapServer</translation>
+        </message>
+        <message>
+            <source>FlatGeobuf file</source>
+            <translation>FlatGeobuf dosyası</translation>
+        </message>
+        <message>
+            <source>GeoJSON file</source>
+            <translation>GeoJSON dosyası</translation>
+        </message>
+        <message>
+            <source>GeoPackage file</source>
+            <translation>GeoPackage dosyası</translation>
+        </message>
+        <message>
+            <source>GeoTIFF (COG)</source>
+            <translation>GeoTIFF (COG)</translation>
+        </message>
+        <message>
+            <source>Geometry</source>
+            <translation>Geometri</translation>
+        </message>
+        <message>
+            <source>KML file</source>
+            <translation>KML dosyası</translation>
+        </message>
+        <message>
+            <source>Line</source>
+            <translation>Çizgi</translation>
+        </message>
+        <message>
+            <source>Multiline</source>
+            <translation>Çoklu çizgi</translation>
+        </message>
+        <message>
+            <source>Multipoint</source>
+            <translation>Çoklu nokta</translation>
+        </message>
+        <message>
+            <source>Multipolygon</source>
+            <translation>Çoklu çokgen</translation>
+        </message>
+        <message>
+            <source>OGC API Features</source>
+            <translation>OGC API Features</translation>
+        </message>
+        <message>
+            <source>PMTiles</source>
+            <translation>PMTiles</translation>
+        </message>
+        <message>
+            <source>Parquet file</source>
+            <translation>Parquet dosyası</translation>
+        </message>
+        <message>
+            <source>Pasted text</source>
+            <translation>Yapıştırılan metin</translation>
+        </message>
+        <message>
+            <source>Point</source>
+            <translation>Nokta</translation>
+        </message>
+        <message>
+            <source>Point cloud</source>
+            <translation>Nokta bulutu</translation>
+        </message>
+        <message>
+            <source>Point · WGS 84</source>
+            <translation>Nokta · WGS 84</translation>
+        </message>
+        <message>
+            <source>Polygon</source>
+            <translation>Çokgen</translation>
+        </message>
+        <message>
+            <source>STAC catalog</source>
+            <translation>STAC kataloğu</translation>
+        </message>
+        <message>
+            <source>Vector tiles</source>
+            <translation>Vektör karoları</translation>
+        </message>
+        <message>
+            <source>WCS service</source>
+            <translation>WCS hizmeti</translation>
+        </message>
+        <message>
+            <source>WFS service</source>
+            <translation>WFS hizmeti</translation>
+        </message>
+        <message>
+            <source>WMS service</source>
+            <translation>WMS hizmeti</translation>
+        </message>
+        <message>
+            <source>WMTS service</source>
+            <translation>WMTS hizmeti</translation>
+        </message>
+        <message>
+            <source>XYZ tiles</source>
+            <translation>XYZ karoları</translation>
+        </message>
+        <message>
+            <source>{n} characters</source>
+            <translation>{n} karakter</translation>
+        </message>
+        <message>
+            <source>{n} features</source>
+            <translation>{n} nesne</translation>
+        </message>
+        <message>
+            <source>{n} lines</source>
+            <translation>{n} satır</translation>
+        </message>
+        <message>
+            <source>{n} vertices</source>
+            <translation>{n} köşe</translation>
+        </message>
+        <message>
+            <source>{shape} GeoJSON</source>
+            <translation>{shape} GeoJSON</translation>
+        </message>
+        <message>
+            <source>{shape} WKT</source>
+            <translation>{shape} WKT</translation>
+        </message>
+    </context>
+    <context>
+        <name>CrashCommentBar</name>
+        <message>
+            <source>Dismiss</source>
+            <translation>Kapat</translation>
+        </message>
+        <message>
+            <source>Example: I had the attribute table open and pressed Save</source>
+            <translation>Örnek: Öznitelik tablosu açıktı ve Kaydet'e bastım</translation>
+        </message>
+        <message>
+            <source>QGIS closed unexpectedly</source>
+            <translation>QGIS beklenmedik şekilde kapandı</translation>
+        </message>
+        <message>
+            <source>Send</source>
+            <translation>Gönder</translation>
+        </message>
+        <message>
+            <source>The crash report was sent. What were you doing just before?</source>
+            <translation>Çökme raporu gönderildi. Hemen öncesinde ne yapıyordunuz?</translation>
+        </message>
+        <message>
+            <source>Not sent. Press Send to try again.</source>
+            <translation>Gönderilmedi. Tekrar denemek için Gönder'e basın.</translation>
+        </message>
+    </context>
+    <context>
+        <name>_ModeRow</name>
+        <message>
+            <source>Locked: {tag}</source>
+            <translation>Kilitli: {tag}</translation>
+        </message>
+        <message>
+            <source>Selected</source>
+            <translation>Seçili</translation>
+        </message>
+    </context>
+    <context>
+        <name>_RowText</name>
+        <message>
+            <source>Edit this queued message</source>
+            <translation>Sıradaki bu mesajı düzenle</translation>
+        </message>
+    </context>
+    <context>
+        <name>_StopNames</name>
+        <message>
+            <source>Effort: {level}</source>
+            <translation>Efor: {level}</translation>
+        </message>
+        <message>
+            <source>Locked until the end of the free trial</source>
+            <translation>Ücretsiz deneme bitene kadar kilitli</translation>
+        </message>
+        <message>
+            <source>Locked: {tag}</source>
+            <translation>Kilitli: {tag}</translation>
+        </message>
+        <message>
+            <source>Selected</source>
+            <translation>Seçili</translation>
         </message>
     </context>
 </TS>

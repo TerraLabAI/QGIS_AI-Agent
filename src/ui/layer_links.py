@@ -54,13 +54,14 @@ from ..core.licence import source_details, source_line
 from ..core.numbers import as_int
 from ..core.qt_compat import enum_member
 from .card_base import mono_font
+from .cards_click import PressSurface
 from .external_links import open_external_url
 from .file_links import KeptSpans, escape_markdown_label, file_link
 from .font_scale import scale_point_size, scale_px_length
 from .icons import icon_for, pixmap_for
 from .layer_icons import follows_layers, layer_name, resolve_layer
 from .markdown_view import GONE_SCHEME
-from .shared import event_pos, exec_menu, tr
+from .shared import popup_menu, released_on, tr
 from .style import (
     CHIP_PX,
     FIELD,
@@ -220,10 +221,8 @@ def folded_count(widths, more_width: int, available: int, lines: int = _FOLDED_L
     return min(1, len(widths))
 
 
-class _Chip(QWidget):
+class _Chip(PressSurface):
 
-
-    clicked = pyqtSignal()
 
     def __init__(self, glyph: str = "", glyph_ink: str = INK_2, parent=None):
         super().__init__(parent)
@@ -319,9 +318,9 @@ class _Chip(QWidget):
             return
 
     def mouseReleaseEvent(self, event):  # noqa: N802
-        if (self.isEnabled() and event.button() == Qt.MouseButton.LeftButton
-                and self.rect().contains(event_pos(event))):
-            self.clicked.emit()
+        if self.isEnabled() and released_on(self, event):
+            self.click()
+            return
         super().mouseReleaseEvent(event)
 
 
@@ -515,8 +514,7 @@ class _LayerChip(_Chip):
             act = menu.addAction(icon_for(menu, glyph, 16), label)
             act.triggered.connect(lambda _=False, a=action: self.action_requested.emit(self.layer_id, a))
         self._add_source_menu(menu)
-        exec_menu(menu, self.mapToGlobal(QPoint(0, self.height() + 2)))
-        menu.deleteLater()
+        popup_menu(menu, self.mapToGlobal(QPoint(0, self.height() + 2)))
 
 
 class _MoreChip(_Chip):
@@ -539,6 +537,7 @@ class _MoreChip(_Chip):
         if int(count) != self.count:
             self.count = int(count)
             self.set_parts([(self._label(self.count), INK_3, self._font)])
+            self.setAccessibleName(self._label(self.count))
             self.setToolTip("" if self.count else self.tr("Show one line of layers"))
 
     def width_for(self, count: int) -> int:

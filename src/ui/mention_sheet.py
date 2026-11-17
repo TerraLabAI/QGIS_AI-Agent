@@ -20,9 +20,12 @@
 
 
 
+
+
+
 from __future__ import annotations
 
-from qgis.PyQt.QtCore import QEasingCurve, QPoint, QRectF, QSize, Qt, QVariantAnimation, pyqtSignal
+from qgis.PyQt.QtCore import QEasingCurve, QPoint, QRectF, QSize, Qt, QTimer, QVariantAnimation, pyqtSignal
 from qgis.PyQt.QtGui import (
     QFont,
     QFontMetrics,
@@ -44,17 +47,17 @@ from qgis.PyQt.QtWidgets import (
 
 from ..core.host_platform import prefers_reduced_motion
 from ..core.numbers import as_float
+from .cards_click import RowButtons
 from .font_scale import scale_px_length, scale_qss_font_px, widget_pixel_ratio
 from .icons import icon_for
 from .layer_icons import layer_icon
-from .mention_search import FILES
+from .mention_search import FILES, SOURCE
 from .shared import event_pos, keep_on_screen, screen_area_at
 from .style import (
     _COMPLETER_POPUP_QSS,
     FONT_BASE,
     FONT_BODY,
     FONT_HINT,
-    FONT_MICRO,
     INK,
     INK_2,
     INK_3,
@@ -87,6 +90,11 @@ _ROW_HEIGHT = 36
 _ROW_RADIUS = RADIUS_CONTROL
 _ROW_PAD = 8
 _GLYPH = 16
+
+
+_MARK = 20
+_MARK_RADIUS = 5
+_MARK_INSET = 2
 _GLYPH_GAP = 10
 _DETAIL_GAP = 8
 _DEPTH_INDENT = 14
@@ -103,7 +111,7 @@ _SHEET_QSS = scale_qss_font_px(
     " background: transparent; border: none; padding: 6px 8px 2px 8px; }"
 ) + _COMPLETER_POPUP_QSS + (
 
-    "QListView#mentionPopup { background: transparent; border: none; padding: 0; }"
+    "QListView#qt_rubberband { background: transparent; border: none; padding: 0; }"
 )
 
 
@@ -142,6 +150,11 @@ class _SheetDelegate(QStyledItemDelegate):
 
 
 
+
+    def __init__(self, parent, marks):
+        super().__init__(parent)
+        self._marks = marks
+
     def paint(self, painter, option, index):  # noqa: N802
         data = index.data(Qt.ItemDataRole.UserRole)
         data = data if isinstance(data, dict) else {}
@@ -163,10 +176,13 @@ class _SheetDelegate(QStyledItemDelegate):
             painter.setBrush(hover_pill())
             painter.drawRoundedRect(QRectF(opt.rect), _ROW_RADIUS, _ROW_RADIUS)
         left = rect.left() + _ROW_PAD
-        if not opt.icon.isNull():
+        mark = self._marks(data) if data.get("kind") == SOURCE else None
+        if mark is not None:
+            painter.drawPixmap(int(left), int(round(rect.center().y() - _MARK / 2.0)), mark)
+        elif not opt.icon.isNull():
             top = rect.center().y() - _GLYPH / 2.0
-            opt.icon.paint(painter, int(left), int(top), _GLYPH, _GLYPH)
-        left += _GLYPH + _GLYPH_GAP
+            opt.icon.paint(painter, int(left + (_MARK - _GLYPH) / 2), int(top), _GLYPH, _GLYPH)
+        left += _MARK + _GLYPH_GAP
         edge = rect.right() - _ROW_PAD
         name_font = _font(opt.font, FONT_BASE, 500)
         detail_font = _font(opt.font, FONT_BODY)
@@ -199,15 +215,13 @@ class _SheetDelegate(QStyledItemDelegate):
 
         painter.save()
         painter.setRenderHint(QPainter.RenderHint.Antialiasing, True)
-        font = _font(opt.font, FONT_MICRO, 500)
-        font.setCapitalization(QFont.Capitalization.AllUppercase)
-        font.setLetterSpacing(QFont.SpacingType.PercentageSpacing, 104)
+        font = _font(opt.font, FONT_BODY)
         painter.setFont(font)
         painter.setPen(qcolor(INK_3))
         left = rect.left() + _ROW_PAD
         metrics = QFontMetrics(font)
         room = max(40.0, rect.right() - _ROW_PAD - left)
-        painter.drawText(QRectF(left, rect.top(), room, rect.height() - 6),
+        painter.drawText(QRectF(left, rect.top(), room, rect.height() - 4),
                          int(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignBottom),
                          metrics.elidedText(opt.text, Qt.TextElideMode.ElideRight, int(room)))
         painter.restore()
@@ -230,7 +244,6 @@ class _SheetView(QListView):
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setObjectName("mentionPopup")
         self.setFrameShape(QFrame.Shape.NoFrame)
         self.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         self.setMouseTracking(True)
@@ -284,9 +297,13 @@ class MentionSheet(QWidget):
         col.setSpacing(_SHEET_GAP)
         self._view = _SheetView(self._frame)
         self._view.setModel(self._model)
-        self._delegate = _SheetDelegate(self._view)
+
+
+        self._mark_cache: dict = {}
+        self._delegate = _SheetDelegate(self._view, self._mark)
         self._view.setItemDelegate(self._delegate)
         self._view.picked.connect(self._on_picked)
+        self._row_buttons = RowButtons(self._view, self._frame, self._on_picked, visible_only=True)
         col.addWidget(self._view, 1)
         self._rule = QFrame(self._frame)
         self._rule.setObjectName("mentionRule")
@@ -302,8 +319,53 @@ class MentionSheet(QWidget):
         self._final = QPoint()
         self._rise = _POP_RISE
 
+        self._mark_repaint = QTimer(self)
+        self._mark_repaint.setSingleShot(True)
+        self._mark_repaint.setInterval(60)
+        self._mark_repaint.timeout.connect(self._view.viewport().update)
+        from .library.pictures import store
+
+        store().ready.connect(self._on_mark_ready)
+
+    def _mark(self, data: dict):
+
+
+        row = data.get("mark")
+        if not isinstance(row, dict):
+            row = {"id": data.get("value"), "glyph": data.get("glyph")}
+        ratio = widget_pixel_ratio(self)
+        key = (str(row.get("id") or ""), round(ratio, 3))
+        cached = self._mark_cache.get(key)
+        if cached is not None:
+            return cached[0]
+        from .library.pictures import mark_urls, square_mark_pixmap
+
+        urls = mark_urls(row)
+        if urls:
+            pixmap = square_mark_pixmap(row, "", _MARK, ratio, _MARK_RADIUS, _MARK_INSET)
+        else:
+
+            from .source_marks import source_mark_pixmap
+
+            pixmap = source_mark_pixmap(key[0], _MARK, ratio, round_=False,
+                                        glyph=str(row.get("glyph") or ""), tinted=True)
+        self._mark_cache[key] = (pixmap, frozenset(urls))
+        return pixmap
+
+    def _on_mark_ready(self, url: str) -> None:
+        stale = [key for key, (_pixmap, urls) in self._mark_cache.items() if url in urls]
+        for key in stale:
+            del self._mark_cache[key]
+        if stale and self.isVisible():
+            self._mark_repaint.start()
+
     def set_rows(self, items, footer: str = "") -> None:
 
+
+        items = [i for i in list(items or []) if isinstance(i, dict)]
+        hints = [str(i.get("label") or "") for i in items if i.get("kind") == "footer"]
+        items = [i for i in items if i.get("kind") != "footer"]
+        footer = footer or (hints[0] if hints else "")
         self._footer.setText(footer)
         self._footer.setVisible(bool(footer))
         self._rule.setVisible(bool(footer))
@@ -317,6 +379,8 @@ class MentionSheet(QWidget):
                 continue
             row = QStandardItem(label)
             row.setData(dict(item), Qt.ItemDataRole.UserRole)
+
+            row.setData(str(item.get("detail") or ""), Qt.ItemDataRole.AccessibleDescriptionRole)
             row.setEditable(False)
             kind = str(item.get("kind") or "")
             if kind == "header":
@@ -338,7 +402,7 @@ class MentionSheet(QWidget):
                 row.setIcon(icon if not icon.isNull() else fallback)
             elif kind == FILES:
                 row.setIcon(icon_for(self._view, "paperclip", _GLYPH, qcolor(INK_3)))
-            elif glyph:
+            elif glyph and kind != SOURCE:
                 row.setIcon(icon_for(self._view, glyph, _GLYPH, qcolor(INK_3)))
 
             detail = str(item.get("detail") or "")[:240]
@@ -380,7 +444,7 @@ class MentionSheet(QWidget):
             data = data if isinstance(data, dict) else {}
             if data.get("kind") == "header":
                 continue
-            width = 2 * _ROW_PAD + _GLYPH + _GLYPH_GAP
+            width = 2 * _ROW_PAD + _MARK + _GLYPH_GAP
             width += name_font.horizontalAdvance(str(index.data() or ""))
             detail = str(data.get("detail") or "")
             if detail:

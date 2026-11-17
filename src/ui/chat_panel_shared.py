@@ -39,7 +39,7 @@ class _Run:
 
 
     __slots__ = ("run_id", "bubble", "trace", "plan", "tools", "permissions", "started",
-                 "segment_break", "produced", "handed_back", "wrote_page")
+                 "segment_break", "produced", "handed_back", "wrote_page", "report_wait", "offer_source")
 
     def __init__(self, run_id: str):
         self.run_id = run_id
@@ -59,6 +59,11 @@ class _Run:
         self.handed_back = False
 
         self.wrote_page = False
+
+
+        self.report_wait = ""
+
+        self.offer_source = ""
 
 
 def _wrap(widget: QWidget, margins: tuple, parent=None) -> QWidget:

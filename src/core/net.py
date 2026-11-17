@@ -346,9 +346,7 @@ def read_bounded(response, max_bytes: int, deadline: float | None = None, cancel
             slow = _pace_refusal(total, expected, time.monotonic() - reading_from, deadline, budget)
             if slow is not None:
                 raise slow
-            if progress is not None:
-                with contextlib.suppress(Exception):
-                    progress(total, expected)
+            _tell_progress(progress, total, expected)
             if total > max_bytes:
                 raise FetchTooLarge(f"The answer is larger than the {max_bytes} bytes this tool reads.")
     except (http.client.HTTPException, OSError) as exc:
@@ -967,6 +965,12 @@ def _send_to_file(request, path: str, timeout: float, max_bytes: int, deadline: 
         raise
 
 
+def _tell_progress(progress, done: int, expected: int | None) -> None:
+    if progress is not None:
+        with contextlib.suppress(Exception):
+            progress(done, expected)
+
+
 def _stream_once(request, path: str, part: str, timeout: float, max_bytes: int, deadline: float | None, cancel,
                  budget: float | None, connect_timeout: float | None) -> Streamed:
     extra = {"connect_timeout": connect_timeout} if connect_timeout else {}
@@ -1012,9 +1016,7 @@ def _stream_once(request, path: str, part: str, timeout: float, max_bytes: int, 
                         break
                     wire += len(block)
                     inflater.write(block, handle)
-                    if progress is not None:
-                        with contextlib.suppress(Exception):
-                            progress(wire, promised)
+                    _tell_progress(progress, wire, promised)
                     slow = _pace_refusal(wire, promised, time.perf_counter() - reading_from, deadline, budget)
                     if slow is not None:
                         raise slow

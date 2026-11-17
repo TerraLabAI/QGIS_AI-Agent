@@ -59,6 +59,7 @@ from .card_controls import (
     _pill,
     ask_head,
 )
+from .cards_map_proposal import MapProposalMixin
 from .code_block import CodeBlock
 from .external_links import open_external_url
 from .font_scale import scale_px_length, scale_qss_font_px
@@ -313,7 +314,7 @@ def _as_float(text: str):
     return as_float(raw, text)
 
 
-class PermissionCard(_Card, FoldMixin):
+class PermissionCard(_Card, FoldMixin, MapProposalMixin):
 
 
 
@@ -464,8 +465,10 @@ class PermissionCard(_Card, FoldMixin):
         super().cleanup()
         if self._rebuild_timer is not None:
             self._rebuild_timer.stop()
+        self._hide_map_preview()
 
     def _preview_lines(self) -> list[str]:
+
 
 
 
@@ -484,9 +487,6 @@ class PermissionCard(_Card, FoldMixin):
         missing = [str(v) for v in found.get("missing") or [] if str(v).strip()]
         if missing:
             lines.append(self.tr("Not in this project: {}").format(", ".join(missing)))
-        if found.get("unknown"):
-            lines.append(self.tr("Other effects the preview could not read: {}").format(
-                ", ".join(str(v) for v in found["unknown"][:3])))
         return lines
 
     def _headline(self) -> str:
@@ -514,6 +514,15 @@ class PermissionCard(_Card, FoldMixin):
 
 
         title, reasons = title_and_reasons(self.sentence, first["name"] if not grouped else "")
+
+        self._proposal = None if grouped or self.addresses else self._read_proposal(first)
+        if self._proposal is not None:
+            self._address_well = self._address_btn = self.code_block = None
+            self._fields, self._editors, self._form, self._edit_btn = [], [], None, None
+            self._body = self._build_proposal_body(self._proposal, first, reasons)
+            self._tag_answers(self._answer_buttons)
+            self._show_map_preview()
+            return self._body
         head = ask_head(self._body, title)
         self._sentence = head.text_label
         body.addWidget(head)
@@ -579,6 +588,15 @@ class PermissionCard(_Card, FoldMixin):
         self._allow_btn = _pill(self._button(self.tr("Allow"), _BTN_PRIMARY_PILL,
                                              lambda: self._decide("allow")))
         answers = [(deny, "deny"), (self._allow_btn, "allow")]
+        self._tag_answers(answers)
+
+
+        footer.set_widgets(self._edit_btn or self._code_open_btn or self._address_btn,
+                           [button for button, _action in answers])
+        body.addWidget(footer)
+        return self._body
+
+    def _tag_answers(self, answers) -> None:
         for button, action in answers:
             button.setObjectName("agentPermission" + "".join(p.capitalize() for p in action.split("_")))
             button.setProperty(AGENT_ACTION, action)
@@ -586,12 +604,6 @@ class PermissionCard(_Card, FoldMixin):
 
             button.setProperty(AGENT_REQUEST_IDS, ",".join(self._open))
             button.setProperty(AGENT_CARD_KIND, "permission")
-
-
-        footer.set_widgets(self._edit_btn or self._code_open_btn or self._address_btn,
-                           [button for button, _action in answers])
-        body.addWidget(footer)
-        return self._body
 
     def _build_address_section(self, link_in_footer: bool = False) -> QWidget:
 
@@ -847,6 +859,9 @@ class PermissionCard(_Card, FoldMixin):
             title = self.tr("{action}, {n} times").format(action=titles[0], n=len(titles))
         else:
             title = self.tr("{n} actions").format(n=len(titles))
+        if self._proposal is not None:
+            title = self._sentence.text() if self._sentence is not None else title
+        self._hide_map_preview(decision)
         self._decision_line.setText(f"{self.decision_text()} · {title}")
         self._body.setEnabled(False)
         self.fold_body(self._body, self._show_decision)
@@ -1093,10 +1108,6 @@ class ErrorCard(_Card):
 
         if new_chat:
             pass
-        elif self.code == "PLUGIN_UPDATE_REQUIRED":
-
-
-            row.addWidget(_pill(self._button(self.tr("Update the plugin"), _BTN_PRIMARY_PILL, self._on_update)))
         elif continuable:
             row.addWidget(_pill(self._button(self.tr("Continue"), _BTN_PRIMARY_PILL, self._on_continue)))
         elif retryable:
@@ -1104,7 +1115,7 @@ class ErrorCard(_Card):
 
 
         self._undo_retry = None
-        if retryable and self.run_id and self.code != "PLUGIN_UPDATE_REQUIRED" and not continuable:
+        if retryable and self.run_id and not continuable:
             self._undo_retry = _pill(self._button(self.tr("Undo and retry"), _BTN_GHOST_PILL,
                                                   lambda: self.undo_retry_requested.emit(self.run_id)))
             self._undo_retry.hide()
@@ -1138,13 +1149,6 @@ class ErrorCard(_Card):
     def set_undo_retry(self, available: bool) -> None:
         if self._undo_retry is not None:
             self._undo_retry.setVisible(bool(available))
-
-    def _on_update(self) -> None:
-        try:
-            from .cross_plugin_discovery import open_plugin_manager_later
-            open_plugin_manager_later("AI Agent by TerraLab", "https://terra-lab.ai/ai-agent")
-        except Exception:  # noqa: BLE001
-            return
 
     def _on_continue(self) -> None:
         self.continue_requested.emit(self.run_id)

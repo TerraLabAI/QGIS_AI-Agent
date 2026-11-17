@@ -13,13 +13,14 @@ from __future__ import annotations
 import base64
 import binascii
 
-from qgis.PyQt.QtCore import QRectF, QSize, Qt, pyqtSignal
+from qgis.PyQt.QtCore import QRectF, QSize, Qt
 from qgis.PyQt.QtGui import QColor, QImage, QPainter, QPainterPath, QPixmap
 from qgis.PyQt.QtWidgets import QDialog, QLabel, QVBoxLayout, QWidget
 
+from .cards_click import LabelButton
 from .font_scale import scale_qss_font_px, widget_pixel_ratio
 from .image_guard import read_bounded_image
-from .shared import event_pos
+from .shared import lightbox_window
 from .style import FONT_HINT, with_platform_font
 from .widgets import IconButton
 
@@ -69,22 +70,18 @@ def _fit_side(size: QSize) -> QSize | None:
     return QSize(max(1, int(size.width() * scale)), max(1, int(size.height() * scale)))
 
 
-class ClickableThumb(QLabel):
+class ClickableThumb(LabelButton):
 
-
-    clicked = pyqtSignal()
 
     def __init__(self, parent=None):
-        super().__init__(parent)
-        self.setCursor(Qt.CursorShape.PointingHandCursor)
+        super().__init__(QLabel(), parent)
 
-    def mouseReleaseEvent(self, event):  # noqa: N802
-        if (event.button() == Qt.MouseButton.LeftButton
-                and self.rect().contains(event_pos(event))):
-            self.clicked.emit()
-            event.accept()
-            return
-        super().mouseReleaseEvent(event)
+    def setPixmap(self, pixmap) -> None:  # noqa: N802
+        self.label.setPixmap(pixmap)
+
+    def setToolTip(self, tip: str) -> None:  # noqa: N802
+        super().setToolTip(tip)
+        self.setAccessibleName(tip)
 
 
 class _Picture(QWidget):
@@ -137,7 +134,7 @@ class ImagePreview(QDialog):
 
 
     def __init__(self, image: QImage, caption: str, anchor: QWidget | None = None):
-        window = anchor.window() if anchor is not None else None
+        window = lightbox_window(anchor)
         super().__init__(window)
         with_platform_font(self)
         self.setWindowFlags(Qt.WindowType.Dialog | Qt.WindowType.FramelessWindowHint)

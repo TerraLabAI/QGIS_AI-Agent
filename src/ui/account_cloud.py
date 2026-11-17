@@ -17,13 +17,13 @@ import urllib.parse
 import weakref
 from datetime import datetime
 
-from qgis.PyQt import sip
 from qgis.PyQt.QtCore import QCoreApplication, Qt
 from qgis.PyQt.QtWidgets import QFileDialog, QLineEdit, QPushButton
 
 from ..core import accounts_cloud
 from ..core.accounts_cloud import AZURE, GCS, LABELS, S3
 from ..core.background import main_thread_invoker
+from ..core.qt_compat import qt_deleted
 from .account_card import SignInDialog
 
 
@@ -253,7 +253,7 @@ class CloudKeysDialog(SignInDialog):
 
         def answer(error: str) -> None:
             dialog = window()
-            if dialog is not None and not sip.isdeleted(dialog):
+            if not qt_deleted(dialog):
                 dialog._on_checked(error)
 
         def check() -> None:

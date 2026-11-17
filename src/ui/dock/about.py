@@ -353,7 +353,7 @@ def shortcut_columns() -> tuple:
         (tr("New line"), "", key(native(f"Shift+{enter_name}"))),
         (tr("Add a layer from the project"), tr("Or drag it from the Layers panel"), key("@")),
         (tr("Bring back the last message you sent"), "", key(native("Up"))),
-        (tr("Close the list, or stop the run"), "", key(esc_key)),
+        (tr("Close the open list"), "", key(esc_key)),
     )
     panel = (
         (tr("Open or close AI Agent"), "", key(toggle_panel_key_text())),
@@ -371,7 +371,8 @@ def shortcut_columns() -> tuple:
 
 
     during = (
-        (tr("Stop the run"), "", key(esc_key)),
+
+        (tr("Stop the run"), tr("Press it twice"), key(esc_key)),
         (tr("Queue a message"), tr("The AI agent reads it at its next step"), key(enter_key)),
         (tr("Edit the last queued message"), tr("In an empty box"), key(native("Up"))),
     )

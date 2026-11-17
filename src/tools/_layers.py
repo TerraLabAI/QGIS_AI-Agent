@@ -116,7 +116,10 @@ def strip_id_tail(text: str) -> str:
 
 def strip_suffix(text: str) -> str:
 
-    return _NAME_SUFFIX.sub("", str(text or "")).strip()
+
+
+    text = str(text or "")
+    return (text[:-400] + _NAME_SUFFIX.sub("", text[-400:])).strip()
 
 
 @functools.lru_cache(maxsize=1024)
@@ -542,6 +545,41 @@ def _has_tree_node(project, layer) -> bool:
         return project.layerTreeRoot().findLayer(layer.id()) is not None
     except Exception:  # noqa: BLE001
         return False
+
+
+SOURCE_GONE_NOTE = ("its file could not be reopened when its edit mode changed (moved, deleted, locked or "
+                    "read-only), so its extent cannot be read; its features and unsaved edits still can")
+
+
+def source_gone_error(layer, writing: bool = False) -> dict:
+
+
+
+
+
+    then = ("; QGIS reads that extent to write the project, so nothing of the project is written until "
+            "the layer is removed, or its file is back and its edit mode turned on and off once") if writing else ""
+    return tool_error(f"{layer.name()}: {SOURCE_GONE_NOTE}{then}.", "EXECUTION_FAILED", hint="layer_source_gone")
+
+
+def file_gone_error(layer) -> dict:
+
+    from ..core.snapshot_paths import source_path
+
+    path = source_path(layer)
+    return tool_error(f"The file {layer.name()!r} reads is not there any more: {path}. Nothing was changed.",
+                      "EXECUTION_FAILED", hint="edit_blocked", variant="source_missing", reason="source_missing",
+                      layer=layer.name(), path=path)
+
+
+def error_summary(source) -> str:
+
+
+
+
+
+    error = source.error()
+    return "" if error.isEmpty() else str(error.summary() or "")
 
 
 def layer_not_found(name_or_id: str) -> dict:

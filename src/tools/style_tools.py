@@ -313,7 +313,9 @@ def _style_plan(args: dict) -> dict:
     elif style_type not in ("single", "cluster"):
         return tool_error(f"Unknown style type: {style_type}", "INVALID_ARGS")
     if not rows:
-        return _style_apply(plan, {})
+
+
+        return _style_apply(plan, _style_decide(plan, {}) if style_type == "graduated" else {})
     plan["started"] = time.monotonic()
     plan["_rows"] = rows.spec()
     return plan

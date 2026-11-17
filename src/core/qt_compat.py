@@ -31,6 +31,19 @@ from typing import Any
 _MISSING = object()
 
 
+def qt_deleted(obj: Any) -> bool:
+
+
+    if obj is None:
+        return True
+    try:
+        from qgis.PyQt import sip
+
+        return bool(sip.isdeleted(obj))
+    except (ImportError, TypeError):
+        return False
+
+
 def disconnect_quietly(owner: Any, signal: str, *slot) -> None:
 
 

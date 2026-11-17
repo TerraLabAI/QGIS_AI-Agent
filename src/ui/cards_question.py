@@ -319,7 +319,7 @@ class _OptionRow(_ClickRow):
         self.setProperty("on", False)
         self.setProperty("rec", bool(recommended))
         self.setProperty("down", False)
-        self.text = text
+        self.option_text = text
 
 
 
@@ -464,9 +464,11 @@ class _OptionRow(_ClickRow):
 
         key = event.key()
         if key == Qt.Key.Key_Space:
-            self.clicked.emit()
+            self.click()
         elif key in (Qt.Key.Key_Return, Qt.Key.Key_Enter):
-            self.enter.emit()
+
+            if not event.isAutoRepeat():
+                self.enter.emit()
         elif key in (Qt.Key.Key_Up, Qt.Key.Key_Down):
             self.step.emit(-1 if key == Qt.Key.Key_Up else 1)
         else:
@@ -616,7 +618,7 @@ class _Page(QWidget):
         for i, option in enumerate(self.options):
             row = _OptionRow(option, host, kind, self.why if i == self.recommended else "",
                              self.details[i], i == self.recommended)
-            row.clicked.connect(lambda i=i: self.pick(i))
+            row.clicked.connect(lambda _checked=False, i=i: self.pick(i))
             row.enter.connect(lambda i=i: self._enter_on(i))
             row.step.connect(lambda d, i=i: self._focus_row(i + d))
             rows.addWidget(row)
@@ -650,7 +652,8 @@ class _Page(QWidget):
         if self._free is not None and obj is self._free.edit and event.type() == QEvent.Type.KeyPress:
             key = event.key()
             if key in (Qt.Key.Key_Return, Qt.Key.Key_Enter):
-                self._on_return()
+                if not event.isAutoRepeat():
+                    self._on_return()
                 return True
             if key == Qt.Key.Key_Up and self._rows:
                 self._focus_row(len(self._rows) - 1)
@@ -697,7 +700,7 @@ class _Page(QWidget):
         typed = self._free.edit.text().strip() if self._free is not None else ""
         if typed:
             return typed
-        chosen = [row.text for row in self._rows if row.is_checked()]
+        chosen = [row.option_text for row in self._rows if row.is_checked()]
         return ", ".join(chosen)
 
     def is_answerable(self) -> bool:
@@ -997,7 +1000,8 @@ class QuestionCard(_Card, FoldMixin):
                 page._focus_row(0 if key == Qt.Key.Key_Down else len(page._rows) - 1)
                 return
             if key in (Qt.Key.Key_Return, Qt.Key.Key_Enter):
-                page._on_return()
+                if not event.isAutoRepeat():
+                    page._on_return()
                 return
         super().keyPressEvent(event)
 

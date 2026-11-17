@@ -2,14 +2,14 @@
 
 ## Your AI agent for QGIS: hand it the work and it does it in your open project
 
-Ask for anything in plain English and it finds the data, runs the analysis and
+Ask for anything in a prompt and it finds the data, runs the analysis and
 builds the map. No code, and one click undoes anything it changed.
 
 <img src="https://terra-lab.ai/images/ai-agent/ai-agent-hero.webp" alt="AI Agent carrying out a written task in a QGIS project" width="700"/>
 
 ## What it does
 
-AI Agent by TerraLab is an AI agent for QGIS. You describe the job in plain English and it works on your own layers, in the project you already have open, showing each step as it goes.
+AI Agent by TerraLab is an AI agent for QGIS. You describe the job in a prompt and it works on your own layers, in the project you already have open, showing each step as it goes.
 
 - **Finds the data**: 89 open data connectors (OpenStreetMap, Copernicus, NASA, USGS, IGN, Overture, Planetary Computer and 82 more) and a catalog of 2,838 ready datasets from 183 countries and from EU-wide and global sources, each with its licence.
 - **Runs the analysis**: 227 tools to load and inspect data, run Processing algorithms and edit geometry.

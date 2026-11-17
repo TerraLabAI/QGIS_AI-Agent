@@ -37,20 +37,49 @@
 
 
 
+
+
+
 from __future__ import annotations
 
 import re
 import sys
 
-from qgis.PyQt.QtCore import QEvent, QRectF, QSize, Qt, pyqtSignal
-from qgis.PyQt.QtGui import QFont, QPainter, QTextCharFormat, QTextCursor, QTextFormat, QTextOption
+from qgis.PyQt.QtCore import QEvent, QPointF, QRectF, QSize, Qt, pyqtSignal
+from qgis.PyQt.QtGui import (
+    QFont,
+    QFontMetrics,
+    QKeySequence,
+    QPainter,
+    QSyntaxHighlighter,
+    QTextCharFormat,
+    QTextCursor,
+    QTextFormat,
+    QTextLayout,
+    QTextOption,
+)
 from qgis.PyQt.QtWidgets import QDockWidget, QFrame, QPlainTextEdit, QWidget
 
 from .icons import icon_for
-from .mention_search import FILES, LAYER, PLUGIN, SOURCE, layer_rows, live_mentions, sheet_rows
+from .layer_icons import follows_layers, layer_name
+from .mention_search import FILES, LAYER, PLUGIN, SOURCE, layer_rows, sheet_rows
 from .mention_sheet import MentionSheet, popup_keys
-from .style import _SCROLL_AREA_QSS, ACCENT_INK, ACCENT_TINT, RADIUS_CHIP, accent_color, medium_font_weight, qcolor
+from .style import (
+    _SCROLL_AREA_QSS,
+    ACCENT_INK,
+    ACCENT_TINT,
+    INK_3,
+    LINE_STRONG,
+    RADIUS_CHIP,
+    RED,
+    RED_TINT,
+    accent_color,
+    medium_font_weight,
+    qcolor,
+)
 from .widgets import placeholder_ink
+
+_KEY = "Tab"
 
 
 
@@ -96,6 +125,63 @@ EMPTY_CHAT_LINES = 1
 _SPREADSHEET_FORMATS = ('value="Csv"', 'value="XML Spreadsheet"', 'value="Biff')
 
 
+def _chips_in(document, text: str, offset: int = 0) -> list[tuple]:
+
+
+
+
+
+
+
+    cursor = QTextCursor(document)
+    spans: list[tuple] = []
+    at = text.find("@")
+    while at >= 0:
+        cursor.setPosition(offset + at + 1)
+        fmt = cursor.charFormat()
+        value = str(fmt.property(_CHIP_VALUE) or "")
+        if not value:
+            at = text.find("@", at + 1)
+            continue
+        end = at + 1
+        while end < len(text):
+            cursor.setPosition(offset + end + 1)
+            if str(cursor.charFormat().property(_CHIP_VALUE) or "") != value:
+                break
+            end += 1
+        spans.append((offset + at, offset + end, str(fmt.property(_CHIP_KIND) or ""), value,
+                      str(fmt.property(_CHIP_LABEL) or ""), str(fmt.property(_CHIP_GLYPH_NAME) or "")))
+        at = text.find("@", end)
+    return spans
+
+
+class _StaleMarks(QSyntaxHighlighter):
+
+
+
+
+    def __init__(self, box: ComposerInput):
+        super().__init__(box.document())
+        self._box = box
+        self._ink = QTextCharFormat()
+        self._ink.setForeground(qcolor(RED))
+
+    def highlightBlock(self, text):  # noqa: N802
+        stale = self._box._stale
+        if not stale or "@" not in text:
+            return
+        block = self.currentBlock()
+        for start, end, _kind, value, label, _glyph in _chips_in(block.document(), text, block.position()):
+            if (value, label) not in stale:
+                continue
+            at = start - block.position()
+
+            mark = QTextCursor(block.document())
+            mark.setPosition(start + 1)
+            skip = 1 if mark.charFormat().foreground().color().alpha() == 0 else 0
+            self.setFormat(at + skip, end - start - skip, self._ink)
+
+
 def _is_spreadsheet_copy(source) -> bool:
 
     try:
@@ -116,6 +202,7 @@ class ComposerInput(QPlainTextEdit):
     submitted = pyqtSignal()
     mention_chosen = pyqtSignal(object)
     mentions_changed = pyqtSignal()
+    stale_changed = pyqtSignal()
     files_requested = pyqtSignal()
     recall_requested = pyqtSignal()
     height_changed = pyqtSignal()
@@ -125,6 +212,7 @@ class ComposerInput(QPlainTextEdit):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setObjectName("composerInput")
+        self.setAccessibleName(self.tr("Message AI Agent"))
         self.setFrameShape(QFrame.Shape.NoFrame)
         self.setAcceptDrops(False)
         self.setTabChangesFocus(True)
@@ -137,6 +225,9 @@ class ComposerInput(QPlainTextEdit):
 
 
         self._min_lines = MIN_LINES
+
+        self._ghost = ""
+        self._ghost_cache: tuple = ((), None)
 
 
         self._send_on_modifier = False
@@ -152,6 +243,10 @@ class ComposerInput(QPlainTextEdit):
 
         self._spans: list[tuple] = []
         self._has_chips = False
+
+        self._stale: dict[tuple, str | None] = {}
+        self._stale_marks = _StaleMarks(self)
+        follows_layers(self)
         self._plugins: list | None = None
 
 
@@ -166,6 +261,11 @@ class ComposerInput(QPlainTextEdit):
         self._sheet.picked.connect(self._insert_mention)
 
         self._height_host: QWidget | None = None
+
+
+        self.paste_taker = None
+        self.undo_paste = None
+        self._raw_paste = False
 
         self.textChanged.connect(self._sync_height)
         self.textChanged.connect(self._sync_spans)
@@ -275,7 +375,8 @@ class ComposerInput(QPlainTextEdit):
         connectors = self._connector_rows
         rows = sheet_rows(word, items, connectors, self._plugin_candidates(),
                           {"layers": self.tr("Layers"), "sources": self.tr("Data sources"),
-                           "plugins": self.tr("QGIS plugins")},
+                           "plugins": self.tr("QGIS plugins"),
+                           "hint": self.tr("Type to search layers, data sources and QGIS plugins")},
                           self._visible_once())
         self._sheet.set_rows(rows)
 
@@ -398,14 +499,8 @@ class ComposerInput(QPlainTextEdit):
         before = cursor.block().text()[:cursor.positionInBlock()]
         if before and not before[-1].isspace():
             cursor.insertText(" ", QTextCharFormat())
-        body = QTextCharFormat()
-        body.setProperty(_CHIP_KIND, kind)
-        body.setProperty(_CHIP_VALUE, value)
-        body.setProperty(_CHIP_LABEL, label)
-        body.setProperty(_CHIP_GLYPH_NAME, str(data.get("glyph") or ""))
-        body.setForeground(qcolor(ACCENT_INK))
-        body.setFontWeight(medium_font_weight())
-        cursor.insertText("@", self._mark_format(body, data))
+        mark, body = self._chip_formats(kind, value, label, data)
+        cursor.insertText("@", mark)
         cursor.insertText(label, body)
         cursor.insertText(" ", QTextCharFormat())
         self.setTextCursor(cursor)
@@ -414,6 +509,74 @@ class ComposerInput(QPlainTextEdit):
         self._sync_spans()
         self.mentions_changed.emit()
         return True
+
+    def _chip_formats(self, kind: str, value: str, label: str, data: dict) -> tuple:
+
+        body = QTextCharFormat()
+        body.setProperty(_CHIP_KIND, kind)
+        body.setProperty(_CHIP_VALUE, value)
+        body.setProperty(_CHIP_LABEL, label)
+        body.setProperty(_CHIP_GLYPH_NAME, str(data.get("glyph") or ""))
+        body.setForeground(qcolor(ACCENT_INK))
+        body.setFontWeight(medium_font_weight())
+        return self._mark_format(body, data), body
+
+    def chip_marks(self) -> list[dict]:
+
+        return [{"kind": kind, "label": label, "value": value, "glyph": glyph, "at": start}
+                for start, _end, kind, value, label, glyph in self._spans]
+
+    def restore_chips(self, marks) -> int:
+
+
+
+
+
+        text = self.toPlainText()
+        cursor = QTextCursor(self.document())
+        done = 0
+        for mark in marks or ():
+            at, label, value = mark.get("at"), str(mark.get("label") or ""), str(mark.get("value") or "")
+            if not isinstance(at, int) or not value or text[at:at + 1 + len(label)] != "@" + label:
+                continue
+            fmt_mark, body = self._chip_formats(str(mark.get("kind") or ""), value, label, mark)
+            cursor.setPosition(at)
+            cursor.setPosition(at + 1, QTextCursor.MoveMode.KeepAnchor)
+            cursor.setCharFormat(fmt_mark)
+            cursor.setPosition(at + 1)
+            cursor.setPosition(at + 1 + len(label), QTextCursor.MoveMode.KeepAnchor)
+            cursor.setCharFormat(body)
+            done += 1
+        if done:
+            self._has_chips = True
+            self.setCurrentCharFormat(QTextCharFormat())
+            self._sync_spans()
+            self._mark_stale()
+        return done
+
+    def follow_project(self, gone=frozenset()) -> None:
+
+        self._mark_stale(gone)
+
+    def _mark_stale(self, gone=frozenset()) -> None:
+
+        stale = {}
+        for _start, _end, kind, value, label, _glyph in self._spans:
+            if kind != LAYER:
+                continue
+            name = None if value in gone else layer_name(value)
+            if name != label:
+                stale[(value, label)] = name
+        if stale == self._stale:
+            return
+        self._stale = stale
+        self._stale_marks.rehighlight()
+        self.viewport().update()
+        self.stale_changed.emit()
+
+    def stale_mentions(self) -> list[tuple]:
+
+        return [(label, name) for (_value, label), name in self._stale.items()]
 
     def _mark_format(self, body: QTextCharFormat, data: dict) -> QTextCharFormat:
 
@@ -436,7 +599,7 @@ class ComposerInput(QPlainTextEdit):
             return QTextCharFormat(body)
         return mark
 
-    def _chip_icon(self, data: dict):
+    def _chip_icon(self, data: dict, color=None):
 
         glyph = str(data.get("glyph") or "")
         kind = str(data.get("kind") or "")
@@ -444,7 +607,7 @@ class ComposerInput(QPlainTextEdit):
             glyph = {SOURCE: "globe", PLUGIN: "package", LAYER: "layers"}.get(kind, "")
         if not glyph:
             return None
-        icon = icon_for(self, glyph, _CHIP_GLYPH, accent_color())
+        icon = icon_for(self, glyph, _CHIP_GLYPH, color if color is not None else accent_color())
         return None if icon.isNull() else icon
 
     def mentions(self) -> list[dict]:
@@ -458,72 +621,47 @@ class ComposerInput(QPlainTextEdit):
             out.append({"kind": kind, "label": label, "value": value})
         return out
 
-    def drop_stale_mentions(self, name_of) -> int:
+    def adopt_new_names(self, label: str | None = None) -> int:
 
 
 
 
-
-
-
-
-        if not self._spans:
-            return 0
-        chips = [{"kind": span[2], "value": span[3], "label": span[4]} for span in self._spans]
-        keep = {(c["kind"], c["value"], c["label"]) for c in live_mentions(chips, name_of)}
-        stale = [span for span in self._spans if (span[2], span[3], span[4]) not in keep]
-        if not stale:
+        renamed = [span for span in self._spans
+                   if span[2] == LAYER and self._stale.get((span[3], span[4])) is not None
+                   and label in (None, span[4])]
+        if not renamed:
             return 0
         cursor = QTextCursor(self.document())
-        for span in stale:
-            cursor.setPosition(span[0])
-            cursor.setPosition(span[1], QTextCursor.MoveMode.KeepAnchor)
-            cursor.setCharFormat(QTextCharFormat())
+        cursor.beginEditBlock()
+        for start, end, kind, value, label, glyph in reversed(renamed):
+            name = self._stale[(value, label)]
+            mark, body = self._chip_formats(kind, value, name, {"kind": kind, "glyph": glyph})
+            cursor.setPosition(start)
+            cursor.setPosition(end, QTextCursor.MoveMode.KeepAnchor)
+            cursor.insertText("@", mark)
+            cursor.insertText(name, body)
+        cursor.endEditBlock()
         self.setCurrentCharFormat(QTextCharFormat())
         self._sync_spans()
-        self.viewport().update()
-        return len(stale)
+        self._mark_stale()
+        return len(renamed)
 
     def _sync_spans(self) -> None:
 
         spans = self._read_spans() if self._has_chips else []
         if spans != self._spans:
-            changed = [(s[2], s[3]) for s in spans] != [(s[2], s[3]) for s in self._spans]
+
+            changed = [s[2:5] for s in spans] != [s[2:5] for s in self._spans]
             self._spans = spans
             if changed:
+                self._mark_stale()
                 self.mentions_changed.emit()
         if not spans:
             self._has_chips = False
 
     def _read_spans(self) -> list[tuple]:
 
-
-
-
-
-
-        text = self.toPlainText()
-        cursor = QTextCursor(self.document())
-        spans: list[tuple] = []
-        at = text.find("@")
-        while at >= 0:
-            cursor.setPosition(at + 1)
-            fmt = cursor.charFormat()
-            value = str(fmt.property(_CHIP_VALUE) or "")
-            if not value:
-                at = text.find("@", at + 1)
-                continue
-            end = at + 1
-            while end < len(text):
-                cursor.setPosition(end + 1)
-                if str(cursor.charFormat().property(_CHIP_VALUE) or "") != value:
-                    break
-                end += 1
-            spans.append((at, end, str(fmt.property(_CHIP_KIND) or ""), value,
-                          str(fmt.property(_CHIP_LABEL) or ""),
-                          str(fmt.property(_CHIP_GLYPH_NAME) or "")))
-            at = text.find("@", end)
-        return spans
+        return _chips_in(self.document(), self.toPlainText())
 
     def _span_at(self, position: int, edge: str):
 
@@ -578,6 +716,9 @@ class ComposerInput(QPlainTextEdit):
         text = _PASTE_BULLETS.sub("", text)
         text = _PASTE_TRAILING_SPACE.sub("", text)
         text = _PASTE_BLANK_RUN.sub("\n\n", text).strip()
+        if text and not self._raw_paste and self.paste_taker is not None:
+            if self.paste_taker(text, self.textCursor()):
+                return
         if text:
             self.insertPlainText(text)
 
@@ -597,6 +738,8 @@ class ComposerInput(QPlainTextEdit):
         return super().event(event)
 
     def keyPressEvent(self, event):  # noqa: N802
+        if self._paste_key(event):
+            return
         if self._sheet.isVisible() and event.key() in popup_keys():
             self._sheet_key(event.key())
             return
@@ -610,12 +753,12 @@ class ComposerInput(QPlainTextEdit):
             modifiers = event.modifiers()
             with_modifier = bool(modifiers & (Qt.KeyboardModifier.ControlModifier
                                               | Qt.KeyboardModifier.MetaModifier))
-            if self._send_on_modifier:
-                if with_modifier:
+            sends = with_modifier if self._send_on_modifier else not (modifiers & Qt.KeyboardModifier.ShiftModifier)
+            if sends:
+
+
+                if not event.isAutoRepeat():
                     self.submitted.emit()
-                    return
-            elif not (modifiers & Qt.KeyboardModifier.ShiftModifier):
-                self.submitted.emit()
                 return
         if event.key() == Qt.Key.Key_Up and not self.toPlainText():
             self.recall_requested.emit()
@@ -625,6 +768,21 @@ class ComposerInput(QPlainTextEdit):
             return
         super().keyPressEvent(event)
         self._update_completion()
+
+    def _paste_key(self, event) -> bool:
+
+
+        modifiers = event.modifiers() & ~Qt.KeyboardModifier.KeypadModifier
+        if event.key() == Qt.Key.Key_V and modifiers == (Qt.KeyboardModifier.ControlModifier
+                                                       | Qt.KeyboardModifier.ShiftModifier):
+            self._raw_paste = True
+            try:
+                self.paste()
+            finally:
+                self._raw_paste = False
+            return True
+        return bool(event.matches(QKeySequence.StandardKey.Undo) and self.undo_paste is not None
+                    and self.undo_paste())
 
     def _word_delete(self, event) -> bool:
 
@@ -734,15 +892,61 @@ class ComposerInput(QPlainTextEdit):
 
         doc = self.document()
         layout = doc.documentLayout()
+        ghost = self._ghost_layout()
         count = 0
         block = doc.begin()
         while block.isValid() and count < cap:
             layout.blockBoundingRect(block)
-            text_layout = block.layout()
+            text_layout = ghost if ghost is not None and block == doc.lastBlock() else block.layout()
             lines = text_layout.lineCount() if text_layout is not None else 1
             count += max(1, lines)
             block = block.next()
         return max(1, count)
+
+    def set_ghost(self, text: str) -> None:
+
+
+        if text == self._ghost:
+            return
+        self._ghost = text
+        self._sync_height()
+        self.viewport().update()
+
+    def ghost(self) -> str:
+        return self._ghost
+
+    def _ghost_layout(self):
+
+        if not self._ghost:
+            return None
+        block = self.document().lastBlock()
+        own = block.layout()
+        if own is None or own.lineCount() == 0:
+            self.document().documentLayout().blockBoundingRect(block)
+            own = block.layout()
+        if own is None or own.lineCount() == 0:
+            return None
+        first = own.lineAt(0)
+        font = self.document().defaultFont()
+        key = (block.text(), self._ghost, first.width(), first.x(), font.key())
+        if self._ghost_cache[0] == key:
+            return self._ghost_cache[1]
+
+        gap = "\u00a0" * (1 + -(-int(self._key_size()[0]) // max(1, QFontMetrics(font).horizontalAdvance("\u00a0"))))
+        layout = QTextLayout(block.text() + self._ghost + gap, font)
+        layout.setTextOption(own.textOption())
+        layout.beginLayout()
+        top = first.y()
+        while True:
+            line = layout.createLine()
+            if not line.isValid():
+                break
+            line.setLineWidth(first.width())
+            line.setPosition(QPointF(first.x(), top))
+            top += line.height()
+        layout.endLayout()
+        self._ghost_cache = (key, layout)
+        return layout
 
     def _max_lines(self) -> int:
 
@@ -866,28 +1070,78 @@ class ComposerInput(QPlainTextEdit):
                                      "glyph": glyph}))
         return out
 
+    def _paint_ghost(self) -> None:
+        layout = self._ghost_layout()
+        if layout is None:
+            return
+        block = self.document().lastBlock()
+        grey = QTextLayout.FormatRange()
+        grey.start, grey.length = len(block.text()), len(self._ghost)
+        grey.format = QTextCharFormat()
+        grey.format.setForeground(qcolor(INK_3))
+        painter = QPainter(self.viewport())
+
+
+        painter.setPen(Qt.GlobalColor.transparent)
+        origin = self.blockBoundingGeometry(block).translated(self.contentOffset()).topLeft()
+        layout.draw(painter, origin, [grey])
+        self._paint_key(painter, layout, origin)
+        painter.end()
+
+    def _key_font(self) -> QFont:
+        font = QFont(self.document().defaultFont())
+        font.setPointSizeF(font.pointSizeF() * 0.8)
+        return font
+
+    def _key_size(self) -> tuple[float, float]:
+        metrics = QFontMetrics(self._key_font())
+        return metrics.horizontalAdvance(_KEY) + 10, metrics.height() + 2
+
+    def _paint_key(self, painter, layout, origin) -> None:
+
+        end = len(self.document().lastBlock().text()) + len(self._ghost)
+        line = layout.lineForTextPosition(end)
+        if not line.isValid():
+            return
+        font = self._key_font()
+        w, h = self._key_size()
+        x = origin.x() + line.cursorToX(end)[0] + 6
+        y = origin.y() + line.y() + (line.height() - h) / 2
+        rect = QRectF(x, y, w, h)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing, True)
+        painter.setPen(qcolor(LINE_STRONG))
+        painter.setBrush(Qt.BrushStyle.NoBrush)
+        painter.drawRoundedRect(rect.adjusted(0.5, 0.5, -0.5, -0.5), 4, 4)
+        painter.setFont(font)
+        painter.setPen(qcolor(INK_3))
+        painter.drawText(rect, int(Qt.AlignmentFlag.AlignCenter), _KEY)
+
     def paintEvent(self, event):  # noqa: N802
         rects = self._chip_rects() if self._spans else []
         if rects:
             painter = QPainter(self.viewport())
             painter.setRenderHint(QPainter.RenderHint.Antialiasing, True)
             painter.setPen(Qt.PenStyle.NoPen)
-            painter.setBrush(qcolor(ACCENT_TINT))
-            for rect, _mark, _data in rects:
+            for rect, _mark, data in rects:
+                painter.setBrush(qcolor(RED_TINT if self._is_stale(data) else ACCENT_TINT))
                 painter.drawRoundedRect(rect, RADIUS_CHIP, RADIUS_CHIP)
             painter.end()
         super().paintEvent(event)
+        self._paint_ghost()
         if not rects:
             return
         painter = QPainter(self.viewport())
         for _rect, mark, data in rects:
-            icon = self._chip_icon(data)
+            icon = self._chip_icon(data, qcolor(RED) if self._is_stale(data) else None)
             if icon is None or mark.width() < _CHIP_GLYPH:
                 continue
             left = int(mark.left() + (mark.width() - _CHIP_GLYPH) / 2.0)
             top = int(mark.center().y() - _CHIP_GLYPH / 2.0)
             icon.paint(painter, left, top, _CHIP_GLYPH, _CHIP_GLYPH)
         painter.end()
+
+    def _is_stale(self, data: dict) -> bool:
+        return (data["value"], data["label"]) in self._stale
 
     def sizeHint(self) -> QSize:  # noqa: N802
         return QSize(super().sizeHint().width(), self.height())
@@ -907,6 +1161,7 @@ class ComposerInput(QPlainTextEdit):
         cursor.movePosition(cursor.MoveOperation.End)
         self.setTextCursor(cursor)
         self.setCurrentCharFormat(QTextCharFormat())
+        self._mark_stale()
 
     def append_text(self, text: str, at_end: bool = False) -> None:
 
@@ -930,3 +1185,4 @@ class ComposerInput(QPlainTextEdit):
         self._has_chips = False
         self._spans = []
         self.setCurrentCharFormat(QTextCharFormat())
+        self._mark_stale()

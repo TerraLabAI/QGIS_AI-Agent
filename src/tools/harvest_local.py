@@ -192,13 +192,14 @@ def _walk(root: str, is_canceled):
                     return
                 name = entry.name
                 try:
-                    if entry.is_dir(follow_symlinks=False):
-                        if depth < _MAX_DEPTH and not _skip_dir(name) and not _cloud_only(entry):
-                            stack.append((entry.path, depth + 1))
+                    is_dir = entry.is_dir(follow_symlinks=False)
+                    if not is_dir and not entry.is_file(follow_symlinks=False):
                         continue
-                    if not entry.is_file(follow_symlinks=False):
-                        continue
+                    if is_dir and depth < _MAX_DEPTH and not _skip_dir(name) and not _cloud_only(entry):
+                        stack.append((entry.path, depth + 1))
                 except OSError:
+                    continue
+                if is_dir:
                     continue
                 if name.startswith("."):
                     continue

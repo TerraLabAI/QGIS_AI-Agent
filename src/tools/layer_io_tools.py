@@ -21,6 +21,7 @@ from qgis.core import (
 )
 
 from ..core import ground, limits, text_encoding
+from ..core.attribute_tables import tables_closed
 from ..core.background import (
     delete_here,
     hand_over,
@@ -1322,7 +1323,7 @@ def _add_raster_layer(args: dict) -> dict:
     name = args.get("name") or os.path.splitext(os.path.basename(path))[0]
 
     if path.startswith(("http://", "https://", "/vsicurl/", "ftp://")):
-        return tool_error("add_raster_layer loads LOCAL raster files only.", hint="raster_remote_source")
+        return tool_error("This loader reads local raster files only.", hint="raster_remote_source")
 
     path_error = _checked_path(path)
     if path_error:
@@ -2253,7 +2254,10 @@ def _add_field(args: dict) -> dict:
     if error:
         return error
 
-    field_name = args["field_name"]
+
+    field_name = str(args.get("field_name") or "").strip()
+    if not field_name:
+        return tool_error("Field names cannot be empty.", "INVALID_ARGS", hint="field_name_empty")
     kind = str(args.get("field_type") or "string").strip().lower()
     expression_str = args.get("expression")
 
@@ -2382,8 +2386,9 @@ def _add_field(args: dict) -> dict:
                                      type_plan["length"], type_plan["precision"])
             else:
                 new_field = QgsField(field_name, type_plan.get("type", qtype))
-            layer.addAttribute(new_field)
-            layer.updateFields()
+            with tables_closed(layer):
+                layer.addAttribute(new_field)
+                layer.updateFields()
 
 
 
@@ -2409,7 +2414,7 @@ def _add_field(args: dict) -> dict:
             if "*" not in columns:
                 request.setSubsetOfAttributes(columns + [field_name], layer.fields())
             if not (expr.needsGeometry() or planar_transform is not None):
-                request.setFlags(enum_member(QgsFeatureRequest, "Flag", "NoGeometry"))
+                request.setFlags(request.flags() | enum_member(QgsFeatureRequest, "Flag", "NoGeometry"))
             for feat in layer.getFeatures(request):
                 evaluated_feature = feat
                 if planar_transform is not None and feat.hasGeometry():

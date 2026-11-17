@@ -58,6 +58,7 @@ from qgis.PyQt.QtWidgets import QHBoxLayout, QLabel, QPushButton, QVBoxLayout, Q
 
 from ..core.served_state import offer_text
 from .card_base import reduced_motion
+from .cards_click import PressSurface
 from .checkpoint_sheet import CheckpointSheet, history_rows, row_target
 from .font_scale import scale_px_length
 from .history_popup import HistoryPopup
@@ -81,11 +82,9 @@ _MARK = 24
 _MARK_GAP = 6
 
 
-class _Wordmark(QWidget):
+class _Wordmark(PressSurface):
 
 
-
-    clicked = pyqtSignal()
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -111,10 +110,10 @@ class _Wordmark(QWidget):
         event.accept()
 
     def mouseReleaseEvent(self, event):  # noqa: N802
-        if self._down and self.rect().contains(event.pos()):
-            self.clicked.emit()
-        self._down = False
+        down, self._down = self._down, False
         event.accept()
+        if down and self.rect().contains(event.pos()):
+            self.click()
 
 
 class Header(QWidget):
@@ -180,6 +179,7 @@ class Header(QWidget):
 
         wordmark = _Wordmark(brand_host)
         wordmark.setToolTip(self.tr("Open the AI Agent page on terra-lab.ai"))
+        wordmark.setAccessibleName(self.tr("Open the AI Agent page on terra-lab.ai"))
         wordmark.clicked.connect(self.site_requested.emit)
         word_col = QVBoxLayout(wordmark)
         word_col.setContentsMargins(0, 0, 0, 0)
@@ -258,6 +258,8 @@ class Header(QWidget):
         row.addWidget(self._feedback_btn, 0, Qt.AlignmentFlag.AlignVCenter)
 
         self._settings_btn = IconButton(self, "gear", 18, self.tr("Settings"))
+
+        self._settings_btn.setAccessibleName(self.tr("AI Agent settings"))
         self._settings_btn.setFixedSize(26, 26)
         self._settings_btn.clicked.connect(self.settings_clicked.emit)
         row.addWidget(self._settings_btn, 0, Qt.AlignmentFlag.AlignVCenter)
@@ -266,11 +268,13 @@ class Header(QWidget):
 
 
         self._float_btn = IconButton(self, "float_window", 18, self.tr("Dock or undock this panel"))
+        self._float_btn.setAccessibleName(self.tr("Dock or undock AI Agent"))
         self._float_btn.setFixedSize(26, 26)
         self._float_btn.clicked.connect(self._toggle_floating)
         self._float_btn.hide()
         row.addWidget(self._float_btn, 0, Qt.AlignmentFlag.AlignVCenter)
         self._close_btn = IconButton(self, "close", 18, self.tr("Close this panel"))
+        self._close_btn.setAccessibleName(self.tr("Close AI Agent"))
         self._close_btn.setFixedSize(26, 26)
         self._close_btn.clicked.connect(self._close_dock)
         self._close_btn.hide()

@@ -77,7 +77,7 @@ def save(result: dict, fresh: bool = True) -> str:
     account = accounts.token_facts(result.get("access_token", "")).get("account") or entry.get("account")
     key = accounts.store_s3_keys(PROVIDER, result.get("access_id", ""), result.get("secret", ""),
                                  extra={"refresh_token": result.get("refresh_token", "")}, via=BROWSER_VIA,
-                                 facts={"account": account} if account else None)
+                                 facts={"account": account} if account else None, renewal=not fresh)
     old_id = str(previous.get("username") or "")
     if key and previous and fresh:
         disconnect(previous)
@@ -100,7 +100,7 @@ def _keep_token(refresh_token: str) -> None:
     if values.get("username") and values.get("password"):
         accounts.store_s3_keys(PROVIDER, values["username"], values["password"],
                                extra={"refresh_token": refresh_token}, via=BROWSER_VIA,
-                               facts={"account": account} if account else None)
+                               facts={"account": account} if account else None, renewal=True)
     values.clear()
 
 

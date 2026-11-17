@@ -15,6 +15,7 @@ except ImportError:  # pragma: no cover
 
 from ..core import security_urls
 from ..core.tool_registry import Tool, ToolRegistry, tool_error
+from ._layers import error_summary
 
 
 def register_3d_tiles_tools(registry: ToolRegistry):
@@ -89,7 +90,7 @@ def _configure_3d_tiles(args: dict) -> dict:
         _scene_uri(_with_token(url, str(args.get("token") or "").strip() or None)),
         str(args.get("name") or "3D Tiles"), "cesiumtiles")
     if not layer.isValid():
-        detail = layer.error().summary() or "the provider rejected the tileset or could not reach it"
+        detail = error_summary(layer) or "the provider rejected the tileset or could not reach it"
         return tool_error(f"QGIS could not load the 3D Tiles source: {detail}.", "EXECUTION_FAILED",
                           hint="tiles3d_source_failed")
 

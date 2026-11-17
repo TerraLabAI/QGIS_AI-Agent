@@ -98,6 +98,7 @@ from .processing_destinations import (
 from .processing_guards import (
     _distance_sanity,
     _empty_input_check,
+    _gone_input_check,
     _grid_sanity,
     _ground_measure_repair,
     _hillshade_input_check,
@@ -125,6 +126,7 @@ class _CapturingFeedback(QgsProcessingFeedback):
 
     def __init__(self):
         super().__init__()
+        background.prime(self)
         self.errors: list[str] = []
         self.console: list[str] = []
 
@@ -453,6 +455,9 @@ def _run_processing(args: dict, algorithm=None) -> dict:
 
 
     parameters, _resolved_inputs = _resolve_layer_inputs(parameters, alg)
+    gone = _gone_input_check(parameters)
+    if gone:
+        return gone
 
     parameters, streamed_addresses = streamed_raster_addresses(alg, parameters, _PREPARED_INPUTS)
 
@@ -896,13 +901,13 @@ def _run_processing(args: dict, algorithm=None) -> dict:
             for _attempt in range(2):
 
 
-                for dest_name in destination_names:
-                    value = sanitized_parameters.get(dest_name)
-                    for item in (value if isinstance(value, (list, tuple)) else [value]):
-                        if not isinstance(item, str) or not os.path.isfile(item) or _protects_input(item):
-                            continue
-                        released.extend(release_layers_at_path(item, skip_ids=input_ids,
-                                                                delete_existing=not appends))
+                values = (sanitized_parameters.get(dest_name) for dest_name in destination_names)
+                for item in (item for value in values
+                             for item in (value if isinstance(value, (list, tuple)) else [value])):
+                    if not isinstance(item, str) or not os.path.isfile(item) or _protects_input(item):
+                        continue
+                    released.extend(release_layers_at_path(item, skip_ids=input_ids,
+                                                            delete_existing=not appends))
                 try:
                     result = processing.run(target, run_parameters, feedback=feedback, context=context)
                     break

@@ -410,16 +410,15 @@ def _update_feature_geometry(args: dict) -> dict:
             return shape
         shapes[update["fid"]] = shape
 
-    session_open = layer.isEditable()
-    if not session_open and not layer.startEditing():
-        return tool_error("Cannot start editing on this layer", "EXECUTION_FAILED",
-                          hint="update_geometry_read_only")
-    refusal = _write_geometries(layer, shapes, own_session=not session_open)
+    started, refusal = vector_write.open_edit(layer, "change geometries")
+    if refusal:
+        return refusal
+    refusal = _write_geometries(layer, shapes, own_session=started)
     if refusal:
         return refusal
     layer.updateExtents()
     layer.triggerRepaint()
-    result = {"updated": len(shapes), "fids": list(shapes), "committed": not session_open}
-    if session_open:
+    result = {"updated": len(shapes), "fids": list(shapes), "committed": started}
+    if not started:
         result["note"] = "changed in the open edit session; not committed yet"
     return result

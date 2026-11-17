@@ -32,24 +32,6 @@ def process_events():
     _app().processEvents()
 
 
-def is_alive(widget: QWidget | None) -> bool:
-
-    if widget is None:
-        return False
-    try:
-        from qgis.PyQt import sip
-
-        if sip.isdeleted(widget):
-            return False
-    except Exception:  # nosec B110
-        pass
-    try:
-        widget.objectName()
-    except RuntimeError:
-        return False
-    return True
-
-
 def safe_call(obj: Any, method: str) -> str:
     fn = getattr(obj, method, None)
     if not callable(fn):

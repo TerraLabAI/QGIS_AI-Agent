@@ -80,6 +80,24 @@ def _shown_value(value):
     return value
 
 
+def _options_joined(answer: str, options) -> bool:
+
+
+    reached = [False] * (len(answer) + 1)
+    reached[0] = bool(options)
+    for start in range(len(answer) + 1):
+        if not reached[start]:
+            continue
+        for option in options:
+            end = start + len(option)
+            if option and answer.startswith(option, start):
+                if end == len(answer):
+                    return True
+                if answer.startswith(", ", end):
+                    reached[end + 2] = True
+    return False
+
+
 class _ExecutorCalls:
 
     def handle_tool_call(self, call: dict, looked_up: bool = False, in_turn: bool = False) -> None:
@@ -781,6 +799,7 @@ class _ExecutorCalls:
         recommended = recommended_index(args.get("recommended"), options)
         why = " ".join(str(args.get("why") or "").split())[:120]
         call["sentence"] = question
+        call["options"] = options
         self._questions[tool_call_id] = call
 
         self._session.send_permission_response(tool_call_id, run_id, Decision.PENDING)
@@ -833,12 +852,14 @@ class _ExecutorCalls:
             self.question_resolved.emit(tool_call_id, "")
             return
 
-        security.remember_user_text(answer)
+
+        offered = call.get("options") or ()
+        security.remember_user_text(answer, offered=_options_joined(answer, offered))
         result = {"answer": link_vault.hide_links(self._threads.get(run_id, ""), answer)}
         if attachments:
 
             result["attachments"] = list(attachments)
-            security.remember_user_text(" ".join(str(a.get("path") or "") for a in attachments))
+            security.allow_attached_paths([a.get("path") for a in attachments if a.get("path")])
         self._table.put(tool_call_id, "result", result)
         self._session.send_tool_result(tool_call_id, run_id, result)
         log(f"ANSWER {tool_call_id}: {result['answer'][:80]}")

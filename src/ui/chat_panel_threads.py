@@ -10,7 +10,7 @@ from __future__ import annotations
 import contextlib
 import html
 
-from qgis.PyQt.QtCore import QEvent, Qt
+from qgis.PyQt.QtCore import QEvent, QObject, Qt
 from qgis.PyQt.QtGui import QKeyEvent, QKeySequence
 from qgis.PyQt.QtWidgets import (
     QApplication,
@@ -24,6 +24,7 @@ from qgis.PyQt.QtWidgets import (
 
 from ..core import trace
 from ..core.background import gc_paused, run_sliced
+from ..core.qt_compat import one_shot
 from . import memory_mascot
 from .bubbles import UserBubble
 from .chat_panel_shared import RestoreDivider
@@ -35,6 +36,55 @@ from .trace import RunFootnote
 
 REPLAY_SLICE_MS = 24
 UNDONE_OPACITY = 0.45
+
+
+ESC_WINDOW_MS = 800
+
+
+class _StopSequence(QObject):
+
+
+
+    def __init__(self, parent, on_arm, on_reset):
+        super().__init__(parent)
+        self._armed = False
+        self._watched = None
+        self._on_arm = on_arm
+        self._on_reset = on_reset
+        self._timer = one_shot(self, self.reset, ESC_WINDOW_MS)
+
+    def press(self) -> bool:
+
+        if self._armed:
+            self.reset()
+            return True
+        self._armed = True
+        self._timer.start()
+
+
+
+        self._watched = QApplication.focusWidget()
+        if self._watched is not None:
+            self._watched.installEventFilter(self)
+        self._on_arm()
+        return False
+
+    def reset(self) -> None:
+        if not self._armed:
+            return
+        self._armed = False
+        self._timer.stop()
+        watched, self._watched = self._watched, None
+        if watched is not None:
+            with contextlib.suppress(RuntimeError):
+                watched.removeEventFilter(self)
+        self._on_reset()
+
+    def eventFilter(self, _obj, event):  # noqa: N802
+
+        if event.type() == QEvent.Type.KeyPress and event.key() != Qt.Key.Key_Escape:
+            self.reset()
+        return False
 
 
 class _ChatPanelThreads:
@@ -118,6 +168,8 @@ class _ChatPanelThreads:
             shortcut.setContext(context)
             shortcut.activated.connect(slot)
             if keys == "Esc":
+
+                shortcut.setAutoRepeat(False)
                 self._escape_shortcut = shortcut
             else:
                 self._history_shortcuts.append(shortcut)
@@ -135,15 +187,23 @@ class _ChatPanelThreads:
         for shortcut in getattr(self, "_history_shortcuts", ()):
             with contextlib.suppress(RuntimeError):
                 shortcut.setEnabled(not typing)
+        composer = getattr(self, "composer", None)
+        if composer is not None:
+            with contextlib.suppress(RuntimeError):
+                composer.show_focus()
 
     def _unwire_history_keys(self) -> None:
 
+        sequence = getattr(self, "_stop_sequence", None)
+        if sequence is not None:
+            sequence.reset()
         app = QApplication.instance()
         if app is not None:
             with contextlib.suppress(TypeError, RuntimeError):
                 app.focusChanged.disconnect(self._history_keys_follow_focus)
 
     def _stop_if_running(self) -> None:
+
 
 
 
@@ -160,7 +220,15 @@ class _ChatPanelThreads:
                 and isinstance(focus, (QLineEdit, QPlainTextEdit, QTextEdit))
                 and not focus.isReadOnly()):
             return
-        if self._current_run:
+        sequence = getattr(self, "_stop_sequence", None)
+        if sequence is None:
+            hint = self.tr("Esc again to stop")
+            sequence = self._stop_sequence = _StopSequence(
+                self, lambda: self.composer.show_hint(hint, sticky=True),
+                lambda: self.composer.drop_hint(hint))
+        if not self._current_run:
+            sequence.reset()
+        elif sequence.press():
             self._on_stop()
 
     def _hand_escape_to(self, popup) -> None:
@@ -516,6 +584,7 @@ class _ChatPanelThreads:
         self.composer.forget_last_sent()
 
     def clear_thread(self) -> None:
+        self._end_feedback_ask()
         self._replay_generation += 1
         self.message_list.clear()
         self._replay_boundary = None

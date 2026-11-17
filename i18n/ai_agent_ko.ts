@@ -1806,6 +1806,82 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <source>{words} · {done} of {total}</source>
             <translation>{words} · {done} / {total}</translation>
         </message>
+        <message>
+            <source>Allow chat review</source>
+            <translation>채팅 검토 허용</translation>
+        </message>
+        <message>
+            <source>Both switches stay in Settings, where you can change them whenever you want.</source>
+            <translation>두 스위치는 모두 설정에 있으며, 언제든지 바꿀 수 있습니다.</translation>
+        </message>
+        <message>
+            <source>Counts and error codes, linked to your account. Never your text or your map.</source>
+            <translation>횟수와 오류 코드만 계정에 연결됩니다. 입력한 텍스트나 지도는 절대 포함되지 않습니다.</translation>
+        </message>
+        <message>
+            <source>Each message sends your text, the map extent, your layer and field names, one sample row and, while it works, pictures of the map. Never your files unless you attach them. No model is trained on them.</source>
+            <translation>메시지를 보낼 때마다 입력한 텍스트, 지도 범위, 레이어 이름과 필드 이름, 샘플 행 하나, 그리고 작업 중에는 지도 이미지가 전송됩니다. 파일은 직접 첨부하지 않는 한 전송되지 않습니다. 어떤 모델도 이 데이터로 학습되지 않습니다.</translation>
+        </message>
+        <message>
+            <source>Our team may read your chats to fix the AI agent.</source>
+            <translation>저희 팀이 AI 에이전트를 개선하기 위해 채팅을 읽을 수 있습니다.</translation>
+        </message>
+        <message>
+            <source>Runs on Microsoft Azure in Europe, stored in France.</source>
+            <translation>유럽의 Microsoft Azure에서 실행되며, 데이터는 프랑스에 저장됩니다.</translation>
+        </message>
+        <message>
+            <source>Share usage statistics</source>
+            <translation>사용 통계 공유</translation>
+        </message>
+        <message>
+            <source>The message you send is the part that reaches us: we keep it 90 days, and with chat review on, our team may read it to fix the AI agent. On {pro}, 30 days, or none at 0 days of history.</source>
+            <translation>보내신 메시지만 저희에게 전달되며, 90일 동안 보관합니다. 채팅 검토 허용을 켜면 저희 팀이 AI 에이전트를 개선하기 위해 메시지를 읽을 수 있습니다. {pro}에서는 30일이며, 기록 기간이 0일이면 보관하지 않습니다.</translation>
+        </message>
+        <message>
+            <source>You choose below.</source>
+            <translation>아래에서 선택하세요.</translation>
+        </message>
+        <message>
+            <source>Close the open list</source>
+            <translation>열린 목록 닫기</translation>
+        </message>
+        <message>
+            <source>Press it twice</source>
+            <translation>두 번 누르세요</translation>
+        </message>
+        <message>
+            <source>Deleted after 90 days at most</source>
+            <translation>최대 90일 후 삭제됩니다</translation>
+        </message>
+        <message>
+            <source>Help improve AI Agent</source>
+            <translation>AI Agent 개선에 참여하기</translation>
+        </message>
+        <message>
+            <source>Hosted in the EU</source>
+            <translation>EU에서 호스팅됩니다</translation>
+        </message>
+        <message>
+            <source>Never used to train AI</source>
+            <translation>AI 학습에 사용되지 않습니다</translation>
+        </message>
+        <message>
+            <source>Your chats are private</source>
+            <translation>채팅은 비공개입니다</translation>
+        </message>
+        <message>
+            <source>Your usage and chats help us fix bugs. Turn it off anytime.</source>
+            <translation>사용 정보와 채팅은 버그를 고치는 데 도움이 됩니다. 언제든 끌 수 있습니다.</translation>
+        </message>
+        <message>
+            <source>included</source>
+            <translation>포함됨</translation>
+        </message>
+        <message>
+            <source>left out</source>
+            <translation>제외됨</translation>
+        </message>
     </context>
     <context>
         <name>AIAgentContext</name>
@@ -2042,6 +2118,10 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <source>Your AI agent inside QGIS</source>
             <translation>QGIS 안의 AI 어시스턴트</translation>
+        </message>
+        <message>
+            <source>This layer's file can no longer be read, so the map cannot zoom to it.</source>
+            <translation>이 레이어의 파일을 더 이상 읽을 수 없어서 지도를 해당 레이어로 확대할 수 없습니다.</translation>
         </message>
     </context>
     <context>
@@ -2393,6 +2473,10 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <source>{words} · {done} of {total}</source>
             <translation>{words} · {done}/{total}</translation>
         </message>
+        <message>
+            <source>Show on map</source>
+            <translation>지도에 표시</translation>
+        </message>
     </context>
     <context>
         <name>AgentBubble</name>
@@ -2427,6 +2511,18 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <source>Remove rating</source>
             <translation>평가 삭제</translation>
+        </message>
+        <message>
+            <source>Did this do what you wanted?</source>
+            <translation>원하신 대로 됐나요?</translation>
+        </message>
+        <message>
+            <source>No</source>
+            <translation>아니요</translation>
+        </message>
+        <message>
+            <source>Yes</source>
+            <translation>예</translation>
         </message>
     </context>
     <context>
@@ -2815,6 +2911,26 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <source>Stopped: AI Agent was updated or turned off during this run.</source>
             <translation>중지됨: 실행 중에 AI Agent가 업데이트되었거나 꺼졌습니다.</translation>
         </message>
+        <message>
+            <source>Not sent: TerraLab is not connected.</source>
+            <translation>전송되지 않았습니다. TerraLab에 연결되어 있지 않습니다.</translation>
+        </message>
+        <message>
+            <source>Thanks. Your note went with the crash report.</source>
+            <translation>감사합니다. 남겨 주신 내용이 충돌 보고서와 함께 전송되었습니다.</translation>
+        </message>
+        <message>
+            <source>{layer} lost its file, and QGIS closes when it saves a project that holds it, so nothing was restored. Remove {layer} from the project, or put its file back and turn its editing on and off once, then try again.</source>
+            <translation>{layer}의 파일이 사라졌고, 이 레이어가 들어 있는 프로젝트를 저장하면 QGIS가 종료되므로 아무것도 복원하지 않았습니다. 프로젝트에서 {layer}을(를) 제거하거나, 파일을 다시 원래 위치에 두고 편집 토글을 한 번 켰다 끈 다음 다시 시도하세요.</translation>
+        </message>
+        <message>
+            <source>Your note could not be added to the crash report.</source>
+            <translation>남겨 주신 내용을 충돌 보고서에 추가하지 못했습니다.</translation>
+        </message>
+        <message>
+            <source>Your note was sent.</source>
+            <translation>남겨 주신 내용을 보냈습니다.</translation>
+        </message>
     </context>
     <context>
         <name>AgentSession</name>
@@ -2961,6 +3077,10 @@ The erasure is final once the grace period ends. Until then you can cancel it by
     </context>
     <context>
         <name>ChatPanel</name>
+        <message>
+            <source>Try another card</source>
+            <translation>다른 카드로 시도</translation>
+        </message>
         <message>
             <source>Add a few words: what should the AI agent do with it?</source>
             <translation>몇 마디 덧붙이세요. 어시스턴트가 이것으로 무엇을 해야 하나요?</translation>
@@ -3220,6 +3340,14 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <source>Reply</source>
             <translation>답장</translation>
+        </message>
+        <message>
+            <source>Esc again to stop</source>
+            <translation>중지하려면 Esc를 한 번 더 누르세요</translation>
+        </message>
+        <message>
+            <source>Queue a message for after this run</source>
+            <translation>이번 실행이 끝난 뒤 보낼 메시지 대기열에 추가</translation>
         </message>
     </context>
     <context>
@@ -3520,6 +3648,72 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <source>Finish dictation</source>
             <translation>음성 입력 완료</translation>
         </message>
+        <message>
+            <location filename="src/ui/composer.py" />
+            <source>{name} was removed from the project</source>
+            <translation>프로젝트에서 레이어가 제거됨: {name}</translation>
+        </message>
+        <message>
+            <location filename="src/ui/composer.py" />
+            <source>{name} is now called {new}</source>
+            <translation>레이어 이름이 변경됨: {name} → {new}</translation>
+        </message>
+        <message>
+            <location filename="src/ui/composer.py" />
+            <source>{names} were removed from the project</source>
+            <translation>프로젝트에서 레이어가 제거됨: {names}</translation>
+        </message>
+        <message>
+            <location filename="src/ui/composer.py" />
+            <source>{n} layers named here were removed or renamed</source>
+            <translation>여기에 언급된 레이어 {n}개가 제거되었거나 이름이 변경되었습니다</translation>
+        </message>
+        <message>
+            <location filename="src/ui/composer.py" />
+            <source>Sent as plain words: the AI agent gets no link to the layer.</source>
+            <translation>일반 텍스트로 전송됩니다. AI 에이전트는 레이어에 대한 연결을 받지 못합니다.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/composer.py" />
+            <source>removed from the project</source>
+            <translation>프로젝트에서 제거됨</translation>
+        </message>
+        <message>
+            <location filename="src/ui/composer.py" />
+            <source>renamed {new}</source>
+            <translation>{new}(으)로 이름 변경됨</translation>
+        </message>
+        <message>
+            <location filename="src/ui/composer.py" />
+            <source>Use</source>
+            <translation>적용</translation>
+        </message>
+        <message>
+            <location filename="src/ui/composer.py" />
+            <source>Write {new} in the message instead</source>
+            <translation>메시지에 {new}(으)로 바꿔 입력</translation>
+        </message>
+        <message>
+            <location filename="src/ui/composer.py" />
+            <source>and {n} more</source>
+            <translation>외 {n}개</translation>
+        </message>
+        <message>
+            <source>1 layer</source>
+            <translation>레이어 1개</translation>
+        </message>
+        <message>
+            <source>Edit as text</source>
+            <translation>텍스트로 편집</translation>
+        </message>
+        <message>
+            <source>Show on map</source>
+            <translation>지도에 표시</translation>
+        </message>
+        <message>
+            <source>{n} layers</source>
+            <translation>레이어 {n}개</translation>
+        </message>
     </context>
     <context>
         <name>ComposerInput</name>
@@ -3534,6 +3728,14 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <source>QGIS plugins</source>
             <translation>QGIS 플러그인</translation>
+        </message>
+        <message>
+            <source>Type to search layers, data sources and QGIS plugins</source>
+            <translation>입력하여 레이어, 데이터 소스, QGIS 플러그인 검색</translation>
+        </message>
+        <message>
+            <source>Message AI Agent</source>
+            <translation>AI Agent에게 메시지 보내기</translation>
         </message>
     </context>
     <context>
@@ -4051,6 +4253,18 @@ This file is no longer where the run wrote it.</source>
             <source>Your Pro ends on {date}. Keep it in one click.</source>
             <translation>Pro가 {date}에 종료됩니다. 한 번의 클릭으로 유지하세요.</translation>
         </message>
+        <message>
+            <source>AI Agent settings</source>
+            <translation>AI Agent 설정</translation>
+        </message>
+        <message>
+            <source>Close AI Agent</source>
+            <translation>AI Agent 닫기</translation>
+        </message>
+        <message>
+            <source>Dock or undock AI Agent</source>
+            <translation>AI Agent 고정 또는 분리</translation>
+        </message>
     </context>
     <context>
         <name>HistoryPopup</name>
@@ -4133,6 +4347,19 @@ This file is no longer where the run wrote it.</source>
         <message>
             <source>{n} min ago</source>
             <translation>{n}분 전</translation>
+        </message>
+        <message>
+            <location filename="src/ui/history_popup.py" />
+            <source>Draft</source>
+            <translation>임시 저장</translation>
+        </message>
+        <message>
+            <source>Delete chat: {title}</source>
+            <translation>채팅 삭제: {title}</translation>
+        </message>
+        <message>
+            <source>Open</source>
+            <translation>열기</translation>
         </message>
     </context>
     <context>
@@ -4534,10 +4761,6 @@ Click to show it in the Layers panel.</source>
             <translation>이 프로젝트에 없음: {}</translation>
         </message>
         <message>
-            <source>Other effects the preview could not read: {}</source>
-            <translation>미리보기에서 읽을 수 없었던 기타 영향: {}</translation>
-        </message>
-        <message>
             <source>Reads: {}</source>
             <translation>읽기: {}</translation>
         </message>
@@ -4548,6 +4771,94 @@ Click to show it in the Layers panel.</source>
         <message>
             <source>Writes files: {}</source>
             <translation>파일 쓰기: {}</translation>
+        </message>
+        <message>
+            <source>Cancel</source>
+            <translation>취소</translation>
+        </message>
+        <message>
+            <source>Delete 1 feature from {layer}</source>
+            <translation>{layer}에서 피처 1개 삭제</translation>
+        </message>
+        <message>
+            <source>Delete {n}</source>
+            <translation>{n}개 삭제</translation>
+        </message>
+        <message>
+            <source>Delete {n} features from {layer}</source>
+            <translation>{layer}에서 피처 {n}개 삭제</translation>
+        </message>
+        <message>
+            <source>Details</source>
+            <translation>세부 정보</translation>
+        </message>
+        <message>
+            <source>Feature ids: {ids}</source>
+            <translation>피처 ID: {ids}</translation>
+        </message>
+        <message>
+            <source>Feature ids: {ids} and {n} more</source>
+            <translation>피처 ID: {ids} 외 {n}개</translation>
+        </message>
+        <message>
+            <source>Feature {fid}: {values}</source>
+            <translation>피처 {fid}: {values}</translation>
+        </message>
+        <message>
+            <source>Hatched in red on the map. Its data source stays as it is; nothing is removed yet.</source>
+            <translation>지도에 빨간 빗금으로 표시됩니다. 데이터 소스는 그대로 유지되며 아직 아무것도 제거되지 않았습니다.</translation>
+        </message>
+        <message>
+            <source>Hatched in red on the map. Nothing is deleted yet.</source>
+            <translation>지도에 빨간 빗금으로 표시됩니다. 아직 아무것도 삭제되지 않았습니다.</translation>
+        </message>
+        <message>
+            <source>Hatched in red on the map. Nothing is written yet.</source>
+            <translation>지도에 빨간 빗금으로 표시됩니다. 아직 아무것도 기록되지 않았습니다.</translation>
+        </message>
+        <message>
+            <source>Hide details</source>
+            <translation>세부 정보 숨기기</translation>
+        </message>
+        <message>
+            <source>Its features exist only in this project and go with it. Hatched in red on the map; nothing is removed yet.</source>
+            <translation>이 레이어의 피처는 이 프로젝트에만 있으며 레이어와 함께 사라집니다. 지도에 빨간 빗금으로 표시됩니다. 아직 아무것도 제거되지 않았습니다.</translation>
+        </message>
+        <message>
+            <source>Overwrite 1 feature of {layer}</source>
+            <translation>{layer}의 피처 1개 덮어쓰기</translation>
+        </message>
+        <message>
+            <source>Overwrite {n}</source>
+            <translation>{n}개 덮어쓰기</translation>
+        </message>
+        <message>
+            <source>Overwrite {n} features of {layer}</source>
+            <translation>{layer}의 피처 {n}개 덮어쓰기</translation>
+        </message>
+        <message>
+            <source>Remove layer</source>
+            <translation>레이어 제거</translation>
+        </message>
+        <message>
+            <source>Remove {layer} from the project</source>
+            <translation>프로젝트에서 {layer} 제거</translation>
+        </message>
+        <message>
+            <source>Rule: {expression}</source>
+            <translation>규칙: {expression}</translation>
+        </message>
+        <message>
+            <source>Show on map</source>
+            <translation>지도에 표시</translation>
+        </message>
+        <message>
+            <source>{n} features in {layer}</source>
+            <translation>{layer}의 피처 {n}개</translation>
+        </message>
+        <message>
+            <source>{n} of {total} features in {layer}</source>
+            <translation>{layer}의 피처 {total}개 중 {n}개</translation>
         </message>
     </context>
     <context>
@@ -4755,6 +5066,18 @@ Click to show it in the Layers panel.</source>
     </context>
     <context>
         <name>QuotaCard</name>
+        <message>
+            <source>Card declined</source>
+            <translation>카드가 거절되었습니다</translation>
+        </message>
+        <message>
+            <source>Your trial didn't start. Nothing was charged.</source>
+            <translation>체험이 시작되지 않았습니다. 결제된 금액은 없습니다.</translation>
+        </message>
+        <message>
+            <source>Try another card</source>
+            <translation>다른 카드로 시도</translation>
+        </message>
         <message>
             <location filename="src/ui/quota_card.py" />
             <source>Free for 7 days, nothing to pay today, then monthly at your local price. Cancel in one click.</source>
@@ -5867,6 +6190,22 @@ Thank you</source>
             <source>The AI agent's mark moves and follows the work. Off keeps it still.</source>
             <translation>AI 에이전트의 마크가 움직이며 작업을 따라갑니다. 끄면 멈춰 있습니다.</translation>
         </message>
+        <message>
+            <source>Help improve AI Agent</source>
+            <translation>AI Agent 개선에 참여하기</translation>
+        </message>
+        <message>
+            <source>Usage stats: errors, versions and the features you use, never your prompts, layers or files. We may read a chat, or have a model score it, to fix bugs, never to train AI.</source>
+            <translation>사용 통계: 오류, 버전, 사용하는 기능만 해당되며 프롬프트, 레이어, 파일은 포함되지 않습니다. 버그를 고치기 위해 채팅을 읽거나 모델이 점수를 매기게 할 수 있으며, AI 학습에는 절대 사용하지 않습니다.</translation>
+        </message>
+        <message>
+            <source>Usage stats: only that you used the app and when. Chats are kept 30 days so a conversation survives an update; we may read one, or have a model score it, to fix bugs, never to train AI. 0 days of history stores nothing.</source>
+            <translation>사용 통계: 앱을 사용했다는 사실과 시점만 해당됩니다. 업데이트 후에도 대화가 유지되도록 채팅을 30일간 보관하며, 버그를 고치기 위해 채팅을 읽거나 모델이 점수를 매기게 할 수 있고, AI 학습에는 절대 사용하지 않습니다. 기록 0일로 설정하면 아무것도 저장되지 않습니다.</translation>
+        </message>
+        <message>
+            <source>Your usage and chats help us fix bugs. Turn it off anytime.</source>
+            <translation>사용 정보와 채팅은 버그를 고치는 데 도움이 됩니다. 언제든 끌 수 있습니다.</translation>
+        </message>
     </context>
     <context>
         <name>SiblingCard</name>
@@ -6266,6 +6605,10 @@ Thank you</source>
             <source>{area} m²</source>
             <translation>{area} m²</translation>
         </message>
+        <message>
+            <source>Always allowed</source>
+            <translation>항상 허용됨</translation>
+        </message>
     </context>
     <context>
         <name>UpdateBanner</name>
@@ -6319,6 +6662,10 @@ Thank you</source>
         <message>
             <source>{product} {version} is out</source>
             <translation>{product} {version}이(가) 출시되었습니다</translation>
+        </message>
+        <message>
+            <source>Update {product} to continue</source>
+            <translation>계속하려면 {product}을(를) 업데이트하세요</translation>
         </message>
     </context>
     <context>
@@ -6930,6 +7277,18 @@ Thank you</source>
             <source>Choose in Google Drive</source>
             <translation>Google Drive에서 선택</translation>
         </message>
+        <message>
+            <source>More ways to allow</source>
+            <translation>다른 허용 방법</translation>
+        </message>
+        <message>
+            <source>Always allow {label}</source>
+            <translation>{label} 항상 허용</translation>
+        </message>
+        <message>
+            <source>Always allowed</source>
+            <translation>항상 허용됨</translation>
+        </message>
     </context>
     <context>
         <name>ConnectedAccountsPage</name>
@@ -7036,6 +7395,18 @@ Thank you</source>
         <message>
             <source>{name} sign-in</source>
             <translation>{name} 로그인</translation>
+        </message>
+        <message>
+            <source>Always allow</source>
+            <translation>항상 허용</translation>
+        </message>
+        <message>
+            <source>Always allow {label}</source>
+            <translation>{label} 항상 허용</translation>
+        </message>
+        <message>
+            <source>Used with no card each time. Off: the AI agent asks first.</source>
+            <translation>매번 카드 없이 사용됩니다. 끄면 AI 에이전트가 먼저 묻습니다.</translation>
         </message>
     </context>
     <context>
@@ -7183,6 +7554,14 @@ Thank you</source>
         <message>
             <source>Show the plugin's panel.</source>
             <translation>플러그인 패널을 표시합니다.</translation>
+        </message>
+        <message>
+            <source>Install {plugin}</source>
+            <translation>{plugin} 설치</translation>
+        </message>
+        <message>
+            <source>Open {plugin}</source>
+            <translation>{plugin} 열기</translation>
         </message>
     </context>
     <context>
@@ -7610,6 +7989,54 @@ Thank you</source>
             <source>QGIS will ask you to choose a master password. It locks every sign-in saved in QGIS and cannot be recovered, so keep it somewhere safe.</source>
             <translation>QGIS에서 마스터 비밀번호를 선택하라는 메시지가 표시됩니다. 이 비밀번호는 QGIS에 저장된 모든 로그인 정보를 잠그며 복구할 수 없으므로 안전한 곳에 보관하세요.</translation>
         </message>
+        <message>
+            <source>Cloud project ID</source>
+            <translation>Cloud 프로젝트 ID</translation>
+        </message>
+        <message>
+            <source>Shown next to the project name at the top of console.cloud.google.com.</source>
+            <translation>console.cloud.google.com 상단의 프로젝트 이름 옆에 표시됩니다.</translation>
+        </message>
+        <message>
+            <source>Type the ID of the Google Cloud project Earth Engine runs on.</source>
+            <translation>Earth Engine이 실행되는 Google Cloud 프로젝트의 ID를 입력하세요.</translation>
+        </message>
+        <message>
+            <source>Open the Cloud console</source>
+            <translation>Cloud console 열기</translation>
+        </message>
+        <message>
+            <source>You're signed in</source>
+            <translation>로그인되었습니다</translation>
+        </message>
+        <message>
+            <source>You can close this tab and return to QGIS.</source>
+            <translation>이 탭을 닫고 QGIS로 돌아가세요.</translation>
+        </message>
+        <message>
+            <source>In QGIS, pick the Cloud project Earth Engine runs on.</source>
+            <translation>QGIS에서 Earth Engine이 실행되는 Cloud 프로젝트를 선택하세요.</translation>
+        </message>
+        <message>
+            <source>Sign-in didn't finish</source>
+            <translation>로그인이 완료되지 않았습니다</translation>
+        </message>
+        <message>
+            <source>Close this tab and try again from QGIS.</source>
+            <translation>이 탭을 닫고 QGIS에서 다시 시도하세요.</translation>
+        </message>
+        <message>
+            <source>Checking {project} with Earth Engine...</source>
+            <translation>Earth Engine에서 {project} 확인 중...</translation>
+        </message>
+        <message>
+            <source>Earth Engine refused the project {project} ({error}). Check the ID and your role on the project.</source>
+            <translation>Earth Engine이 프로젝트 {project}을(를) 거부했습니다({error}). ID와 프로젝트에서의 역할을 확인하세요.</translation>
+        </message>
+        <message>
+            <source>Earth Engine could not be reached ({error}). Check your connection or the proxy in QGIS (Settings &gt; Options &gt; Network).</source>
+            <translation>Earth Engine에 연결할 수 없습니다 ({error}). 연결 상태 또는 QGIS의 프록시(설정 &gt; 옵션 &gt; 네트워크)를 확인하세요.</translation>
+        </message>
     </context>
     <context>
         <name>BrowserWait</name>
@@ -7982,6 +8409,22 @@ Thank you</source>
             <source>Your words are sent with this chat and recent logs.</source>
             <translation>작성한 내용은 이 채팅 및 최근 로그와 함께 전송됩니다.</translation>
         </message>
+        <message>
+            <source>Add a comment</source>
+            <translation>의견 추가</translation>
+        </message>
+        <message>
+            <source>Ask the AI agent instead</source>
+            <translation>대신 AI 에이전트에게 물어보기</translation>
+        </message>
+        <message>
+            <source>Message to the TerraLab team (optional)</source>
+            <translation>TerraLab 팀에 보낼 메시지 (선택 사항)</translation>
+        </message>
+        <message>
+            <source>Read by the TerraLab team, not by the AI agent. Sent with this chat and recent logs.</source>
+            <translation>TerraLab 팀이 읽으며, AI 에이전트는 읽지 않습니다. 이 채팅과 최근 로그가 함께 전송됩니다.</translation>
+        </message>
     </context>
     <context>
         <name>NoteRow</name>
@@ -8197,6 +8640,295 @@ Thank you</source>
         <message>
             <source>Recording</source>
             <translation>녹음 중</translation>
+        </message>
+    </context>
+    <context>
+        <name>TransformationRow</name>
+        <message>
+            <source>A more accurate one ({accuracy}) needs a grid file this QGIS does not have.</source>
+            <translation>더 정확한 변환({accuracy})에는 이 QGIS에 없는 그리드 파일이 필요합니다.</translation>
+        </message>
+        <message>
+            <source>Change in Project Properties</source>
+            <translation>프로젝트 속성에서 변경</translation>
+        </message>
+        <message>
+            <source>Coordinate transformation: {what}</source>
+            <translation>좌표 변환: {what}</translation>
+        </message>
+        <message>
+            <source>Hide details</source>
+            <translation>세부 정보 숨기기</translation>
+        </message>
+        <message>
+            <source>Show details</source>
+            <translation>세부 정보 보기</translation>
+        </message>
+        <message>
+            <source>The other option is no more accurate.</source>
+            <translation>다른 옵션은 더 정확하지 않습니다.</translation>
+        </message>
+        <message>
+            <source>The {count} other options are no more accurate.</source>
+            <translation>다른 {count}개 옵션은 더 정확하지 않습니다.</translation>
+        </message>
+        <message>
+            <source>Transformation</source>
+            <translation>변환</translation>
+        </message>
+        <message>
+            <source>{count} transformations</source>
+            <translation>변환 {count}개</translation>
+        </message>
+        <message>
+            <source>{layer} goes from {source} to {target} through {operation}, accurate to about {accuracy}.</source>
+            <translation>{layer} 레이어는 {operation}을(를) 통해 {source}에서 {target}(으)로 변환되며, 정확도는 약 {accuracy}입니다.</translation>
+        </message>
+        <message>
+            <source>{layer} goes from {source} to {target} through {operation}, of unknown accuracy.</source>
+            <translation>{layer} 레이어는 {operation}을(를) 통해 {source}에서 {target}(으)로 변환되며, 정확도는 알 수 없습니다.</translation>
+        </message>
+    </context>
+    <context>
+        <name>SelectionLine</name>
+        <message>
+            <source>Leave the selection out of this message</source>
+            <translation>이 메시지에서 선택 항목 제외</translation>
+        </message>
+        <message>
+            <source>The AI agent sees this selection with your message, along with the map view and the project's layers.</source>
+            <translation>AI 에이전트는 메시지와 함께 이 선택 항목, 지도 보기, 프로젝트의 레이어를 확인합니다.</translation>
+        </message>
+        <message>
+            <source>{layer} · 1 feature selected</source>
+            <translation>{layer} · 피처 1개 선택됨</translation>
+        </message>
+        <message>
+            <source>{layer} · {n} features selected</source>
+            <translation>{layer} · 피처 {n}개 선택됨</translation>
+        </message>
+    </context>
+    <context>
+        <name>_Row</name>
+        <message>
+            <location filename="src/ui/sidebar.py" />
+            <source>Draft</source>
+            <translation>임시 저장</translation>
+        </message>
+        <message>
+            <source>Open</source>
+            <translation>열기</translation>
+        </message>
+    </context>
+    <context>
+        <name>GeoPaste</name>
+        <message>
+            <source>1 feature</source>
+            <translation>피처 1개</translation>
+        </message>
+        <message>
+            <source>1 vertex</source>
+            <translation>꼭짓점 1개</translation>
+        </message>
+        <message>
+            <source>ArcGIS FeatureServer</source>
+            <translation>ArcGIS FeatureServer</translation>
+        </message>
+        <message>
+            <source>ArcGIS ImageServer</source>
+            <translation>ArcGIS ImageServer</translation>
+        </message>
+        <message>
+            <source>ArcGIS MapServer</source>
+            <translation>ArcGIS MapServer</translation>
+        </message>
+        <message>
+            <source>FlatGeobuf file</source>
+            <translation>FlatGeobuf 파일</translation>
+        </message>
+        <message>
+            <source>GeoJSON file</source>
+            <translation>GeoJSON 파일</translation>
+        </message>
+        <message>
+            <source>GeoPackage file</source>
+            <translation>GeoPackage 파일</translation>
+        </message>
+        <message>
+            <source>GeoTIFF (COG)</source>
+            <translation>GeoTIFF (COG)</translation>
+        </message>
+        <message>
+            <source>Geometry</source>
+            <translation>지오메트리</translation>
+        </message>
+        <message>
+            <source>KML file</source>
+            <translation>KML 파일</translation>
+        </message>
+        <message>
+            <source>Line</source>
+            <translation>선</translation>
+        </message>
+        <message>
+            <source>Multiline</source>
+            <translation>멀티라인</translation>
+        </message>
+        <message>
+            <source>Multipoint</source>
+            <translation>멀티포인트</translation>
+        </message>
+        <message>
+            <source>Multipolygon</source>
+            <translation>멀티폴리곤</translation>
+        </message>
+        <message>
+            <source>OGC API Features</source>
+            <translation>OGC API Features</translation>
+        </message>
+        <message>
+            <source>PMTiles</source>
+            <translation>PMTiles</translation>
+        </message>
+        <message>
+            <source>Parquet file</source>
+            <translation>Parquet 파일</translation>
+        </message>
+        <message>
+            <source>Pasted text</source>
+            <translation>붙여넣은 텍스트</translation>
+        </message>
+        <message>
+            <source>Point</source>
+            <translation>포인트</translation>
+        </message>
+        <message>
+            <source>Point cloud</source>
+            <translation>포인트 클라우드</translation>
+        </message>
+        <message>
+            <source>Point · WGS 84</source>
+            <translation>포인트 · WGS 84</translation>
+        </message>
+        <message>
+            <source>Polygon</source>
+            <translation>폴리곤</translation>
+        </message>
+        <message>
+            <source>STAC catalog</source>
+            <translation>STAC 카탈로그</translation>
+        </message>
+        <message>
+            <source>Vector tiles</source>
+            <translation>벡터 타일</translation>
+        </message>
+        <message>
+            <source>WCS service</source>
+            <translation>WCS 서비스</translation>
+        </message>
+        <message>
+            <source>WFS service</source>
+            <translation>WFS 서비스</translation>
+        </message>
+        <message>
+            <source>WMS service</source>
+            <translation>WMS 서비스</translation>
+        </message>
+        <message>
+            <source>WMTS service</source>
+            <translation>WMTS 서비스</translation>
+        </message>
+        <message>
+            <source>XYZ tiles</source>
+            <translation>XYZ 타일</translation>
+        </message>
+        <message>
+            <source>{n} characters</source>
+            <translation>{n}자</translation>
+        </message>
+        <message>
+            <source>{n} features</source>
+            <translation>피처 {n}개</translation>
+        </message>
+        <message>
+            <source>{n} lines</source>
+            <translation>{n}줄</translation>
+        </message>
+        <message>
+            <source>{n} vertices</source>
+            <translation>꼭짓점 {n}개</translation>
+        </message>
+        <message>
+            <source>{shape} GeoJSON</source>
+            <translation>{shape} GeoJSON</translation>
+        </message>
+        <message>
+            <source>{shape} WKT</source>
+            <translation>{shape} WKT</translation>
+        </message>
+    </context>
+    <context>
+        <name>CrashCommentBar</name>
+        <message>
+            <source>Dismiss</source>
+            <translation>닫기</translation>
+        </message>
+        <message>
+            <source>Example: I had the attribute table open and pressed Save</source>
+            <translation>예: 속성 테이블을 열어 둔 상태에서 저장을 눌렀습니다</translation>
+        </message>
+        <message>
+            <source>QGIS closed unexpectedly</source>
+            <translation>QGIS가 예기치 않게 종료되었습니다</translation>
+        </message>
+        <message>
+            <source>Send</source>
+            <translation>보내기</translation>
+        </message>
+        <message>
+            <source>The crash report was sent. What were you doing just before?</source>
+            <translation>충돌 보고서가 전송되었습니다. 직전에 무엇을 하고 계셨나요?</translation>
+        </message>
+        <message>
+            <source>Not sent. Press Send to try again.</source>
+            <translation>전송되지 않았습니다. 보내기를 눌러 다시 시도해 주세요.</translation>
+        </message>
+    </context>
+    <context>
+        <name>_ModeRow</name>
+        <message>
+            <source>Locked: {tag}</source>
+            <translation>잠김: {tag}</translation>
+        </message>
+        <message>
+            <source>Selected</source>
+            <translation>선택됨</translation>
+        </message>
+    </context>
+    <context>
+        <name>_RowText</name>
+        <message>
+            <source>Edit this queued message</source>
+            <translation>대기 중인 이 메시지 편집</translation>
+        </message>
+    </context>
+    <context>
+        <name>_StopNames</name>
+        <message>
+            <source>Effort: {level}</source>
+            <translation>노력 수준: {level}</translation>
+        </message>
+        <message>
+            <source>Locked until the end of the free trial</source>
+            <translation>무료 체험이 끝날 때까지 잠김</translation>
+        </message>
+        <message>
+            <source>Locked: {tag}</source>
+            <translation>잠김: {tag}</translation>
+        </message>
+        <message>
+            <source>Selected</source>
+            <translation>선택됨</translation>
         </message>
     </context>
 </TS>

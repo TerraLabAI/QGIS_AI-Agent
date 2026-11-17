@@ -68,6 +68,7 @@ from ..core.settings import Settings
 from ..core.tool_registry import Tool, ToolRegistry, coded_fact, tool_error
 from ..core.vsi import thread_options
 from . import volume_guard
+from ._layers import error_summary
 from .crs_at_load import normalise_crs
 from .data_common import built_here, raster_variables, worker_options
 from .elevation_style import apply_elevation_style, elevation_stretch
@@ -990,7 +991,7 @@ def _add_cog(final_url: str, name: str | None, note: str | None = None, extra: d
         if not layer.isValid():
 
 
-            said = str(layer.error().summary() or "").strip().splitlines()
+            said = error_summary(layer).strip().splitlines()
             return tool_error("Could not open the raster.", "INVALID_ARGS", hint="cog_unopened", url=final_url,
                               **({"gdal_error": said[-1][:300]} if said else {}))
         normalised = normalise_crs(layer)
@@ -1109,7 +1110,7 @@ def _add_own_s3_once(final_url: str, path: str, name: str | None, note: str | No
         if layer is None:
             layer = QgsRasterLayer(source, name or "COG", "gdal")
         if not layer.isValid():
-            said = str(layer.error().summary() or "").strip().splitlines()
+            said = error_summary(layer).strip().splitlines()
             return tool_error("Could not open the raster.", "INVALID_ARGS", hint="cog_unopened", url=final_url,
                               **({"gdal_error": said[-1][:300]} if said else {}))
         normalised = normalise_crs(layer)

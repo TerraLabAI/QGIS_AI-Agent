@@ -10,12 +10,18 @@
 
 
 
+
+
+
+
+
+
 from __future__ import annotations
 
 from qgis.gui import QgsDockWidget
 from qgis.PyQt.QtCore import QEvent, Qt
 from qgis.PyQt.QtGui import QPainter, QPalette
-from qgis.PyQt.QtWidgets import QMainWindow, QStyle, QStyleOption, QWidget
+from qgis.PyQt.QtWidgets import QGroupBox, QMainWindow, QStyle, QStyleOption, QVBoxLayout, QWidget
 
 from ..chat_panel import ChatPanel
 from ..style import LINE, PAGE, qcolor, with_platform_font
@@ -99,8 +105,18 @@ class AIAgentDock(QgsDockWidget):
 
 
         with_platform_font(self)
-        self.panel = ChatPanel(self)
-        self.setWidget(self.panel)
+        region = QGroupBox(self)
+        region.setObjectName("aiAgentRegion")
+        region.setFlat(True)
+        region.setAccessibleName(self.tr("AI Agent"))
+        region.setStyleSheet("QGroupBox#aiAgentRegion { border: none; margin: 0; padding: 0;"
+                             " background: transparent; font-weight: normal; }")
+        box = QVBoxLayout(region)
+        box.setContentsMargins(0, 0, 0, 0)
+        box.setSpacing(0)
+        self.panel = ChatPanel(region)
+        box.addWidget(self.panel)
+        self.setWidget(region)
         header = self.panel.detach_header()
         header.set_dock(self)
         self.setTitleBarWidget(header)

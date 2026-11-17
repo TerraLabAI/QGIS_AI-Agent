@@ -19,6 +19,7 @@ from qgis.PyQt.QtCore import QEvent, QObject, QSize, Qt, pyqtSignal
 from qgis.PyQt.QtGui import QColor, QCursor, QPixmap
 from qgis.PyQt.QtWidgets import QFrame, QHBoxLayout, QLabel, QVBoxLayout, QWidget
 
+from .cards_click import PressSurface
 from .icons import pixmap_for
 from .shared import event_pos
 from .style import _BTN_THUMB_CLOSE, HAIRLINE_STRONG, HIT_PX, HOVER, repolish
@@ -95,11 +96,12 @@ class HoverReveal(QObject):
             pass
 
 
-class AttachCard(QWidget):
+class AttachCard(PressSurface):
+
 
 
     removed = pyqtSignal()
-    clicked = pyqtSignal()
+    opened = pyqtSignal()
 
     def __init__(self, name: str, kind: str, pixmap: QPixmap | None = None, parent=None,
                  closable: bool = False, clickable: bool = False, tooltip: str = "",
@@ -110,6 +112,7 @@ class AttachCard(QWidget):
         self._closable = bool(closable)
         self._clickable = bool(clickable)
         self._name = str(name or "")
+        self.clicked.connect(self._on_clicked)
         overhang = CLOSE_OVERHANG if self._closable else 0
 
         self._frame = QFrame(self)
@@ -194,10 +197,11 @@ class AttachCard(QWidget):
             event.accept()
             return
         if self._clickable and key in (Qt.Key.Key_Return, Qt.Key.Key_Enter, Qt.Key.Key_Space):
-            self.clicked.emit()
+            if not event.isAutoRepeat():
+                self.click()
             event.accept()
             return
-        super().keyPressEvent(event)
+        QWidget.keyPressEvent(self, event)
 
     def set_quiet_hover(self, quiet: bool = True) -> None:
 
@@ -256,6 +260,10 @@ class AttachCard(QWidget):
     def name(self) -> str:
         return self._name
 
+    def _on_clicked(self) -> None:
+        if self._clickable:
+            self.opened.emit()
+
     def mousePressEvent(self, event):  # noqa: N802
 
 
@@ -269,7 +277,7 @@ class AttachCard(QWidget):
     def mouseReleaseEvent(self, event):  # noqa: N802
         if (self._clickable and event.button() == Qt.MouseButton.LeftButton
                 and self._frame.geometry().contains(event_pos(event))):
-            self.clicked.emit()
             event.accept()
+            self.click()
             return
         super().mouseReleaseEvent(event)

@@ -242,6 +242,26 @@ def _run_change_items(report: dict, touched: list, answer: str = "") -> dict:
     objects = [entry for entry in objects if entry]
     if objects:
         out["objects"] = objects
+    transformations = [_transformation(entry) for entry in listed("transformations")]
+    transformations = [entry for entry in transformations if entry]
+    if transformations:
+        out["transformations"] = transformations
+    return out
+
+
+_TRANSFORMATION_TEXT = ("layer", "from", "from_name", "to", "to_name", "operation")
+_TRANSFORMATION_NUMBERS = ("accuracy_m", "best_accuracy_m", "candidates")
+
+
+def _transformation(entry: dict) -> dict:
+
+    if not isinstance(entry, dict) or not isinstance(entry.get("operation"), str) or not entry["operation"]:
+        return {}
+    out = {key: entry[key] for key in _TRANSFORMATION_TEXT if isinstance(entry.get(key), str)}
+    for key in _TRANSFORMATION_NUMBERS:
+        value = entry.get(key)
+        if isinstance(value, (int, float)) and not isinstance(value, bool):
+            out[key] = value
     return out
 
 

@@ -14,7 +14,6 @@ from __future__ import annotations
 
 from ..core import net, siblings, zone_of_interest
 from ..core.background import run_on_main_thread
-from ..core.layer_order import keep_place
 from ..core.logger import log, log_warning
 from ..core.tool_registry import Tool, ToolRegistry, coded_fact, tool_error
 from . import aiseg_review, cost_guard, zone_facts
@@ -625,7 +624,6 @@ def _show_zone_layer(plugin, args: dict, zone_wkt: str | None, result: dict) -> 
     if layer is None:
         log_warning("AI Segmentation set_zone: the Area of interest layer could not be written")
         return
-    keep_place(layer)
     _zoom_to(layer)
 
 

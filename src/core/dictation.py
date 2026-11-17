@@ -31,7 +31,8 @@ from array import array
 
 from qgis.PyQt.QtCore import QObject, QTimer, pyqtSignal
 
-from . import protocol
+from . import protocol, telemetry
+from . import telemetry_events as ev
 from .dev_env import dev_env
 from .qt_compat import one_shot
 
@@ -335,10 +336,11 @@ class Dictation(QObject):
         if self._state != IDLE:
             return
         if not self.available:
-            self.failed.emit("offline")
+            self._report("offline")
             return
         self._retry_wav = b""
         self._pcm = bytearray()
+        self._started_at = 0.0
         self._recorder = recorder = _recorder(self)
         recorder.asking.connect(self._on_asking)
         recorder.started.connect(self._on_started)
@@ -372,6 +374,13 @@ class Dictation(QObject):
         if self.can_retry:
             self._send(self._retry_wav)
 
+    def _report(self, code: str) -> None:
+
+
+        since = round(time.monotonic() - self._started_at, 1) if self._started_at else 0
+        telemetry.track(ev.AGENT_DICTATION_FAILED, {"code": code, "seconds": since})
+        self.failed.emit(code)
+
     def _set(self, state: str) -> None:
         if state != self._state:
             self._state = state
@@ -391,7 +400,7 @@ class Dictation(QObject):
         self._answer_timer.stop()
         self._limit_timer.stop()
         self._set(IDLE)
-        self.failed.emit(code)
+        self._report(code)
 
     def _on_asking(self) -> None:
         self._set(ASKING)
@@ -420,7 +429,7 @@ class Dictation(QObject):
         if loudest < _QUIET_PEAK or len(pcm) < SAMPLE_RATE:
             self._set(IDLE)
 
-            self.failed.emit("mic_silent" if loudest == 0 and len(pcm) > SAMPLE_RATE * 2 else "nothing_heard")
+            self._report("mic_silent" if loudest == 0 and len(pcm) > SAMPLE_RATE * 2 else "nothing_heard")
             return
         self._send(wav_bytes(pcm))
 
@@ -431,7 +440,7 @@ class Dictation(QObject):
         if not self._session.send_frame(frame):
             self._request = ""
             self._set(IDLE)
-            self.failed.emit("offline")
+            self._report("offline")
             return
         self._sent_at = time.monotonic()
         self._answer_timer.start()
@@ -448,9 +457,9 @@ class Dictation(QObject):
             self._retry_wav = b""
         self._set(IDLE)
         if code:
-            self.failed.emit(code)
+            self._report(code)
         elif not text.strip():
-            self.failed.emit("nothing_heard")
+            self._report("nothing_heard")
         else:
             self.text_ready.emit(text.strip())
 
@@ -458,7 +467,7 @@ class Dictation(QObject):
         if self._state == TRANSCRIBING:
             self._request = ""
             self._set(IDLE)
-            self.failed.emit("failed")
+            self._report("failed")
 
     def _on_session_state(self, state: str, _detail: str) -> None:
         if state != "online" and self._state == TRANSCRIBING:
@@ -466,7 +475,7 @@ class Dictation(QObject):
             self._request = ""
             self._answer_timer.stop()
             self._set(IDLE)
-            self.failed.emit("offline")
+            self._report("offline")
         self.availability_changed.emit()
 
     def shutdown(self) -> None:

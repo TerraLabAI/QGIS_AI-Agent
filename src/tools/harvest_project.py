@@ -27,11 +27,13 @@ from qgis.PyQt.QtCore import QT_TRANSLATE_NOOP
 from qgis.utils import iface
 
 from ..core import accounts
+from ..core.attribute_tables import tables_closed
 from ..core.crs_ref import crs_ref
 from ..core.numbers import as_int
 from ..core.quiet_credentials import no_login_prompt
 from ..core.tool_registry import Tool, ToolRegistry, tool_error
 from ._compat import enum_value
+from ._layers import error_summary
 from .layer_lookup import _jsonable_value
 
 
@@ -567,7 +569,7 @@ def _add_layer_from_connection(args: dict) -> dict:
 
     if layer is None or not layer.isValid():
         source = layer.dataProvider() if layer is not None else None
-        detail = source.error().summary() if source is not None else ""
+        detail = error_summary(source) if source is not None else ""
         return tool_error(f"Failed to load {what} from {connection!r}: {detail}", "EXECUTION_FAILED",
                           hint="connection_layer_load_failed")
 
@@ -617,8 +619,11 @@ def _execute_connection_sql(args: dict) -> dict:
                 every = conn.executeSql(sql) or []
                 rows, truncated = every[:limit], len(every) > limit
     except Exception as e:
-        return tool_error(f"The database refused the SQL: {_redact_uri(str(e))}", "EXECUTION_FAILED",
-                          hint="connection_sql_refused")
+        locked = "authcfg=" in str(conn.uri()) and not QgsApplication.authManager().masterPasswordIsSet()
+        return tool_error(f"The database refused the SQL: {_redact_uri(str(e))}"
+                          + (". The connection's login is in QGIS's password vault, which is locked in this"
+                             " session: it opens when the user enters QGIS's master password." if locked else ""),
+                          "EXECUTION_FAILED", hint="connection_sql_refused")
 
     refreshed = _refresh_layers_of(conn)
     response = {
@@ -683,7 +688,9 @@ def _refresh_layers_of(conn) -> list[str]:
                 continue
         elif not path or os.path.normcase(os.path.abspath(layer.source().split("|")[0])) != path:
             continue
-        layer.reload()
+
+        with tables_closed(layer):
+            layer.reload()
         layer.triggerRepaint()
         names.append(layer.name())
     return names

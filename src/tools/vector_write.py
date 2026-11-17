@@ -335,6 +335,10 @@ def open_edit(layer, action: str = "edit") -> tuple[bool, dict | None]:
     if have and not have.intersection(wanted):
         return False, cannot_edit_error(layer, action)
 
+    from ..core.layer_order import file_gone
+
+    if file_gone(layer):
+        return False, cannot_edit_error(layer, action)
     try:
         started = bool(layer.startEditing())
     except Exception as exc:  # noqa: BLE001

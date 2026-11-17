@@ -33,7 +33,7 @@
 from __future__ import annotations
 
 from . import tuning
-from .layer_order import canvas_view, feature_count_of, in_view, switched_on
+from .layer_order import canvas_view, extent_known, feature_count_of, in_view, switched_on
 from .tool_registry import spec
 
 
@@ -189,7 +189,7 @@ def _placement(layer, project, view) -> dict:
         out["visible"] = shown
     if view is not None:
         try:
-            extent = layer.extent()
+            extent = extent_known(layer)
         except Exception:  # noqa: BLE001
             extent = None
         seen = in_view(layer, extent, view)
@@ -200,7 +200,7 @@ def _placement(layer, project, view) -> dict:
 
 def _extent(layer) -> list[float] | None:
     try:
-        rect = layer.extent()
+        rect = extent_known(layer)
 
 
         if rect is None or rect.isNull():
@@ -251,7 +251,7 @@ def _sample(layer, index: int) -> tuple[int | None, int]:
         request.setSubsetOfAttributes([index])
         no_geometry = enum_member(QgsFeatureRequest, "Flag", "NoGeometry", None)
         if no_geometry is not None:
-            request.setFlags(no_geometry)
+            request.setFlags(request.flags() | no_geometry)
         sampled = filled = 0
         for feature in layer.getFeatures(request):
             sampled += 1

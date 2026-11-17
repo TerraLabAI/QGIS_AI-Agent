@@ -52,8 +52,8 @@ from ..core.host_platform import IS_WINDOWS
 from ..core.logger import log_warning
 from ..core.policy import create_managed_temp_dir
 from ..core.qt_compat import enum_member
+from .child_python import ended_without_result, python_for_child, start_refused
 from .child_python import environment as _environment
-from .child_python import python_for_child, start_refused
 from .processing_paths import _short_path, unsafe_path
 
 _WORKER = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "workers",
@@ -309,13 +309,7 @@ class ChildRun(QgsTask):
             with open(paths["status.json"], encoding="utf-8") as handle:
                 self.report = json.load(handle)
         except (OSError, ValueError):
-            try:
-                with open(paths["worker.log"], "rb") as handle:
-                    tail = handle.read()[-1500:].decode("utf-8", "replace")
-            except OSError:
-                tail = ""
-            self.report = {"ok": False, "error": "The separate QGIS ended without a result"
-                                                 + (f": {' '.join(tail.split())}" if tail else ".")}
+            self.report = {"ok": False, "error": ended_without_result(process.returncode, paths["worker.log"], 1500)}
         if self.report.get("unavailable"):
             self.report["parameters"] = self.job["parameters"]
         self.report["wall_s"] = round(time.monotonic() - started, 2)

@@ -14,11 +14,12 @@ import uuid
 
 from qgis.PyQt.QtCore import QCoreApplication, QTimer
 
-from ..core import layer_removed, link_vault, project_read, restore_guard, telemetry, trace
+from ..core import datum_choice, layer_removed, link_vault, project_read, restore_guard, telemetry, trace
 from ..core import telemetry_events as ev
 from ..core.checkpoints import KIND_BEFORE, KIND_EDITS, NOT_PUT_BACK
 from ..core.context import mention_candidates
 from ..core.host_platform import resolved
+from ..core.layer_order import write_blocked_by
 from ..core.logger import log, log_warning, recent_logs
 from ..core.project_identity import open_project_file
 from ..core.protocol import Approval, Effort, Mode
@@ -380,7 +381,7 @@ class PanelActionsMixin:
 
 
 
-            with layer_removed.undoing():
+            with layer_removed.undoing(), datum_choice.held(choose=False):
                 result = entry.snapshot.restore(file_name=entry.file_to_keep(), extra_copies=versions,
                                                 own_saves=history.own_saves_after(thread_id, entry))
         finally:
@@ -586,6 +587,14 @@ class PanelActionsMixin:
 
 
 
+        from qgis.core import QgsProject
+
+        gone = write_blocked_by(QgsProject.instance())
+        if gone is not None:
+
+            return tr("{layer} lost its file, and QGIS closes when it saves a project that holds it, so "
+                      "nothing was restored. Remove {layer} from the project, or put its file back and "
+                      "turn its editing on and off once, then try again.").format(layer=gone.name()), "source_gone"
         history = self._executor.history
         versions = {os.path.normcase(resolved(original)) for original, _copy in history.file_versions(thread_id, entry)}
         for layer in unsaved_edit_layers():

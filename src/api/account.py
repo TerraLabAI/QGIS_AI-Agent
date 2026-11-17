@@ -162,15 +162,21 @@ def payment_failed(issue: object) -> dict | None:
 
 
 
-    if not isinstance(issue, dict) or issue.get("kind") != "trial_charge_failed" or issue.get("reason"):
+
+    if not isinstance(issue, dict) or issue.get("kind") != "trial_charge_failed":
+        return None
+    reason = issue.get("reason")
+    if reason and reason != "trial_card_declined":
         return None
     url = site_url(issue.get("pay_url"))
     if not url:
         return None
+    if reason:
+        return {"amount": "", "url": url, "declined": True}
     amount = issue.get("amount_label")
     amount = amount.strip() if isinstance(amount, str) else ""
     plain = 0 < len(amount) <= 24 and amount.isprintable() and not set(amount) & set("<>&\"'")
-    return {"amount": amount if plain else "", "url": url}
+    return {"amount": amount if plain else "", "url": url, "declined": False}
 
 
 def _with_cta_source(url: str, cta_source: str) -> str:
@@ -1218,7 +1224,8 @@ class Account(QObject):
             return
 
         telemetry.track(ev.PAYMENT_FAILED_CARD_CLICKED,
-                        {"surface": str(surface or "")[:32], "amount_shown": bool(info["amount"])})
+                        {"surface": str(surface or "")[:32], "amount_shown": bool(info["amount"]),
+                         **({"reason": "trial_card_declined"} if info.get("declined") else {})})
 
         self.watch_for_upgrade()
         QDesktopServices.openUrl(QUrl(info["url"]))

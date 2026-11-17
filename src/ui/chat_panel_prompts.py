@@ -10,12 +10,11 @@ from __future__ import annotations
 
 import contextlib
 import os
-import re
 
 from qgis.PyQt.QtCore import Qt, QTimer
 from qgis.PyQt.QtWidgets import QHBoxLayout, QLabel, QPushButton, QVBoxLayout, QWidget
 
-from ..core import first_run_funnel, telemetry, telemetry_events
+from ..core import telemetry, telemetry_events
 from ..core.protocol import StopCode
 from ..core.settings import Settings
 from . import style as S
@@ -418,7 +417,6 @@ class _ChatPanelPrompts:
         if run_id and self._live_run(run_id) is None:
             return
         code = str(code or "UNKNOWN")[:100]
-        first_run_funnel.note_banner(code)
         message = str(message or "")[:2000]
         details = str(details or "")[:4000]
         self._last_error = message or code
@@ -554,23 +552,40 @@ class _ChatPanelPrompts:
     def show_notice(self, notice: dict) -> None:
 
         if notice:
-            if isinstance(notice, dict):
-                first_run_funnel.note_banner(
-                    "notice_" + re.sub(r"[^A-Za-z0-9_.-]", "_", str(notice.get("id") or ""))[:33])
             self.notice_bar.show_notice(notice)
         else:
             self.notice_bar.clear()
+
+    def offer_crash_comment(self, key: str) -> None:
+
+        self.crash_comment_bar.offer(key)
+
+    def crash_comment_done(self, key: str) -> None:
+        self.crash_comment_bar.confirm(key)
+
+    def crash_comment_failed(self, key: str) -> None:
+        self.crash_comment_bar.failed(key)
 
     def show_update(self, version: str, note: str = "", required: bool = False,
                     installed: str = "") -> None:
 
 
-        if required:
+        if required or self._update_refused:
             self.update_banner.hide()
             self.update_gate.offer(version, note, installed)
         else:
             self.update_gate.hide()
             self.update_banner.offer(version, note)
+        self._show_thread_surface()
+
+    def show_update_required(self, sentence: str) -> None:
+
+
+
+        self._update_refused = True
+        if not self.update_gate.version:
+            self.update_banner.hide()
+            self.update_gate.refuse(sentence)
         self._show_thread_surface()
 
     def show_update_download(self, version: str) -> None:
@@ -586,6 +601,9 @@ class _ChatPanelPrompts:
 
 
 
+        if not version:
+            open_plugin_manager_updates()
+            return
         self.update_clicked.emit(version)
 
 
@@ -608,6 +626,8 @@ class _ChatPanelPrompts:
 
     def clear_update(self) -> None:
 
+        if self._update_refused:
+            return
         was_gated = self.update_gate.isVisibleTo(self)
         self.update_gate.hide()
         self.update_banner.hide()

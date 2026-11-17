@@ -191,6 +191,16 @@ def _export(job: dict, held: dict) -> dict:
         simplified = _simplified_for_print(project, layout, dpi, os.path.dirname(job["project_path"]))
     simplified_at = time.monotonic()
     exporter = QgsLayoutExporter(layout)
+    if job.get("page_image"):
+
+        from qgis.PyQt.QtCore import QSize
+
+        index, width, height = (int(value) for value in job["page_image"])
+        image = exporter.renderPageToImage(index, QSize(width, height), 0)
+        saved = not image.isNull() and image.save(path, "PNG")
+        return {"ok": bool(saved), "error": "" if saved else "the page did not draw", "simplified": simplified,
+                "read_s": round(read - started, 2), "simplify_s": round(simplified_at - read, 2),
+                "export_s": round(time.monotonic() - simplified_at, 2)}
     if fmt == "pdf":
         export_settings = QgsLayoutExporter.PdfExportSettings()
         export_settings.dpi = dpi

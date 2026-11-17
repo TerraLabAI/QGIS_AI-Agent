@@ -1907,6 +1907,82 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <source>{words} · {done} of {total}</source>
             <translation>{words} · {done} / {total}</translation>
         </message>
+        <message>
+            <source>Allow chat review</source>
+            <translation>允許查看對話</translation>
+        </message>
+        <message>
+            <source>Both switches stay in Settings, where you can change them whenever you want.</source>
+            <translation>這兩個開關都保留在「設定」中，你隨時可以更改。</translation>
+        </message>
+        <message>
+            <source>Counts and error codes, linked to your account. Never your text or your map.</source>
+            <translation>只有次數和錯誤代碼，並與你的帳號連結。絕不包含你的文字或地圖。</translation>
+        </message>
+        <message>
+            <source>Each message sends your text, the map extent, your layer and field names, one sample row and, while it works, pictures of the map. Never your files unless you attach them. No model is trained on them.</source>
+            <translation>每則訊息會傳送你的文字、地圖範圍、圖層與欄位名稱、一列範例資料，以及 AI 代理運作時的地圖圖片。除非你附加檔案，否則絕不傳送你的檔案。不會用這些內容訓練任何模型。</translation>
+        </message>
+        <message>
+            <source>Our team may read your chats to fix the AI agent.</source>
+            <translation>我們的團隊可能會閱讀你的對話，以修正 AI 代理。</translation>
+        </message>
+        <message>
+            <source>Runs on Microsoft Azure in Europe, stored in France.</source>
+            <translation>在歐洲的 Microsoft Azure 上運行，資料儲存在法國。</translation>
+        </message>
+        <message>
+            <source>Share usage statistics</source>
+            <translation>分享使用統計資料</translation>
+        </message>
+        <message>
+            <source>The message you send is the part that reaches us: we keep it 90 days, and with chat review on, our team may read it to fix the AI agent. On {pro}, 30 days, or none at 0 days of history.</source>
+            <translation>你傳送的訊息是會傳到我們這裡的部分：我們保留 90 天，開啟「允許查看對話」後，我們的團隊可能會閱讀訊息，以修正 AI 代理。使用 {pro} 時保留 30 天，歷史記錄設為 0 天則不保留。</translation>
+        </message>
+        <message>
+            <source>You choose below.</source>
+            <translation>由你在下方選擇。</translation>
+        </message>
+        <message>
+            <source>Close the open list</source>
+            <translation>關閉已開啟的清單</translation>
+        </message>
+        <message>
+            <source>Press it twice</source>
+            <translation>按兩次</translation>
+        </message>
+        <message>
+            <source>Deleted after 90 days at most</source>
+            <translation>最多 90 天後刪除</translation>
+        </message>
+        <message>
+            <source>Help improve AI Agent</source>
+            <translation>協助改進 AI Agent</translation>
+        </message>
+        <message>
+            <source>Hosted in the EU</source>
+            <translation>託管於歐盟</translation>
+        </message>
+        <message>
+            <source>Never used to train AI</source>
+            <translation>絕不用於訓練 AI</translation>
+        </message>
+        <message>
+            <source>Your chats are private</source>
+            <translation>你的對話是私密的</translation>
+        </message>
+        <message>
+            <source>Your usage and chats help us fix bugs. Turn it off anytime.</source>
+            <translation>你的使用情況和對話能協助我們修正錯誤。你可隨時關閉。</translation>
+        </message>
+        <message>
+            <source>included</source>
+            <translation>已納入</translation>
+        </message>
+        <message>
+            <source>left out</source>
+            <translation>已排除</translation>
+        </message>
     </context>
     <context>
         <name>AIAgentContext</name>
@@ -2071,6 +2147,10 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <source>The AI agent stopped before finishing.</source>
             <translation>AI Agent 在完成前已停止。</translation>
+        </message>
+        <message>
+            <source>This layer's file can no longer be read, so the map cannot zoom to it.</source>
+            <translation>這個圖層的檔案已無法讀取，因此地圖無法縮放至該圖層。</translation>
         </message>
     </context>
     <context>
@@ -2536,6 +2616,10 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <source>{words} · {done} of {total}</source>
             <translation>{words} · {done} / {total}</translation>
         </message>
+        <message>
+            <source>Show on map</source>
+            <translation>在地圖上顯示</translation>
+        </message>
     </context>
     <context>
         <name>AgentBubble</name>
@@ -2583,6 +2667,18 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <source>Remove rating</source>
             <translation>移除評分</translation>
+        </message>
+        <message>
+            <source>Did this do what you wanted?</source>
+            <translation>這符合你的需求嗎？</translation>
+        </message>
+        <message>
+            <source>No</source>
+            <translation>否</translation>
+        </message>
+        <message>
+            <source>Yes</source>
+            <translation>是</translation>
         </message>
     </context>
     <context>
@@ -3008,6 +3104,26 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <source>Stopped: AI Agent was updated or turned off during this run.</source>
             <translation>已停止：AI Agent 在此次執行期間已更新或關閉。</translation>
         </message>
+        <message>
+            <source>Not sent: TerraLab is not connected.</source>
+            <translation>未送出：TerraLab 尚未連線。</translation>
+        </message>
+        <message>
+            <source>Thanks. Your note went with the crash report.</source>
+            <translation>謝謝。你的說明已隨當機報告一起送出。</translation>
+        </message>
+        <message>
+            <source>{layer} lost its file, and QGIS closes when it saves a project that holds it, so nothing was restored. Remove {layer} from the project, or put its file back and turn its editing on and off once, then try again.</source>
+            <translation>{layer} 的檔案已遺失，而 QGIS 在儲存含有它的專案時會關閉，所以沒有還原任何內容。請將 {layer} 從專案中移除，或將它的檔案放回原處並切換編輯一次：開啟再關閉，然後再試一次。</translation>
+        </message>
+        <message>
+            <source>Your note could not be added to the crash report.</source>
+            <translation>你的說明無法加入當機報告。</translation>
+        </message>
+        <message>
+            <source>Your note was sent.</source>
+            <translation>你的說明已送出。</translation>
+        </message>
     </context>
     <context>
         <name>AgentSession</name>
@@ -3156,6 +3272,10 @@ The erasure is final once the grace period ends. Until then you can cancel it by
     </context>
     <context>
         <name>ChatPanel</name>
+        <message>
+            <source>Try another card</source>
+            <translation>改用其他信用卡</translation>
+        </message>
         <message>
             <source>Changed {0} to {1}</source>
             <translation>已將 {0} 改為 {1}</translation>
@@ -3423,6 +3543,14 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <source>Reply</source>
             <translation>回覆</translation>
+        </message>
+        <message>
+            <source>Esc again to stop</source>
+            <translation>再按一次 Esc 即可停止</translation>
+        </message>
+        <message>
+            <source>Queue a message for after this run</source>
+            <translation>將訊息排入佇列，待本次執行結束後傳送</translation>
         </message>
     </context>
     <context>
@@ -3746,6 +3874,72 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <source>Finish dictation</source>
             <translation>結束語音輸入</translation>
         </message>
+        <message>
+            <location filename="src/ui/composer.py" />
+            <source>{name} was removed from the project</source>
+            <translation>{name} 已從專案中移除</translation>
+        </message>
+        <message>
+            <location filename="src/ui/composer.py" />
+            <source>{name} is now called {new}</source>
+            <translation>{name} 現在名為 {new}</translation>
+        </message>
+        <message>
+            <location filename="src/ui/composer.py" />
+            <source>{names} were removed from the project</source>
+            <translation>{names} 已從專案中移除</translation>
+        </message>
+        <message>
+            <location filename="src/ui/composer.py" />
+            <source>{n} layers named here were removed or renamed</source>
+            <translation>這裡提到的 {n} 個圖層已被移除或重新命名</translation>
+        </message>
+        <message>
+            <location filename="src/ui/composer.py" />
+            <source>Sent as plain words: the AI agent gets no link to the layer.</source>
+            <translation>以純文字送出：AI 代理不會取得該圖層的連結。</translation>
+        </message>
+        <message>
+            <location filename="src/ui/composer.py" />
+            <source>removed from the project</source>
+            <translation>已從專案中移除</translation>
+        </message>
+        <message>
+            <location filename="src/ui/composer.py" />
+            <source>renamed {new}</source>
+            <translation>已重新命名為 {new}</translation>
+        </message>
+        <message>
+            <location filename="src/ui/composer.py" />
+            <source>Use</source>
+            <translation>套用</translation>
+        </message>
+        <message>
+            <location filename="src/ui/composer.py" />
+            <source>Write {new} in the message instead</source>
+            <translation>改為在訊息中寫入 {new}</translation>
+        </message>
+        <message>
+            <location filename="src/ui/composer.py" />
+            <source>and {n} more</source>
+            <translation>以及另外 {n} 個</translation>
+        </message>
+        <message>
+            <source>1 layer</source>
+            <translation>1 個圖層</translation>
+        </message>
+        <message>
+            <source>Edit as text</source>
+            <translation>以文字編輯</translation>
+        </message>
+        <message>
+            <source>Show on map</source>
+            <translation>在地圖上顯示</translation>
+        </message>
+        <message>
+            <source>{n} layers</source>
+            <translation>{n} 個圖層</translation>
+        </message>
     </context>
     <context>
         <name>ComposerInput</name>
@@ -3762,6 +3956,14 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <source>Data sources</source>
             <translation>資料來源</translation>
+        </message>
+        <message>
+            <source>Type to search layers, data sources and QGIS plugins</source>
+            <translation>輸入以搜尋圖層、資料來源和 QGIS 外掛</translation>
+        </message>
+        <message>
+            <source>Message AI Agent</source>
+            <translation>傳訊息給 AI Agent</translation>
         </message>
     </context>
     <context>
@@ -4305,6 +4507,18 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <source>Your Pro ends on {date}. Keep it in one click.</source>
             <translation>你的 Pro 將於 {date} 結束。一鍵即可續用。</translation>
         </message>
+        <message>
+            <source>AI Agent settings</source>
+            <translation>AI Agent 設定</translation>
+        </message>
+        <message>
+            <source>Close AI Agent</source>
+            <translation>關閉 AI Agent</translation>
+        </message>
+        <message>
+            <source>Dock or undock AI Agent</source>
+            <translation>停駐或取消停駐 AI Agent</translation>
+        </message>
     </context>
     <context>
         <name>HistoryPopup</name>
@@ -4403,6 +4617,19 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <source>This deletes "{title}" and the project versions saved with it. It cannot be undone.</source>
             <translation>這會刪除「{title}」以及隨之儲存的專案版本，且無法復原。</translation>
+        </message>
+        <message>
+            <location filename="src/ui/history_popup.py" />
+            <source>Draft</source>
+            <translation>草稿</translation>
+        </message>
+        <message>
+            <source>Delete chat: {title}</source>
+            <translation>刪除對話：{title}</translation>
+        </message>
+        <message>
+            <source>Open</source>
+            <translation>開啟</translation>
         </message>
     </context>
     <context>
@@ -4744,10 +4971,6 @@ Click to open its page.</source>
             <translation>不在此專案中：{}</translation>
         </message>
         <message>
-            <source>Other effects the preview could not read: {}</source>
-            <translation>預覽無法讀取的其他影響：{}</translation>
-        </message>
-        <message>
             <source>Reads: {}</source>
             <translation>讀取：{}</translation>
         </message>
@@ -4758,6 +4981,94 @@ Click to open its page.</source>
         <message>
             <source>Writes files: {}</source>
             <translation>寫入檔案：{}</translation>
+        </message>
+        <message>
+            <source>Cancel</source>
+            <translation>取消</translation>
+        </message>
+        <message>
+            <source>Delete 1 feature from {layer}</source>
+            <translation>從 {layer} 刪除 1 個圖徵</translation>
+        </message>
+        <message>
+            <source>Delete {n}</source>
+            <translation>刪除 {n} 個</translation>
+        </message>
+        <message>
+            <source>Delete {n} features from {layer}</source>
+            <translation>從 {layer} 刪除 {n} 個圖徵</translation>
+        </message>
+        <message>
+            <source>Details</source>
+            <translation>詳細資料</translation>
+        </message>
+        <message>
+            <source>Feature ids: {ids}</source>
+            <translation>圖徵 ID：{ids}</translation>
+        </message>
+        <message>
+            <source>Feature ids: {ids} and {n} more</source>
+            <translation>圖徵 ID：{ids}，另有 {n} 個</translation>
+        </message>
+        <message>
+            <source>Feature {fid}: {values}</source>
+            <translation>圖徵 {fid}：{values}</translation>
+        </message>
+        <message>
+            <source>Hatched in red on the map. Its data source stays as it is; nothing is removed yet.</source>
+            <translation>在地圖上以紅色斜線標示。其資料來源保持不變，目前尚未移除任何內容。</translation>
+        </message>
+        <message>
+            <source>Hatched in red on the map. Nothing is deleted yet.</source>
+            <translation>在地圖上以紅色斜線標示。目前尚未刪除任何內容。</translation>
+        </message>
+        <message>
+            <source>Hatched in red on the map. Nothing is written yet.</source>
+            <translation>在地圖上以紅色斜線標示。目前尚未寫入任何內容。</translation>
+        </message>
+        <message>
+            <source>Hide details</source>
+            <translation>隱藏詳細資料</translation>
+        </message>
+        <message>
+            <source>Its features exist only in this project and go with it. Hatched in red on the map; nothing is removed yet.</source>
+            <translation>其圖徵僅存在於此專案中，會隨專案一併移除。在地圖上以紅色斜線標示，目前尚未移除任何內容。</translation>
+        </message>
+        <message>
+            <source>Overwrite 1 feature of {layer}</source>
+            <translation>覆寫 {layer} 的 1 個圖徵</translation>
+        </message>
+        <message>
+            <source>Overwrite {n}</source>
+            <translation>覆寫 {n} 個</translation>
+        </message>
+        <message>
+            <source>Overwrite {n} features of {layer}</source>
+            <translation>覆寫 {layer} 的 {n} 個圖徵</translation>
+        </message>
+        <message>
+            <source>Remove layer</source>
+            <translation>移除圖層</translation>
+        </message>
+        <message>
+            <source>Remove {layer} from the project</source>
+            <translation>從專案中移除 {layer}</translation>
+        </message>
+        <message>
+            <source>Rule: {expression}</source>
+            <translation>規則：{expression}</translation>
+        </message>
+        <message>
+            <source>Show on map</source>
+            <translation>在地圖上顯示</translation>
+        </message>
+        <message>
+            <source>{n} features in {layer}</source>
+            <translation>{layer} 中的 {n} 個圖徵</translation>
+        </message>
+        <message>
+            <source>{n} of {total} features in {layer}</source>
+            <translation>{layer} 中 {total} 個圖徵的 {n} 個</translation>
         </message>
     </context>
     <context>
@@ -4978,6 +5289,18 @@ Click to open its page.</source>
     </context>
     <context>
         <name>QuotaCard</name>
+        <message>
+            <source>Card declined</source>
+            <translation>信用卡被拒</translation>
+        </message>
+        <message>
+            <source>Your trial didn't start. Nothing was charged.</source>
+            <translation>試用未開始。沒有扣款。</translation>
+        </message>
+        <message>
+            <source>Try another card</source>
+            <translation>改用其他信用卡</translation>
+        </message>
         <message>
             <location filename="src/ui/quota_card.py" />
             <source>Free for 7 days, nothing to pay today, then monthly at your local price. Cancel in one click.</source>
@@ -6116,6 +6439,22 @@ Thank you</source>
             <source>The AI agent's mark moves and follows the work. Off keeps it still.</source>
             <translation>AI Agent 的標誌會隨著工作移動。關閉後則保持不動。</translation>
         </message>
+        <message>
+            <source>Help improve AI Agent</source>
+            <translation>協助改進 AI Agent</translation>
+        </message>
+        <message>
+            <source>Usage stats: errors, versions and the features you use, never your prompts, layers or files. We may read a chat, or have a model score it, to fix bugs, never to train AI.</source>
+            <translation>使用統計：錯誤、版本和你使用的功能，絕不包含你的訊息、圖層或檔案。我們可能會閱讀對話，或請模型為其評分，以修正錯誤，絕不用於訓練 AI。</translation>
+        </message>
+        <message>
+            <source>Usage stats: only that you used the app and when. Chats are kept 30 days so a conversation survives an update; we may read one, or have a model score it, to fix bugs, never to train AI. 0 days of history stores nothing.</source>
+            <translation>使用統計：僅記錄你使用過 AI Agent 及使用時間。對話保留 30 天，讓對話在更新後仍然存在；我們可能會閱讀對話，或請模型為其評分，以修正錯誤，絕不用於訓練 AI。歷史紀錄設為 0 天時，不會儲存任何內容。</translation>
+        </message>
+        <message>
+            <source>Your usage and chats help us fix bugs. Turn it off anytime.</source>
+            <translation>你的使用情況和對話能協助我們修正錯誤。你可隨時關閉。</translation>
+        </message>
     </context>
     <context>
         <name>SourcesButton</name>
@@ -6533,6 +6872,10 @@ Thank you</source>
             <source>{area} m²</source>
             <translation>{area} m²</translation>
         </message>
+        <message>
+            <source>Always allowed</source>
+            <translation>已一律允許</translation>
+        </message>
     </context>
     <context>
         <name>TraceSteps</name>
@@ -6827,6 +7170,10 @@ Thank you</source>
         <message>
             <source>Updating…</source>
             <translation>正在更新…</translation>
+        </message>
+        <message>
+            <source>Update {product} to continue</source>
+            <translation>請更新 {product} 以繼續</translation>
         </message>
     </context>
     <context>
@@ -7874,6 +8221,18 @@ This file is no longer where the run wrote it.</source>
             <source>Choose in Google Drive</source>
             <translation>在 Google Drive 中選擇</translation>
         </message>
+        <message>
+            <source>More ways to allow</source>
+            <translation>更多允許方式</translation>
+        </message>
+        <message>
+            <source>Always allow {label}</source>
+            <translation>一律允許 {label}</translation>
+        </message>
+        <message>
+            <source>Always allowed</source>
+            <translation>已一律允許</translation>
+        </message>
     </context>
     <context>
         <name>ConnectedAccountsPage</name>
@@ -7980,6 +8339,18 @@ This file is no longer where the run wrote it.</source>
         <message>
             <source>{name} sign-in</source>
             <translation>{name} 登入</translation>
+        </message>
+        <message>
+            <source>Always allow</source>
+            <translation>一律允許</translation>
+        </message>
+        <message>
+            <source>Always allow {label}</source>
+            <translation>一律允許 {label}</translation>
+        </message>
+        <message>
+            <source>Used with no card each time. Off: the AI agent asks first.</source>
+            <translation>每次使用都不會顯示卡片。關閉時：AI 助理會先詢問。</translation>
         </message>
     </context>
     <context>
@@ -8127,6 +8498,14 @@ This file is no longer where the run wrote it.</source>
         <message>
             <source>Show the plugin's panel.</source>
             <translation>顯示外掛程式的面板。</translation>
+        </message>
+        <message>
+            <source>Install {plugin}</source>
+            <translation>安裝 {plugin}</translation>
+        </message>
+        <message>
+            <source>Open {plugin}</source>
+            <translation>開啟 {plugin}</translation>
         </message>
     </context>
     <context>
@@ -8554,6 +8933,54 @@ This file is no longer where the run wrote it.</source>
             <source>QGIS will ask you to choose a master password. It locks every sign-in saved in QGIS and cannot be recovered, so keep it somewhere safe.</source>
             <translation>QGIS 會要求你選擇一個主密碼。它會鎖定 QGIS 中儲存的所有登入資訊，且無法復原，請妥善保管。</translation>
         </message>
+        <message>
+            <source>Cloud project ID</source>
+            <translation>Cloud 專案 ID</translation>
+        </message>
+        <message>
+            <source>Shown next to the project name at the top of console.cloud.google.com.</source>
+            <translation>顯示在 console.cloud.google.com 頂端的專案名稱旁。</translation>
+        </message>
+        <message>
+            <source>Type the ID of the Google Cloud project Earth Engine runs on.</source>
+            <translation>輸入 Earth Engine 所使用的 Google Cloud 專案 ID。</translation>
+        </message>
+        <message>
+            <source>Open the Cloud console</source>
+            <translation>開啟 Cloud console</translation>
+        </message>
+        <message>
+            <source>You're signed in</source>
+            <translation>您已登入</translation>
+        </message>
+        <message>
+            <source>You can close this tab and return to QGIS.</source>
+            <translation>您可以關閉此分頁，回到 QGIS。</translation>
+        </message>
+        <message>
+            <source>In QGIS, pick the Cloud project Earth Engine runs on.</source>
+            <translation>請在 QGIS 中選擇 Earth Engine 所使用的 Cloud 專案。</translation>
+        </message>
+        <message>
+            <source>Sign-in didn't finish</source>
+            <translation>登入未完成</translation>
+        </message>
+        <message>
+            <source>Close this tab and try again from QGIS.</source>
+            <translation>請關閉此分頁，再從 QGIS 重試。</translation>
+        </message>
+        <message>
+            <source>Checking {project} with Earth Engine...</source>
+            <translation>正在透過 Earth Engine 檢查 {project}...</translation>
+        </message>
+        <message>
+            <source>Earth Engine refused the project {project} ({error}). Check the ID and your role on the project.</source>
+            <translation>Earth Engine 拒絕了專案 {project}（{error}）。請檢查 ID 以及您在該專案中的角色。</translation>
+        </message>
+        <message>
+            <source>Earth Engine could not be reached ({error}). Check your connection or the proxy in QGIS (Settings &gt; Options &gt; Network).</source>
+            <translation>無法連線到 Earth Engine（{error}）。請檢查您的網路連線，或 QGIS 中的代理伺服器設定（「設定」→「選項」→「網路」）。</translation>
+        </message>
     </context>
     <context>
         <name>BrowserWait</name>
@@ -8926,6 +9353,22 @@ This file is no longer where the run wrote it.</source>
             <source>Your words are sent with this chat and recent logs.</source>
             <translation>您的文字會連同此對話和最近的日誌一併傳送。</translation>
         </message>
+        <message>
+            <source>Add a comment</source>
+            <translation>新增留言</translation>
+        </message>
+        <message>
+            <source>Ask the AI agent instead</source>
+            <translation>改問 AI 代理</translation>
+        </message>
+        <message>
+            <source>Message to the TerraLab team (optional)</source>
+            <translation>給 TerraLab 團隊的訊息（選填）</translation>
+        </message>
+        <message>
+            <source>Read by the TerraLab team, not by the AI agent. Sent with this chat and recent logs.</source>
+            <translation>由 TerraLab 團隊閱讀，AI 代理不會讀取。會連同此對話和近期記錄一併傳送。</translation>
+        </message>
     </context>
     <context>
         <name>NoteRow</name>
@@ -9141,6 +9584,295 @@ This file is no longer where the run wrote it.</source>
         <message>
             <source>Recording</source>
             <translation>錄音中</translation>
+        </message>
+    </context>
+    <context>
+        <name>TransformationRow</name>
+        <message>
+            <source>A more accurate one ({accuracy}) needs a grid file this QGIS does not have.</source>
+            <translation>更精確的轉換（{accuracy}）需要這個 QGIS 所沒有的格網檔案。</translation>
+        </message>
+        <message>
+            <source>Change in Project Properties</source>
+            <translation>在專案屬性中變更</translation>
+        </message>
+        <message>
+            <source>Coordinate transformation: {what}</source>
+            <translation>座標轉換：{what}</translation>
+        </message>
+        <message>
+            <source>Hide details</source>
+            <translation>隱藏詳細資料</translation>
+        </message>
+        <message>
+            <source>Show details</source>
+            <translation>顯示詳細資料</translation>
+        </message>
+        <message>
+            <source>The other option is no more accurate.</source>
+            <translation>另一個選項並沒有比較精確。</translation>
+        </message>
+        <message>
+            <source>The {count} other options are no more accurate.</source>
+            <translation>其他 {count} 個選項並沒有比較精確。</translation>
+        </message>
+        <message>
+            <source>Transformation</source>
+            <translation>轉換</translation>
+        </message>
+        <message>
+            <source>{count} transformations</source>
+            <translation>{count} 個轉換</translation>
+        </message>
+        <message>
+            <source>{layer} goes from {source} to {target} through {operation}, accurate to about {accuracy}.</source>
+            <translation>{layer} 透過 {operation} 從 {source} 轉換為 {target}，精確度約 {accuracy}。</translation>
+        </message>
+        <message>
+            <source>{layer} goes from {source} to {target} through {operation}, of unknown accuracy.</source>
+            <translation>{layer} 透過 {operation} 從 {source} 轉換為 {target}，精確度未知。</translation>
+        </message>
+    </context>
+    <context>
+        <name>SelectionLine</name>
+        <message>
+            <source>Leave the selection out of this message</source>
+            <translation>此訊息不附上選取內容</translation>
+        </message>
+        <message>
+            <source>The AI agent sees this selection with your message, along with the map view and the project's layers.</source>
+            <translation>AI 代理會連同您的訊息一併看到這項選取內容，以及地圖視圖和專案的圖層。</translation>
+        </message>
+        <message>
+            <source>{layer} · 1 feature selected</source>
+            <translation>{layer} · 已選取 1 個圖徵</translation>
+        </message>
+        <message>
+            <source>{layer} · {n} features selected</source>
+            <translation>{layer} · 已選取 {n} 個圖徵</translation>
+        </message>
+    </context>
+    <context>
+        <name>_Row</name>
+        <message>
+            <location filename="src/ui/sidebar.py" />
+            <source>Draft</source>
+            <translation>草稿</translation>
+        </message>
+        <message>
+            <source>Open</source>
+            <translation>開啟</translation>
+        </message>
+    </context>
+    <context>
+        <name>GeoPaste</name>
+        <message>
+            <source>1 feature</source>
+            <translation>1 個圖徵</translation>
+        </message>
+        <message>
+            <source>1 vertex</source>
+            <translation>1 個頂點</translation>
+        </message>
+        <message>
+            <source>ArcGIS FeatureServer</source>
+            <translation>ArcGIS FeatureServer</translation>
+        </message>
+        <message>
+            <source>ArcGIS ImageServer</source>
+            <translation>ArcGIS ImageServer</translation>
+        </message>
+        <message>
+            <source>ArcGIS MapServer</source>
+            <translation>ArcGIS MapServer</translation>
+        </message>
+        <message>
+            <source>FlatGeobuf file</source>
+            <translation>FlatGeobuf 檔案</translation>
+        </message>
+        <message>
+            <source>GeoJSON file</source>
+            <translation>GeoJSON 檔案</translation>
+        </message>
+        <message>
+            <source>GeoPackage file</source>
+            <translation>GeoPackage 檔案</translation>
+        </message>
+        <message>
+            <source>GeoTIFF (COG)</source>
+            <translation>GeoTIFF (COG)</translation>
+        </message>
+        <message>
+            <source>Geometry</source>
+            <translation>幾何圖形</translation>
+        </message>
+        <message>
+            <source>KML file</source>
+            <translation>KML 檔案</translation>
+        </message>
+        <message>
+            <source>Line</source>
+            <translation>線</translation>
+        </message>
+        <message>
+            <source>Multiline</source>
+            <translation>多線</translation>
+        </message>
+        <message>
+            <source>Multipoint</source>
+            <translation>多點</translation>
+        </message>
+        <message>
+            <source>Multipolygon</source>
+            <translation>多重多邊形</translation>
+        </message>
+        <message>
+            <source>OGC API Features</source>
+            <translation>OGC API Features</translation>
+        </message>
+        <message>
+            <source>PMTiles</source>
+            <translation>PMTiles</translation>
+        </message>
+        <message>
+            <source>Parquet file</source>
+            <translation>Parquet 檔案</translation>
+        </message>
+        <message>
+            <source>Pasted text</source>
+            <translation>貼上的文字</translation>
+        </message>
+        <message>
+            <source>Point</source>
+            <translation>點</translation>
+        </message>
+        <message>
+            <source>Point cloud</source>
+            <translation>點雲</translation>
+        </message>
+        <message>
+            <source>Point · WGS 84</source>
+            <translation>點 · WGS 84</translation>
+        </message>
+        <message>
+            <source>Polygon</source>
+            <translation>多邊形</translation>
+        </message>
+        <message>
+            <source>STAC catalog</source>
+            <translation>STAC 目錄</translation>
+        </message>
+        <message>
+            <source>Vector tiles</source>
+            <translation>向量圖磚</translation>
+        </message>
+        <message>
+            <source>WCS service</source>
+            <translation>WCS 服務</translation>
+        </message>
+        <message>
+            <source>WFS service</source>
+            <translation>WFS 服務</translation>
+        </message>
+        <message>
+            <source>WMS service</source>
+            <translation>WMS 服務</translation>
+        </message>
+        <message>
+            <source>WMTS service</source>
+            <translation>WMTS 服務</translation>
+        </message>
+        <message>
+            <source>XYZ tiles</source>
+            <translation>XYZ 圖磚</translation>
+        </message>
+        <message>
+            <source>{n} characters</source>
+            <translation>{n} 個字元</translation>
+        </message>
+        <message>
+            <source>{n} features</source>
+            <translation>{n} 個圖徵</translation>
+        </message>
+        <message>
+            <source>{n} lines</source>
+            <translation>{n} 行</translation>
+        </message>
+        <message>
+            <source>{n} vertices</source>
+            <translation>{n} 個頂點</translation>
+        </message>
+        <message>
+            <source>{shape} GeoJSON</source>
+            <translation>{shape} GeoJSON</translation>
+        </message>
+        <message>
+            <source>{shape} WKT</source>
+            <translation>{shape} WKT</translation>
+        </message>
+    </context>
+    <context>
+        <name>CrashCommentBar</name>
+        <message>
+            <source>Dismiss</source>
+            <translation>關閉</translation>
+        </message>
+        <message>
+            <source>Example: I had the attribute table open and pressed Save</source>
+            <translation>例如：我開著屬性表，然後按了儲存</translation>
+        </message>
+        <message>
+            <source>QGIS closed unexpectedly</source>
+            <translation>QGIS 意外關閉了</translation>
+        </message>
+        <message>
+            <source>Send</source>
+            <translation>送出</translation>
+        </message>
+        <message>
+            <source>The crash report was sent. What were you doing just before?</source>
+            <translation>當機報告已送出。關閉前你在做什麼？</translation>
+        </message>
+        <message>
+            <source>Not sent. Press Send to try again.</source>
+            <translation>未送出。按「送出」再試一次。</translation>
+        </message>
+    </context>
+    <context>
+        <name>_ModeRow</name>
+        <message>
+            <source>Locked: {tag}</source>
+            <translation>已鎖定：{tag}</translation>
+        </message>
+        <message>
+            <source>Selected</source>
+            <translation>已選取</translation>
+        </message>
+    </context>
+    <context>
+        <name>_RowText</name>
+        <message>
+            <source>Edit this queued message</source>
+            <translation>編輯這則排隊中的訊息</translation>
+        </message>
+    </context>
+    <context>
+        <name>_StopNames</name>
+        <message>
+            <source>Effort: {level}</source>
+            <translation>強度：{level}</translation>
+        </message>
+        <message>
+            <source>Locked until the end of the free trial</source>
+            <translation>免費試用結束前已鎖定</translation>
+        </message>
+        <message>
+            <source>Locked: {tag}</source>
+            <translation>已鎖定：{tag}</translation>
+        </message>
+        <message>
+            <source>Selected</source>
+            <translation>已選取</translation>
         </message>
     </context>
 </TS>

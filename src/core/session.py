@@ -330,6 +330,9 @@ class AgentSession(QObject):
     plan_update = pyqtSignal(str, str, str)
     tool_call = pyqtSignal(object)
     run_end = pyqtSignal(str, str, str, object, object)
+
+
+    feedback_ask = pyqtSignal(str, object)
     server_error = pyqtSignal(object)
     usage = pyqtSignal(object)
     thread_title = pyqtSignal(str, str)
@@ -346,6 +349,7 @@ class AgentSession(QObject):
     server_tool = pyqtSignal(object)
     counts = pyqtSignal(str, int, int)
     steer_ack = pyqtSignal(str, str, bool)
+    crash_comment_ack = pyqtSignal(str, bool)
 
     task_update = pyqtSignal(object)
     task_result = pyqtSignal(object)
@@ -358,6 +362,10 @@ class AgentSession(QObject):
     connection_ready = pyqtSignal(object)
 
     transcript = pyqtSignal(str, str, str)
+
+    suggestions = pyqtSignal(str, object, str)
+    next_prompt = pyqtSignal(str, str, str)
+    report_offer = pyqtSignal(str, bool)
 
     def __init__(self, settings, account, identity_provider: Callable[[], dict],
                  manifest_provider: Callable[[], tuple], parent=None):
@@ -403,6 +411,7 @@ class AgentSession(QObject):
         self._beat_at = 0.0
         self._sent_at = 0.0
         self._held = HELD_CLOSED
+        self._refused_build = ""
         self._held_detail = ""
         self._manifest_included = False
         self._manifest_retry = False
@@ -494,7 +503,18 @@ class AgentSession(QObject):
         if _HOLD_ORDER.index(reason) >= _HOLD_ORDER.index(self._held):
             self._held, self._held_detail = reason, detail
 
+    @property
+    def update_required(self) -> str:
+
+        return self._refused_build
+
     def connect_to_server(self) -> None:
+        if self._refused_build:
+
+
+
+            self._set_state("offline", self._refused_build)
+            return
         if not self._session_id:
             self._claim_saved_session()
         self._held, self._held_detail = NOT_HELD, ""
@@ -707,7 +727,8 @@ class AgentSession(QObject):
         turns = earlier_turns() if earlier_turns is not None and thread_id not in self._threads_told else None
         sent = self._send(protocol.user_message(
             run_id, thread_id, text, attachments, context, mode, approval, effort, example,
-            replaces_run_id if self.edit_last_available else "", turns, _analytics_session()))
+            replaces_run_id if self.edit_last_available else "", turns, _analytics_session(),
+            telemetry=_telemetry_enabled(), improve=_improve_enabled()))
         if sent:
             self._threads_told.add(thread_id)
         return sent
@@ -768,9 +789,19 @@ class AgentSession(QObject):
         return getattr(self, "_dictation", None) if self.is_online else None
 
     @property
+    def suggest_terms(self) -> dict | None:
+
+        return getattr(self, "_suggest", None) if self.is_online else None
+
+    @property
     def steer_available(self) -> bool:
 
         return bool(getattr(self, "_steer", False)) and self.is_online
+
+    @property
+    def report_offer_decided(self) -> bool:
+
+        return bool(getattr(self, "_report_offer", False)) and self.is_online
 
     @property
     def edit_last_available(self) -> bool:
@@ -792,12 +823,6 @@ class AgentSession(QObject):
     def send_effort(self, run_id: str, effort: str) -> bool:
         return self._send(protocol.effort_switch(run_id, effort))
 
-    def send_funnel(self, snapshot: dict) -> bool:
-
-        if not self.is_online or not getattr(self, "_funnel", False):
-            return False
-        return self._send(protocol.funnel(snapshot))
-
     @property
     def wants_project_state(self) -> bool:
 
@@ -818,10 +843,20 @@ class AgentSession(QObject):
     def send_task_stop(self, task_id: str) -> bool:
         return self._send(protocol.task_stop(task_id))
 
+    def send_crash_comment(self, key: str, text: str) -> bool:
+
+
+        return self._send(protocol.crash_comment(key, text))
+
     def send_feedback(self, run_id: str, up: bool, reason_code: str = "", reason: str = "") -> bool:
 
 
         return self._send(protocol.feedback(run_id, bool(up), reason_code, reason))
+
+    def send_feedback_ask(self, run_id: str, state: str, reason: str, doubt: bool, skip: str = "",
+                          cap: str = "") -> bool:
+
+        return self._send(protocol.feedback_ask(run_id, state, reason, doubt, skip, cap))
 
     def send_cancel(self, run_id: str, reason: str = "") -> bool:
 
@@ -1528,11 +1563,13 @@ class AgentSession(QObject):
 
         self._steer = frame.get("steer") is True
         self._unsteer = frame.get("unsteer") is True
-        self._funnel = frame.get("funnel") is True
         self._project_state = frame.get("project_state") is True
         self._edit_last = frame.get("edit_last") is True
+        self._report_offer = frame.get("report_offer") is True
         terms = frame.get("dictation")
         self._dictation = dict(terms) if isinstance(terms, dict) else None
+        terms = frame.get("suggest")
+        self._suggest = dict(terms) if isinstance(terms, dict) else None
 
         groups = frame.get("effort_switch")
         self._effort_switch = tuple(tuple(str(e) for e in g) for g in groups
@@ -1648,6 +1685,8 @@ class AgentSession(QObject):
         self._cancel_reasons.pop(str(frame.get("run_id") or ""), None)
         usage = frame.get("usage") if isinstance(frame.get("usage"), dict) else {}
         verification = frame.get("verification") if isinstance(frame.get("verification"), dict) else None
+        if isinstance(frame.get("feedback_ask"), dict):
+            self.feedback_ask.emit(str(frame.get("run_id") or ""), frame["feedback_ask"])
         self.run_end.emit(str(frame.get("run_id") or ""), str(frame.get("status") or "done"),
                           str(frame.get("summary") or ""), usage, verification)
 
@@ -1667,8 +1706,9 @@ class AgentSession(QObject):
             self._set_state("signed_out", str(frame.get("message") or ""))
             self._ws.close(1000, "auth failed")
         if code == ServerErrorCode.PLUGIN_UPDATE_REQUIRED:
-            self._hold(HELD_UPDATE_REQUIRED, str(frame.get("message") or "") or tr(
-                "This version of AI Agent is no longer supported. Update the plugin to continue."))
+            self._refused_build = str(frame.get("message") or "") or tr(
+                "This version of AI Agent is no longer supported. Update the plugin to continue.")
+            self._hold(HELD_UPDATE_REQUIRED, self._refused_build)
             self._heartbeat.stop()
             self._ws.close(1000, "plugin update required")
         self.server_error.emit(frame)
@@ -1691,6 +1731,22 @@ class AgentSession(QObject):
     def _on_transcript(self, frame: dict) -> None:
         self.transcript.emit(str(frame.get("id") or ""), str(frame.get("text") or ""), str(frame.get("code") or ""))
 
+    def _on_suggestions(self, frame: dict) -> None:
+        items = frame.get("items")
+        rows = [{"intent": str(i.get("intent") or "")[:64], "text": str(i.get("text") or "")[:300]}
+                for i in (items if isinstance(items, list) else [])[:3]
+                if isinstance(i, dict) and str(i.get("text") or "").strip()]
+        self.suggestions.emit(str(frame.get("id") or ""), rows, str(frame.get("code") or ""))
+
+    def _on_next_prompt(self, frame: dict) -> None:
+        text = " ".join(str(frame.get("text") or "").split())[:300]
+        if text:
+            self.next_prompt.emit(str(frame.get("thread_id") or ""), str(frame.get("run_id") or ""), text)
+
+    def _on_report_offer(self, frame: dict) -> None:
+        if isinstance(frame.get("show"), bool) and frame.get("run_id"):
+            self.report_offer.emit(str(frame["run_id"]), frame["show"])
+
     def _on_sources(self, frame: dict) -> None:
         raw = frame.get("items") if isinstance(frame.get("items"), list) else []
         items = [i for i in raw if isinstance(i, dict) and i.get("name")]
@@ -1706,6 +1762,11 @@ class AgentSession(QObject):
         run_id, steer_id = str(frame.get("run_id") or ""), str(frame.get("steer_id") or "")
         if run_id and steer_id:
             self.steer_ack.emit(run_id, steer_id, frame.get("taken") is True)
+
+    def _on_crash_comment_ack(self, frame: dict) -> None:
+        key = frame.get("key")
+        if isinstance(key, str) and key:
+            self.crash_comment_ack.emit(key, frame.get("stored") is True)
 
     def _on_task_update(self, frame: dict) -> None:
         if not frame.get("task_id") or not frame.get("status"):

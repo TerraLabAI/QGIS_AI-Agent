@@ -23,14 +23,16 @@ import json
 import os
 import subprocess  # nosec B404
 import time
+import uuid
 
 from qgis.core import QgsProject, QgsSettings
 
-from ..core.host_platform import IS_WINDOWS, retry_file_op
+from ..core.host_platform import IS_WINDOWS, remove_quietly, retry_file_op
+from ..core.layer_order import write_blocked_by, write_refusal
 from ..core.policy import create_managed_temp_dir
 from ..core.snapshot_project import _paths_absolute, _signals_blocked
+from .child_python import ended_without_result, python_for_child, start_refused
 from .child_python import environment as _environment
-from .child_python import python_for_child, start_refused
 
 _WORKER = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "workers",
                        "layout_export_worker.py")
@@ -108,12 +110,21 @@ def why_not(args: dict, layout) -> str:
     atlas = getattr(layout, "atlas", None)
     if callable(atlas) and atlas() is not None and atlas().enabled():
         return "atlas"
+    from qgis.core import QgsLayoutItemRegistry
+
+    three_d = getattr(QgsLayoutItemRegistry, "Layout3DMap", None)
+
+    if three_d is not None and any(getattr(item, "type", lambda: None)() == three_d for item in layout.items()):
+        return "3D map"
     layers = _drawn_layers(layout)
     if layers is None:
         return "map layers by expression"
     for layer in layers:
         if not _travels(layer):
             return f"layer {layer.name()}"
+    gone = write_blocked_by(QgsProject.instance())
+    if gone is not None:
+        return f"layer {gone.name()} lost its file, so the copy cannot be written"
     if not python_for_child():
         return "no QGIS Python"
     return ""
@@ -135,6 +146,9 @@ def write_copy() -> str:
 
 
     project = QgsProject.instance()
+    refusal = write_refusal(project)
+    if refusal:
+        raise OSError(refusal)
     folder = create_managed_temp_dir("layout-export-")
     path = os.path.join(folder, COPY_FILE)
     name, dirty = project.fileName() or "", project.isDirty()
@@ -190,6 +204,10 @@ def run(job: dict, stopped, budget_s: float) -> dict:
 
             return {"ok": False, "error": start_refused(exc), "wall_s": round(time.monotonic() - started, 2)}
         while process.poll() is None:
+
+
+            if os.path.exists(status_path):
+                break
             if (stopped is not None and stopped()) or time.monotonic() - started > budget_s:
                 process.kill()
                 process.wait(timeout=5)
@@ -201,36 +219,36 @@ def run(job: dict, stopped, budget_s: float) -> dict:
         with open(status_path, encoding="utf-8") as handle:
             report = json.load(handle)
     except (OSError, ValueError):
-        try:
-            with open(log_path, "rb") as handle:
-                tail = handle.read()[-800:].decode("utf-8", "replace")
-        except OSError:
-            tail = ""
-        report = {"ok": False, "error": "the separate QGIS ended without a result"
-                                        + (f": {' '.join(tail.split())}" if tail else "")}
+        report = {"ok": False, "error": ended_without_result(process.returncode, log_path, 800)}
     report["wall_s"] = round(time.monotonic() - started, 2)
     return report
 
 
-def put_in_place(staged: str, output_path: str) -> None:
+def put_in_place(staged: str, output_path: str) -> str:
+
+
+
 
 
 
     import errno
     import shutil
 
+
+    near = os.path.join(os.path.dirname(output_path) or ".", f".{uuid.uuid4().hex[:8]}.part")
     try:
-        retry_file_op(os.replace, staged, output_path)
-        return
-    except OSError as exc:
-        if exc.errno != errno.EXDEV and getattr(exc, "winerror", None) != 17:
-            raise
-        near = output_path + ".part"
         try:
+            retry_file_op(os.replace, staged, output_path)
+            return "renamed"
+        except OSError as exc:
+            if exc.errno != errno.EXDEV and getattr(exc, "winerror", None) != 17:
+                raise
             shutil.copyfile(staged, near)
             retry_file_op(os.replace, near, output_path)
-        except OSError:
-            if os.path.exists(near):
-                os.remove(near)
-            raise exc from None
-    os.remove(staged)
+            return "copied"
+    except PermissionError:
+        retry_file_op(shutil.copyfile, staged, output_path)
+        return "written_in_place"
+    finally:
+        remove_quietly(near)
+        remove_quietly(staged)

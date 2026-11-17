@@ -136,9 +136,9 @@ class UpdateGate(QWidget):
         self._note.hide()
         col.addWidget(self._note)
 
-        body = QLabel(self.tr("Update to keep using {product}. It takes one click, and the "
-                              "plugin reloads on its own.")
-                      .format(product=PRODUCT_NAME), self._card)
+        self._body = body = QLabel(self.tr("Update to keep using {product}. It takes one click, and the "
+                                           "plugin reloads on its own.")
+                                   .format(product=PRODUCT_NAME), self._card)
         body.setObjectName("updateGateBody")
         body.setWordWrap(True)
         col.addWidget(body)
@@ -172,10 +172,23 @@ class UpdateGate(QWidget):
             product=PRODUCT_NAME, version=self.version))
         self._note.setText(str(note or ""))
         self._note.setVisible(bool(note))
+        self._body.show()
         if installed:
             self._hint.setText(self.tr("You have {installed}.").format(installed=installed))
         self._hint.setVisible(bool(installed))
         self.setVisible(bool(self.version))
+
+    def refuse(self, sentence: str) -> None:
+
+
+
+        self.version = ""
+        self._title.setText(self.tr("Update {product} to continue").format(product=PRODUCT_NAME))
+        self._note.setText(str(sentence or ""))
+        self._note.setVisible(bool(sentence))
+        for part in (self._body, self._hint):
+            part.hide()
+        self.show()
 
     def resizeEvent(self, event) -> None:  # noqa: N802
         super().resizeEvent(event)

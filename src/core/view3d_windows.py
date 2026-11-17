@@ -26,10 +26,9 @@
 
 from __future__ import annotations
 
-from qgis.PyQt import sip
 from qgis.PyQt.QtGui import QWindow
 
-from .qt_compat import qgis_iface
+from .qt_compat import qgis_iface, qt_deleted
 
 _runs: set = set()
 
@@ -97,7 +96,7 @@ def show_waiting() -> None:
     waiting = list(_waiting)
     _waiting.clear()
     for holder in waiting:
-        if not sip.isdeleted(holder):
+        if not qt_deleted(holder):
             bring_front(holder, activate=False)
 
 

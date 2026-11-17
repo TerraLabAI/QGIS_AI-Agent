@@ -9,12 +9,11 @@ from __future__ import annotations
 
 import time
 
-from qgis.PyQt import sip
 from qgis.PyQt.QtCore import QTimer, QUrl
 
 from ..core import openui, telemetry
 from ..core import telemetry_events as ev
-from ..core.qt_compat import one_shot
+from ..core.qt_compat import one_shot, qt_deleted
 from ..core.snapshot_report import run_change_items
 from .bubbles import AgentBubble, StatusLine, UserBubble, take_stream_stats
 from .cards_run import RunSummaryCard
@@ -37,22 +36,35 @@ from .mascot import step_event
 from .plan_card import PlanCard
 from .shared import TURN_DIVIDER_OBJECT
 from .trace import RunTrace
+from .transform_row import TransformationRow
 
 
 def _worth_a_report(run: _Run) -> bool:
 
 
 
+
+
     text = run.bubble.text().strip() if run.bubble is not None else ""
     if not text or text.endswith("?") or not run.tools or run.wrote_page:
         return False
-    figures = sum(1 for line in text.splitlines() if any(ch.isdigit() for ch in line))
-    return openui.FENCE_TAG in text or figures >= 3
+    if openui.FENCE_TAG in text:
+        return True
+    rows = 0
+    for line in text.splitlines():
+        line = line.strip()
+        item = line.startswith(("- ", "* ", "|")) or line[:1].isdigit() and line.split(" ", 1)[0].rstrip(".)").isdigit()
+        rows += item and any(ch.isdigit() for ch in line.lstrip("0123456789.) "))
+    return rows >= 3
 
 
-def _track(event: str, run_id: str) -> None:
+
+REPORT_DECISION_WAIT_MS = 4000
+
+
+def _track(event: str, run_id: str, **props) -> None:
     try:
-        telemetry.track(event, {"run_id": run_id})
+        telemetry.track(event, {"run_id": run_id, **props})
     except Exception:  # nosec B110
         pass
 
@@ -186,7 +198,7 @@ class _ChatPanelRuns:
 
     def _status_alive(self) -> bool:
 
-        if self._status is not None and sip.isdeleted(self._status):
+        if qt_deleted(self._status):
             self._status = None
         return self._status is not None
 
@@ -199,6 +211,7 @@ class _ChatPanelRuns:
         run_id = str(run_id or "").strip()
         if not run_id:
             return
+        self._end_feedback_ask()
         self._run(run_id).started = time.monotonic()
         self._current_run = run_id
         self._last_run = run_id
@@ -258,11 +271,11 @@ class _ChatPanelRuns:
             except RuntimeError:
                 pass
 
-    def append_user_message(self, run_id: str, text: str, chips, attachments) -> None:
+    def append_user_message(self, run_id: str, text: str, chips, attachments, selection=None) -> None:
         if self._live_run(run_id) is None:
             return
         self._last_run = run_id or self._last_run
-        bubble = UserBubble(text, list(chips or []), list(attachments or []))
+        bubble = UserBubble(text, list(chips or []), list(attachments or []), selection=selection)
         bubble.run_id = str(run_id or "")
         self._add_user(bubble)
         if run_id == self._current_run:
@@ -462,6 +475,10 @@ class _ChatPanelRuns:
 
             return
         if card is not None:
+            if isinstance(result, dict) and ok:
+
+                card.map_result = {k: result[k] for k in ("layer_id", "output_layer_id", "layer_ids",
+                                                          "layers_added") if k in result}
             hint = str(result.get("hint") or "") if isinstance(result, dict) and not ok else ""
             card.finish(bool(ok), str(summary or "")[:1000], duration_s, str(detail or "")[:2000], hint)
             if isinstance(result, dict) and (result.get("tell_user") or result.get("tell_user_hint")):
@@ -567,10 +584,14 @@ class _ChatPanelRuns:
             if run is not None and run.bubble is not None:
                 run.bubble.finish_streaming()
             self._add_layer_links(run_id)
-            if status == "done" and run.bubble is not None and _worth_a_report(run):
-                self._wire_answer(run.bubble, run_id)
-                run.bubble.set_report_offer(True)
-                _track(ev.AGENT_REPORT_OFFER_SHOWN, run_id)
+            if status == "done" and run.bubble is not None:
+                if run.report_wait in ("yes", "no"):
+                    self._decide_report(run, run.report_wait == "yes")
+                elif run.report_wait == "awaited":
+                    run.report_wait = "pending"
+                    one_shot(self, lambda: self._report_fallback(run_id), REPORT_DECISION_WAIT_MS).start()
+                elif _worth_a_report(run):
+                    self._offer_report(run, "rule")
             self._mark_compaction(usage)
         finally:
             self._drop_status()
@@ -630,15 +651,91 @@ class _ChatPanelRuns:
         bubble.setProperty("wired", True)
         bubble.restore_clicked.connect(lambda: self._on_answer_restore(run_id))
         bubble.rated.connect(lambda rating: self.answer_rated.emit(run_id, str(rating)))
+
+        bubble.rated.connect(lambda _rating: self.composer.focus_input())
+        bubble.rating_to_agent.connect(self._on_rating_to_agent)
         bubble.rating_words.connect(
             lambda rating, code, text: self._send_rating_words(bubble, run_id, rating, code, text))
         bubble.report_clicked.connect(lambda: self._on_report_offer(run_id))
+        bubble.ask_answered.connect(lambda answer: self._end_feedback_ask(run_id, str(answer)))
+
+    def ask_feedback(self, run_id: str) -> None:
+
+
+
+        run = self._runs.get(run_id)
+        bubble = run.bubble if run is not None else None
+        entry = self._queue() if self._queue_key is not None else None
+        if entry and entry["items"] and not entry["paused"]:
+
+            self.feedback_ask_state.emit(run_id, "skipped", "queued")
+            return
+        skip = "gone" if qt_deleted(bubble) else bubble.ask()
+        if skip:
+            self.feedback_ask_state.emit(run_id, "skipped", skip)
+            return
+        self._wire_answer(bubble, run_id)
+        self._asked_run = run_id
+        self.feedback_ask_state.emit(run_id, "shown", "")
+
+    def _end_feedback_ask(self, run_id: str = "", state: str = "dismissed") -> None:
+
+
+        asked = self._asked_run
+        if not asked or (run_id and run_id != asked):
+            return
+        self._asked_run = ""
+        run = self._runs.get(asked)
+        if run is not None and not qt_deleted(run.bubble):
+            run.bubble.end_ask()
+        self.feedback_ask_state.emit(asked, state, "")
+
+    def _offer_report(self, run: _Run, source: str) -> None:
+        self._wire_answer(run.bubble, run.run_id)
+        run.bubble.set_report_offer(True)
+        run.offer_source = source
+        _track(ev.AGENT_REPORT_OFFER_SHOWN, run.run_id, source=source)
+
+    def await_report_decision(self, run_id: str) -> None:
+
+        run = self._runs.get(run_id)
+        if run is not None and not run.report_wait:
+            run.report_wait = "awaited"
+
+    def set_report_decision(self, run_id: str, show: bool) -> None:
+
+        run = self._runs.get(run_id)
+        if run is None:
+            return
+        if run.report_wait == "awaited":
+            run.report_wait = "yes" if show else "no"
+        elif run.report_wait == "pending":
+            self._decide_report(run, show)
+
+    def _decide_report(self, run: _Run, show: bool) -> None:
+        run.report_wait = ""
+
+        if show and run.bubble is not None and not qt_deleted(run.bubble) and _worth_a_report(run):
+            self._offer_report(run, "decision")
+
+    def _report_fallback(self, run_id: str) -> None:
+
+        run = self._runs.get(run_id)
+        if run is None or run.report_wait != "pending":
+            return
+        run.report_wait = ""
+        if run.bubble is not None and not qt_deleted(run.bubble) and _worth_a_report(run):
+            self._offer_report(run, "rule")
 
     def _on_report_offer(self, run_id: str) -> None:
 
-        self.composer.set_text(self.tr("Make an HTML report of this analysis, with its maps, charts and method."))
-        self.composer.focus_input()
-        _track(ev.AGENT_REPORT_OFFER_CLICKED, run_id)
+        self.composer.add_prompt(self.tr("Make an HTML report of this analysis, with its maps, charts and method."))
+        run = self._runs.get(run_id)
+        _track(ev.AGENT_REPORT_OFFER_CLICKED, run_id, source=(run.offer_source if run is not None else "") or "rule")
+
+    def _on_rating_to_agent(self, text: str) -> None:
+
+        self.composer.add_prompt(text)
 
     def _send_rating_words(self, bubble: AgentBubble, run_id: str, rating: str, code: str, text: str) -> None:
 
@@ -678,15 +775,18 @@ class _ChatPanelRuns:
 
 
 
+
         data = changes if isinstance(changes, dict) else {}
         for entry in data.get("files") or ():
             if isinstance(entry, dict) and entry.get("written") is True:
                 note_written_page(str(entry.get("path") or ""))
         stack = FileCardStack(data.get("files"), objects=data.get("objects"))
         row = RunChangesRow(data)
-        if row.is_empty() and stack.is_empty():
+        transforms = TransformationRow(data.get("transformations"))
+        if row.is_empty() and stack.is_empty() and transforms.is_empty():
             row.deleteLater()
             stack.deleteLater()
+            transforms.deleteLater()
             return
         run = self._runs.get(run_id)
         bubble = run.bubble if run is not None else None
@@ -708,7 +808,8 @@ class _ChatPanelRuns:
                         said.set_linked_text(linked)
         row.layer_action_requested.connect(self.layer_action_requested.emit)
         stack.action_requested.connect(self._on_file_action)
-        for widget, empty in ((stack, stack.is_empty()), (row, row.is_empty())):
+        for widget, empty in ((stack, stack.is_empty()), (row, row.is_empty()),
+                              (transforms, transforms.is_empty())):
             if empty:
                 widget.deleteLater()
                 continue

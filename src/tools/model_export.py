@@ -285,15 +285,17 @@ def _fill_holes(values: list, nx: int, ny: int, nodata: list) -> tuple[int, int]
             x, y = i % nx, i // nx
             for dx, dy in _NEIGHBOURS:
                 px, py = x + dx, y + dy
-                if 0 <= px < nx and 0 <= py < ny:
-                    j = py * nx + px
-                    if j in unknown:
-                        seen = wave.get(j)
-                        if seen is None:
-                            wave[j] = [value, 1]
-                        else:
-                            seen[0] += value
-                            seen[1] += 1
+                if not (0 <= px < nx and 0 <= py < ny):
+                    continue
+                j = py * nx + px
+                if j not in unknown:
+                    continue
+                seen = wave.get(j)
+                if seen is None:
+                    wave[j] = [value, 1]
+                else:
+                    seen[0] += value
+                    seen[1] += 1
         if not wave:
             break
         for j, (total, count) in wave.items():

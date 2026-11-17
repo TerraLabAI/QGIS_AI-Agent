@@ -606,6 +606,16 @@ def panel_qss() -> str:
         f'QLabel#fileName[gone="true"] {{ color: {INK_3}; }}'
         f"QLabel#fileKind {{ font-size: {FONT_HINT}px; color: {INK_3};"
         " background: transparent; border: none; }"
+
+
+        f"QFrame#transformRow {{ background: transparent; border: 1px solid {LINE};"
+        f" border-radius: {RADIUS_CARD}px; }}"
+        f"QLabel#transformTitle {{ font-size: {FONT_HINT}px; color: {INK};"
+        " background: transparent; border: none; }"
+        f"QLabel#transformHint {{ font-size: {FONT_HINT}px; color: {INK_3};"
+        " background: transparent; border: none; }"
+        f"QLabel#transformLink {{ font-size: {FONT_HINT}px; color: {INK_2};"
+        " background: transparent; border: none; }"
         f"QLabel#hdrTitle {{ font-size: {FONT_BASE}px; font-weight: 600;"
         f" color: {INK}; background: transparent; }}"
         f"QLabel#cardTitle {{ font-size: {FONT_BASE}px; font-weight: 600;"
@@ -679,28 +689,29 @@ _SCROLL_AREA_QSS = (
 
 
 
+
 COMPLETER_POPUP_RADIUS = RADIUS_CARD
 _COMPLETER_POPUP_QSS = scale_qss_font_px(
-    f"QListView#mentionPopup {{ background: {SURFACE}; color: {INK};"
+    f"QListView#qt_rubberband {{ background: {SURFACE}; color: {INK};"
     f" border: 1px solid {LINE_STRONG}; border-radius: {COMPLETER_POPUP_RADIUS}px;"
     f" padding: 6px; font-size: {FONT_BASE}px; outline: none; }}"
-    "QListView#mentionPopup::item { border: none; background: transparent; }"
-    "QListView#mentionPopup::item:selected { background: transparent; }"
-    "QListView#mentionPopup QScrollBar:vertical { background: transparent;"
+    "QListView#qt_rubberband::item { border: none; background: transparent; }"
+    "QListView#qt_rubberband::item:selected { background: transparent; }"
+    "QListView#qt_rubberband QScrollBar:vertical { background: transparent;"
     " width: 8px; margin: 2px 2px 2px 0; border: none; }"
-    "QListView#mentionPopup QScrollBar::handle:vertical {"
+    "QListView#qt_rubberband QScrollBar::handle:vertical {"
     f" background: {LINE_STRONG}; border-radius: 3px; min-height: 24px; }}"
-    "QListView#mentionPopup QScrollBar::handle:vertical:hover {"
+    "QListView#qt_rubberband QScrollBar::handle:vertical:hover {"
     f" background: {INK_3}; }}"
-    "QListView#mentionPopup QScrollBar::add-line:vertical,"
-    " QListView#mentionPopup QScrollBar::sub-line:vertical {"
+    "QListView#qt_rubberband QScrollBar::add-line:vertical,"
+    " QListView#qt_rubberband QScrollBar::sub-line:vertical {"
     " height: 0px; width: 0px; border: none; background: none; }"
-    "QListView#mentionPopup QScrollBar::up-arrow:vertical,"
-    " QListView#mentionPopup QScrollBar::down-arrow:vertical {"
+    "QListView#qt_rubberband QScrollBar::up-arrow:vertical,"
+    " QListView#qt_rubberband QScrollBar::down-arrow:vertical {"
     " height: 0px; width: 0px; image: none; }"
-    "QListView#mentionPopup QScrollBar::add-page:vertical,"
-    " QListView#mentionPopup QScrollBar::sub-page:vertical { background: transparent; }"
-    "QListView#mentionPopup QScrollBar:horizontal { height: 0px; }"
+    "QListView#qt_rubberband QScrollBar::add-page:vertical,"
+    " QListView#qt_rubberband QScrollBar::sub-page:vertical { background: transparent; }"
+    "QListView#qt_rubberband QScrollBar:horizontal { height: 0px; }"
 )
 
 

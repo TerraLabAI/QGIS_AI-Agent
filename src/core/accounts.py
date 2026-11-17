@@ -15,6 +15,7 @@
 
 
 
+
 from __future__ import annotations
 
 import base64
@@ -58,17 +59,32 @@ _transient: set[str] = set()
 
 
 
+
+
+
 ENABLED_SETTING = f"{GROUP}/connectedAccountsOn"
+ON_BY_DEFAULT: frozenset = frozenset()
 
 
-def enabled() -> bool:
+def enabled(provider: str = "") -> bool:
+
+
     import os
     if os.environ.get("TERRALAB_AGENT_ACCOUNTS", "").strip().lower() in ("1", "true", "yes", "on"):
         return True
     try:
-        return str(QgsSettings().value(ENABLED_SETTING, "false")).strip().lower() in ("1", "true", "yes", "on")
+        value = QgsSettings().value(ENABLED_SETTING, None)
     except Exception:  # noqa: BLE001
         return False
+
+    said = "" if value is None else str(value).strip().lower()
+    if said:
+        return said in ("1", "true", "yes", "on")
+    return provider in ON_BY_DEFAULT
+
+
+def any_enabled() -> bool:
+    return enabled() or any(enabled(key) for key in ON_BY_DEFAULT)
 
 
 def _host(url: str) -> str:
@@ -124,6 +140,7 @@ def _write(data: dict) -> None:
 
 
 def entries() -> dict:
+
 
 
 
@@ -299,6 +316,22 @@ def grant(key: str, tool_call_id: str, scope: str, thread_id: str = "") -> None:
         _load(str(entry["authcfg"]))
 
 
+def always(key: str) -> bool:
+
+
+    return bool(key) and (_read().get(key) or {}).get("always") is True
+
+
+def set_always(key: str, on: bool) -> None:
+
+
+    _note(key, always=bool(on))
+    if not on:
+        with _lock:
+            for keys in _thread_grants.values():
+                keys.discard(key)
+
+
 def granted(key: str) -> bool:
     call = background.current_call()
     if not key or not call:
@@ -316,9 +349,9 @@ def authcfg_for(url: str) -> str:
 def check(url: str, what: str = "") -> dict | None:
 
 
-    if not enabled():
-        return None
     provider = provider_of(url)
+    if not enabled(provider or ""):
+        return None
     if provider and not PROVIDERS[provider].get("own"):
 
 
@@ -786,14 +819,14 @@ def store_token(provider: str, token: str, host: str = "", header: str = "Author
 
 
 def store_s3_keys(provider: str, access_key: str, secret_key: str, extra: dict | None = None, via: str = "",
-                  facts: dict | None = None) -> str:
+                  facts: dict | None = None, renewal: bool = False) -> str:
 
 
     if (PROVIDERS.get(provider) or {}).get("keys") != S3:
         return ""
     return store(f"https://{provider}/", S3, {"username": str(access_key or "").strip(),
                                               "password": str(secret_key or "").strip()},
-                 PROVIDERS[provider]["label"], key=provider, extra=extra, via=via, facts=facts)
+                 PROVIDERS[provider]["label"], key=provider, extra=extra, via=via, facts=facts, renewal=renewal)
 
 
 def store_oauth(provider: str, refresh_token: str, account: str = "") -> str:
@@ -817,7 +850,8 @@ def refresh_token(key: str, acting: bool = False) -> str:
 
 
 def store(url: str, kind: str, values: dict, label: str = "", key: str = "", facts: dict | None = None,
-          extra: dict | None = None, via: str = "", meta: dict | None = None) -> str:
+          extra: dict | None = None, via: str = "", meta: dict | None = None, renewal: bool = False) -> str:
+
 
 
 
@@ -867,7 +901,8 @@ def store(url: str, kind: str, values: dict, label: str = "", key: str = "", fac
     data[key] = {"authcfg": cfg.id(), "kind": kind, "label": label or shown or key, "host": shown, "state": "ok",
                  **{k: v for k, v in (facts or {}).items() if k in ("account", "expires")},
                  **({"via": via} if via else {}),
-                 **{name: (meta or {})[name] for name in _CLOUD_META if kind == CLOUD and name in (meta or {})}}
+                 **{name: (meta or {})[name] for name in _CLOUD_META if kind == CLOUD and name in (meta or {})},
+                 **({"always": True} if renewal and (data.get(key) or {}).get("always") else {})}
     if kind == HEADER and values.get("header"):
         data[key]["header"] = str(values["header"])[:64]
     if kind == BASIC and values.get("username"):

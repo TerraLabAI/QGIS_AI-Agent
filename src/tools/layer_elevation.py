@@ -299,7 +299,7 @@ def _open(plan: dict) -> dict:
             plan.get("extrusion") or kept_renderer(layer, "polygon")[0] is not None):
         request = QgsFeatureRequest()
         request.setNoAttributes()
-        feedback = QgsFeedback()
+        feedback = background.prime(QgsFeedback())
         if hasattr(request, "setFeedback"):
             request.setFeedback(feedback)
         state["rings"] = {"source": QgsVectorLayerFeatureSource(layer), "request": request, "feedback": feedback}

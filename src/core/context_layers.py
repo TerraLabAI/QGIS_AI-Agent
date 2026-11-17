@@ -26,7 +26,7 @@ from qgis.core import (
 from . import background, ground, tuning
 from .crs_ref import crs_ref
 from .feature_requests import feature_request, first_feature
-from .layer_order import is_web_service
+from .layer_order import is_web_service, source_gone
 from .numbers import as_float
 from .serialization import qt_temporal_text
 
@@ -340,12 +340,7 @@ def extent_is_cheap(layer) -> bool:
 
     if not isinstance(layer, QgsVectorLayer):
         return True
-
-
-
-
-    provider = layer.dataProvider()
-    if provider is None or not provider.isValid():
+    if source_gone(layer):
         return False
     return source_kind(layer) in ("memory", "file")
 

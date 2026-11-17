@@ -27,6 +27,7 @@ from .chat_panel_runs import _ChatPanelRuns
 from .chat_panel_shared import _Run, _wrap
 from .chat_panel_threads import _ChatPanelThreads
 from .composer import Composer
+from .crash_comment_bar import CrashCommentBar
 from .dock.about import UpdateBanner
 from .dock.activation_state import ActivationCard
 from .drop_overlay import DropOverlay
@@ -51,13 +52,15 @@ _CENTER_MS = 260
 class ChatPanel(_ChatPanelRuns, _ChatPanelQueue, _ChatPanelPrompts, _ChatPanelThreads, _ChatPanelLayout, QWidget):
 
 
-    send_requested = pyqtSignal(str, str, str, object, object)
+
+    send_requested = pyqtSignal(str, str, str, object, object, object)
     stop_requested = pyqtSignal(str)
     task_stop_requested = pyqtSignal(str)
+    crash_comment_sent = pyqtSignal(str, str)
     steer_requested = pyqtSignal(str, str, str)
     unsteer_requested = pyqtSignal(str, str)
 
-    queue_send_requested = pyqtSignal(str, object, object)
+    queue_send_requested = pyqtSignal(str, object, object, object)
     undo_retry_requested = pyqtSignal(str)
 
 
@@ -71,6 +74,7 @@ class ChatPanel(_ChatPanelRuns, _ChatPanelQueue, _ChatPanelPrompts, _ChatPanelTh
     continue_requested = pyqtSignal(str)
     answer_rated = pyqtSignal(str, str)
     answer_reason = pyqtSignal(str, str, str, str)
+    feedback_ask_state = pyqtSignal(str, str, str)
     undo_requested = pyqtSignal()
     restore_requested = pyqtSignal(str, bool)
 
@@ -107,7 +111,7 @@ class ChatPanel(_ChatPanelRuns, _ChatPanelQueue, _ChatPanelPrompts, _ChatPanelTh
 
     upsell_shown = pyqtSignal(str)
 
-    payment_card_shown = pyqtSignal(str, bool)
+    payment_card_shown = pyqtSignal(str, bool, bool)
     pay_requested = pyqtSignal(str)
     limit_reached = pyqtSignal(bool, int)
     pro_pill_requested = pyqtSignal()
@@ -137,6 +141,7 @@ class ChatPanel(_ChatPanelRuns, _ChatPanelQueue, _ChatPanelPrompts, _ChatPanelTh
         self.setStyleSheet(panel_qss())
         self.setAcceptDrops(True)
         self._runs: dict[str, _Run] = {}
+        self._asked_run = ""
         self._replay_generation = 0
 
 
@@ -144,6 +149,7 @@ class ChatPanel(_ChatPanelRuns, _ChatPanelQueue, _ChatPanelPrompts, _ChatPanelTh
         self._compaction_marked = False
         self._current_run: str | None = None
         self._error_cards: dict = {}
+        self._update_refused = False
         self._last_run = ""
         self._last_error = ""
         self._error_said: dict[str, str] = {}
@@ -202,6 +208,9 @@ class ChatPanel(_ChatPanelRuns, _ChatPanelQueue, _ChatPanelPrompts, _ChatPanelTh
 
         self.notice_bar = NoticeBar(self)
         self._col.addWidget(self.notice_bar)
+        self.crash_comment_bar = CrashCommentBar(self)
+        self.crash_comment_bar.sent.connect(self.crash_comment_sent)
+        self._col.addWidget(self.crash_comment_bar)
 
         self.quota_card = QuotaCard(self)
         self._quota_host = _wrap(self.quota_card, (12, SPACE_CARD, 12, 0), self)
@@ -365,6 +374,7 @@ class ChatPanel(_ChatPanelRuns, _ChatPanelQueue, _ChatPanelPrompts, _ChatPanelTh
         except (RuntimeError, AttributeError):
             pass
         self._unwire_history_keys()
+        self.composer.unwire_selection()
         self.message_list.stop_animations()
         try:
             self._drop_overlay.stop_animations()

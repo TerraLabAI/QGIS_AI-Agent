@@ -1806,6 +1806,82 @@ Việc xóa là không thể hoàn tác khi thời gian chờ kết thúc. Cho �
             <source>{words} · {done} of {total}</source>
             <translation>{words} · {done} / {total}</translation>
         </message>
+        <message>
+            <source>Allow chat review</source>
+            <translation>Cho phép xem lại cuộc trò chuyện</translation>
+        </message>
+        <message>
+            <source>Both switches stay in Settings, where you can change them whenever you want.</source>
+            <translation>Cả hai công tắc vẫn nằm trong Cài đặt, nơi bạn có thể thay đổi bất cứ lúc nào.</translation>
+        </message>
+        <message>
+            <source>Counts and error codes, linked to your account. Never your text or your map.</source>
+            <translation>Số lượng và mã lỗi, gắn với tài khoản của bạn. Không bao giờ gồm văn bản hay bản đồ của bạn.</translation>
+        </message>
+        <message>
+            <source>Each message sends your text, the map extent, your layer and field names, one sample row and, while it works, pictures of the map. Never your files unless you attach them. No model is trained on them.</source>
+            <translation>Mỗi tin nhắn gửi đi văn bản của bạn, phạm vi bản đồ, tên lớp và tên trường của bạn, một dòng mẫu và, trong lúc làm việc, ảnh chụp bản đồ. Không bao giờ gửi tệp của bạn trừ khi bạn đính kèm. Không có mô hình nào được huấn luyện trên chúng.</translation>
+        </message>
+        <message>
+            <source>Our team may read your chats to fix the AI agent.</source>
+            <translation>Đội ngũ của chúng tôi có thể đọc các cuộc trò chuyện của bạn để sửa lỗi cho tác nhân AI.</translation>
+        </message>
+        <message>
+            <source>Runs on Microsoft Azure in Europe, stored in France.</source>
+            <translation>Chạy trên Microsoft Azure tại châu Âu, lưu trữ tại Pháp.</translation>
+        </message>
+        <message>
+            <source>Share usage statistics</source>
+            <translation>Chia sẻ thống kê sử dụng</translation>
+        </message>
+        <message>
+            <source>The message you send is the part that reaches us: we keep it 90 days, and with chat review on, our team may read it to fix the AI agent. On {pro}, 30 days, or none at 0 days of history.</source>
+            <translation>Tin nhắn bạn gửi là phần đến được với chúng tôi: chúng tôi giữ trong 90 ngày, và khi bật Cho phép xem lại cuộc trò chuyện, đội ngũ của chúng tôi có thể đọc để sửa lỗi cho tác nhân AI. Với {pro}, là 30 ngày, hoặc không giữ gì nếu lịch sử đặt ở 0 ngày.</translation>
+        </message>
+        <message>
+            <source>You choose below.</source>
+            <translation>Bạn chọn ở bên dưới.</translation>
+        </message>
+        <message>
+            <source>Close the open list</source>
+            <translation>Đóng danh sách đang mở</translation>
+        </message>
+        <message>
+            <source>Press it twice</source>
+            <translation>Nhấn hai lần</translation>
+        </message>
+        <message>
+            <source>Deleted after 90 days at most</source>
+            <translation>Xóa sau tối đa 90 ngày</translation>
+        </message>
+        <message>
+            <source>Help improve AI Agent</source>
+            <translation>Giúp cải thiện AI Agent</translation>
+        </message>
+        <message>
+            <source>Hosted in the EU</source>
+            <translation>Lưu trữ tại EU</translation>
+        </message>
+        <message>
+            <source>Never used to train AI</source>
+            <translation>Không bao giờ dùng để huấn luyện AI</translation>
+        </message>
+        <message>
+            <source>Your chats are private</source>
+            <translation>Cuộc trò chuyện của bạn là riêng tư</translation>
+        </message>
+        <message>
+            <source>Your usage and chats help us fix bugs. Turn it off anytime.</source>
+            <translation>Cách bạn dùng và các cuộc trò chuyện giúp chúng tôi sửa lỗi. Bạn có thể tắt bất cứ lúc nào.</translation>
+        </message>
+        <message>
+            <source>included</source>
+            <translation>đã bao gồm</translation>
+        </message>
+        <message>
+            <source>left out</source>
+            <translation>đã loại ra</translation>
+        </message>
     </context>
     <context>
         <name>AIAgentContext</name>
@@ -2042,6 +2118,10 @@ Việc xóa là không thể hoàn tác khi thời gian chờ kết thúc. Cho �
         <message>
             <source>Your AI agent inside QGIS</source>
             <translation>AI agent của bạn ngay trong QGIS</translation>
+        </message>
+        <message>
+            <source>This layer's file can no longer be read, so the map cannot zoom to it.</source>
+            <translation>Không thể đọc tệp của lớp này nữa, nên bản đồ không thể thu phóng tới lớp.</translation>
         </message>
     </context>
     <context>
@@ -2393,6 +2473,10 @@ Việc xóa là không thể hoàn tác khi thời gian chờ kết thúc. Cho �
             <source>{words} · {done} of {total}</source>
             <translation>{words} · {done}/{total}</translation>
         </message>
+        <message>
+            <source>Show on map</source>
+            <translation>Hiện trên bản đồ</translation>
+        </message>
     </context>
     <context>
         <name>AgentBubble</name>
@@ -2427,6 +2511,18 @@ Việc xóa là không thể hoàn tác khi thời gian chờ kết thúc. Cho �
         <message>
             <source>Remove rating</source>
             <translation>Xóa đánh giá</translation>
+        </message>
+        <message>
+            <source>Did this do what you wanted?</source>
+            <translation>Kết quả này có đúng ý bạn không?</translation>
+        </message>
+        <message>
+            <source>No</source>
+            <translation>Không</translation>
+        </message>
+        <message>
+            <source>Yes</source>
+            <translation>Có</translation>
         </message>
     </context>
     <context>
@@ -2815,6 +2911,26 @@ Việc xóa là không thể hoàn tác khi thời gian chờ kết thúc. Cho �
             <source>Stopped: AI Agent was updated or turned off during this run.</source>
             <translation>Đã dừng: AI Agent được cập nhật hoặc bị tắt trong lúc chạy.</translation>
         </message>
+        <message>
+            <source>Not sent: TerraLab is not connected.</source>
+            <translation>Chưa gửi được: TerraLab chưa được kết nối.</translation>
+        </message>
+        <message>
+            <source>Thanks. Your note went with the crash report.</source>
+            <translation>Cảm ơn bạn. Ghi chú của bạn đã được gửi kèm báo cáo sự cố.</translation>
+        </message>
+        <message>
+            <source>{layer} lost its file, and QGIS closes when it saves a project that holds it, so nothing was restored. Remove {layer} from the project, or put its file back and turn its editing on and off once, then try again.</source>
+            <translation>{layer} đã mất tệp, và QGIS bị đóng khi lưu một dự án có chứa lớp này, nên không có gì được khôi phục. Hãy gỡ {layer} khỏi dự án, hoặc đặt tệp của lớp trở lại rồi bật/tắt chế độ chỉnh sửa một lần, sau đó thử lại.</translation>
+        </message>
+        <message>
+            <source>Your note could not be added to the crash report.</source>
+            <translation>Không thể thêm ghi chú của bạn vào báo cáo sự cố.</translation>
+        </message>
+        <message>
+            <source>Your note was sent.</source>
+            <translation>Ghi chú của bạn đã được gửi.</translation>
+        </message>
     </context>
     <context>
         <name>AgentSession</name>
@@ -2961,6 +3077,10 @@ Việc xóa là không thể hoàn tác khi thời gian chờ kết thúc. Cho �
     </context>
     <context>
         <name>ChatPanel</name>
+        <message>
+            <source>Try another card</source>
+            <translation>Thử thẻ khác</translation>
+        </message>
         <message>
             <source>Add a few words: what should the AI agent do with it?</source>
             <translation>Thêm vài từ: AI agent nên làm gì với nó?</translation>
@@ -3220,6 +3340,14 @@ Việc xóa là không thể hoàn tác khi thời gian chờ kết thúc. Cho �
         <message>
             <source>Reply</source>
             <translation>Trả lời</translation>
+        </message>
+        <message>
+            <source>Esc again to stop</source>
+            <translation>Nhấn Esc lần nữa để dừng</translation>
+        </message>
+        <message>
+            <source>Queue a message for after this run</source>
+            <translation>Xếp một tin nhắn để gửi sau lượt chạy này</translation>
         </message>
     </context>
     <context>
@@ -3520,6 +3648,72 @@ Việc xóa là không thể hoàn tác khi thời gian chờ kết thúc. Cho �
             <source>Finish dictation</source>
             <translation>Kết thúc đọc chính tả</translation>
         </message>
+        <message>
+            <location filename="src/ui/composer.py" />
+            <source>{name} was removed from the project</source>
+            <translation>{name} đã bị xóa khỏi dự án</translation>
+        </message>
+        <message>
+            <location filename="src/ui/composer.py" />
+            <source>{name} is now called {new}</source>
+            <translation>{name} nay có tên là {new}</translation>
+        </message>
+        <message>
+            <location filename="src/ui/composer.py" />
+            <source>{names} were removed from the project</source>
+            <translation>{names} đã bị xóa khỏi dự án</translation>
+        </message>
+        <message>
+            <location filename="src/ui/composer.py" />
+            <source>{n} layers named here were removed or renamed</source>
+            <translation>{n} lớp được nhắc tới ở đây đã bị xóa hoặc đổi tên</translation>
+        </message>
+        <message>
+            <location filename="src/ui/composer.py" />
+            <source>Sent as plain words: the AI agent gets no link to the layer.</source>
+            <translation>Được gửi dưới dạng chữ thường: tác tử AI không có liên kết tới lớp.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/composer.py" />
+            <source>removed from the project</source>
+            <translation>đã bị xóa khỏi dự án</translation>
+        </message>
+        <message>
+            <location filename="src/ui/composer.py" />
+            <source>renamed {new}</source>
+            <translation>đã đổi tên thành {new}</translation>
+        </message>
+        <message>
+            <location filename="src/ui/composer.py" />
+            <source>Use</source>
+            <translation>Dùng</translation>
+        </message>
+        <message>
+            <location filename="src/ui/composer.py" />
+            <source>Write {new} in the message instead</source>
+            <translation>Ghi {new} vào tin nhắn thay thế</translation>
+        </message>
+        <message>
+            <location filename="src/ui/composer.py" />
+            <source>and {n} more</source>
+            <translation>và {n} mục khác</translation>
+        </message>
+        <message>
+            <source>1 layer</source>
+            <translation>1 lớp</translation>
+        </message>
+        <message>
+            <source>Edit as text</source>
+            <translation>Sửa dưới dạng văn bản</translation>
+        </message>
+        <message>
+            <source>Show on map</source>
+            <translation>Hiện trên bản đồ</translation>
+        </message>
+        <message>
+            <source>{n} layers</source>
+            <translation>{n} lớp</translation>
+        </message>
     </context>
     <context>
         <name>ComposerInput</name>
@@ -3534,6 +3728,14 @@ Việc xóa là không thể hoàn tác khi thời gian chờ kết thúc. Cho �
         <message>
             <source>QGIS plugins</source>
             <translation>Plugin QGIS</translation>
+        </message>
+        <message>
+            <source>Type to search layers, data sources and QGIS plugins</source>
+            <translation>Nhập để tìm lớp, nguồn dữ liệu và plugin QGIS</translation>
+        </message>
+        <message>
+            <source>Message AI Agent</source>
+            <translation>Nhắn tin cho AI Agent</translation>
         </message>
     </context>
     <context>
@@ -4051,6 +4253,18 @@ Tập tin này không còn ở nơi lần chạy đã ghi.</translation>
             <source>Your Pro ends on {date}. Keep it in one click.</source>
             <translation>Gói Pro của bạn kết thúc vào {date}. Giữ lại chỉ với một cú nhấp.</translation>
         </message>
+        <message>
+            <source>AI Agent settings</source>
+            <translation>Cài đặt AI Agent</translation>
+        </message>
+        <message>
+            <source>Close AI Agent</source>
+            <translation>Đóng AI Agent</translation>
+        </message>
+        <message>
+            <source>Dock or undock AI Agent</source>
+            <translation>Gắn hoặc tách AI Agent</translation>
+        </message>
     </context>
     <context>
         <name>HistoryPopup</name>
@@ -4133,6 +4347,19 @@ Tập tin này không còn ở nơi lần chạy đã ghi.</translation>
         <message>
             <source>{n} min ago</source>
             <translation>{n} phút trước</translation>
+        </message>
+        <message>
+            <location filename="src/ui/history_popup.py" />
+            <source>Draft</source>
+            <translation>Bản nháp</translation>
+        </message>
+        <message>
+            <source>Delete chat: {title}</source>
+            <translation>Xóa cuộc trò chuyện: {title}</translation>
+        </message>
+        <message>
+            <source>Open</source>
+            <translation>Mở</translation>
         </message>
     </context>
     <context>
@@ -4534,10 +4761,6 @@ Nhấn để hiện trong bảng Lớp.</translation>
             <translation>Không có trong dự án này: {}</translation>
         </message>
         <message>
-            <source>Other effects the preview could not read: {}</source>
-            <translation>Các tác động khác mà bản xem trước không đọc được: {}</translation>
-        </message>
-        <message>
             <source>Reads: {}</source>
             <translation>Đọc: {}</translation>
         </message>
@@ -4548,6 +4771,94 @@ Nhấn để hiện trong bảng Lớp.</translation>
         <message>
             <source>Writes files: {}</source>
             <translation>Ghi tệp: {}</translation>
+        </message>
+        <message>
+            <source>Cancel</source>
+            <translation>Hủy</translation>
+        </message>
+        <message>
+            <source>Delete 1 feature from {layer}</source>
+            <translation>Xóa 1 đối tượng khỏi {layer}</translation>
+        </message>
+        <message>
+            <source>Delete {n}</source>
+            <translation>Xóa {n}</translation>
+        </message>
+        <message>
+            <source>Delete {n} features from {layer}</source>
+            <translation>Xóa {n} đối tượng khỏi {layer}</translation>
+        </message>
+        <message>
+            <source>Details</source>
+            <translation>Chi tiết</translation>
+        </message>
+        <message>
+            <source>Feature ids: {ids}</source>
+            <translation>ID đối tượng: {ids}</translation>
+        </message>
+        <message>
+            <source>Feature ids: {ids} and {n} more</source>
+            <translation>ID đối tượng: {ids} và {n} nữa</translation>
+        </message>
+        <message>
+            <source>Feature {fid}: {values}</source>
+            <translation>Đối tượng {fid}: {values}</translation>
+        </message>
+        <message>
+            <source>Hatched in red on the map. Its data source stays as it is; nothing is removed yet.</source>
+            <translation>Được tô gạch đỏ trên bản đồ. Nguồn dữ liệu của lớp được giữ nguyên; chưa có gì bị xóa.</translation>
+        </message>
+        <message>
+            <source>Hatched in red on the map. Nothing is deleted yet.</source>
+            <translation>Được tô gạch đỏ trên bản đồ. Chưa có gì bị xóa.</translation>
+        </message>
+        <message>
+            <source>Hatched in red on the map. Nothing is written yet.</source>
+            <translation>Được tô gạch đỏ trên bản đồ. Chưa có gì được ghi.</translation>
+        </message>
+        <message>
+            <source>Hide details</source>
+            <translation>Ẩn chi tiết</translation>
+        </message>
+        <message>
+            <source>Its features exist only in this project and go with it. Hatched in red on the map; nothing is removed yet.</source>
+            <translation>Các đối tượng của lớp chỉ tồn tại trong dự án này và sẽ mất theo. Được tô gạch đỏ trên bản đồ; chưa có gì bị xóa.</translation>
+        </message>
+        <message>
+            <source>Overwrite 1 feature of {layer}</source>
+            <translation>Ghi đè 1 đối tượng của {layer}</translation>
+        </message>
+        <message>
+            <source>Overwrite {n}</source>
+            <translation>Ghi đè {n}</translation>
+        </message>
+        <message>
+            <source>Overwrite {n} features of {layer}</source>
+            <translation>Ghi đè {n} đối tượng của {layer}</translation>
+        </message>
+        <message>
+            <source>Remove layer</source>
+            <translation>Xóa lớp</translation>
+        </message>
+        <message>
+            <source>Remove {layer} from the project</source>
+            <translation>Xóa {layer} khỏi dự án</translation>
+        </message>
+        <message>
+            <source>Rule: {expression}</source>
+            <translation>Quy tắc: {expression}</translation>
+        </message>
+        <message>
+            <source>Show on map</source>
+            <translation>Hiện trên bản đồ</translation>
+        </message>
+        <message>
+            <source>{n} features in {layer}</source>
+            <translation>{n} đối tượng trong {layer}</translation>
+        </message>
+        <message>
+            <source>{n} of {total} features in {layer}</source>
+            <translation>{n} trong {total} đối tượng của {layer}</translation>
         </message>
     </context>
     <context>
@@ -4755,6 +5066,18 @@ Nhấn để hiện trong bảng Lớp.</translation>
     </context>
     <context>
         <name>QuotaCard</name>
+        <message>
+            <source>Card declined</source>
+            <translation>Thẻ bị từ chối</translation>
+        </message>
+        <message>
+            <source>Your trial didn't start. Nothing was charged.</source>
+            <translation>Bản dùng thử chưa bắt đầu. Bạn chưa bị tính phí.</translation>
+        </message>
+        <message>
+            <source>Try another card</source>
+            <translation>Thử thẻ khác</translation>
+        </message>
         <message>
             <location filename="src/ui/quota_card.py" />
             <source>Free for 7 days, nothing to pay today, then monthly at your local price. Cancel in one click.</source>
@@ -5867,6 +6190,22 @@ Cảm ơn</translation>
             <source>The AI agent's mark moves and follows the work. Off keeps it still.</source>
             <translation>Biểu tượng của AI agent chuyển động và theo dõi công việc. Tắt thì nó đứng yên.</translation>
         </message>
+        <message>
+            <source>Help improve AI Agent</source>
+            <translation>Giúp cải thiện AI Agent</translation>
+        </message>
+        <message>
+            <source>Usage stats: errors, versions and the features you use, never your prompts, layers or files. We may read a chat, or have a model score it, to fix bugs, never to train AI.</source>
+            <translation>Thống kê sử dụng: lỗi, phiên bản và các tính năng bạn dùng, không bao giờ gồm lời nhắc, lớp hay tệp của bạn. Chúng tôi có thể đọc một cuộc trò chuyện, hoặc nhờ một mô hình chấm điểm nó, để sửa lỗi, không bao giờ để huấn luyện AI.</translation>
+        </message>
+        <message>
+            <source>Usage stats: only that you used the app and when. Chats are kept 30 days so a conversation survives an update; we may read one, or have a model score it, to fix bugs, never to train AI. 0 days of history stores nothing.</source>
+            <translation>Thống kê sử dụng: chỉ việc bạn đã dùng ứng dụng và vào lúc nào. Cuộc trò chuyện được giữ 30 ngày để không mất sau khi cập nhật; chúng tôi có thể đọc một cuộc trò chuyện, hoặc nhờ một mô hình chấm điểm nó, để sửa lỗi, không bao giờ để huấn luyện AI. Lịch sử 0 ngày nghĩa là không lưu gì cả.</translation>
+        </message>
+        <message>
+            <source>Your usage and chats help us fix bugs. Turn it off anytime.</source>
+            <translation>Cách bạn dùng và các cuộc trò chuyện giúp chúng tôi sửa lỗi. Bạn có thể tắt bất cứ lúc nào.</translation>
+        </message>
     </context>
     <context>
         <name>SiblingCard</name>
@@ -6266,6 +6605,10 @@ Cảm ơn</translation>
             <source>{area} m²</source>
             <translation>{area} m²</translation>
         </message>
+        <message>
+            <source>Always allowed</source>
+            <translation>Đã luôn cho phép</translation>
+        </message>
     </context>
     <context>
         <name>UpdateBanner</name>
@@ -6319,6 +6662,10 @@ Cảm ơn</translation>
         <message>
             <source>{product} {version} is out</source>
             <translation>{product} {version} đã ra mắt</translation>
+        </message>
+        <message>
+            <source>Update {product} to continue</source>
+            <translation>Cập nhật {product} để tiếp tục</translation>
         </message>
     </context>
     <context>
@@ -6920,6 +7267,18 @@ Cảm ơn</translation>
             <source>Choose in Google Drive</source>
             <translation>Chọn trong Google Drive</translation>
         </message>
+        <message>
+            <source>More ways to allow</source>
+            <translation>Thêm cách cho phép</translation>
+        </message>
+        <message>
+            <source>Always allow {label}</source>
+            <translation>Luôn cho phép {label}</translation>
+        </message>
+        <message>
+            <source>Always allowed</source>
+            <translation>Đã luôn cho phép</translation>
+        </message>
     </context>
     <context>
         <name>ConnectedAccountsPage</name>
@@ -7026,6 +7385,18 @@ Cảm ơn</translation>
         <message>
             <source>{name} sign-in</source>
             <translation>Đăng nhập {name}</translation>
+        </message>
+        <message>
+            <source>Always allow</source>
+            <translation>Luôn cho phép</translation>
+        </message>
+        <message>
+            <source>Always allow {label}</source>
+            <translation>Luôn cho phép {label}</translation>
+        </message>
+        <message>
+            <source>Used with no card each time. Off: the AI agent asks first.</source>
+            <translation>Dùng mà không hiện thẻ xác nhận mỗi lần. Tắt: AI agent sẽ hỏi trước.</translation>
         </message>
     </context>
     <context>
@@ -7173,6 +7544,14 @@ Cảm ơn</translation>
         <message>
             <source>Show the plugin's panel.</source>
             <translation>Hiện bảng của plugin.</translation>
+        </message>
+        <message>
+            <source>Install {plugin}</source>
+            <translation>Cài {plugin}</translation>
+        </message>
+        <message>
+            <source>Open {plugin}</source>
+            <translation>Mở {plugin}</translation>
         </message>
     </context>
     <context>
@@ -7600,6 +7979,54 @@ Cảm ơn</translation>
             <source>QGIS will ask you to choose a master password. It locks every sign-in saved in QGIS and cannot be recovered, so keep it somewhere safe.</source>
             <translation>QGIS sẽ yêu cầu bạn chọn một mật khẩu chính. Mật khẩu này khóa mọi thông tin đăng nhập đã lưu trong QGIS và không thể khôi phục, vì vậy hãy cất giữ ở nơi an toàn.</translation>
         </message>
+        <message>
+            <source>Cloud project ID</source>
+            <translation>ID dự án Cloud</translation>
+        </message>
+        <message>
+            <source>Shown next to the project name at the top of console.cloud.google.com.</source>
+            <translation>Hiển thị cạnh tên dự án ở đầu trang console.cloud.google.com.</translation>
+        </message>
+        <message>
+            <source>Type the ID of the Google Cloud project Earth Engine runs on.</source>
+            <translation>Nhập ID của dự án Google Cloud mà Earth Engine chạy trên đó.</translation>
+        </message>
+        <message>
+            <source>Open the Cloud console</source>
+            <translation>Mở Cloud console</translation>
+        </message>
+        <message>
+            <source>You're signed in</source>
+            <translation>Bạn đã đăng nhập</translation>
+        </message>
+        <message>
+            <source>You can close this tab and return to QGIS.</source>
+            <translation>Bạn có thể đóng tab này và quay lại QGIS.</translation>
+        </message>
+        <message>
+            <source>In QGIS, pick the Cloud project Earth Engine runs on.</source>
+            <translation>Trong QGIS, hãy chọn dự án Cloud mà Earth Engine chạy trên đó.</translation>
+        </message>
+        <message>
+            <source>Sign-in didn't finish</source>
+            <translation>Đăng nhập chưa hoàn tất</translation>
+        </message>
+        <message>
+            <source>Close this tab and try again from QGIS.</source>
+            <translation>Hãy đóng tab này và thử lại từ QGIS.</translation>
+        </message>
+        <message>
+            <source>Checking {project} with Earth Engine...</source>
+            <translation>Đang kiểm tra {project} với Earth Engine...</translation>
+        </message>
+        <message>
+            <source>Earth Engine refused the project {project} ({error}). Check the ID and your role on the project.</source>
+            <translation>Earth Engine đã từ chối dự án {project} ({error}). Hãy kiểm tra ID và vai trò của bạn trong dự án.</translation>
+        </message>
+        <message>
+            <source>Earth Engine could not be reached ({error}). Check your connection or the proxy in QGIS (Settings &gt; Options &gt; Network).</source>
+            <translation>Không thể kết nối tới Earth Engine ({error}). Hãy kiểm tra kết nối của bạn hoặc proxy trong QGIS (Cài đặt &gt; Tùy chọn &gt; Mạng).</translation>
+        </message>
     </context>
     <context>
         <name>BrowserWait</name>
@@ -7972,6 +8399,22 @@ Cảm ơn</translation>
             <source>Your words are sent with this chat and recent logs.</source>
             <translation>Nội dung bạn viết sẽ được gửi cùng cuộc trò chuyện này và nhật ký gần đây.</translation>
         </message>
+        <message>
+            <source>Add a comment</source>
+            <translation>Thêm nhận xét</translation>
+        </message>
+        <message>
+            <source>Ask the AI agent instead</source>
+            <translation>Hỏi AI agent thay thế</translation>
+        </message>
+        <message>
+            <source>Message to the TerraLab team (optional)</source>
+            <translation>Tin nhắn gửi nhóm TerraLab (không bắt buộc)</translation>
+        </message>
+        <message>
+            <source>Read by the TerraLab team, not by the AI agent. Sent with this chat and recent logs.</source>
+            <translation>Do nhóm TerraLab đọc, không phải AI agent. Được gửi kèm cuộc trò chuyện này và nhật ký gần đây.</translation>
+        </message>
     </context>
     <context>
         <name>NoteRow</name>
@@ -8187,6 +8630,295 @@ Cảm ơn</translation>
         <message>
             <source>Recording</source>
             <translation>Đang ghi âm</translation>
+        </message>
+    </context>
+    <context>
+        <name>TransformationRow</name>
+        <message>
+            <source>A more accurate one ({accuracy}) needs a grid file this QGIS does not have.</source>
+            <translation>Phép chuyển đổi chính xác hơn ({accuracy}) cần một tệp lưới mà QGIS này chưa có.</translation>
+        </message>
+        <message>
+            <source>Change in Project Properties</source>
+            <translation>Thay đổi trong Thuộc tính dự án</translation>
+        </message>
+        <message>
+            <source>Coordinate transformation: {what}</source>
+            <translation>Phép chuyển đổi tọa độ: {what}</translation>
+        </message>
+        <message>
+            <source>Hide details</source>
+            <translation>Ẩn chi tiết</translation>
+        </message>
+        <message>
+            <source>Show details</source>
+            <translation>Hiện chi tiết</translation>
+        </message>
+        <message>
+            <source>The other option is no more accurate.</source>
+            <translation>Lựa chọn còn lại không chính xác hơn.</translation>
+        </message>
+        <message>
+            <source>The {count} other options are no more accurate.</source>
+            <translation>{count} lựa chọn còn lại không chính xác hơn.</translation>
+        </message>
+        <message>
+            <source>Transformation</source>
+            <translation>Phép chuyển đổi</translation>
+        </message>
+        <message>
+            <source>{count} transformations</source>
+            <translation>{count} phép chuyển đổi</translation>
+        </message>
+        <message>
+            <source>{layer} goes from {source} to {target} through {operation}, accurate to about {accuracy}.</source>
+            <translation>{layer} được chuyển từ {source} sang {target} qua {operation}, độ chính xác khoảng {accuracy}.</translation>
+        </message>
+        <message>
+            <source>{layer} goes from {source} to {target} through {operation}, of unknown accuracy.</source>
+            <translation>{layer} được chuyển từ {source} sang {target} qua {operation}, không rõ độ chính xác.</translation>
+        </message>
+    </context>
+    <context>
+        <name>SelectionLine</name>
+        <message>
+            <source>Leave the selection out of this message</source>
+            <translation>Không đưa vùng chọn vào tin nhắn này</translation>
+        </message>
+        <message>
+            <source>The AI agent sees this selection with your message, along with the map view and the project's layers.</source>
+            <translation>AI Agent thấy vùng chọn này cùng với tin nhắn của bạn, kèm khung nhìn bản đồ và các lớp của dự án.</translation>
+        </message>
+        <message>
+            <source>{layer} · 1 feature selected</source>
+            <translation>{layer} · đã chọn 1 đối tượng</translation>
+        </message>
+        <message>
+            <source>{layer} · {n} features selected</source>
+            <translation>{layer} · đã chọn {n} đối tượng</translation>
+        </message>
+    </context>
+    <context>
+        <name>_Row</name>
+        <message>
+            <location filename="src/ui/sidebar.py" />
+            <source>Draft</source>
+            <translation>Bản nháp</translation>
+        </message>
+        <message>
+            <source>Open</source>
+            <translation>Mở</translation>
+        </message>
+    </context>
+    <context>
+        <name>GeoPaste</name>
+        <message>
+            <source>1 feature</source>
+            <translation>1 đối tượng</translation>
+        </message>
+        <message>
+            <source>1 vertex</source>
+            <translation>1 đỉnh</translation>
+        </message>
+        <message>
+            <source>ArcGIS FeatureServer</source>
+            <translation>ArcGIS FeatureServer</translation>
+        </message>
+        <message>
+            <source>ArcGIS ImageServer</source>
+            <translation>ArcGIS ImageServer</translation>
+        </message>
+        <message>
+            <source>ArcGIS MapServer</source>
+            <translation>ArcGIS MapServer</translation>
+        </message>
+        <message>
+            <source>FlatGeobuf file</source>
+            <translation>Tập tin FlatGeobuf</translation>
+        </message>
+        <message>
+            <source>GeoJSON file</source>
+            <translation>Tập tin GeoJSON</translation>
+        </message>
+        <message>
+            <source>GeoPackage file</source>
+            <translation>Tập tin GeoPackage</translation>
+        </message>
+        <message>
+            <source>GeoTIFF (COG)</source>
+            <translation>GeoTIFF (COG)</translation>
+        </message>
+        <message>
+            <source>Geometry</source>
+            <translation>Hình học</translation>
+        </message>
+        <message>
+            <source>KML file</source>
+            <translation>Tập tin KML</translation>
+        </message>
+        <message>
+            <source>Line</source>
+            <translation>Đường</translation>
+        </message>
+        <message>
+            <source>Multiline</source>
+            <translation>Đa đường</translation>
+        </message>
+        <message>
+            <source>Multipoint</source>
+            <translation>Đa điểm</translation>
+        </message>
+        <message>
+            <source>Multipolygon</source>
+            <translation>Đa vùng</translation>
+        </message>
+        <message>
+            <source>OGC API Features</source>
+            <translation>OGC API Features</translation>
+        </message>
+        <message>
+            <source>PMTiles</source>
+            <translation>PMTiles</translation>
+        </message>
+        <message>
+            <source>Parquet file</source>
+            <translation>Tập tin Parquet</translation>
+        </message>
+        <message>
+            <source>Pasted text</source>
+            <translation>Văn bản đã dán</translation>
+        </message>
+        <message>
+            <source>Point</source>
+            <translation>Điểm</translation>
+        </message>
+        <message>
+            <source>Point cloud</source>
+            <translation>Đám mây điểm</translation>
+        </message>
+        <message>
+            <source>Point · WGS 84</source>
+            <translation>Điểm · WGS 84</translation>
+        </message>
+        <message>
+            <source>Polygon</source>
+            <translation>Vùng</translation>
+        </message>
+        <message>
+            <source>STAC catalog</source>
+            <translation>Danh mục STAC</translation>
+        </message>
+        <message>
+            <source>Vector tiles</source>
+            <translation>Ô vector</translation>
+        </message>
+        <message>
+            <source>WCS service</source>
+            <translation>Dịch vụ WCS</translation>
+        </message>
+        <message>
+            <source>WFS service</source>
+            <translation>Dịch vụ WFS</translation>
+        </message>
+        <message>
+            <source>WMS service</source>
+            <translation>Dịch vụ WMS</translation>
+        </message>
+        <message>
+            <source>WMTS service</source>
+            <translation>Dịch vụ WMTS</translation>
+        </message>
+        <message>
+            <source>XYZ tiles</source>
+            <translation>Ô XYZ</translation>
+        </message>
+        <message>
+            <source>{n} characters</source>
+            <translation>{n} ký tự</translation>
+        </message>
+        <message>
+            <source>{n} features</source>
+            <translation>{n} đối tượng</translation>
+        </message>
+        <message>
+            <source>{n} lines</source>
+            <translation>{n} dòng</translation>
+        </message>
+        <message>
+            <source>{n} vertices</source>
+            <translation>{n} đỉnh</translation>
+        </message>
+        <message>
+            <source>{shape} GeoJSON</source>
+            <translation>{shape} GeoJSON</translation>
+        </message>
+        <message>
+            <source>{shape} WKT</source>
+            <translation>{shape} WKT</translation>
+        </message>
+    </context>
+    <context>
+        <name>CrashCommentBar</name>
+        <message>
+            <source>Dismiss</source>
+            <translation>Đóng</translation>
+        </message>
+        <message>
+            <source>Example: I had the attribute table open and pressed Save</source>
+            <translation>Ví dụ: Tôi đang mở bảng thuộc tính và nhấn Lưu</translation>
+        </message>
+        <message>
+            <source>QGIS closed unexpectedly</source>
+            <translation>QGIS đã đóng đột ngột</translation>
+        </message>
+        <message>
+            <source>Send</source>
+            <translation>Gửi</translation>
+        </message>
+        <message>
+            <source>The crash report was sent. What were you doing just before?</source>
+            <translation>Báo cáo sự cố đã được gửi. Ngay trước đó bạn đang làm gì?</translation>
+        </message>
+        <message>
+            <source>Not sent. Press Send to try again.</source>
+            <translation>Chưa gửi được. Nhấn Gửi để thử lại.</translation>
+        </message>
+    </context>
+    <context>
+        <name>_ModeRow</name>
+        <message>
+            <source>Locked: {tag}</source>
+            <translation>Đã khóa: {tag}</translation>
+        </message>
+        <message>
+            <source>Selected</source>
+            <translation>Đã chọn</translation>
+        </message>
+    </context>
+    <context>
+        <name>_RowText</name>
+        <message>
+            <source>Edit this queued message</source>
+            <translation>Sửa tin nhắn đang chờ này</translation>
+        </message>
+    </context>
+    <context>
+        <name>_StopNames</name>
+        <message>
+            <source>Effort: {level}</source>
+            <translation>Mức nỗ lực: {level}</translation>
+        </message>
+        <message>
+            <source>Locked until the end of the free trial</source>
+            <translation>Đã khóa đến hết thời gian dùng thử miễn phí</translation>
+        </message>
+        <message>
+            <source>Locked: {tag}</source>
+            <translation>Đã khóa: {tag}</translation>
+        </message>
+        <message>
+            <source>Selected</source>
+            <translation>Đã chọn</translation>
         </message>
     </context>
 </TS>

@@ -97,7 +97,9 @@ def _layer_rows(project, limit: int = _MAX_LAYERS) -> tuple:
             if source and "://" not in source:
                 row["source_found"] = os.path.exists(source)
             if not row["valid"]:
-                row["why"] = str(layer.error().summary() or "")[:300] if layer.error() else ""
+
+                error = layer.error()
+                row["why"] = "" if error.isEmpty() else str(error.summary() or "")[:300]
         except Exception as exc:  # noqa: BLE001
             row["why"] = f"could not be read: {exc}"
         if not row["valid"] or row.get("source_found") is False:

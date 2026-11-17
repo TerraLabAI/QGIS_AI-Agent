@@ -81,6 +81,7 @@ class _Feedback(QgsProcessingFeedback):
 
     def __init__(self):
         super().__init__()
+        background.prime(self)
         self.errors: list[str] = []
 
     def reportError(self, error, fatalError=False):  # noqa: N802
@@ -161,6 +162,14 @@ def threaded(real_run):
         if (context is not None and isinstance(algorithm, str) and isinstance(parameters, dict)
                 and len(args) <= 1 and set(kwargs) <= {"parameters"}):
             alg = QgsApplication.processingRegistry().createAlgorithmById(algorithm)
+        known = alg or (QgsApplication.processingRegistry().algorithmById(algorithm)
+                        if isinstance(algorithm, str) and isinstance(parameters, dict) else None)
+        if known is not None:
+            from .processing_guards import crash_refusal
+
+            refusal = crash_refusal(known, parameters)
+            if refusal:
+                raise QgsProcessingException(refusal)
         if alg is None or not _threadable(alg):
             return real_run(algorithm, *args, **kwargs)
         return _run_in_task(alg, parameters, context)

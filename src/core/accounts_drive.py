@@ -169,8 +169,10 @@ class LoopbackSignIn(QgsTask):
             return False
         verifier, challenge = oauth_loopback.pkce_pair()
         try:
-            loop = oauth_loopback.Loopback("Signed in. You can close this tab and go back to QGIS.",
-                                           "Sign-in did not finish. Go back to QGIS.")
+            loop = oauth_loopback.Loopback(
+                ("You're signed in", "You can close this tab and return to QGIS."),
+                ("Sign-in didn't finish", "Close this tab and try again from QGIS."),
+                os.path.join(QgsApplication.iconsPath(), "qgis-icon-512x512.png"))
         except OSError:
             self.reason = "network"
             return False
@@ -372,4 +374,4 @@ def _keep_refresh(provider: str, refresh_token: str) -> None:
     accounts.store(f"https://{provider}/", accounts.OAUTH,
                    {"username": account or provider, "password": refresh_token},
                    accounts.PROVIDERS[provider]["label"], key=provider, via=BROWSER_VIA,
-                   facts={"account": account} if account else None)
+                   facts={"account": account} if account else None, renewal=True)

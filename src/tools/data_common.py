@@ -8,6 +8,7 @@ import json
 import math
 import os
 import re
+import socket
 import threading
 import unicodedata
 import urllib.error
@@ -23,7 +24,7 @@ from qgis.core import (
     QgsVectorLayer,
 )
 
-from ..core import accounts, background, limits, net, tuning
+from ..core import accounts, background, limits, net, security_urls, tuning
 from ..core.background import breathe, gc_paused, main_qthread, on_main_thread
 from ..core.logger import log_warning
 from ..core.output_paths import file_stem
@@ -287,6 +288,26 @@ def read_through(path: str) -> None:
                     return
     except OSError:
         return
+
+
+def provider_may_try(exc: BaseException, url: str) -> bool:
+
+
+
+
+
+
+
+
+
+
+    if isinstance(exc, (net.FetchCancelled, net.LocalUrlRefused, net.FetchWithdrawn, net.NetworkUnreachable)):
+        return False
+    if security_urls.validate_url(url):
+        return False
+    if isinstance(getattr(exc, "reason", exc), socket.gaierror):
+        return security_urls.host_is_vouched(security_urls.normal_host(url))
+    return True
 
 
 def worker_options(kind=QgsVectorLayer):

@@ -18,10 +18,10 @@ from __future__ import annotations
 
 import hashlib
 import importlib.util
+import json
 import os
 import threading
 import urllib.parse
-from concurrent.futures import ThreadPoolExecutor
 
 from qgis.core import QgsSettings
 
@@ -40,14 +40,12 @@ ENDPOINTS = {
     "auth": "https://accounts.google.com/o/oauth2/auth",
     "token": "https://oauth2.googleapis.com/token",  # nosec B105
     "revoke": "https://oauth2.googleapis.com/revoke",
-    "projects": "https://cloudresourcemanager.googleapis.com",
     "earthengine": "https://earthengine.googleapis.com",
 }
 REGISTER_URL = "https://code.earthengine.google.com/register"
 ENABLE_API_URL = "https://console.cloud.google.com/apis/library/earthengine.googleapis.com?project={project}"
 _EE_DEFAULT = ENDPOINTS["earthengine"]
 _PROJECT_KEY = f"{GROUP}/earthengine_project"
-_MAX_PROJECTS = 60
 _lock = threading.Lock()
 _live: tuple[str, str] | None = None
 _refusal = ""
@@ -164,15 +162,24 @@ def _refused_reason(exc: Exception) -> str:
     text = str(exc)
     if "invalid_grant" in text:
         return "sign_in"
-    causes = (("register", ("not registered to use Earth Engine", "Not signed up for Earth Engine")),
+    cause = _cause(text)
+    if cause is None:
+        return ""
+    with _lock:
+        _refusal = cause
+    return "project"
+
+
+def _cause(text: str) -> str | None:
+
+    causes = (("register", ("not registered to use Earth Engine", "Not signed up for Earth Engine",
+                            "project is not registered")),
               ("api", ("has not been used in project", "is disabled", "SERVICE_DISABLED")),
               ("", ("does not have required permission", "PERMISSION_DENIED")))
     for cause, markers in causes:
         if any(m in text for m in markers):
-            with _lock:
-                _refusal = cause
-            return "project"
-    return ""
+            return cause
+    return None
 
 
 def refusal() -> tuple[str, str]:
@@ -285,47 +292,35 @@ def access_token(refresh_token: str) -> dict:
     try:
         status, body = oauth_loopback.refresh(ENDPOINTS["token"], client_id, secret, refresh_token, OPENER)
     except OSError as exc:
-        return {"error": type(exc).__name__}
+        return {"error": type(exc).__name__, "cause": "network"}
     if status != 200 or not body.get("access_token"):
         return {"error": str(body.get("error") or f"HTTP {status}")}
     return {"access_token": str(body["access_token"])}
 
 
-def projects(token: str) -> dict:
+def check_project(token: str, project_id: str) -> dict:
 
 
 
-    found, page = [], ""
+
+
+
+
+
+
+    pid = urllib.parse.quote(project_id, safe="")
     try:
-        for _ in range(5):
-            query = {"filter": "lifecycleState:ACTIVE", "pageSize": "200", **({"pageToken": page} if page else {})}
-            status, body = oauth_loopback.get_json(
-                f"{ENDPOINTS['projects']}/v1/projects?{urllib.parse.urlencode(query)}", token, OPENER)
-            if status != 200:
-                return {"error": str((body.get("error") or {}).get("status") or f"HTTP {status}")
-                        if isinstance(body.get("error"), dict) else f"HTTP {status}"}
-            found += [p for p in body.get("projects") or [] if isinstance(p, dict) and p.get("projectId")]
-            page = str(body.get("nextPageToken") or "")
-            if not page:
-                break
+        status, body = oauth_loopback.get_json(f"{ENDPOINTS['earthengine']}/v1/projects/{pid}/config", token,
+                                               OPENER, timeout=15, headers={"x-goog-user-project": project_id})
     except OSError as exc:
-        return {"error": type(exc).__name__}
-
-    def usable(row: dict) -> bool:
-        pid = urllib.parse.quote(str(row["projectId"]), safe="")
-        try:
-            status, _ = oauth_loopback.get_json(f"{ENDPOINTS['earthengine']}/v1/projects/{pid}/config", token,
-                                                OPENER, timeout=15)
-        except OSError:
-            return False
-        return status == 200
-
-    candidates = found[:_MAX_PROJECTS]
-    with ThreadPoolExecutor(max_workers=8) as pool:
-        flags = list(pool.map(usable, candidates))
-    rows = [{"id": str(r["projectId"]), "name": str(r.get("name") or r["projectId"])}
-            for r, ok in zip(candidates, flags) if ok]
-    return {"projects": sorted(rows, key=lambda r: r["name"].lower()), "others": len(found) - len(rows)}
+        return {"cause": "network", "url": "", "error": type(exc).__name__}
+    if status == 200:
+        return {}
+    error = body.get("error") if isinstance(body.get("error"), dict) else {}
+    text = f"{error.get('message') or ''} {error.get('status') or ''} {json.dumps(error.get('details') or [])}"
+    cause = _cause(text)
+    url = ENABLE_API_URL.format(project=pid) if cause == "api" else REGISTER_URL if cause == "register" else ""
+    return {"cause": cause or "", "url": url, "error": str(error.get("status") or f"HTTP {status}")}
 
 
 def authorization(loopback, challenge: str) -> str:

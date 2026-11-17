@@ -47,6 +47,7 @@ from .layer_lookup import (
     require_raster,
     require_vector,
 )
+from .postconditions import sampled_invalid_geometries
 from .project_tools import _is_remote_vector, filter_facts, is_remote_raster
 
 
@@ -378,7 +379,7 @@ def _features_plan(args: dict, for_worker: bool = False) -> dict:
         request.setFlags(enum_member(QgsFeatureRequest, "Flag", "NoGeometry"))
     if needed is not None:
         request.setSubsetOfAttributes(sorted(set(needed)), layer.fields())
-    feedback = QgsFeedback()
+    feedback = background.prime(QgsFeedback())
     if hasattr(request, "setFeedback"):
         request.setFeedback(feedback)
     plan.update(source=QgsVectorLayerFeatureSource(layer), feedback=feedback)
@@ -916,6 +917,11 @@ def _stats_open(layer_name: str, field: str, args: dict = None) -> dict:
         if error:
             return error
         extra.update(measured)
+        if expr.needsGeometry():
+
+            sample = sampled_invalid_geometries(layer)
+            if sample and sample.get("invalid"):
+                extra["invalid_geometries"] = sample
     group_by = str(args.get("group_by") or "").strip()
     group_index = -1
     group_expr = None
@@ -960,7 +966,7 @@ def _stats_open(layer_name: str, field: str, args: dict = None) -> dict:
              "expr": expr, "keep": keep, "context": context, "group_index": group_index, "group_by": group_by,
              "group_expr": group_expr, "groups": {} if group_by else None, "extra": extra}
 
-    feedback = QgsFeedback()
+    feedback = background.prime(QgsFeedback())
     request.setFeedback(feedback)
     state.update(source=QgsVectorLayerFeatureSource(layer), request=request, feedback=feedback)
     return state

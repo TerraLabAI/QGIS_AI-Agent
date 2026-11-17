@@ -78,8 +78,12 @@ def metres_per_unit(crs, x: float, y: float) -> float | None:
 
 def layer_metres_per_unit(layer) -> float | None:
 
+    from .layer_order import extent_known
+
     try:
-        extent = layer.extent()
+        extent = extent_known(layer)
+        if extent is None:
+            return None
 
 
         if extent.isNull():
@@ -219,9 +223,11 @@ def _work_point(layer):
 
 
 
+    from .layer_order import extent_known
+
     try:
-        extent = layer.extent()
-        if extent.isNull():
+        extent = extent_known(layer)
+        if extent is None or extent.isNull():
             return None
         centre = extent.center()
     except Exception:  # noqa: BLE001

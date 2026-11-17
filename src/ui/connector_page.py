@@ -40,8 +40,8 @@
 
 from __future__ import annotations
 
-from qgis.PyQt.QtCore import QEvent, Qt, pyqtSignal
-from qgis.PyQt.QtGui import QColor, QPainter
+from qgis.PyQt.QtCore import QEvent, QRect, Qt, pyqtSignal
+from qgis.PyQt.QtGui import QColor, QFontMetrics, QPainter
 from qgis.PyQt.QtWidgets import (
     QFrame,
     QGridLayout,
@@ -163,6 +163,8 @@ class ConnectorPage(QWidget):
             tile_w = max(1, (width - (_EXAMPLES - 1) * gap) // _EXAMPLES)
             for tile in self._tiles:
                 tile.set_tile_width(tile_w)
+        for row in self._prompt_rows:
+            row.set_row_width(width)
         if self._more_cards:
             gap = C.px(C.TILE_GAP)
             card_w = max(1, (width - (_MORE_SOURCES - 1) * gap) // _MORE_SOURCES)
@@ -278,7 +280,7 @@ class ConnectorPage(QWidget):
         col.setSpacing(0)
         for text in prompts:
             item = _PromptRow(text, panel)
-            item.clicked.connect(lambda t=text: self.prompt_chosen.emit(t, dict(self._chip)))
+            item.clicked.connect(lambda _c=False, t=text: self.prompt_chosen.emit(t, dict(self._chip)))
             col.addWidget(item)
             self._prompt_rows.append(item)
         return panel
@@ -375,7 +377,7 @@ class ConnectorPage(QWidget):
         self._gap(C.SPACE_5)
         head = SectionHead(self.tr("More in {shelf}").format(shelf=name), self._column)
         head.setObjectName("connectorMoreIn")
-        head.clicked.connect(lambda k=key: self.section_opened.emit(k))
+        head.clicked.connect(lambda _c=False, k=key: self.section_opened.emit(k))
         self._col.addWidget(head)
         self._gap(C.SPACE_1)
         host = QWidget(self._column)
@@ -385,7 +387,7 @@ class ConnectorPage(QWidget):
         grid.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
         for index, row in enumerate(rows):
             card = SourceCard(row, host)
-            card.clicked.connect(lambda k=card.key: self.connector_opened.emit(k))
+            card.clicked.connect(lambda _c=False, k=card.key: self.connector_opened.emit(k))
             grid.addWidget(card, 0, index)
             self._more_cards.append(card)
         self._col.addWidget(host)
@@ -464,7 +466,7 @@ class ConnectorPage(QWidget):
                 item = _DatasetRow(row, self._datasets_host, self._coverage)
                 example = str(row.get("example") or "").strip()
                 if example:
-                    item.clicked.connect(lambda e=example: self.prompt_chosen.emit(e, dict(self._chip)))
+                    item.clicked.connect(lambda _c=False, e=example: self.prompt_chosen.emit(e, dict(self._chip)))
                 layout.addWidget(item)
         finally:
             self._datasets_host.setUpdatesEnabled(True)
@@ -503,7 +505,7 @@ class ConnectorPage(QWidget):
         extra = []
         for index, case in enumerate(cases):
             tile = ExampleTile(case, grid_host)
-            tile.clicked.connect(lambda c=case: self.example_opened.emit(c))
+            tile.clicked.connect(lambda _c=False, c=case: self.example_opened.emit(c))
             grid.addWidget(tile, index // _EXAMPLES, index % _EXAMPLES,
                            Qt.AlignmentFlag.AlignTop)
             self._tiles.append(tile)
@@ -677,14 +679,27 @@ class _PromptRow(Pressable):
         row = QHBoxLayout(self)
         row.setContentsMargins(C.px(12), C.px(10), C.px(12), C.px(10))
         row.setSpacing(C.px(C.SPACE_2))
-        words = label(self, text, C.BODY_PX, C.T.text, wrap=True)
-        row.addWidget(words, 1)
+        self._words = label(self, text, C.BODY_PX, C.T.text, wrap=True)
+        row.addWidget(self._words, 1)
         arrow = QLabel(self)
         arrow.setPixmap(pixmap_for(arrow, C.line_glyph("chevron_right"), 16, QColor(C.T.text_2)))
         arrow.setStyleSheet("background: transparent;")
         row.addWidget(arrow, 0, Qt.AlignmentFlag.AlignVCenter)
         labels_through(self)
         self.setAccessibleName(text)
+
+    def set_row_width(self, width: int) -> None:
+
+
+
+        room = max(1, width - 2 * C.px(8) - 2 * C.px(12) - C.px(C.SPACE_2) - C.px(16))
+        self._words.ensurePolished()
+        metrics = QFontMetrics(self._words.font())
+        lines = metrics.boundingRect(QRect(0, 0, room, 100000), int(Qt.TextFlag.TextWordWrap),
+                                     self._words.text())
+        height = max(metrics.lineSpacing(), lines.height())
+        self._words.setFixedHeight(height)
+        self.setMinimumHeight(height + 2 * C.px(10))
 
 
 class _Disclosure(Pressable):
@@ -751,6 +766,7 @@ class _DatasetRow(Pressable):
             wear_thumbnail(picture, thumb, C.px(_THUMB_W), C.px(_THUMB_H))
             line.addWidget(picture, 0, Qt.AlignmentFlag.AlignVCenter)
         title = str(row.get("title") or row.get("id") or "")
+        self.setAccessibleName(title)
         name = ElidedLabel(title, self)
         name.setStyleSheet(C.text_qss(C.BODY_PX, C.T.text))
         line.addWidget(name, 1, Qt.AlignmentFlag.AlignVCenter)
@@ -760,6 +776,7 @@ class _DatasetRow(Pressable):
                  short_licence(row.get("licence"))]
         note = " · ".join(f for f in facts if f)
         publisher = str(row.get("publisher") or "").strip()
+        self.setAccessibleDescription(publisher or note)
         if publisher:
             line.addWidget(label(self, publisher, C.BODY_PX, C.T.text_2), 0,
                            Qt.AlignmentFlag.AlignVCenter)

@@ -46,6 +46,12 @@ def open_settings_dialog(plugin):
     settings = plugin._settings or Settings()
     plugin._settings = settings
     account = plugin.controller.account if plugin.controller is not None else None
+    if telemetry.is_telemetry_enabled() != improve.is_improve_enabled():
+
+
+
+        telemetry.set_telemetry_enabled(False)
+        improve_choice(False)
     info = {"telemetry_enabled": telemetry.is_telemetry_enabled(),
             "improve_enabled": improve.is_improve_enabled()}
     if account is not None and account.has_activation_key:
@@ -60,8 +66,7 @@ def open_settings_dialog(plugin):
 
 
 
-    dialog.improve_toggled.connect(
-        lambda on, d=dialog: improve_choice(d, on))
+    dialog.improve_toggled.connect(improve_choice)
     dialog.values_changed.connect(lambda values: apply_settings_values(plugin, values))
     dialog.upgrade_requested.connect(lambda d=dialog: open_plans_from_settings(plugin, d))
 
@@ -137,14 +142,10 @@ def open_plans_from_settings(plugin, dialog) -> None:
     open_external_url(get_pricing_url(), parent=dialog)
 
 
-def improve_choice(dialog, on: bool) -> None:
+def improve_choice(on: bool) -> None:
 
-    if improve.set_improve_enabled(bool(on)):
-        return
-    try:
-        dialog.improve_not_saved()
-    except Exception as exc:  # noqa: BLE001
-        log_warning(f"Improve preference not written: {exc}")
+    if not improve.set_improve_enabled(bool(on)):
+        log_warning("Help improve preference not written to the profile; it holds for this session.")
 
 
 def apply_settings_values(plugin, values: dict) -> None:
@@ -170,7 +171,7 @@ def take_settings_prompt(plugin, text: str, chip=None) -> None:
 
     plugin._show_dock()
     if plugin.panel is not None:
-        plugin.panel.composer.take_example_prompt(text, chip)
+        plugin.panel.composer.add_prompt(text, chip)
 
 
 def settings_example_chosen(plugin, slug: str) -> None:

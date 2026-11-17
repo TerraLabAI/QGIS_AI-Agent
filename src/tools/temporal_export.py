@@ -42,13 +42,13 @@ from qgis.core import (
     QgsRectangle,
     QgsTemporalNavigationObject,
 )
-from qgis.PyQt import sip
 from qgis.PyQt.QtCore import QSize
 
 from ..core import limits, output_paths, security
 from ..core.host_platform import remove_quietly, retry_file_op
 from ..core.layer_release import PROCESSING_TASKS, sweep_consumed_tasks
 from ..core.logger import log_warning
+from ..core.qt_compat import qt_deleted
 from ..core.tool_registry import coded_fact, tool_error
 from .advanced_render import _apply_quality_flags, _prepare_frame_folder, _safe_frame_prefix
 from .processing_run import _POLL_INTERVAL_S
@@ -320,7 +320,7 @@ class FrameExport:
         self._advancing = True
         try:
             if self.current is not None:
-                if not sip.isdeleted(self.current["task"]):
+                if not qt_deleted(self.current["task"]):
                     return
                 current, self.current = self.current, None
                 self.entry.pop("task", None)
@@ -416,7 +416,7 @@ class FrameExport:
 
 
         self.pending = []
-        if self.current is not None and not sip.isdeleted(self.current["task"]):
+        if self.current is not None and not qt_deleted(self.current["task"]):
             self.current["task"].cancel()
         self._clear_written()
         self._remove_folder()
@@ -425,7 +425,7 @@ class FrameExport:
     def _fail(self) -> None:
         self.pending = []
         self.entry["status"] = "error"
-        if self.current is not None and not sip.isdeleted(self.current["task"]):
+        if self.current is not None and not qt_deleted(self.current["task"]):
             self.current["task"].cancel()
         self._clear_written()
         self._remove_folder()

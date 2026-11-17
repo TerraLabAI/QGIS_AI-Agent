@@ -99,7 +99,8 @@ def score_mention(query: str, label: str, group: str = "") -> tuple[int, int, in
     if len(q) >= 2:
         acronym = _initials(label)
         if acronym.startswith(q):
-            return (2, 0, inexact)
+
+            return (2, 0 if acronym == q else 1, inexact)
 
         for word in _words(group):
             if fold(word).startswith(q):
@@ -191,6 +192,11 @@ def short_detail(text: str, words: int = _DETAIL_WORDS, chars: int = _DETAIL_CHA
     return out
 
 
+
+
+_MARK_FIELDS = ("id", "name", "category", "glyph", "logo_url", "logo_kind", "flags", "stand_in")
+
+
 def source_rows(connectors) -> list[dict]:
 
 
@@ -208,19 +214,33 @@ def source_rows(connectors) -> list[dict]:
 
     rows = []
     for row in sorted((r for r in connectors or [] if isinstance(r, dict)),
-                      key=lambda r: (not r.get("popular"), str(r.get("name") or "").lower())):
+                      key=lambda r: (not r.get("popular"), _rank(r.get("popular")),
+                                     str(r.get("name") or "").lower())):
         key = str(row.get("id") or "")
         if not key:
             continue
+        highlights = " ".join(str(h.get("name") or "") for h in row.get("highlights") or []
+                              if isinstance(h, dict))
         about = " ".join(str(part) for part in (
             row.get("tagline") or "", key.replace("_", " "),
             " ".join(str(c) for c in (row.get("also_covers") or [])), row.get("coverage") or "",
+            row.get("attribution") or "", " ".join(str(h) for h in (row.get("hosts") or [])),
+            highlights,
         ) if part)
         rows.append({"kind": SOURCE, "glyph": str(row.get("glyph") or "globe"),
                      "label": str(row.get("name") or key)[:160], "value": key[:160],
-                     "group": about[:240],
-                     "detail": short_detail(row.get("tagline") or row.get("licence") or "")})
+                     "group": about[:600],
+                     "detail": short_detail(row.get("tagline") or row.get("licence") or ""),
+                     "mark": {k: row[k] for k in _MARK_FIELDS if k in row},
+                     "popular": bool(row.get("popular"))})
     return rows
+
+
+def _rank(value) -> int:
+    try:
+        return int(value or 0)
+    except (TypeError, ValueError):
+        return 0
 
 
 def plugin_rows(plugins) -> list[dict]:
@@ -277,28 +297,50 @@ def sheet_rows(word: str, items, connectors=None, plugins=None, labels=None, vis
 
 
 
+
+
+
+
     try:
         provided = [i for i in list(items or [])[:1000] if isinstance(i, dict)]
     except TypeError:
         provided = []
+    labels = labels or {}
     layers = layer_rows(word, provided, visible_ids)
     sources = (source_rows(connectors) if connectors
                else [i for i in provided if i.get("kind") == SOURCE])
+    if not word:
+        seen = {str(i) for i in visible_ids or [] if str(i)}
+        on_map = [r for r in layers if str(r.get("value") or "") in seen] or layers
+        popular = [r for r in sources if r.get("popular")] or sources
+        hint = str(labels.get("hint") or "")
+        return (on_map[:_EMPTY_LAYERS] + popular[:_EMPTY_SOURCES]
+                + ([{"kind": "footer", "label": hint}] if hint else []))
     installed = (plugin_rows(plugins) if plugins
                  else [i for i in provided if i.get("kind") == PLUGIN])
-    if word:
-        sources = rank_mentions(word, sources)
-        installed = rank_mentions(word, installed)
-    labels = labels or {}
+    sections = [("layers", layers), ("sources", rank_mentions(word, sources)),
+                ("plugins", rank_mentions(word, installed))]
+
+    def leads(rows):
+        top = rows[0] if rows else {}
+        return bool(rows) and score_mention(word, str(top.get("label") or top.get("value") or ""))[0] == 0
+
+    sections.sort(key=lambda section: not leads(section[1]))
     out: list[dict] = []
-    for key, rows in (("layers", layers), ("sources", sources), ("plugins", installed)):
+    for key, rows in sections:
         if not rows:
             continue
         heading = str(labels.get(key) or "")
         if heading:
             out.append({"kind": "header", "label": heading})
-        out.extend(rows[:500])
+        out.extend(rows[:_PER_GROUP])
     return out
+
+
+
+_PER_GROUP = 6
+_EMPTY_LAYERS = 3
+_EMPTY_SOURCES = 6
 
 
 def live_mentions(chips, name_of) -> list[dict]:

@@ -39,6 +39,7 @@ from qgis.core import (
 )
 
 from ..core import geodata_rules, layer_order, limits, net, tuning
+from ..core.attribute_tables import tables_closed
 from ..core.background import heartbeat, run_on_main_thread
 from ..core.context_layers import source_kind
 from ..core.feature_requests import feature_request, first_feature
@@ -51,9 +52,10 @@ from ..core.security import fits_path, validate_path
 from ..core.text_encoding import ansi_encoding
 from ..core.tool_registry import Tool, ToolRegistry, coded_fact, tool_error
 from . import facade
-from ._layers import layer_not_found, resolve_layer
+from ._layers import layer_not_found, resolve_layer, source_gone_error
 from .data_geocoding import _BACKEND_GEOCODE_BATCH_MAX, _geocode_one_address
 from .layer_io_tools import _add_raster_layer
+from .layer_lookup import require_raster
 from .processing_crs_checks import _utm_authid
 from .project_gpkg import _source_path, package
 from .query_tools import _invalid_reasons
@@ -323,7 +325,8 @@ def _repair_layer_paths(args: dict) -> dict:
             "candidates": matches,
         }
     provider = layer.providerType()
-    layer.setDataSource(matches[0] + source[len(old_path):], layer.name(), provider)
+    with tables_closed(layer):
+        layer.setDataSource(matches[0] + source[len(old_path):], layer.name(), provider)
     if not layer.isValid():
         return tool_error(f"QGIS could not load {matches[0]} with provider {provider}.")
     return {"layer": layer.name(), "old_path": old_path, "new_path": matches[0], "repaired": True}
@@ -656,15 +659,15 @@ def _package_project(args: dict) -> dict:
             info.compress_type = zipfile.ZIP_DEFLATED
             archive.writestr(info, project_bytes)
             for path, arcname in snapshot["places"]:
-                if path.lower().endswith(_SQLITE_FILES):
-                    copy = _sqlite_copy(path, stage + ".sqlite")
-                    try:
-                        write_file(archive, copy, arcname)
-                    finally:
-                        if copy != path:
-                            os.unlink(copy)
+                if not path.lower().endswith(_SQLITE_FILES):
+                    write_file(archive, path, arcname)
                     continue
-                write_file(archive, path, arcname)
+                copy = _sqlite_copy(path, stage + ".sqlite")
+                try:
+                    write_file(archive, copy, arcname)
+                finally:
+                    if copy != path:
+                        os.unlink(copy)
 
 
 
@@ -824,6 +827,8 @@ def _get_isochrone(args: dict) -> dict:
     if not _is_line_layer(roads):
         return tool_error(f"{roads.name()} is not a line layer.", "INVALID_ARGS",
                           hint="isochrone_not_line_layer", layer=roads.name())
+    if layer_order.source_gone(roads):
+        return source_gone_error(roads)
 
 
 
@@ -1080,14 +1085,15 @@ def _metric_sampling_crs(geometry, dem_crs):
 
 
 def _elevation_profile(args: dict) -> dict:
-    dem = resolve_layer(args["dem"])
-    if dem is None:
-        return layer_not_found(args["dem"])
+    dem, error = require_raster(args["dem"], "dem")
+    if error:
+        return error
     geometry, error = _profile_geometry(args, dem)
     if error:
         return error
-    if geometry is None or geometry.isEmpty() or geometry.length() == 0:
-        return tool_error("The profile line is empty or has zero length.", "INVALID_ARGS")
+    line = enum_member(QgsWkbTypes, "GeometryType", "LineGeometry")
+    if geometry is None or geometry.isEmpty() or geometry.type() != line or geometry.length() == 0:
+        return tool_error("The profile line is empty, has zero length or is not a line.", "INVALID_ARGS")
     count = max(2, min(int(args.get("sample_count", 100) or 100), 2000))
     provider = dem.dataProvider()
     dem_crs = dem.crs()
@@ -1615,15 +1621,16 @@ def _try_fix_encoding(layer, field_name: str, garbled: dict):
         if new_uri == old_uri:
             return None
         old_encoding = _uri_query_value(old_uri, "encoding") or "UTF-8"
-        layer.setDataSource(new_uri, layer.name(), "delimitedtext")
-        index = layer.fields().indexOf(field_name)
-        if not layer.isValid() or index < 0:
-            layer.setDataSource(old_uri, layer.name(), "delimitedtext")
-            return None
-        seen, rows_by_address, over_cap = _read_geocode_rows(layer, index)
-        if _garbled_addresses(list(seen)):
-            layer.setDataSource(old_uri, layer.name(), "delimitedtext")
-            return None
+        with tables_closed(layer):
+            layer.setDataSource(new_uri, layer.name(), "delimitedtext")
+            index = layer.fields().indexOf(field_name)
+            if not layer.isValid() or index < 0:
+                layer.setDataSource(old_uri, layer.name(), "delimitedtext")
+                return None
+            seen, rows_by_address, over_cap = _read_geocode_rows(layer, index)
+            if _garbled_addresses(list(seen)):
+                layer.setDataSource(old_uri, layer.name(), "delimitedtext")
+                return None
         return old_encoding, candidate, seen, rows_by_address, over_cap
 
     return None

@@ -39,6 +39,7 @@ from ..core.output_paths import file_stem, safe_file_name
 from ..core.policy import create_managed_temp_dir
 from ..core.tool_registry import coded_fact, tool_error
 from . import crs_landing, ogc_inspect, volume_guard
+from ._layers import error_summary
 from .csv_loader import CSV_EXTENSIONS
 from .data_common import (
     _CACHE_CATALOG_S,
@@ -408,7 +409,7 @@ def _extract_remote_vector(source: str, url: str, name: str, sublayer: str | Non
             net.fetch(urllib.request.Request(url, headers={"Range": "bytes=0-0"}), timeout=15,
                       max_bytes=_RANGE_PROBE_BYTES, total_timeout=20)
         except Exception as refusal:  # noqa: BLE001
-            refused = _http_refusal(url, refusal)
+            refused = http_refusal(url, refusal)
             if refused:
                 return refused
         return tool_error(f"GDAL could not open {file_name} over HTTP: {exc}", "EXECUTION_FAILED",
@@ -929,10 +930,10 @@ def _stream_to_disk(url: str, path: str, total_timeout: float):
     except net.FetchCancelled:
         return tool_error("The run was stopped.", "CANCELLED")
     except urllib.error.HTTPError as e:
-        failure = _http_refusal(url, e) or tool_error(f"Failed to download: {e}")
+        failure = http_refusal(url, e) or tool_error(f"Failed to download: {e}")
         return accounts.refused(url, e.code, failure, "file") if accounts.is_refusal(e.code, url) else failure
     except (urllib.error.URLError, OSError) as e:
-        return _http_refusal(url, e) or tool_error(f"Failed to download: {e}")
+        return http_refusal(url, e) or tool_error(f"Failed to download: {e}")
 
 
 def _download_to_disk(args: dict, url: str, layer_name, shared: bool) -> dict:
@@ -1324,7 +1325,7 @@ def _load_download(args: dict, url: str, layer_name, tmp_dir: str, filepath: str
             siblings.append(sibling if sibling is not None else QgsVectorLayer(uri, label, "ogr"))
         if not layer.isValid():
             return tool_error(f"QGIS could not open {os.path.basename(final_filepath)} as a vector layer: "
-                              f"{layer.error().summary() or 'the format is unsupported or the file is empty'}.",
+                              f"{error_summary(layer) or 'the format is unsupported or the file is empty'}.",
                               "INVALID_ARGS", hint="vector_open_failed")
         QgsProject.instance().addMapLayer(layer)
         added = [layer]
@@ -1447,7 +1448,7 @@ def _inspect_local_file(path: str) -> dict:
     if ext in _LOCAL_VECTOR or (identify and _gdal_reads_vector(path)):
         return _local_vector_facts(path, name, out)
     if ext in _LOCAL_RASTER or (identify and _gdal_reads_raster(path)):
-        out.update({"import_method": "add_raster_layer", "import_arguments": {"path": path, "name": name},
+        out.update({"import_method": "add_data", "import_arguments": {"source": path, "name": name, "kind": "raster"},
                     "message": "Direct raster import is available."})
         out.update(_raster_header(path))
         return out
@@ -1472,7 +1473,7 @@ def _inspect_local_file(path: str) -> dict:
 
 
         out.update(georeferenced)
-        out.update({"import_method": "add_raster_layer", "import_arguments": {"path": path, "name": name},
+        out.update({"import_method": "add_data", "import_arguments": {"source": path, "name": name, "kind": "raster"},
                     "message": "A georeferenced PDF.", "load_note": coded_fact(hint="georeferenced_pdf_file")})
         return out
     if ext in {".txt", ".md", ".pdf", ".docx"}:
@@ -1529,7 +1530,8 @@ def _local_vector_facts(path: str, name: str, out: dict) -> dict:
         header = _raster_header(path)
         if header and not rows:
             out.update(header)
-            out.update({"import_method": "add_raster_layer", "import_arguments": {"path": path, "name": name},
+            out.update({"import_method": "add_data",
+                        "import_arguments": {"source": path, "name": name, "kind": "raster"},
                         "message": "Direct raster import is available."})
         elif header:
             out["raster"] = header
@@ -1698,7 +1700,7 @@ _FOLDER_DESCRIBED = 10
 
 _MEMBER_ROUTING = frozenset({"source_family", "path", "format", "size_bytes", "import_method", "import_arguments",
                              "message", "provider"})
-_MEMBER_KIND = {"add_raster_layer": "raster", "add_vector_layer": "table", "add_data": "vector"}
+_MEMBER_KIND = {"add_vector_layer": "table", "add_data": "vector"}
 
 
 def _folder_member_facts(path: str) -> dict:
@@ -1713,8 +1715,8 @@ def _folder_member_facts(path: str) -> dict:
     kind = _MEMBER_KIND.get(facts.get("import_method"), "")
     if kind == "table" and (facts.get("x_column") or facts.get("wkt_column")):
         kind = "vector"
-    if (facts.get("import_arguments") or {}).get("kind") == "pointcloud":
-        kind = "point cloud"
+    kind = {"pointcloud": "point cloud", "raster": "raster"}.get(
+        (facts.get("import_arguments") or {}).get("kind"), kind)
     out = {key: value for key, value in facts.items() if key not in _MEMBER_ROUTING and not key.endswith("_note")}
     if kind:
         out["kind"] = kind
@@ -1755,18 +1757,18 @@ def las_header(path: str) -> dict:
                     break
                 record, length = struct.unpack_from("<HH", vlr, 18)
                 records.append((vlr[2:18].rstrip(b"\0"), record, stream.read(length)))
-            if (major, minor) >= (1, 4) and len(head) >= 255:
-                start, evlr_count = struct.unpack_from("<QI", head, 235)
-                if start and evlr_count:
-                    stream.seek(start)
-                    for _ in range(min(evlr_count, _LAS_VLRS)):
-                        evlr = stream.read(60)
-                        if len(evlr) < 60:
-                            break
-                        record, length = struct.unpack_from("<HQ", evlr, 18)
-                        if length > _LAS_VLR_BYTES:
-                            break
-                        records.append((evlr[2:18].rstrip(b"\0"), record, stream.read(length)))
+            start, evlr_count = (struct.unpack_from("<QI", head, 235)
+                                 if (major, minor) >= (1, 4) and len(head) >= 255 else (0, 0))
+            if start and evlr_count:
+                stream.seek(start)
+                for _ in range(min(evlr_count, _LAS_VLRS)):
+                    evlr = stream.read(60)
+                    if len(evlr) < 60:
+                        break
+                    record, length = struct.unpack_from("<HQ", evlr, 18)
+                    if length > _LAS_VLR_BYTES:
+                        break
+                    records.append((evlr[2:18].rstrip(b"\0"), record, stream.read(length)))
     except (OSError, struct.error):
         return {}
     for user, record, data in records:
@@ -2028,7 +2030,7 @@ def _json_reason(value) -> str:
     return ""
 
 
-def _service_reason(exc: Exception) -> str:
+def service_reason(exc: Exception) -> str:
 
     if not isinstance(exc, urllib.error.HTTPError):
         return ""
@@ -2064,18 +2066,20 @@ _HTTP_WRONG_REQUEST = frozenset({400, 404, 405, 409, 410})
 _HTTP_ADVISED = frozenset({400, 401, 403, 404, 405, 409, 410, 429})
 
 
-def _http_refusal(url: str, exc: Exception) -> dict | None:
+def http_refusal(url: str, exc: Exception, code: str = "") -> dict | None:
+
+
 
 
     status = getattr(exc, "code", None)
     if not isinstance(status, int):
         return None
-    code = "INVALID_ARGS" if status in _HTTP_WRONG_REQUEST else "EXECUTION_FAILED"
+    code = code or ("INVALID_ARGS" if status in _HTTP_WRONG_REQUEST else "EXECUTION_FAILED")
     hint = ("inspect_http_5xx" if status >= 500
             else f"inspect_http_{status}" if status in _HTTP_ADVISED
             else "inspect_http_other")
     message = f"HTTP {status} from {url}."
-    reason = _service_reason(exc)
+    reason = service_reason(exc)
     if reason:
         message += f" The service says: {reason}"
     out = tool_error(message, code, hint=hint)
@@ -2087,7 +2091,7 @@ def _http_refusal(url: str, exc: Exception) -> dict | None:
 
 def _inspect_failure(url: str, exc: Exception) -> dict:
 
-    refused = _http_refusal(url, exc)
+    refused = http_refusal(url, exc)
     if refused:
         return refused
     if isinstance(exc, (net.FetchDeadline, TimeoutError)):

@@ -49,6 +49,7 @@ from __future__ import annotations
 
 import functools
 import threading
+import types
 from dataclasses import dataclass
 
 from ..core import code_effects as ce
@@ -132,12 +133,63 @@ _WATCHING = [False]
 
 def forget(chat: str | None = None) -> None:
 
+    before = _snippet_namespaces()
     if chat is None:
         _KEPT.clear()
         _DROPPED.clear()
     else:
         _KEPT.pop(chat, None)
         _DROPPED.pop(chat, None)
+    _let_go(before)
+
+
+def _snippet_namespaces() -> dict[int, dict]:
+
+    out: dict[int, dict] = {}
+    seen: set = set()
+
+    def note(item) -> None:
+        item = getattr(item, "__func__", item)
+        code = getattr(item, "__code__", None)
+        found = getattr(item, "__globals__", None)
+
+        if isinstance(found, dict) and getattr(code, "co_filename", "") == "<snippet>":
+            out[id(found)] = found
+
+    def walk(value, depth: int = 0) -> None:
+        note(value)
+        for owner in (value, type(value)) if isinstance(value, type) else (type(value),):
+            if owner in seen:
+                continue
+            seen.add(owner)
+            for item in list(vars(owner).values()):
+                note(item)
+        if depth < 2 and isinstance(value, (list, tuple, set, frozenset)):
+            for item in list(value)[:1000]:
+                walk(item, depth + 1)
+        elif depth < 2 and isinstance(value, dict):
+            for item in list(value.values())[:1000]:
+                walk(item, depth + 1)
+
+    for names in _KEPT.values():
+        for value in names.values():
+            walk(value)
+    return out
+
+
+def _let_go(before: dict[int, dict]) -> None:
+
+
+
+
+
+
+
+
+    still = _snippet_namespaces()
+    for key, namespace in before.items():
+        if key not in still:
+            namespace.clear()
 
 
 def _watch_project() -> None:
@@ -225,8 +277,10 @@ def keep(chat: str, namespace: dict, bound: set, lost: dict | None = None) -> No
     dropped.update(lost or {})
     for key in names:
         dropped.pop(key, None)
+    before = _snippet_namespaces()
     _KEPT[chat] = names
     _DROPPED[chat] = dict(list(dropped.items())[-_DROPPED_MAX:])
+    _let_go(before)
 
 
 def runs_in(chat: str, namespace: dict) -> bool:
@@ -244,6 +298,31 @@ def runs_in(chat: str, namespace: dict) -> bool:
         return False
 
     return any(uses(value) for value in _KEPT.get(chat, {}).values())
+
+
+_KEPT_LISTED = 40
+_SIZED = (str, bytes, bytearray, list, tuple, dict, set, frozenset)
+
+
+def kept_names(chat: str) -> list[str]:
+
+
+
+    rows = []
+    for key, value in list(_KEPT.get(chat, {}).items())[:_KEPT_LISTED]:
+        if isinstance(value, _Ref):
+            rows.append(f"{key} ({value.held})")
+            continue
+        kind = type(value)
+        if isinstance(value, (types.FunctionType, type)):
+            rows.append(f"{key} ({'class' if isinstance(value, type) else 'function'})")
+        elif kind in _SIZED:
+            rows.append(f"{key} ({kind.__name__}, {len(value)})")
+        elif kind.__module__.partition(".")[0] == "numpy" and isinstance(getattr(value, "shape", None), tuple):
+            rows.append(f"{key} ({kind.__name__} {'x'.join(str(n) for n in value.shape)})")
+        else:
+            rows.append(f"{key} ({kind.__name__})")
+    return rows
 
 
 def dropped_help(chat: str, name: str) -> str:

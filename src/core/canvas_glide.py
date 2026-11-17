@@ -196,6 +196,11 @@ def gliding(canvas):
         start(canvas, picture)
 
 
+def gliding_now() -> bool:
+
+    return _active is not None
+
+
 def same_extent(a: QgsRectangle, b: QgsRectangle) -> bool:
     return abs(a.width() - b.width()) <= a.width() * 1e-6 and a.center().distance(b.center()) <= a.width() * 1e-6
 

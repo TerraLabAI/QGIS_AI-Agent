@@ -10,19 +10,21 @@
 
 from __future__ import annotations
 
+import os
 import threading
 import time
 
+from qgis.core import QgsApplication
 from qgis.PyQt.QtCore import QCoreApplication, Qt, QTimer
 from qgis.PyQt.QtGui import QColor
 from qgis.PyQt.QtWidgets import (
     QDialog,
     QHBoxLayout,
     QLabel,
-    QListWidget,
-    QListWidgetItem,
+    QLineEdit,
     QPushButton,
     QVBoxLayout,
+    QWidget,
 )
 
 from ..core import accounts, oauth_loopback
@@ -41,6 +43,7 @@ from .style import INK, INK_2
 from .styles import PANEL_TEXT
 
 _SIGN_IN_WAIT_S = 300
+_CONSOLE_URL = "https://console.cloud.google.com/"
 _POLL_MS = 150
 
 
@@ -111,6 +114,7 @@ class ConnectDialog(QDialog):
         self._job: _Job | None = None
         self._job_kind = ""
         self._install_id = ""
+        self._chosen = ""
         self._started = 0.0
         self._timer = QTimer(self)
         self._timer.setInterval(_POLL_MS)
@@ -130,17 +134,29 @@ class ConnectDialog(QDialog):
         self._text = self._label("earthEngineText", f"font-size: 12px; color: {INK_2};")
         layout.addWidget(self._text)
         layout.addSpacing(scale_px_length(12))
-        self._list = QListWidget(self)
-        self._list.setObjectName("earthEngineProjects")
-        self._list.setStyleSheet(
-            f"QListWidget {{ border: 1px solid {S.LINE}; border-radius: 8px; padding: 4px; font-size: 12px; }}"
-            f"QListWidget::item {{ padding: 6px 6px; border-radius: 6px; }}"
-            f"QListWidget::item:selected {{ background: {S.HOVER}; color: {PANEL_TEXT}; }}")
-        self._list.setMinimumHeight(scale_px_length(150))
-        self._list.itemSelectionChanged.connect(self._sync)
-        self._list.itemDoubleClicked.connect(lambda _item: self._primary_clicked())
-        layout.addWidget(self._list)
+        self._project_box = QWidget(self)
+        box = QVBoxLayout(self._project_box)
+        box.setContentsMargins(0, 0, 0, 0)
+        box.setSpacing(scale_px_length(6))
+        name = self._label("earthEngineProjectLabel", f"font-size: 12px; font-weight: 600; color: {INK};")
+        name.setText(tr("Cloud project ID"))
+        box.addWidget(name)
+        self._project = QLineEdit(self._project_box)
+        self._project.setObjectName("earthEngineProjectId")
+        self._project.setPlaceholderText("my-project-123")
+        self._project.setAccessibleName(tr("Cloud project ID"))
+        self._project.setStyleSheet(scale_qss_font_px(
+            f"QLineEdit {{ border: 1px solid {S.LINE}; border-radius: 8px; padding: 7px 10px; font-size: 13px;"
+            f" background: transparent; color: {PANEL_TEXT}; }} QLineEdit:focus {{ border-color: {S.ACCENT}; }}"))
+        self._project.textChanged.connect(self._sync)
+        self._project.returnPressed.connect(self._primary_clicked)
+        box.addWidget(self._project)
+        hint = self._label("earthEngineProjectHint", f"font-size: 11px; color: {INK_2};")
+        hint.setText(tr("Shown next to the project name at the top of console.cloud.google.com."))
+        box.addWidget(hint)
+        layout.addWidget(self._project_box)
         layout.addSpacing(scale_px_length(6))
+        self._link_url = ""
         self._link = QPushButton(self)
         self._link.setObjectName("earthEngineLink")
         self._link.setStyleSheet(_BTN_QUIET_LINK + "QPushButton { padding-left: 0px; }")
@@ -176,7 +192,7 @@ class ConnectDialog(QDialog):
         if not account.ee_installed():
             self._show_install()
         elif account.signed_in() and not sign_in:
-            self._load_projects_from_vault()
+            self._show_project()
         else:
             self._show_sign_in()
 
@@ -196,7 +212,7 @@ class ConnectDialog(QDialog):
         self._text.setText(text)
         self._primary.setText(button)
         self._primary.setVisible(bool(button))
-        self._list.setVisible(step == "project")
+        self._project_box.setVisible(step == "project")
         self._link.setText(link)
         self._link.setVisible(bool(link))
         self._error.hide()
@@ -237,37 +253,22 @@ class ConnectDialog(QDialog):
         self._fail(text)
         self._primary.setText(tr("Try again"))
 
-    def _show_projects(self, rows: list, others: int) -> None:
-        self._list.clear()
-        chosen = account.project()
-        for row in rows:
-            text = row["name"] if row["name"] == row["id"] else f"{row['name']}  ·  {row['id']}"
-            item = QListWidgetItem(text, self._list)
-            item.setData(Qt.ItemDataRole.UserRole, row["id"])
-            if row["id"] == chosen:
-                item.setSelected(True)
-        if rows and not self._list.selectedItems():
-
-            first = next((i for i, row in enumerate(rows) if row["id"].startswith("ee-")), 0)
-            self._list.item(first).setSelected(True)
-        terms = tr("A non-commercial Earth Engine project is not for commercial work.")
-        if rows:
-            text = f"{tr('Pick the Cloud project Earth Engine runs on.')} {terms}"
-        else:
-            text = tr("No Earth Engine project on this account yet. Registering one is free for "
-                      "noncommercial use.")
-            if others:
-                text += " " + tr("{count} other projects do not have Earth Engine.").format(count=others)
+    def _show_project(self) -> None:
         cause = account.refusal()[0]
+        text = tr("Type the ID of the Google Cloud project Earth Engine runs on.")
         if cause:
             text = f"{_refusal_text(account.project())} {text}"
-        link = {"api": tr("Turn on the Earth Engine API")}.get(cause, tr("Register a project"))
-        self._show("project", tr("Choose your Earth Engine project"), text,
-                   tr("Use this project") if rows else tr("Refresh"), link)
+        terms = tr("A non-commercial Earth Engine project is not for commercial work.")
+        self._show("project", tr("Choose your Earth Engine project"), f"{text} {terms}", tr("Use this project"),
+                   tr("Open the Cloud console"))
+        self._link_url = _CONSOLE_URL
+        if not self._project.text():
+            self._project.setText(account.project())
+        self._project.setFocus()
 
     def _sync(self) -> None:
-        if self._step == "project" and self._list.count():
-            self._primary.setEnabled(bool(self._list.selectedItems()))
+        if self._step == "project":
+            self._primary.setEnabled(bool(self._project.text().strip()) and not self._timer.isActive())
         elif not self._timer.isActive():
             self._primary.setEnabled(True)
 
@@ -281,17 +282,11 @@ class ConnectDialog(QDialog):
         elif self._step == "sign_in":
             self._start_sign_in()
         elif self._step == "project":
-            items = self._list.selectedItems()
-            if not items:
-                self._load_projects_from_vault()
-                return
-            account.set_project(str(items[0].data(Qt.ItemDataRole.UserRole)))
-            account.forget_session()
-            self._succeed()
+            self._start_check()
 
     def _link_clicked(self) -> None:
         if self._step == "project":
-            open_browser(account.refusal()[1] or account.REGISTER_URL, self)
+            open_browser(self._link_url or _CONSOLE_URL, self)
         elif self._step == "sign_in" and self._loop is not None:
             open_browser(account.authorization(self._loop, self._challenge), self)
 
@@ -313,8 +308,10 @@ class ConnectDialog(QDialog):
         self._close_loop()
         self._verifier, self._challenge = oauth_loopback.pkce_pair()
         self._loop = oauth_loopback.Loopback(
-            tr("You're signed in. You can close this window and return to QGIS."),
-            tr("Sign-in didn't finish. You can close this window and return to QGIS."))
+            (tr("You're signed in"), tr("You can close this tab and return to QGIS."),
+             tr("In QGIS, pick the Cloud project Earth Engine runs on.")),
+            (tr("Sign-in didn't finish"), tr("Close this tab and try again from QGIS.")),
+            os.path.join(QgsApplication.iconsPath(), "qgis-icon-512x512.png"))
         open_browser(account.authorization(self._loop, self._challenge), self)
         self._text.setText(tr("Finish signing in to Google in your browser."))
         self._link.setText(tr("Open the sign-in page again"))
@@ -322,15 +319,20 @@ class ConnectDialog(QDialog):
         self._primary.setEnabled(False)
         self._begin("browser")
 
-    def _load_projects_from_vault(self) -> None:
+    def _start_check(self) -> None:
+
+        chosen = self._project.text().strip()
+        if not chosen:
+            return
         token = accounts.refresh_token(account.KEY, acting=True)
         if not token:
             self._show_sign_in()
             return
-        self._show("project", tr("Choose your Earth Engine project"), tr("Reading your Cloud projects..."), "")
-        self._list.clear()
-        self._job = _Job(lambda: _projects_with(account.access_token(token)))
-        self._begin("projects")
+        self._chosen = chosen
+        self._text.setText(tr("Checking {project} with Earth Engine...").format(project=chosen))
+        self._primary.setEnabled(False)
+        self._job = _Job(_check_with, token, chosen)
+        self._begin("check")
 
     def _begin(self, kind: str) -> None:
         self._job_kind = kind
@@ -382,18 +384,33 @@ class ConnectDialog(QDialog):
                 self._sign_in_failed(tr("Not saved: QGIS's vault stayed locked. Connect again and set the master "
                                         "password when QGIS asks."))
                 return
-            self._show("project", tr("Choose your Earth Engine project"), tr("Reading your Cloud projects..."), "")
-            self._job = _Job(lambda: _projects_with(answer))
-            self._begin("projects")
-        elif kind == "projects":
+            self._show_project()
+        elif kind == "check":
+            chosen = self._chosen
             if answer.get("error") in ("invalid_grant", "unauthorized_client"):
                 self._sign_in_failed(tr("Google refused your saved sign-in."))
-            elif answer.get("error"):
-                self._fail(tr("Your Cloud projects could not be read ({error}).").format(error=answer["error"]))
-                self._primary.setText(tr("Refresh"))
-                self._primary.show()
+                return
+            if not answer:
+                account.set_project(chosen)
+                account.forget_session()
+                self._succeed()
+                return
+            self._show_project()
+            cause = answer.get("cause")
+            if cause == "register":
+                text = tr("Your project {project} is not registered for Earth Engine.").format(project=chosen)
+                self._link.setText(tr("Register a project"))
+            elif cause == "api":
+                text = tr("The Earth Engine API is off in your project {project}.").format(project=chosen)
+                self._link.setText(tr("Turn on the Earth Engine API"))
+            elif cause == "network":
+                text = tr("Earth Engine could not be reached ({error}). Check your connection or the proxy "
+                          "in QGIS (Settings > Options > Network).").format(error=answer.get("error") or "")
             else:
-                self._show_projects(answer.get("projects") or [], int(answer.get("others") or 0))
+                text = tr("Earth Engine refused the project {project} ({error}). Check the ID and your role "
+                          "on the project.").format(project=chosen, error=answer.get("error") or "")
+            self._link_url = answer.get("url") or _CONSOLE_URL
+            self._fail(text)
 
     def _succeed(self) -> None:
         self.saved = True
@@ -415,7 +432,8 @@ class ConnectDialog(QDialog):
         super().done(result)
 
 
-def _projects_with(tokens: dict) -> dict:
+def _check_with(refresh_token: str, project_id: str) -> dict:
+    tokens = account.access_token(refresh_token)
     if tokens.get("error"):
         return tokens
-    return account.projects(str(tokens.get("access_token") or ""))
+    return account.check_project(str(tokens.get("access_token") or ""), project_id)

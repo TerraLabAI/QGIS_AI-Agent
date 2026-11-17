@@ -79,9 +79,10 @@ from qgis.PyQt.QtGui import QFont, QFontInfo
 from qgis.utils import iface
 
 from ..core import security, tuning
+from ..core.layer_order import source_gone
 from ..core.qt_compat import enum_member
 from ..core.tool_registry import Tool, ToolRegistry, coded_fact, tool_error
-from ._layers import layer_not_found, resolve_layer_note
+from ._layers import layer_not_found, resolve_layer_note, source_gone_error
 from .colour_text import hex_from_qcolor, qcolor_from_text
 from .layout_facts import _apply_scale, _layout_credits, _page_summary
 from .layout_reads import layout_reads, legend_auto_updates
@@ -1832,6 +1833,8 @@ def _subject(args: dict):
         layer, _note = resolve_layer_note(layer_name)
         if layer is None:
             return None, "", layer_not_found(layer_name)
+        if source_gone(layer):
+            return None, "", source_gone_error(layer)
         project = QgsProject.instance()
         rect = QgsRectangle(layer.extent())
         if layer.crs().isValid() and project.crs().isValid() and layer.crs() != project.crs():
@@ -2281,7 +2284,7 @@ def _covered_layers() -> list:
                 if layer.opacity() >= 0.9:
                     rasters.append(layer)
                 continue
-            if not isinstance(layer, QgsVectorLayer):
+            if not isinstance(layer, QgsVectorLayer) or source_gone(layer):
                 continue
             for raster in rasters:
                 extent = layer.extent()
@@ -2578,8 +2581,14 @@ def _apply_size_legend_mode(legend, mode: str, classes) -> dict:
         renderer = layer.renderer() if layer is not None and hasattr(layer, "renderer") else None
         if renderer is None or not hasattr(renderer, "dataDefinedSizeLegend"):
             continue
+        held = renderer.dataDefinedSizeLegend()
+        if held is None:
+            continue
         try:
-            settings = renderer.dataDefinedSizeLegend()
+
+
+
+            settings = QgsDataDefinedSizeLegend(held)
             settings.setLegendType(legend_type)
             if mode == "manual" and classes:
                 settings.setClasses([QgsDataDefinedSizeLegend.SizeClass(float(item["size"]), str(item["label"]))
@@ -3279,10 +3288,19 @@ def _remove_print_layout(args: dict) -> dict:
         gone = {"uuid": item.uuid(), "type": type(item).__name__, "name": _item_name(item)}
         followers = [_item_name(other) for other in layout.items()
                      if other is not item and _follows(other, gone["uuid"])]
-        layout.removeLayoutItem(item)
+        from qgis.core import Qgis as _Qgis
+        if _Qgis.QGIS_VERSION_INT < 33400:
+
+
+            item.setVisibility(False)
+            item.setExcludeFromExports(True)
+            gone["kept_hidden"] = ("QGIS before 3.34 crashes after a layout item is deleted, so it is hidden "
+                                   "and left out of exports instead.")
+        else:
+            layout.removeLayoutItem(item)
         result = _layout_summary(layout)
         result["removed_item"] = gone
-        if followers:
+        if followers and "kept_hidden" not in gone:
             result["unlinked"] = followers
             result["unlinked_note"] = "These followed the map removed and now follow none."
         return result

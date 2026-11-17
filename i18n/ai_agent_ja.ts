@@ -1907,6 +1907,82 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <source>{words} · {done} of {total}</source>
             <translation>{words} · {done} / {total}</translation>
         </message>
+        <message>
+            <source>Allow chat review</source>
+            <translation>チャットの確認を許可</translation>
+        </message>
+        <message>
+            <source>Both switches stay in Settings, where you can change them whenever you want.</source>
+            <translation>どちらのスイッチも設定に残り、いつでも変更できます。</translation>
+        </message>
+        <message>
+            <source>Counts and error codes, linked to your account. Never your text or your map.</source>
+            <translation>件数とエラーコードのみで、アカウントに紐づきます。テキストや地図は一切含みません。</translation>
+        </message>
+        <message>
+            <source>Each message sends your text, the map extent, your layer and field names, one sample row and, while it works, pictures of the map. Never your files unless you attach them. No model is trained on them.</source>
+            <translation>メッセージを送るたびに、入力したテキスト、地図の範囲、レイヤ名とフィールド名、サンプル1行、そして処理中は地図の画像が送信されます。添付しない限り、ファイルは送信されません。これらのデータでモデルが学習されることはありません。</translation>
+        </message>
+        <message>
+            <source>Our team may read your chats to fix the AI agent.</source>
+            <translation>AI エージェントを改善するため、チームがチャットを読むことがあります。</translation>
+        </message>
+        <message>
+            <source>Runs on Microsoft Azure in Europe, stored in France.</source>
+            <translation>Microsoft Azure のヨーロッパで稼働し、データはフランスに保存されます。</translation>
+        </message>
+        <message>
+            <source>Share usage statistics</source>
+            <translation>利用統計を共有</translation>
+        </message>
+        <message>
+            <source>The message you send is the part that reaches us: we keep it 90 days, and with chat review on, our team may read it to fix the AI agent. On {pro}, 30 days, or none at 0 days of history.</source>
+            <translation>当社に届くのは送信したメッセージです。保存期間は90日で、チャットの確認を許可している場合は、AI エージェントを改善するためにチームが読むことがあります。{pro} では30日で、履歴を0日にすると保存されません。</translation>
+        </message>
+        <message>
+            <source>You choose below.</source>
+            <translation>以下から選べます。</translation>
+        </message>
+        <message>
+            <source>Close the open list</source>
+            <translation>開いている一覧を閉じる</translation>
+        </message>
+        <message>
+            <source>Press it twice</source>
+            <translation>2回押す</translation>
+        </message>
+        <message>
+            <source>Deleted after 90 days at most</source>
+            <translation>最長90日で削除されます</translation>
+        </message>
+        <message>
+            <source>Help improve AI Agent</source>
+            <translation>AI Agentの改善に協力する</translation>
+        </message>
+        <message>
+            <source>Hosted in the EU</source>
+            <translation>EU内でホスト</translation>
+        </message>
+        <message>
+            <source>Never used to train AI</source>
+            <translation>AIの学習には使われません</translation>
+        </message>
+        <message>
+            <source>Your chats are private</source>
+            <translation>チャットは非公開です</translation>
+        </message>
+        <message>
+            <source>Your usage and chats help us fix bugs. Turn it off anytime.</source>
+            <translation>利用状況とチャットは、バグの修正に役立ちます。いつでもオフにできます。</translation>
+        </message>
+        <message>
+            <source>included</source>
+            <translation>含む</translation>
+        </message>
+        <message>
+            <source>left out</source>
+            <translation>除外</translation>
+        </message>
     </context>
     <context>
         <name>AIAgentContext</name>
@@ -2071,6 +2147,10 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <source>The AI agent stopped before finishing.</source>
             <translation>エージェントは完了前に停止しました。</translation>
+        </message>
+        <message>
+            <source>This layer's file can no longer be read, so the map cannot zoom to it.</source>
+            <translation>このレイヤのファイルを読み込めなくなったため、地図をそのレイヤにズームできません。</translation>
         </message>
     </context>
     <context>
@@ -2536,6 +2616,10 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <source>{words} · {done} of {total}</source>
             <translation>{words} · {done} / {total}</translation>
         </message>
+        <message>
+            <source>Show on map</source>
+            <translation>地図上に表示</translation>
+        </message>
     </context>
     <context>
         <name>AgentBubble</name>
@@ -2583,6 +2667,18 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <source>Remove rating</source>
             <translation>評価を取り消す</translation>
+        </message>
+        <message>
+            <source>Did this do what you wanted?</source>
+            <translation>思い通りになりましたか？</translation>
+        </message>
+        <message>
+            <source>No</source>
+            <translation>いいえ</translation>
+        </message>
+        <message>
+            <source>Yes</source>
+            <translation>はい</translation>
         </message>
     </context>
     <context>
@@ -3008,6 +3104,26 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <source>Stopped: AI Agent was updated or turned off during this run.</source>
             <translation>停止しました: この実行中に AI Agent が更新されたか、オフになりました。</translation>
         </message>
+        <message>
+            <source>Not sent: TerraLab is not connected.</source>
+            <translation>送信できませんでした。TerraLab に接続されていません。</translation>
+        </message>
+        <message>
+            <source>Thanks. Your note went with the crash report.</source>
+            <translation>ありがとうございます。メモはクラッシュレポートと一緒に送信されました。</translation>
+        </message>
+        <message>
+            <source>{layer} lost its file, and QGIS closes when it saves a project that holds it, so nothing was restored. Remove {layer} from the project, or put its file back and turn its editing on and off once, then try again.</source>
+            <translation>{layer} のファイルが失われており、このレイヤを含むプロジェクトを保存するとQGISが閉じてしまうため、何も復元されませんでした。プロジェクトから {layer} を削除するか、ファイルを元に戻して編集モードを一度オンにしてオフにしてから、もう一度お試しください。</translation>
+        </message>
+        <message>
+            <source>Your note could not be added to the crash report.</source>
+            <translation>メモをクラッシュレポートに追加できませんでした。</translation>
+        </message>
+        <message>
+            <source>Your note was sent.</source>
+            <translation>メモを送信しました。</translation>
+        </message>
     </context>
     <context>
         <name>AgentSession</name>
@@ -3156,6 +3272,10 @@ The erasure is final once the grace period ends. Until then you can cancel it by
     </context>
     <context>
         <name>ChatPanel</name>
+        <message>
+            <source>Try another card</source>
+            <translation>別のカードを試す</translation>
+        </message>
         <message>
             <source>Changed {0} to {1}</source>
             <translation>{0} を {1} に変更しました</translation>
@@ -3423,6 +3543,14 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <source>Reply</source>
             <translation>返信</translation>
+        </message>
+        <message>
+            <source>Esc again to stop</source>
+            <translation>もう一度Escで停止</translation>
+        </message>
+        <message>
+            <source>Queue a message for after this run</source>
+            <translation>この実行のあとに送るメッセージを待機に追加</translation>
         </message>
     </context>
     <context>
@@ -3746,6 +3874,72 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <source>Finish dictation</source>
             <translation>音声入力を終了</translation>
         </message>
+        <message>
+            <location filename="src/ui/composer.py" />
+            <source>{name} was removed from the project</source>
+            <translation>{name} はプロジェクトから削除されました</translation>
+        </message>
+        <message>
+            <location filename="src/ui/composer.py" />
+            <source>{name} is now called {new}</source>
+            <translation>{name} の名前が {new} に変わりました</translation>
+        </message>
+        <message>
+            <location filename="src/ui/composer.py" />
+            <source>{names} were removed from the project</source>
+            <translation>{names} はプロジェクトから削除されました</translation>
+        </message>
+        <message>
+            <location filename="src/ui/composer.py" />
+            <source>{n} layers named here were removed or renamed</source>
+            <translation>ここで指定した {n} 件のレイヤが削除または名前変更されました</translation>
+        </message>
+        <message>
+            <location filename="src/ui/composer.py" />
+            <source>Sent as plain words: the AI agent gets no link to the layer.</source>
+            <translation>ただの文字として送信されます。AI エージェントにはレイヤへのリンクが渡されません。</translation>
+        </message>
+        <message>
+            <location filename="src/ui/composer.py" />
+            <source>removed from the project</source>
+            <translation>プロジェクトから削除されました</translation>
+        </message>
+        <message>
+            <location filename="src/ui/composer.py" />
+            <source>renamed {new}</source>
+            <translation>{new} に名前が変更されました</translation>
+        </message>
+        <message>
+            <location filename="src/ui/composer.py" />
+            <source>Use</source>
+            <translation>使用</translation>
+        </message>
+        <message>
+            <location filename="src/ui/composer.py" />
+            <source>Write {new} in the message instead</source>
+            <translation>代わりにメッセージに {new} と入力する</translation>
+        </message>
+        <message>
+            <location filename="src/ui/composer.py" />
+            <source>and {n} more</source>
+            <translation>ほか {n} 件</translation>
+        </message>
+        <message>
+            <source>1 layer</source>
+            <translation>1 レイヤ</translation>
+        </message>
+        <message>
+            <source>Edit as text</source>
+            <translation>テキストとして編集</translation>
+        </message>
+        <message>
+            <source>Show on map</source>
+            <translation>地図上に表示</translation>
+        </message>
+        <message>
+            <source>{n} layers</source>
+            <translation>{n} レイヤ</translation>
+        </message>
     </context>
     <context>
         <name>ComposerInput</name>
@@ -3762,6 +3956,14 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <source>Data sources</source>
             <translation>データソース</translation>
+        </message>
+        <message>
+            <source>Type to search layers, data sources and QGIS plugins</source>
+            <translation>入力してレイヤ、データソース、QGISプラグインを検索</translation>
+        </message>
+        <message>
+            <source>Message AI Agent</source>
+            <translation>AI Agent にメッセージ</translation>
         </message>
     </context>
     <context>
@@ -4305,6 +4507,18 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <source>Your Pro ends on {date}. Keep it in one click.</source>
             <translation>Proは{date}に終了します。ワンクリックで続けられます。</translation>
         </message>
+        <message>
+            <source>AI Agent settings</source>
+            <translation>AI Agent の設定</translation>
+        </message>
+        <message>
+            <source>Close AI Agent</source>
+            <translation>AI Agent を閉じる</translation>
+        </message>
+        <message>
+            <source>Dock or undock AI Agent</source>
+            <translation>AI Agent をドッキングまたは解除</translation>
+        </message>
     </context>
     <context>
         <name>HistoryPopup</name>
@@ -4403,6 +4617,19 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <source>This deletes "{title}" and the project versions saved with it. It cannot be undone.</source>
             <translation>「{title}」と、それに保存されたプロジェクトのバージョンを削除します。この操作は取り消せません。</translation>
+        </message>
+        <message>
+            <location filename="src/ui/history_popup.py" />
+            <source>Draft</source>
+            <translation>下書き</translation>
+        </message>
+        <message>
+            <source>Delete chat: {title}</source>
+            <translation>チャットを削除: {title}</translation>
+        </message>
+        <message>
+            <source>Open</source>
+            <translation>開く</translation>
         </message>
     </context>
     <context>
@@ -4744,10 +4971,6 @@ Click to open its page.</source>
             <translation>このプロジェクトにはありません: {}</translation>
         </message>
         <message>
-            <source>Other effects the preview could not read: {}</source>
-            <translation>プレビューで読み取れなかったその他の影響: {}</translation>
-        </message>
-        <message>
             <source>Reads: {}</source>
             <translation>読み取り: {}</translation>
         </message>
@@ -4758,6 +4981,94 @@ Click to open its page.</source>
         <message>
             <source>Writes files: {}</source>
             <translation>ファイルを書き込み: {}</translation>
+        </message>
+        <message>
+            <source>Cancel</source>
+            <translation>キャンセル</translation>
+        </message>
+        <message>
+            <source>Delete 1 feature from {layer}</source>
+            <translation>{layer}から1地物を削除</translation>
+        </message>
+        <message>
+            <source>Delete {n}</source>
+            <translation>{n}件を削除</translation>
+        </message>
+        <message>
+            <source>Delete {n} features from {layer}</source>
+            <translation>{layer}から{n}地物を削除</translation>
+        </message>
+        <message>
+            <source>Details</source>
+            <translation>詳細</translation>
+        </message>
+        <message>
+            <source>Feature ids: {ids}</source>
+            <translation>地物ID: {ids}</translation>
+        </message>
+        <message>
+            <source>Feature ids: {ids} and {n} more</source>
+            <translation>地物ID: {ids} ほか{n}件</translation>
+        </message>
+        <message>
+            <source>Feature {fid}: {values}</source>
+            <translation>地物 {fid}: {values}</translation>
+        </message>
+        <message>
+            <source>Hatched in red on the map. Its data source stays as it is; nothing is removed yet.</source>
+            <translation>地図上に赤いハッチングで表示されます。データソースはそのままで、まだ何も削除されません。</translation>
+        </message>
+        <message>
+            <source>Hatched in red on the map. Nothing is deleted yet.</source>
+            <translation>地図上に赤いハッチングで表示されます。まだ何も削除されません。</translation>
+        </message>
+        <message>
+            <source>Hatched in red on the map. Nothing is written yet.</source>
+            <translation>地図上に赤いハッチングで表示されます。まだ何も書き込まれません。</translation>
+        </message>
+        <message>
+            <source>Hide details</source>
+            <translation>詳細を隠す</translation>
+        </message>
+        <message>
+            <source>Its features exist only in this project and go with it. Hatched in red on the map; nothing is removed yet.</source>
+            <translation>地物はこのプロジェクト内にのみ存在し、プロジェクトとともに失われます。地図上に赤いハッチングで表示されます。まだ何も削除されません。</translation>
+        </message>
+        <message>
+            <source>Overwrite 1 feature of {layer}</source>
+            <translation>{layer}の1地物を上書き</translation>
+        </message>
+        <message>
+            <source>Overwrite {n}</source>
+            <translation>{n}件を上書き</translation>
+        </message>
+        <message>
+            <source>Overwrite {n} features of {layer}</source>
+            <translation>{layer}の{n}地物を上書き</translation>
+        </message>
+        <message>
+            <source>Remove layer</source>
+            <translation>レイヤを削除</translation>
+        </message>
+        <message>
+            <source>Remove {layer} from the project</source>
+            <translation>{layer}をプロジェクトから削除</translation>
+        </message>
+        <message>
+            <source>Rule: {expression}</source>
+            <translation>ルール: {expression}</translation>
+        </message>
+        <message>
+            <source>Show on map</source>
+            <translation>地図上に表示</translation>
+        </message>
+        <message>
+            <source>{n} features in {layer}</source>
+            <translation>{layer}の{n}地物</translation>
+        </message>
+        <message>
+            <source>{n} of {total} features in {layer}</source>
+            <translation>{layer}の{total}地物のうち{n}地物</translation>
         </message>
     </context>
     <context>
@@ -4978,6 +5289,18 @@ Click to open its page.</source>
     </context>
     <context>
         <name>QuotaCard</name>
+        <message>
+            <source>Card declined</source>
+            <translation>カードが承認されませんでした</translation>
+        </message>
+        <message>
+            <source>Your trial didn't start. Nothing was charged.</source>
+            <translation>トライアルは始まっていません。請求もされていません。</translation>
+        </message>
+        <message>
+            <source>Try another card</source>
+            <translation>別のカードを試す</translation>
+        </message>
         <message>
             <location filename="src/ui/quota_card.py" />
             <source>Free for 7 days, nothing to pay today, then monthly at your local price. Cancel in one click.</source>
@@ -6116,6 +6439,22 @@ Thank you</source>
             <source>The AI agent's mark moves and follows the work. Off keeps it still.</source>
             <translation>AIエージェントのマークが動き、作業に合わせて反応します。オフにすると静止します。</translation>
         </message>
+        <message>
+            <source>Help improve AI Agent</source>
+            <translation>AI Agentの改善に協力する</translation>
+        </message>
+        <message>
+            <source>Usage stats: errors, versions and the features you use, never your prompts, layers or files. We may read a chat, or have a model score it, to fix bugs, never to train AI.</source>
+            <translation>利用統計：エラー、バージョン、使用した機能。プロンプト、レイヤ、ファイルは含まれません。バグの修正のためにチャットを読んだり、モデルに評価させたりすることがありますが、AIの学習には使いません。</translation>
+        </message>
+        <message>
+            <source>Usage stats: only that you used the app and when. Chats are kept 30 days so a conversation survives an update; we may read one, or have a model score it, to fix bugs, never to train AI. 0 days of history stores nothing.</source>
+            <translation>利用統計：アプリを使ったことと、その日時のみ。チャットは、更新後も会話が残るように30日間保管されます。バグの修正のためにチャットを読んだり、モデルに評価させたりすることがありますが、AIの学習には使いません。履歴を0日にすると何も保存されません。</translation>
+        </message>
+        <message>
+            <source>Your usage and chats help us fix bugs. Turn it off anytime.</source>
+            <translation>利用状況とチャットは、バグの修正に役立ちます。いつでもオフにできます。</translation>
+        </message>
     </context>
     <context>
         <name>SourcesButton</name>
@@ -6533,6 +6872,10 @@ Thank you</source>
             <source>{area} m²</source>
             <translation>{area} m²</translation>
         </message>
+        <message>
+            <source>Always allowed</source>
+            <translation>常に許可済み</translation>
+        </message>
     </context>
     <context>
         <name>TraceSteps</name>
@@ -6827,6 +7170,10 @@ Thank you</source>
         <message>
             <source>Updating…</source>
             <translation>更新中…</translation>
+        </message>
+        <message>
+            <source>Update {product} to continue</source>
+            <translation>続けるには{product}を更新してください</translation>
         </message>
     </context>
     <context>
@@ -7874,6 +8221,18 @@ This file is no longer where the run wrote it.</source>
             <source>Choose in Google Drive</source>
             <translation>Google Drive から選択</translation>
         </message>
+        <message>
+            <source>More ways to allow</source>
+            <translation>ほかの許可方法</translation>
+        </message>
+        <message>
+            <source>Always allow {label}</source>
+            <translation>{label} を常に許可</translation>
+        </message>
+        <message>
+            <source>Always allowed</source>
+            <translation>常に許可済み</translation>
+        </message>
     </context>
     <context>
         <name>ConnectedAccountsPage</name>
@@ -7980,6 +8339,18 @@ This file is no longer where the run wrote it.</source>
         <message>
             <source>{name} sign-in</source>
             <translation>{name} のサインイン</translation>
+        </message>
+        <message>
+            <source>Always allow</source>
+            <translation>常に許可</translation>
+        </message>
+        <message>
+            <source>Always allow {label}</source>
+            <translation>{label} を常に許可</translation>
+        </message>
+        <message>
+            <source>Used with no card each time. Off: the AI agent asks first.</source>
+            <translation>毎回カードを出さずに使います。オフの場合は、AIエージェントが先に確認します。</translation>
         </message>
     </context>
     <context>
@@ -8127,6 +8498,14 @@ This file is no longer where the run wrote it.</source>
         <message>
             <source>Show the plugin's panel.</source>
             <translation>プラグインのパネルを表示します。</translation>
+        </message>
+        <message>
+            <source>Install {plugin}</source>
+            <translation>{plugin} をインストール</translation>
+        </message>
+        <message>
+            <source>Open {plugin}</source>
+            <translation>{plugin} を開く</translation>
         </message>
     </context>
     <context>
@@ -8554,6 +8933,54 @@ This file is no longer where the run wrote it.</source>
             <source>QGIS will ask you to choose a master password. It locks every sign-in saved in QGIS and cannot be recovered, so keep it somewhere safe.</source>
             <translation>QGISからマスターパスワードの設定を求められます。QGISに保存されたすべてのサインイン情報をロックするもので、復元できないため、安全な場所に保管してください。</translation>
         </message>
+        <message>
+            <source>Cloud project ID</source>
+            <translation>Cloud プロジェクト ID</translation>
+        </message>
+        <message>
+            <source>Shown next to the project name at the top of console.cloud.google.com.</source>
+            <translation>console.cloud.google.com の上部、プロジェクト名の横に表示されます。</translation>
+        </message>
+        <message>
+            <source>Type the ID of the Google Cloud project Earth Engine runs on.</source>
+            <translation>Earth Engine が動作している Google Cloud プロジェクトの ID を入力してください。</translation>
+        </message>
+        <message>
+            <source>Open the Cloud console</source>
+            <translation>Cloud console を開く</translation>
+        </message>
+        <message>
+            <source>You're signed in</source>
+            <translation>サインインしました</translation>
+        </message>
+        <message>
+            <source>You can close this tab and return to QGIS.</source>
+            <translation>このタブを閉じて QGIS に戻ってください。</translation>
+        </message>
+        <message>
+            <source>In QGIS, pick the Cloud project Earth Engine runs on.</source>
+            <translation>QGIS で、Earth Engine が動作している Cloud プロジェクトを選んでください。</translation>
+        </message>
+        <message>
+            <source>Sign-in didn't finish</source>
+            <translation>サインインが完了しませんでした</translation>
+        </message>
+        <message>
+            <source>Close this tab and try again from QGIS.</source>
+            <translation>このタブを閉じて、QGIS からもう一度お試しください。</translation>
+        </message>
+        <message>
+            <source>Checking {project} with Earth Engine...</source>
+            <translation>Earth Engine で {project} を確認しています...</translation>
+        </message>
+        <message>
+            <source>Earth Engine refused the project {project} ({error}). Check the ID and your role on the project.</source>
+            <translation>Earth Engine がプロジェクト {project} を拒否しました ({error})。ID と、プロジェクトでのあなたのロールを確認してください。</translation>
+        </message>
+        <message>
+            <source>Earth Engine could not be reached ({error}). Check your connection or the proxy in QGIS (Settings &gt; Options &gt; Network).</source>
+            <translation>Earth Engineに到達できませんでした（{error}）。接続、またはQGISのプロキシ設定（「設定」→「オプション」→「ネットワーク」）を確認してください。</translation>
+        </message>
     </context>
     <context>
         <name>BrowserWait</name>
@@ -8926,6 +9353,22 @@ This file is no longer where the run wrote it.</source>
             <source>Your words are sent with this chat and recent logs.</source>
             <translation>入力した内容は、このチャットと最近のログとともに送信されます。</translation>
         </message>
+        <message>
+            <source>Add a comment</source>
+            <translation>コメントを追加</translation>
+        </message>
+        <message>
+            <source>Ask the AI agent instead</source>
+            <translation>代わりにAIエージェントに依頼する</translation>
+        </message>
+        <message>
+            <source>Message to the TerraLab team (optional)</source>
+            <translation>TerraLabチームへのメッセージ（任意）</translation>
+        </message>
+        <message>
+            <source>Read by the TerraLab team, not by the AI agent. Sent with this chat and recent logs.</source>
+            <translation>TerraLabチームが読みます。AIエージェントは読みません。このチャットと最近のログも一緒に送信されます。</translation>
+        </message>
     </context>
     <context>
         <name>NoteRow</name>
@@ -9141,6 +9584,295 @@ This file is no longer where the run wrote it.</source>
         <message>
             <source>Recording</source>
             <translation>録音中</translation>
+        </message>
+    </context>
+    <context>
+        <name>TransformationRow</name>
+        <message>
+            <source>A more accurate one ({accuracy}) needs a grid file this QGIS does not have.</source>
+            <translation>より精度の高い変換 ({accuracy}) には、この QGIS にないグリッドファイルが必要です。</translation>
+        </message>
+        <message>
+            <source>Change in Project Properties</source>
+            <translation>プロジェクトプロパティで変更</translation>
+        </message>
+        <message>
+            <source>Coordinate transformation: {what}</source>
+            <translation>座標変換: {what}</translation>
+        </message>
+        <message>
+            <source>Hide details</source>
+            <translation>詳細を隠す</translation>
+        </message>
+        <message>
+            <source>Show details</source>
+            <translation>詳細を表示</translation>
+        </message>
+        <message>
+            <source>The other option is no more accurate.</source>
+            <translation>もう1つの選択肢の精度は、これ以上高くありません。</translation>
+        </message>
+        <message>
+            <source>The {count} other options are no more accurate.</source>
+            <translation>他の{count}件の選択肢の精度は、これ以上高くありません。</translation>
+        </message>
+        <message>
+            <source>Transformation</source>
+            <translation>変換</translation>
+        </message>
+        <message>
+            <source>{count} transformations</source>
+            <translation>{count}件の変換</translation>
+        </message>
+        <message>
+            <source>{layer} goes from {source} to {target} through {operation}, accurate to about {accuracy}.</source>
+            <translation>{layer}は{operation}で{source}から{target}へ変換され、精度は約{accuracy}です。</translation>
+        </message>
+        <message>
+            <source>{layer} goes from {source} to {target} through {operation}, of unknown accuracy.</source>
+            <translation>{layer}は{operation}で{source}から{target}へ変換されます。精度は不明です。</translation>
+        </message>
+    </context>
+    <context>
+        <name>SelectionLine</name>
+        <message>
+            <source>Leave the selection out of this message</source>
+            <translation>このメッセージから選択を除外</translation>
+        </message>
+        <message>
+            <source>The AI agent sees this selection with your message, along with the map view and the project's layers.</source>
+            <translation>AIエージェントは、メッセージとあわせて、この選択、地図ビュー、プロジェクトのレイヤを確認します。</translation>
+        </message>
+        <message>
+            <source>{layer} · 1 feature selected</source>
+            <translation>{layer} · 地物1件を選択中</translation>
+        </message>
+        <message>
+            <source>{layer} · {n} features selected</source>
+            <translation>{layer} · 地物{n}件を選択中</translation>
+        </message>
+    </context>
+    <context>
+        <name>_Row</name>
+        <message>
+            <location filename="src/ui/sidebar.py" />
+            <source>Draft</source>
+            <translation>下書き</translation>
+        </message>
+        <message>
+            <source>Open</source>
+            <translation>開く</translation>
+        </message>
+    </context>
+    <context>
+        <name>GeoPaste</name>
+        <message>
+            <source>1 feature</source>
+            <translation>1 地物</translation>
+        </message>
+        <message>
+            <source>1 vertex</source>
+            <translation>1 頂点</translation>
+        </message>
+        <message>
+            <source>ArcGIS FeatureServer</source>
+            <translation>ArcGIS FeatureServer</translation>
+        </message>
+        <message>
+            <source>ArcGIS ImageServer</source>
+            <translation>ArcGIS ImageServer</translation>
+        </message>
+        <message>
+            <source>ArcGIS MapServer</source>
+            <translation>ArcGIS MapServer</translation>
+        </message>
+        <message>
+            <source>FlatGeobuf file</source>
+            <translation>FlatGeobufファイル</translation>
+        </message>
+        <message>
+            <source>GeoJSON file</source>
+            <translation>GeoJSONファイル</translation>
+        </message>
+        <message>
+            <source>GeoPackage file</source>
+            <translation>GeoPackageファイル</translation>
+        </message>
+        <message>
+            <source>GeoTIFF (COG)</source>
+            <translation>GeoTIFF (COG)</translation>
+        </message>
+        <message>
+            <source>Geometry</source>
+            <translation>ジオメトリ</translation>
+        </message>
+        <message>
+            <source>KML file</source>
+            <translation>KMLファイル</translation>
+        </message>
+        <message>
+            <source>Line</source>
+            <translation>ライン</translation>
+        </message>
+        <message>
+            <source>Multiline</source>
+            <translation>マルチライン</translation>
+        </message>
+        <message>
+            <source>Multipoint</source>
+            <translation>マルチポイント</translation>
+        </message>
+        <message>
+            <source>Multipolygon</source>
+            <translation>マルチポリゴン</translation>
+        </message>
+        <message>
+            <source>OGC API Features</source>
+            <translation>OGC API Features</translation>
+        </message>
+        <message>
+            <source>PMTiles</source>
+            <translation>PMTiles</translation>
+        </message>
+        <message>
+            <source>Parquet file</source>
+            <translation>Parquetファイル</translation>
+        </message>
+        <message>
+            <source>Pasted text</source>
+            <translation>貼り付けたテキスト</translation>
+        </message>
+        <message>
+            <source>Point</source>
+            <translation>ポイント</translation>
+        </message>
+        <message>
+            <source>Point cloud</source>
+            <translation>点群</translation>
+        </message>
+        <message>
+            <source>Point · WGS 84</source>
+            <translation>ポイント · WGS 84</translation>
+        </message>
+        <message>
+            <source>Polygon</source>
+            <translation>ポリゴン</translation>
+        </message>
+        <message>
+            <source>STAC catalog</source>
+            <translation>STACカタログ</translation>
+        </message>
+        <message>
+            <source>Vector tiles</source>
+            <translation>ベクタータイル</translation>
+        </message>
+        <message>
+            <source>WCS service</source>
+            <translation>WCSサービス</translation>
+        </message>
+        <message>
+            <source>WFS service</source>
+            <translation>WFSサービス</translation>
+        </message>
+        <message>
+            <source>WMS service</source>
+            <translation>WMSサービス</translation>
+        </message>
+        <message>
+            <source>WMTS service</source>
+            <translation>WMTSサービス</translation>
+        </message>
+        <message>
+            <source>XYZ tiles</source>
+            <translation>XYZタイル</translation>
+        </message>
+        <message>
+            <source>{n} characters</source>
+            <translation>{n} 文字</translation>
+        </message>
+        <message>
+            <source>{n} features</source>
+            <translation>{n} 地物</translation>
+        </message>
+        <message>
+            <source>{n} lines</source>
+            <translation>{n} 行</translation>
+        </message>
+        <message>
+            <source>{n} vertices</source>
+            <translation>{n} 頂点</translation>
+        </message>
+        <message>
+            <source>{shape} GeoJSON</source>
+            <translation>{shape} GeoJSON</translation>
+        </message>
+        <message>
+            <source>{shape} WKT</source>
+            <translation>{shape} WKT</translation>
+        </message>
+    </context>
+    <context>
+        <name>CrashCommentBar</name>
+        <message>
+            <source>Dismiss</source>
+            <translation>閉じる</translation>
+        </message>
+        <message>
+            <source>Example: I had the attribute table open and pressed Save</source>
+            <translation>例: 属性テーブルを開いて、保存を押しました</translation>
+        </message>
+        <message>
+            <source>QGIS closed unexpectedly</source>
+            <translation>QGIS が予期せず終了しました</translation>
+        </message>
+        <message>
+            <source>Send</source>
+            <translation>送信</translation>
+        </message>
+        <message>
+            <source>The crash report was sent. What were you doing just before?</source>
+            <translation>クラッシュレポートを送信しました。直前に何をしていましたか？</translation>
+        </message>
+        <message>
+            <source>Not sent. Press Send to try again.</source>
+            <translation>送信できませんでした。「送信」を押してもう一度お試しください。</translation>
+        </message>
+    </context>
+    <context>
+        <name>_ModeRow</name>
+        <message>
+            <source>Locked: {tag}</source>
+            <translation>ロック中: {tag}</translation>
+        </message>
+        <message>
+            <source>Selected</source>
+            <translation>選択中</translation>
+        </message>
+    </context>
+    <context>
+        <name>_RowText</name>
+        <message>
+            <source>Edit this queued message</source>
+            <translation>待機中のこのメッセージを編集</translation>
+        </message>
+    </context>
+    <context>
+        <name>_StopNames</name>
+        <message>
+            <source>Effort: {level}</source>
+            <translation>エフォート: {level}</translation>
+        </message>
+        <message>
+            <source>Locked until the end of the free trial</source>
+            <translation>無料トライアル終了までロック中</translation>
+        </message>
+        <message>
+            <source>Locked: {tag}</source>
+            <translation>ロック中: {tag}</translation>
+        </message>
+        <message>
+            <source>Selected</source>
+            <translation>選択中</translation>
         </message>
     </context>
 </TS>

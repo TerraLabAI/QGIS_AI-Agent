@@ -91,12 +91,18 @@ def register_advanced_tools(registry: ToolRegistry):
             "x-read-scope": True,
 
 
+            "x-gdal-compute": True,
+
+
 
             "x-console-names": True,
 
 
 
             "x-export-drawn-apart": True,
+
+
+            "x-result-images": True,
             "properties": {
                 "code": {
                     "type": "string",

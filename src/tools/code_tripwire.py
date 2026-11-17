@@ -47,6 +47,7 @@
 
 from __future__ import annotations
 
+import contextlib
 import ntpath
 import os
 import sys
@@ -577,6 +578,8 @@ class _Arm:
         self.patched: list = []
         self.sources: dict = {}
         self.judging = False
+        self.rendering: set = set()
+        self.closed_tables: list = []
 
     def need(self, cls: str, reason: str) -> None:
         if ce.RANK.get(cls, ce.RANK[ce.ASK]) <= ce.RANK.get(self.granted, 0):
@@ -775,6 +778,17 @@ def _wrap(arm: _Arm, original, judge, static: bool):
 
     instead = getattr(judge, "instead", None)
 
+
+    around = getattr(judge, "around", None)
+
+    def call(args, kwargs):
+        if static or not args or not hasattr(original, "__get__"):
+            return original(*args, **kwargs)
+
+
+
+        return original.__get__(args[0], type(args[0]))(*args[1:], **kwargs)
+
     def trapped(*args, **kwargs):
         if _from_snippet(2):
 
@@ -785,12 +799,10 @@ def _wrap(arm: _Arm, original, judge, static: bool):
                 done = instead(*args, **kwargs)
                 if done is not AS_WRITTEN:
                     return done
-        if static or not args or not hasattr(original, "__get__"):
-            return original(*args, **kwargs)
-
-
-
-        return original.__get__(args[0], type(args[0]))(*args[1:], **kwargs)
+            if around is not None:
+                with around(*args, **kwargs):
+                    return call(args, kwargs)
+        return call(args, kwargs)
 
     trapped.__name__ = getattr(original, "__name__", "trapped")
     trapped.__doc__ = getattr(original, "__doc__", None)
@@ -1039,6 +1051,25 @@ def _builds_layer(index: int, provider_at: int = 0, provider_keys: tuple = (), p
                 arm.refuse(f"builds a layer on a file outside the read scope: {reason}")
         return _with_whole_source(source, index, key, args, kwargs, named)
     return judge
+
+
+def _tables_closed(judge):
+
+
+
+
+    def closing(arm, *args, **kwargs):
+        replaced = judge(arm, *args, **kwargs)
+        if args:
+            from ..core.attribute_tables import close_tables
+
+            docked = close_tables(args[0])
+            if docked:
+                arm.closed_tables.append((args[0], docked))
+        return replaced
+
+    closing.__dict__.update(judge.__dict__)
+    return closing
 
 
 def _virtual_sources(source: str) -> list:
@@ -1376,6 +1407,7 @@ def _traps():
     out.extend(_child_write_traps())
     out.extend(_read_traps())
     out.extend(_credential_traps())
+    out.extend(_crash_traps())
     if gui is not None:
         out.append((getattr(gui, "QgsMapCanvas", None), "saveAsImage", _path_arg(1, "fileName"), False))
         iface_type = getattr(gui, "QgisInterface", None)
@@ -1398,6 +1430,88 @@ def _read_traps() -> list:
            for name in ("getFeatures", "getFeature", "uniqueValues", "aggregate", "minimumValue", "maximumValue")]
     out += [(get("QgsVectorDataProvider"), "getFeatures", _provider_read, False)]
     out += [(get("QgsRasterDataProvider"), name, _provider_read, False) for name in ("block", "identify", "sample")]
+    return out
+
+
+def _address(obj) -> int:
+    from qgis.PyQt import sip
+
+    try:
+        return sip.unwrapinstance(obj)
+    except (TypeError, RuntimeError):
+        return id(obj)
+
+
+def _render_start(arm, renderer, *args, **kwargs):
+    arm.rendering.add(_address(renderer))
+
+
+def _render_stop(arm, renderer, *args, **kwargs):
+    arm.rendering.discard(_address(renderer))
+
+
+def _renderer_read(arm, renderer, *args, **kwargs):
+    return None
+
+
+def _started_for(renderer, *args, **kwargs):
+
+
+
+
+    feature = args[0] if args else kwargs.get("feature")
+    context = args[1] if len(args) > 1 else kwargs.get("context")
+    arm = _current()
+    core = sys.modules.get("qgis.core")
+    if (arm is None or core is None or _address(renderer) in arm.rendering
+            or not isinstance(feature, core.QgsFeature) or not isinstance(context, core.QgsRenderContext)):
+        return contextlib.nullcontext()
+    return _rendering(renderer, feature, context)
+
+
+@contextlib.contextmanager
+def _rendering(renderer, feature, context):
+    renderer.startRender(context, feature.fields())
+    try:
+        yield
+    finally:
+        renderer.stopRender(context)
+
+
+_renderer_read.around = _started_for
+
+
+def _stack_index(arm, stack, index=None, *args, **kwargs):
+
+
+
+
+    if isinstance(index, bool) or not isinstance(index, int):
+        return None
+    size = stack.size()
+    position = index + size if index < 0 else index
+    if not 0 <= position < size:
+        raise IndexError(f"{type(stack).__name__} index {index} out of range: it holds {size}")
+    return (stack, position), {}
+
+
+def _crash_traps() -> list:
+
+
+    if "qgis.core" not in sys.modules:
+        return []
+    try:
+        import qgis.core as core
+    except ImportError:
+        return []
+    get = lambda name: getattr(core, name, None)  # noqa: E731
+    renderer = get("QgsFeatureRenderer")
+    out = [(get(name), "__getitem__", _stack_index, False)
+           for name in ("QgsLayoutItemMapGridStack", "QgsLayoutItemMapOverviewStack")]
+    out += [(renderer, "startRender", _render_start, False), (renderer, "stopRender", _render_stop, False)]
+    out += [(renderer, name, _renderer_read, False)
+            for name in ("symbolForFeature", "symbolsForFeature", "originalSymbolForFeature",
+                         "originalSymbolsForFeature", "legendKeysForFeature", "willRenderFeature")]
     return out
 
 
@@ -1441,7 +1555,7 @@ def guard_child(granted: str = ce.D, own=()) -> _Arm | None:
     _temp_roots_read()
     arm = _Arm(granted if granted in ce.RANK else ce.D, own)
     state.thread = threading.get_ident()
-    arm.patch(_read_traps() + _child_write_traps() + _credential_traps())
+    arm.patch(_read_traps() + _child_write_traps() + _credential_traps() + _crash_traps())
     state.handler = arm.on_event
     _CURRENT.append(arm)
     return arm
@@ -1473,7 +1587,12 @@ def _child_write_traps() -> list:
     out.append((get("QgsRasterLayer"), "__init__", _builds_layer(1, 3, ("providerType",), "gdal"), False))
     for cls in ("QgsMeshLayer", "QgsVectorTileLayer", "QgsPointCloudLayer", "QgsTiledSceneLayer"):
         out.append((get(cls), "__init__", _builds_layer(1), False))
-    out.append((get("QgsMapLayer"), "setDataSource", _builds_layer(1, 3, ("provider",)), False))
+    out.append((get("QgsMapLayer"), "setDataSource", _tables_closed(_builds_layer(1, 3, ("provider",))), False))
+    out.append((get("QgsMapLayer"), "reload", _tables_closed(lambda arm, *args, **kwargs: None), False))
+
+    for name in ("addAttribute", "deleteAttribute", "deleteAttributes", "renameAttribute", "addExpressionField",
+                 "removeExpressionField", "addJoin", "removeJoin", "updateFields"):
+        out.append((get("QgsVectorLayer"), name, _tables_closed(lambda arm, *args, **kwargs: None), False))
     out.append((get("QgsProviderRegistry"), "createProvider", _builds_layer(2, 1, ("providerKey",)), False))
     for cls in ("QgsNetworkAccessManager", "QgsBlockingNetworkRequest"):
         for name in ("get", "post", "put", "head", "deleteResource", "sendCustomRequest", "blockingGet",
@@ -1543,6 +1662,17 @@ class armed:  # noqa: N801
             _CURRENT.pop()
         self.arm.unpatch()
         _drop_orphans(self.modules)
+        if self.arm.closed_tables:
+            from ..core.attribute_tables import reopen_tables
+
+            for layer, docked in self.arm.closed_tables:
+                try:
+                    reopen_tables(layer, docked)
+                except Exception as exc:  # noqa: BLE001
+                    from ..core.logger import log_warning
+
+                    log_warning(f"code tripwire: an attribute table was not reopened: {exc}")
+            self.arm.closed_tables.clear()
         return False
 
 

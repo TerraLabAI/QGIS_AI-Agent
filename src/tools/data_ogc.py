@@ -36,7 +36,8 @@ from ..core.provider_uri import crs_problem, encode_uri_url
 from ..core.qt_compat import enum_member
 from ..core.quiet_credentials import hold_from_worker, no_login_prompt, release_from_worker
 from ..core.tool_registry import tool_error
-from . import elevation_style, ogc_inspect, volume_guard
+from . import data_wcs_grid, elevation_style, ogc_inspect, volume_guard
+from ._layers import error_summary
 from .data_basemaps import _stacked
 from .data_common import _CACHE_CATALOG_S, built_here, worker_options
 from .data_wfs_extract import extract
@@ -153,7 +154,9 @@ def _is_wmts(url: str) -> bool:
     return service.upper() == "WMTS" or "wmts" in parts.path.lower()
 
 
-def _wms_built_here(uri: str, name: str):
+def _wms_built_here(uri: str, name: str, said: list | None = None):
+
+
 
 
 
@@ -169,6 +172,8 @@ def _wms_built_here(uri: str, name: str):
     try:
         held = hold_from_worker()
     except TimeoutError:
+        if said is not None:
+            raise
         return None
     if not held:
         return None
@@ -177,6 +182,8 @@ def _wms_built_here(uri: str, name: str):
         layer = QgsRasterLayer(uri, name, "wms", worker_options(QgsRasterLayer))
         if layer.isValid():
             return layer
+        if said is not None:
+            said.append(error_summary(layer))
 
 
 
@@ -273,8 +280,6 @@ def _add_wmts_layer(url: str, layer: str, name: str) -> dict:
 
 _WCS_DESCRIBE_MAX_BYTES = 2 * 1024 * 1024
 _WCS_TIMEOUT_S = 30
-_TIFF_MAGIC = (b"II*\x00", b"MM\x00*", b"II+\x00", b"MM\x00+")
-
 
 def _add_wcs_layer(args: dict) -> dict:
 
@@ -298,7 +303,7 @@ def _add_wcs_layer(args: dict) -> dict:
             layer = QgsRasterLayer(uri, name, "wcs")
             if layer.isValid():
                 break
-            errors.append(layer.error().summary()[:300])
+            errors.append(error_summary(layer)[:300])
         else:
             return {"_invalid": errors[0] if errors else "no answer"}
 
@@ -376,7 +381,7 @@ def _wcs_sample_stretch(base: str, coverage: str, window: dict | None) -> dict |
     if not window or not window.get("crs", "").startswith("EPSG:"):
         return None
     described, coverage, _ = _wcs_describe(base, coverage)
-    fmt = ogc_inspect.pick_tiff_format(described.get("formats") or [])
+    fmt, ext, _ = ogc_inspect.pick_grid_format(described.get("formats") or [])
     if not fmt:
         return None
     west, south, east, north = window["bbox"]
@@ -392,11 +397,11 @@ def _wcs_sample_stretch(base: str, coverage: str, window: dict | None) -> dict |
     except (urllib.error.URLError, OSError) as exc:
         log_warning(f"WCS sample for the stretch of {coverage} failed: {exc}")
         return None
-    if not body.startswith(_TIFF_MAGIC):
+    if not data_wcs_grid.is_grid(body, ext):
         return None
     from osgeo import gdal
 
-    path = f"/vsimem/wcs_sample_{abs(hash((base, coverage, west, south)))}.tif"
+    path = f"/vsimem/wcs_sample_{abs(hash((base, coverage, west, south)))}{ext}"
     gdal.FileFromMemBuffer(path, body)
     try:
         return elevation_style.sample_stretch(path)
@@ -422,13 +427,21 @@ def _wcs_describe(base: str, coverage: str) -> tuple[dict, str, Exception | None
     for candidate in _wcs_names(coverage):
         describe = ogc_inspect.with_query(base, {"SERVICE": "WCS", "VERSION": "1.0.0",
                                                  "REQUEST": "DescribeCoverage", "COVERAGE": candidate})
-        try:
-            answer = net.fetch(describe, timeout=_WCS_TIMEOUT_S, max_bytes=_WCS_DESCRIBE_MAX_BYTES,
-                               total_timeout=_WCS_TIMEOUT_S * 2, cache_ttl=_CACHE_CATALOG_S)
-        except net.FetchCancelled:
-            raise
-        except (urllib.error.URLError, OSError) as exc:
-            failure = exc
+        answer = None
+
+
+        for _attempt in range(2):
+            try:
+                answer = net.fetch(describe, timeout=_WCS_TIMEOUT_S, max_bytes=_WCS_DESCRIBE_MAX_BYTES,
+                                   total_timeout=_WCS_TIMEOUT_S, cache_ttl=_CACHE_CATALOG_S)
+                break
+            except net.FetchCancelled:
+                raise
+            except (urllib.error.URLError, OSError) as exc:
+                failure = exc
+                if isinstance(exc, urllib.error.HTTPError):
+                    break
+        if answer is None:
             continue
         described = ogc_inspect.wcs10_description(answer.body or b"")
         if described.get("formats"):
@@ -444,6 +457,7 @@ def _wcs_extract(base: str, coverage: str, name: str, crs: str, bbox) -> dict:
 
 
 
+
     try:
         west, south, east, north = (float(value) for value in bbox)
     except (TypeError, ValueError):
@@ -452,9 +466,9 @@ def _wcs_extract(base: str, coverage: str, name: str, crs: str, bbox) -> dict:
     if failure is not None and not described:
         return tool_error(f"The WCS at {base} did not describe {coverage!r}: {failure}",
                           hint="ogc_wcs_describe_failed")
-    fmt = ogc_inspect.pick_tiff_format(described.get("formats") or [])
+    fmt, ext, cell_bytes = ogc_inspect.pick_grid_format(described.get("formats") or [])
     if described.get("exception") or not fmt:
-        reason = described.get("exception") or "it offers no GeoTIFF format"
+        reason = described.get("exception") or "it offers neither a GeoTIFF nor an ASCII grid"
         return tool_error(f"The WCS at {base} cannot hand {coverage!r} over as a GeoTIFF: {reason}",
                           hint="ogc_wcs_no_geotiff")
     native = described.get("crs") or ""
@@ -475,7 +489,16 @@ def _wcs_extract(base: str, coverage: str, name: str, crs: str, bbox) -> dict:
         cells_y = max(1.0, round(2048.0 * height_m / max(width_m, 1.0)))
         params.update({"WIDTH": int(cells_x), "HEIGHT": int(cells_y)})
     ceiling = limits.current("MAX_DOWNLOAD_BYTES")
-    if cells_x * cells_y * 4 > ceiling:
+    stem = file_stem(name or coverage, "coverage")
+    if cells_x * cells_y * cell_bytes > ceiling and resolution and response_crs.startswith("EPSG:"):
+        read = data_wcs_grid.read_in_pieces(base, coverage, fmt, ext, cell_bytes, response_crs, resolution,
+                                            (west, south, east, north), stem)
+        if read.get("_error") is not None:
+            return read
+        path = read.pop("path")
+        return run_on_main_thread(lambda: _add_wcs_extract(path, name, base, coverage, (west, south, east, north),
+                                                           read), timeout=60)
+    if cells_x * cells_y * cell_bytes > ceiling:
 
         note = machine.note()
         return tool_error(f"{coverage!r} over that box is about {int(cells_x)} x {int(cells_y)} cells, more than "
@@ -500,36 +523,44 @@ def _wcs_extract(base: str, coverage: str, name: str, crs: str, bbox) -> dict:
             return tool_error(f"The GetCoverage of {coverage!r} from {base} failed: {exc}",
                               hint="ogc_wcs_getcoverage_failed")
         body = answer.body or b""
-        if body.startswith(_TIFF_MAGIC):
+        if data_wcs_grid.is_grid(body, ext):
             break
-    if not body.startswith(_TIFF_MAGIC):
+    if not data_wcs_grid.is_grid(body, ext):
 
 
         reason = ogc_inspect.wcs10_description(body).get("exception")
         said = reason or body[:200].decode("utf-8", "replace")
-        return tool_error(f"The service did not return a GeoTIFF for {coverage!r} over a box of about "
+        return tool_error(f"The service did not return a grid for {coverage!r} over a box of about "
                           f"{int(cells_x)} x {int(cells_y)} cells: {said}",
                           hint="" if reason else "ogc_wcs_box_overlap")
-    stem = file_stem(name or coverage, "coverage")
-    path = os.path.join(create_managed_temp_dir("wcs"), f"{stem}.tif")
+    folder = create_managed_temp_dir("wcs")
+    path = os.path.join(folder, f"{stem}.tif")
     try:
-        with open(path, "wb") as handle:
+        with open(os.path.join(folder, f"{stem}{ext}"), "wb") as handle:
             handle.write(body)
     except OSError as exc:
         return tool_error(f"Could not write the coverage to disk: {exc}", hint="ogc_wcs_write_failed")
-
-    def _create():
-        layer = QgsRasterLayer(path, name, "gdal")
-        if not layer.isValid():
-            return tool_error("The GeoTIFF the service returned is not readable.",
+    if ext == ".asc":
+        failure = data_wcs_grid.ascii_grid_to_tiff(os.path.join(folder, f"{stem}.asc"), path, response_crs)
+        if failure:
+            return tool_error(f"The ASCII grid the WCS returned for {coverage!r} could not be read: {failure}",
                               hint="ogc_wcs_geotiff_unreadable")
-        QgsProject.instance().addMapLayer(layer)
-        return {"layer_name": layer.name(), "layer_id": layer.id(), "url": base, "provider": "gdal, local extract",
-                "layer": coverage, "path": path, "bbox": [west, south, east, north], "size_bytes": len(body),
-                "_note": ("The box was downloaded from the WCS as a GeoTIFF of the real values and is read from "
-                          "this machine: slope, contours, hillshade and zonal statistics run on it directly.")}
+    size = len(body)
+    del body
+    return run_on_main_thread(lambda: _add_wcs_extract(path, name, base, coverage, (west, south, east, north),
+                                                       {"size_bytes": size}), timeout=60)
 
-    return run_on_main_thread(_create, timeout=60)
+
+def _add_wcs_extract(path: str, name: str, base: str, coverage: str, bbox, facts: dict) -> dict:
+
+    layer = QgsRasterLayer(path, name, "gdal")
+    if not layer.isValid():
+        return tool_error("The grid the service returned is not readable.", hint="ogc_wcs_geotiff_unreadable")
+    QgsProject.instance().addMapLayer(layer)
+    return {"layer_name": layer.name(), "layer_id": layer.id(), "url": base, "provider": "gdal, local extract",
+            "layer": coverage, "path": path, "bbox": list(bbox), **facts,
+            "_note": ("The box was downloaded from the WCS as a GeoTIFF of the real values and is read from "
+                      "this machine: slope, contours, hillshade and zonal statistics run on it directly.")}
 
 
 
@@ -559,7 +590,8 @@ def _server_words(body: bytes) -> str:
     return " ".join(text.split())[:_WMS_SERVER_TEXT_CHARS]
 
 
-def _wms_capabilities(url: str, status: list | None = None) -> tuple[bytes, str, bool]:
+def _wms_capabilities(url: str, status: list | None = None,
+                      failure: list | None = None) -> tuple[bytes, str, bool]:
 
 
 
@@ -581,8 +613,12 @@ def _wms_capabilities(url: str, status: list | None = None) -> tuple[bytes, str,
         if status is not None:
             status.append(exc.code)
         return b"", f"it answered HTTP {exc.code} to a GetCapabilities request", True
+    except net.FetchCancelled:
+        raise
     except Exception as exc:  # noqa: BLE001
         log_warning(f"WMS capabilities probe failed for {url}: {exc}")
+        if failure is not None:
+            failure.append(exc)
         return b"", f"it could not be reached: {exc}", False
     return answer.body or b"", "", True
 
@@ -707,30 +743,40 @@ def _add_wms_layer(args: dict) -> dict:
     asked = accounts.check(url, f"Load the WMS layer {layers}")
     if asked:
         return asked
+    from .data_common import provider_may_try
+
     status: list = []
-    body, silent_why, answered = _wms_capabilities(url, status)
-    if not answered:
+    failure: list = []
+    body, silent_why, answered = _wms_capabilities(url, status, failure)
+    if not answered and not (failure and provider_may_try(failure[0], url)):
         return tool_error(f"The WMS at {url} did not load: {silent_why}.", code=net.NETWORK_ERROR)
-    if status and accounts.is_refusal(status[0]):
-        return accounts.refused(url, status[0], tool_error(
-            f"The WMS at {url} did not load: {silent_why}.", code="PERMISSION_DENIED",
-            hint="service_needs_sign_in"), "WMS")
+    refusal = status[0] if status and accounts.is_refusal(status[0]) else None
+
+
+
+    said: list | None = None if answered else []
     uri = accounts.uri_with_auth(uri, url, "amp")
-    if _wms_advertises_refused_host(body, url):
+    if not body or _wms_advertises_refused_host(body, url):
+
 
         uri += ("" if dimensions else "&IgnoreGetMapUrl=1") + "&IgnoreGetFeatureInfoUrl=1"
-    ready = _wms_built_here(uri, name)
+    ready = _wms_built_here(uri, name, said)
+    if said is not None and ready is None:
+        reason = f" QGIS said: {said[0]}" if said and said[0] else ""
+        return tool_error(f"The WMS at {url} did not load: {silent_why}.{reason}", code=net.NETWORK_ERROR)
 
     def _create():
-        layer = _wms_layer(ready, uri, name)
+        layer = take(ready) if said is not None else _wms_layer(ready, uri, name)
+        if layer is None:
+            return {"_wms_invalid": True, "qgis_message": ""}
         if not layer.isValid():
 
 
             try:
-                said = str(layer.error().summary() or "")
+                message = error_summary(layer)
             except Exception:  # noqa: BLE001
-                said = ""
-            return {"_wms_invalid": True, "qgis_message": said}
+                message = ""
+            return {"_wms_invalid": True, "qgis_message": message}
         view = _canvas_scale()
         with view_kept():
             QgsProject.instance().addMapLayer(layer)
@@ -745,7 +791,15 @@ def _add_wms_layer(args: dict) -> dict:
     finally:
         _drop_unused(ready)
     if isinstance(made, dict) and made.get("_wms_invalid"):
-        return _wms_failure(url, names, made.get("qgis_message") or "")
+        said_text = (made.get("qgis_message") or "").strip()
+        if refusal is not None:
+            return accounts.refused(url, refusal, tool_error(
+                f"The WMS at {url} did not load: {silent_why}." + (f" QGIS said: {said_text}" if said_text else ""),
+                code="PERMISSION_DENIED", hint="service_needs_sign_in"), "WMS")
+        if said is not None:
+            return tool_error(f"The WMS at {url} did not load: {silent_why}."
+                              + (f" QGIS said: {said_text}" if said_text else ""), code=net.NETWORK_ERROR)
+        return _wms_failure(url, names, said_text)
     if isinstance(made, dict) and not made.get("_error"):
         view = made.pop("_canvas_scale", None)
 

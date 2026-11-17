@@ -6,7 +6,6 @@
 
 from __future__ import annotations
 
-from qgis.PyQt import sip
 from qgis.PyQt.QtCore import QTimer
 
 from ..core import layer_removed
@@ -14,6 +13,7 @@ from ..core.checkpoints import _in_snapshots
 from ..core.logger import log, log_warning
 from ..core.project_identity import open_project_file
 from ..core.protocol import CANCEL_PROJECT_CLOSED, RunStatus
+from ..core.qt_compat import qt_deleted
 from ..core.security import warm_layer_roots
 from ..core.snapshot import changed_layer_items
 from .controller_shared import tr
@@ -196,7 +196,7 @@ class _ControllerProjects:
             _memory, temporary = scratch_layers(project)
 
             marked = {node.layerId() for node, _indicator in getattr(self, "_scratch_marks", [])
-                      if not sip.isdeleted(node)}
+                      if not qt_deleted(node)}
             if marked == {layer.id() for layer in temporary}:
                 return
             self._clear_scratch_marks()

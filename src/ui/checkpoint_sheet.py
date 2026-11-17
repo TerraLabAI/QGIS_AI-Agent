@@ -56,11 +56,12 @@ from ..core.checkpoints import (
 )
 from ..core.numbers import as_float
 from .attach_menu import place_below
+from .cards_click import PressSurface
 from .font_scale import scale_qss_font_px
 from .history_popup import relative_time
 from .icons import icon_for
 from .popover_rows import _POPOVER_QSS, _ROW_PAD_X, _ROW_PAD_Y
-from .shared import event_pos, paint_styled_ground, round_popup_corners, screen_area_at
+from .shared import paint_styled_ground, released_on, round_popup_corners, screen_area_at
 from .style import (
     FONT_BODY,
     FONT_HINT,
@@ -344,11 +345,12 @@ def changes_tooltip(row: dict, tr, limit: int = 8) -> str:
     return "\n".join(shown)
 
 
-class _VersionRow(QWidget):
+class _VersionRow(PressSurface):
 
 
 
-    clicked = pyqtSignal()
+
+    chosen = pyqtSignal()
 
     def __init__(self, title: str, when: str = "", summary: str = "", parent=None,
                  undone: bool = False, current: bool = False, warn: bool = False, verb: str = ""):
@@ -400,6 +402,14 @@ class _VersionRow(QWidget):
         self._summary_row.setVisible(bool(self._full_summary) or bool(warn))
         column.addWidget(self._summary_row)
         self._elide()
+        self.setAccessibleName(", ".join(part for part in (self._full_title, str(when or ""),
+                                                           self._verb.text()) if part))
+        self.setAccessibleDescription(self._full_summary)
+        self.clicked.connect(self._on_clicked)
+
+    def _on_clicked(self) -> None:
+        if self.restorable and self.isEnabled():
+            self.chosen.emit()
 
     def verb(self) -> str:
         return self._verb.text() if not self._verb.isHidden() else ""
@@ -457,9 +467,9 @@ class _VersionRow(QWidget):
         super().leaveEvent(event)
 
     def mouseReleaseEvent(self, event):  # noqa: N802
-        if (event.button() == Qt.MouseButton.LeftButton and self.restorable
-                and self.rect().contains(event_pos(event))):
-            self.clicked.emit()
+        if self.restorable and released_on(self, event):
+            self.click()
+            return
         super().mouseReleaseEvent(event)
 
     def paintEvent(self, event):  # noqa: N802
@@ -611,7 +621,7 @@ class CheckpointSheet(QFrame):
         if self._running:
             stop = _VersionRow(self.tr("Stop and undo this request"), parent=self._host, verb=self.tr("Stop"))
             stop.setToolTip(self.tr("Stops the run, then puts the map back"))
-            stop.clicked.connect(lambda: self._choose(self.stop_and_restore_requested))
+            stop.chosen.connect(lambda: self._choose(self.stop_and_restore_requested))
             self._col.addWidget(stop)
             self._rows.append(stop)
 
@@ -646,7 +656,7 @@ class CheckpointSheet(QFrame):
         everything.setToolTip(self.tr("The map as it was before the first request") if whole
                               else self.tr("The oldest version still kept"))
         everything.setEnabled(start_current or (not self._running and any(usable(e) for e in entries)))
-        everything.clicked.connect(lambda: self._choose(self.discard_all_requested))
+        everything.chosen.connect(lambda: self._choose(self.discard_all_requested))
         self._outer.addWidget(everything)
         self._everything = everything
         self._rows.append(everything)
@@ -695,7 +705,7 @@ class CheckpointSheet(QFrame):
             return widget
         widget.setEnabled(bool(cid) and not self._running)
         if cid:
-            widget.clicked.connect(lambda c=cid: self._choose(self.restore_requested, c))
+            widget.chosen.connect(lambda c=cid: self._choose(self.restore_requested, c))
         self._rows.append(widget)
         return widget
 
@@ -840,6 +850,6 @@ class CheckpointSheet(QFrame):
             self._set_focus(enabled[(at + step) % len(enabled)])
             return
         if key in (Qt.Key.Key_Return, Qt.Key.Key_Enter) and self._focus in enabled:
-            self._rows[self._focus].clicked.emit()
+            self._rows[self._focus].click()
             return
         super().keyPressEvent(event)

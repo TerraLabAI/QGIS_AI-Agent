@@ -44,6 +44,7 @@ from ..core.output_paths import file_stem
 from ..core.policy import create_managed_temp_dir
 from ..core.qt_compat import enum_member
 from ..core.tool_registry import coded_fact, tool_error
+from ._layers import error_summary
 from .data_common import built_here, worker_options
 
 
@@ -242,7 +243,7 @@ def _read(uri: str, name: str, path: str, table: str, state: dict, halted: threa
     try:
         if not layer.isValid():
             try:
-                state["invalid"] = str(layer.error().summary() or "")
+                state["invalid"] = error_summary(layer)
             except Exception:  # noqa: BLE001
                 state["invalid"] = ""
             return

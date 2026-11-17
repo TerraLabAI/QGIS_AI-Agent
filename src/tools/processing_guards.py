@@ -33,12 +33,13 @@ from qgis.core import (
 )
 
 from ..core import ground, limits, tool_rules, tuning, vsi
+from ..core.layer_order import extent_known, source_gone
 from ..core.logger import log_debug
 from ..core.numbers import as_float, as_int
 from ..core.policy import create_managed_temp_dir
 from ..core.qt_compat import enum_member
 from ..core.tool_registry import tool_error
-from ._layers import resolve_layer
+from ._layers import resolve_layer, source_gone_error
 from .elevation_style import RELIEF_PROPERTY
 from .processing_crs_checks import _TERRAIN_BY_CELL, is_metric
 from .processing_decisions import _type_name, nodata_sentinel
@@ -62,9 +63,9 @@ def _distance_sanity(parameters: dict, confirmed: bool) -> dict | None:
         return None
     source = parameters.get("INPUT")
     layer = resolve_layer(source) if isinstance(source, str) else None
-    if layer is None or not hasattr(layer, "extent"):
+    extent = extent_known(layer) if layer is not None and hasattr(layer, "extent") else None
+    if extent is None:
         return None
-    extent = layer.extent()
     span = max(extent.width(), extent.height()) if not extent.isEmpty() else 0.0
     cuts = _guards().get("distance") or {}
     if layer.crs().isValid() and layer.crs().isGeographic():
@@ -1133,6 +1134,24 @@ def field_parameter_problem(alg, parameters: dict) -> str:
     return ""
 
 
+def _no_layers(definition, value) -> bool:
+
+
+    return _type_of(definition) == "multilayer" and isinstance(value, (list, tuple)) and not value
+
+
+def crash_refusal(alg, parameters: dict) -> str:
+
+
+
+    gone = _gone_input_check(parameters)
+    if gone:
+        return str(gone.get("_error") or "")
+    empty = [d.name() for d in _definitions(alg)
+             if d.name() in parameters and _no_layers(d, parameters[d.name()]) and not _is_optional(d)]
+    return f"{', '.join(empty)} lists no layer: {alg.id()} needs at least one." if empty else ""
+
+
 def _parameter_sanity(alg, parameters: dict) -> dict | None:
 
     definitions = _definitions(alg)
@@ -1172,7 +1191,8 @@ def _parameter_sanity(alg, parameters: dict) -> dict | None:
     absent = []
     for definition in definitions:
         name = definition.name()
-        if name in parameters and parameters[name] not in (None, ""):
+        value = parameters.get(name)
+        if name in parameters and value not in (None, "") and not _no_layers(definition, value):
             continue
         if getattr(definition, "isDestination", lambda: False)():
             continue
@@ -1234,6 +1254,27 @@ def ignored_parameters(alg, parameters: dict) -> list:
     names = {definition.name() for definition in definitions}
     return [f"{key} is not a parameter of {alg.id()} and was ignored"
             for key in parameters if key not in names]
+
+
+def _gone_input_check(parameters: dict) -> dict | None:
+
+
+
+
+
+    project = QgsProject.instance()
+    for value in parameters.values():
+        for item in value if isinstance(value, (list, tuple)) else (value,):
+            source = getattr(item, "source", None)
+            if source is not None and hasattr(source, "staticValue"):
+                item = source.staticValue()
+            if not isinstance(item, str) or not item:
+                layer = item if hasattr(item, "dataProvider") else None
+            else:
+                layer = project.mapLayer(item) or next(iter(project.mapLayersByName(item)), None)
+            if layer is not None and source_gone(layer):
+                return source_gone_error(layer)
+    return None
 
 
 def _empty_input_check(alg, parameters: dict) -> dict | None:

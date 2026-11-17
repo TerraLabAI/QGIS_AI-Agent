@@ -32,6 +32,7 @@ import math
 
 from ..core.background import run_on_main_thread
 from ..core.context_layers import canvas_bbox_4326, view_bbox_4326
+from ..core.layer_order import extent_known
 from ..core.logger import log
 from ..core.numbers import as_int
 from ..core.tool_registry import Tool, ToolRegistry, tool_error
@@ -64,13 +65,13 @@ _KM_PER_DEG_LON_EQ = 111.32
 OPTIONAL_DEPENDENCIES.setdefault("h3", {
     "package": "h3",
     "import_name": "h3",
-    "unlocks": "H3 hexagonal grids in create_grid_layer, encode_cells and decode_cell",
+    "unlocks": "H3 hexagonal grids in create_grid_layer",
     "post_install": "After a plugin reload (QGIS plugin manager), system:'h3' works in the grid tools.",
 })
 OPTIONAL_DEPENDENCIES.setdefault("s2", {
     "package": "s2sphere",
     "import_name": "s2sphere",
-    "unlocks": "S2 quadrilateral grids in create_grid_layer, encode_cells and decode_cell",
+    "unlocks": "S2 quadrilateral grids in create_grid_layer",
     "post_install": "After a plugin reload (QGIS plugin manager), system:'s2' works in the grid tools.",
 })
 
@@ -584,7 +585,10 @@ def _layer_bbox_4326(layer_name: str):
     layer = resolve_layer(layer_name)
     if layer is None:
         return None
-    return view_bbox_4326(layer.extent(), layer.crs()) or []
+    extent = extent_known(layer)
+    if extent is None:
+        return []
+    return view_bbox_4326(extent, layer.crs()) or []
 
 
 def _resolve_extent(args: dict) -> tuple:

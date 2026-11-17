@@ -67,6 +67,7 @@ class SourceChip(Pressable):
         lay.addWidget(label(self, str(row.get("name") or self.key), C.BODY_PX, C.T.text), 0,
                       Qt.AlignmentFlag.AlignVCenter)
         labels_through(self)
+        self.setAccessibleName(str(row.get("name") or self.key))
         self.setFixedHeight(C.px(28))
 
 
@@ -109,7 +110,7 @@ class PromptCard(QFrame):
             row.addWidget(label(self, tr("Uses"), C.BODY_PX, C.T.text_2), 0, Qt.AlignmentFlag.AlignVCenter)
             for source in sources[:_CARD_SOURCES]:
                 chip = SourceChip(source, self)
-                chip.clicked.connect(lambda k=chip.key: self.connector_requested.emit(k))
+                chip.clicked.connect(lambda _c=False, k=chip.key: self.connector_requested.emit(k))
                 row.addWidget(chip, 0, Qt.AlignmentFlag.AlignVCenter)
         row.addStretch(1)
         self._copy = QPushButton(tr("Copy"), self)
@@ -342,7 +343,7 @@ class ExampleDetail(QWidget):
         lay.setContentsMargins(0, 0, 0, 0)
         for row in rows[:6]:
             chip = SourceChip(row, host)
-            chip.clicked.connect(lambda k=chip.key: self.connector_requested.emit(k))
+            chip.clicked.connect(lambda _c=False, k=chip.key: self.connector_requested.emit(k))
             lay.addWidget(chip)
         return host
 

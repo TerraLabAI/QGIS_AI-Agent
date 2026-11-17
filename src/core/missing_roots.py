@@ -258,6 +258,7 @@ def _windows_accepts(host: str, port: int) -> bool:
     import socket
 
     unchecked = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+    unchecked.minimum_version = ssl.TLSVersion.TLSv1_2
     unchecked.check_hostname = False
     unchecked.verify_mode = ssl.CERT_NONE  # nosec B323
     with socket.create_connection((host, port), timeout=_ASK_TIMEOUT_S) as raw, \

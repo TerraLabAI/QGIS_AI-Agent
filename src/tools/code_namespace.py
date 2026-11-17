@@ -181,9 +181,10 @@ def reference(value, depth: int = 0):
             QgsPrintLayout,
             QgsProject,
         )
-        from qgis.PyQt import sip
 
-        if sip.isdeleted(value):
+        from ..core.qt_compat import qt_deleted
+
+        if qt_deleted(value):
             return None
         if value is QgsProject.instance():
             return ("project",)
@@ -253,8 +254,19 @@ def ordered_layers(project) -> list:
         return list(project.mapLayers().values())
 
 
+_QUOTE_TWINS = str.maketrans({"‘": "'", "’": "'", "‛": "'", "′": "'", "`": "'",
+                               "´": "'", "“": '"', "”": '"', "„": '"', "_": " "})
+
+
+def loose_name(name: str) -> str:
+
+
+    return " ".join(str(name).translate(_QUOTE_TWINS).casefold().split())
+
+
 def layer_lookup(project):
     def layer(name_or_id):
+
 
         key = str(name_or_id or "")
         found = project.mapLayer(key)
@@ -267,9 +279,18 @@ def layer_lookup(project):
         if len(exact) > 1:
             raise LookupError(f"{len(exact)} layers are called {key!r}; pass one of their ids: "
                               + ", ".join(lyr.id() for lyr in exact[:10]))
-        folded = [lyr for lyr in project.mapLayers().values() if lyr.name().casefold() == key.casefold()]
+        everyone = list(project.mapLayers().values())
+        folded = [lyr for lyr in everyone if lyr.name().casefold() == key.casefold()]
         if len(folded) == 1:
             return folded[0]
+        loose = [lyr for lyr in everyone if loose_name(lyr.name()) == loose_name(key)]
+        if len(loose) == 1 and not folded:
+            return loose[0]
+        import difflib
+
+
+        wanted = loose_name(key)
+        names = sorted(names, key=lambda n: -difflib.SequenceMatcher(None, wanted, loose_name(n)).ratio())
         shown = ", ".join(repr(n) for n in names[:20]) or "none"
         raise LookupError(f"No layer is called {key!r}. The project's layers: {shown}.")
     return layer
@@ -361,6 +382,26 @@ def _layer_type(layer) -> str:
 def result_json(value) -> tuple[object, str]:
 
     return encode(value), type(value).__name__
+
+
+
+
+IMAGE_KEYS = ("png_base64", "jpeg_base64", "image_base64", "screenshot_base64")
+_IMAGES_LIFTED = 6
+
+
+def lift_images(value) -> tuple[object, dict]:
+
+
+
+    if not isinstance(value, dict):
+        return value, {}
+    images = {key: value[key] for key in IMAGE_KEYS
+              if isinstance(value.get(key), str) and value[key]}
+    images = dict(list(images.items())[:_IMAGES_LIFTED])
+    if not images:
+        return value, {}
+    return {k: v for k, v in value.items() if k not in images}, images
 
 
 
@@ -567,13 +608,11 @@ class EditWatch:
 
     def close(self) -> None:
 
-        try:
-            from qgis.PyQt import sip
-        except Exception:  # noqa: BLE001
-            sip = None
+        from ..core.qt_compat import qt_deleted
+
         for lid, signal, slot in self._links:
             layer = _quiet(lambda lid=lid: self._project.mapLayer(lid))
-            if layer is None or sip is None or sip.isdeleted(layer):
+            if qt_deleted(layer):
                 continue
             try:
                 getattr(layer, signal).disconnect(slot)

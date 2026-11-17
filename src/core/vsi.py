@@ -183,6 +183,25 @@ SCOPED_OPTIONS: dict[str, str] = {
     "CPL_VSIL_CURL_AUTHORIZATION_HEADER_ALLOWED_IF_REDIRECT": "NO",
 }
 
+
+
+
+
+_THREADED_GTIFF_FIXED = 3070100
+
+
+def _without_broken_threads(gdal, options: dict) -> dict:
+
+    if "GDAL_NUM_THREADS" not in options:
+        return options
+    try:
+        if int(gdal.VersionInfo("VERSION_NUM")) >= _THREADED_GTIFF_FIXED:
+            return options
+    except (AttributeError, TypeError, ValueError):
+        pass
+    return {key: value for key, value in options.items() if key != "GDAL_NUM_THREADS"}
+
+
 _state = {"applied": False}
 
 
@@ -553,6 +572,7 @@ def thread_options(gdal, **options):
 
 
     set_local = getattr(gdal, "SetThreadLocalConfigOption", None)
+    options = _without_broken_threads(gdal, options)
     if set_local is None or not options:
         yield
         return
@@ -582,7 +602,7 @@ def scoped_read(gdal=None, **overrides: str):
         except ImportError:
             yield
             return
-    options = {**SCOPED_OPTIONS, **overrides}
+    options = _without_broken_threads(gdal, {**SCOPED_OPTIONS, **overrides})
     thread_local = getattr(gdal, "config_options", None)
     if thread_local is not None:
         with thread_local(options):

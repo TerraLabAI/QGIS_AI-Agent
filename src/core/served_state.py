@@ -896,41 +896,47 @@ def get_effort_text(level: str, name: str, note: str) -> tuple:
 
 
 
-
-_MAX_NOTICE_ROWS = 5
+_MAX_NOTICE_CHECKS = 6
 _MAX_LEAD_CHARS = 140
-_MAX_REST_CHARS = 400
+_MAX_TOGGLE_NOTE_CHARS = 200
+
+
+def _served_notice() -> dict:
+    notice = _served_config.get("privacy_notice")
+    return notice if isinstance(notice, dict) else {}
+
+
+def _served_notice_text(key: str, limit: int) -> str:
+    value = _served_notice().get(key)
+    return value.strip()[:limit] if isinstance(value, str) else ""
 
 
 def get_privacy_notice_heading(shipped: str) -> str:
 
-    notice = _served_config.get("privacy_notice")
-    value = notice.get("heading") if isinstance(notice, dict) else None
-    return value.strip()[:_MAX_LEAD_CHARS] if isinstance(value, str) and value.strip() else shipped
+    return _served_notice_text("heading", _MAX_LEAD_CHARS) or shipped
 
 
-def get_privacy_notice_rows(shipped: tuple) -> tuple:
+def get_privacy_notice_checks(shipped: tuple) -> tuple:
 
-
-
-
-
-
-    notice = _served_config.get("privacy_notice")
-    rows = notice.get("rows") if isinstance(notice, dict) else None
-    if not isinstance(rows, list) or not rows:
+    checks = _served_notice().get("checks")
+    if not isinstance(checks, list) or not checks:
         return shipped
-    out: list = []
-    for row in rows[:_MAX_NOTICE_ROWS]:
-        if not isinstance(row, dict):
+    out = []
+    for item in checks[:_MAX_NOTICE_CHECKS]:
+        text = item.strip() if isinstance(item, str) else ""
+        if not text:
             return shipped
-        lead = str(row.get("lead") or "").strip()
-        rest = str(row.get("rest") or "").strip()
-        if not lead or not rest:
-            return shipped
-        kind = str(row.get("kind") or "").strip().lower()[:20]
-        out.append((kind, lead[:_MAX_LEAD_CHARS], rest[:_MAX_REST_CHARS]))
-    return tuple(out) or shipped
+        out.append(text[:_MAX_LEAD_CHARS])
+    return tuple(out)
+
+
+def get_privacy_notice_toggle(title: str, note: str) -> tuple:
+
+    served_title = _served_notice_text("toggle_title", _MAX_LEAD_CHARS)
+    served_note = _served_notice_text("toggle_note", _MAX_TOGGLE_NOTE_CHARS)
+    if served_title and served_note:
+        return served_title, served_note
+    return title, note
 
 
 def get_privacy_notice_version() -> int:
@@ -942,9 +948,7 @@ def get_privacy_notice_version() -> int:
 
 
 
-    notice = _served_config.get("privacy_notice")
-    value = notice.get("version") if isinstance(notice, dict) else None
-    served = as_int(value)
+    served = as_int(_served_notice().get("version"))
     if served is None:
         return PRIVACY_NOTICE_VERSION
     if served > 1000 or served < 0:

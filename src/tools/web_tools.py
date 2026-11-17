@@ -39,7 +39,7 @@ from ..core.security_urls import is_local_url, local_url_refusal
 from ..core.serialization import CodedText
 from ..core.tool_registry import Tool, ToolRegistry, coded_fact, tool_error
 from . import volume_guard
-from .data_inspect import expand_link
+from .data_inspect import expand_link, http_refusal
 
 _TIMEOUT_S = 30
 _MAX_BYTES = 25 * 1024 * 1024
@@ -146,7 +146,7 @@ def _fetch(url: str) -> tuple[object | None, dict | None]:
     except net.FetchCancelled:
         return None, tool_error("The run was stopped.", "CANCELLED")
     except urllib.error.HTTPError as e:
-        return None, tool_error(f"HTTP {e.code} from {url}", "HTTP_ERROR", hint="http_error_json", status=e.code)
+        return None, http_refusal(url, e, "HTTP_ERROR")
     except (urllib.error.URLError, OSError) as e:
         return None, tool_error(f"Could not fetch {url}: {e}", "NETWORK_ERROR")
     try:
@@ -303,7 +303,7 @@ def _fetch_raw(url: str) -> tuple[bytes | None, str, dict | None]:
     except net.FetchCancelled:
         return None, "", tool_error("The run was stopped.", "CANCELLED")
     except urllib.error.HTTPError as e:
-        failure = tool_error(f"HTTP {e.code} from {url}", "HTTP_ERROR")
+        failure = http_refusal(url, e, "HTTP_ERROR")
         return None, "", accounts.refused(url, e.code, failure, "page") if accounts.is_refusal(e.code, url) else failure
     except (urllib.error.URLError, OSError) as e:
         return None, "", tool_error(f"Could not fetch {url}: {e}", "NETWORK_ERROR")
@@ -422,6 +422,17 @@ def _pdf_string(raw: bytes) -> str:
     return out.decode("latin-1", "ignore")
 
 
+def _pdf_array_parts(array: bytes) -> list[str]:
+
+    parts = []
+    for text, kern in _PDF_ARRAY_PART_RE.findall(array):
+        if text:
+            parts.append(_pdf_string(text))
+        elif kern and float(kern) < -200:
+            parts.append(" ")
+    return parts
+
+
 def _pdf_text(raw: bytes) -> tuple[str, str]:
 
 
@@ -453,11 +464,7 @@ def _pdf_text(raw: bytes) -> tuple[str, str]:
                 if literal is not None:
                     line.append(_pdf_string(literal))
                 elif array is not None:
-                    for text, kern in _PDF_ARRAY_PART_RE.findall(array):
-                        if text:
-                            line.append(_pdf_string(text))
-                        elif kern and float(kern) < -200:
-                            line.append(" ")
+                    line.extend(_pdf_array_parts(array))
                 elif line and line[-1] != "\n":
                     line.append("\n")
             joined = "\n".join(" ".join(part.split()) for part in "".join(line).split("\n") if part.strip())

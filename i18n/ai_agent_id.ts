@@ -1907,6 +1907,82 @@ Setelah masa tenggang berakhir, penghapusan tidak dapat dibatalkan. Sebelum itu,
             <source>{words} · {done} of {total}</source>
             <translation>{words} · {done} dari {total}</translation>
         </message>
+        <message>
+            <source>Allow chat review</source>
+            <translation>Izinkan peninjauan chat</translation>
+        </message>
+        <message>
+            <source>Both switches stay in Settings, where you can change them whenever you want.</source>
+            <translation>Kedua pengaturan ini tetap ada di Pengaturan, tempat Anda bisa mengubahnya kapan saja.</translation>
+        </message>
+        <message>
+            <source>Counts and error codes, linked to your account. Never your text or your map.</source>
+            <translation>Jumlah dan kode kesalahan, terhubung ke akun Anda. Tidak pernah teks atau peta Anda.</translation>
+        </message>
+        <message>
+            <source>Each message sends your text, the map extent, your layer and field names, one sample row and, while it works, pictures of the map. Never your files unless you attach them. No model is trained on them.</source>
+            <translation>Setiap pesan mengirim teks Anda, cakupan peta, nama layer dan kolom Anda, satu baris contoh dan, saat bekerja, gambar peta. Tidak pernah file Anda kecuali Anda melampirkannya. Tidak ada model yang dilatih dengan data ini.</translation>
+        </message>
+        <message>
+            <source>Our team may read your chats to fix the AI agent.</source>
+            <translation>Tim kami dapat membaca chat Anda untuk memperbaiki AI agent.</translation>
+        </message>
+        <message>
+            <source>Runs on Microsoft Azure in Europe, stored in France.</source>
+            <translation>Berjalan di Microsoft Azure di Eropa, disimpan di Prancis.</translation>
+        </message>
+        <message>
+            <source>Share usage statistics</source>
+            <translation>Bagikan statistik penggunaan</translation>
+        </message>
+        <message>
+            <source>The message you send is the part that reaches us: we keep it 90 days, and with chat review on, our team may read it to fix the AI agent. On {pro}, 30 days, or none at 0 days of history.</source>
+            <translation>Pesan yang Anda kirim adalah bagian yang sampai ke kami: kami menyimpannya 90 hari, dan jika peninjauan chat aktif, tim kami dapat membacanya untuk memperbaiki AI agent. Di {pro}, 30 hari, atau tidak sama sekali jika riwayat diatur 0 hari.</translation>
+        </message>
+        <message>
+            <source>You choose below.</source>
+            <translation>Anda memilih di bawah.</translation>
+        </message>
+        <message>
+            <source>Close the open list</source>
+            <translation>Tutup daftar yang terbuka</translation>
+        </message>
+        <message>
+            <source>Press it twice</source>
+            <translation>Tekan dua kali</translation>
+        </message>
+        <message>
+            <source>Deleted after 90 days at most</source>
+            <translation>Dihapus paling lama setelah 90 hari</translation>
+        </message>
+        <message>
+            <source>Help improve AI Agent</source>
+            <translation>Bantu tingkatkan AI Agent</translation>
+        </message>
+        <message>
+            <source>Hosted in the EU</source>
+            <translation>Dihosting di UE</translation>
+        </message>
+        <message>
+            <source>Never used to train AI</source>
+            <translation>Tidak pernah dipakai untuk melatih AI</translation>
+        </message>
+        <message>
+            <source>Your chats are private</source>
+            <translation>Chat Anda bersifat privat</translation>
+        </message>
+        <message>
+            <source>Your usage and chats help us fix bugs. Turn it off anytime.</source>
+            <translation>Penggunaan dan chat Anda membantu kami memperbaiki bug. Matikan kapan saja.</translation>
+        </message>
+        <message>
+            <source>included</source>
+            <translation>disertakan</translation>
+        </message>
+        <message>
+            <source>left out</source>
+            <translation>tidak disertakan</translation>
+        </message>
     </context>
     <context>
         <name>AIAgentContext</name>
@@ -2071,6 +2147,10 @@ Setelah masa tenggang berakhir, penghapusan tidak dapat dibatalkan. Sebelum itu,
         <message>
             <source>The AI agent stopped before finishing.</source>
             <translation>Agen berhenti sebelum selesai.</translation>
+        </message>
+        <message>
+            <source>This layer's file can no longer be read, so the map cannot zoom to it.</source>
+            <translation>File layer ini tidak bisa dibaca lagi, jadi peta tidak bisa melakukan zoom ke layer tersebut.</translation>
         </message>
     </context>
     <context>
@@ -2536,6 +2616,10 @@ Setelah masa tenggang berakhir, penghapusan tidak dapat dibatalkan. Sebelum itu,
             <source>{words} · {done} of {total}</source>
             <translation>{words} · {done} dari {total}</translation>
         </message>
+        <message>
+            <source>Show on map</source>
+            <translation>Tampilkan di peta</translation>
+        </message>
     </context>
     <context>
         <name>AgentBubble</name>
@@ -2583,6 +2667,18 @@ Setelah masa tenggang berakhir, penghapusan tidak dapat dibatalkan. Sebelum itu,
         <message>
             <source>Remove rating</source>
             <translation>Hapus penilaian</translation>
+        </message>
+        <message>
+            <source>Did this do what you wanted?</source>
+            <translation>Sudah sesuai harapan Anda?</translation>
+        </message>
+        <message>
+            <source>No</source>
+            <translation>Tidak</translation>
+        </message>
+        <message>
+            <source>Yes</source>
+            <translation>Ya</translation>
         </message>
     </context>
     <context>
@@ -3008,6 +3104,26 @@ Setelah masa tenggang berakhir, penghapusan tidak dapat dibatalkan. Sebelum itu,
             <source>Stopped: AI Agent was updated or turned off during this run.</source>
             <translation>Dihentikan: AI Agent diperbarui atau dimatikan selama proses ini.</translation>
         </message>
+        <message>
+            <source>Not sent: TerraLab is not connected.</source>
+            <translation>Tidak terkirim: TerraLab tidak terhubung.</translation>
+        </message>
+        <message>
+            <source>Thanks. Your note went with the crash report.</source>
+            <translation>Terima kasih. Catatan Anda ikut terkirim bersama laporan crash.</translation>
+        </message>
+        <message>
+            <source>{layer} lost its file, and QGIS closes when it saves a project that holds it, so nothing was restored. Remove {layer} from the project, or put its file back and turn its editing on and off once, then try again.</source>
+            <translation>{layer} kehilangan filenya, dan QGIS tertutup saat menyimpan proyek yang memuatnya, jadi tidak ada yang dipulihkan. Hapus {layer} dari proyek, atau kembalikan filenya lalu aktifkan dan nonaktifkan pengeditannya satu kali, kemudian coba lagi.</translation>
+        </message>
+        <message>
+            <source>Your note could not be added to the crash report.</source>
+            <translation>Catatan Anda tidak dapat ditambahkan ke laporan crash.</translation>
+        </message>
+        <message>
+            <source>Your note was sent.</source>
+            <translation>Catatan Anda telah terkirim.</translation>
+        </message>
     </context>
     <context>
         <name>AgentSession</name>
@@ -3156,6 +3272,10 @@ Setelah masa tenggang berakhir, penghapusan tidak dapat dibatalkan. Sebelum itu,
     </context>
     <context>
         <name>ChatPanel</name>
+        <message>
+            <source>Try another card</source>
+            <translation>Coba kartu lain</translation>
+        </message>
         <message>
             <source>Changed {0} to {1}</source>
             <translation>Diubah {0} menjadi {1}</translation>
@@ -3423,6 +3543,14 @@ Setelah masa tenggang berakhir, penghapusan tidak dapat dibatalkan. Sebelum itu,
         <message>
             <source>Reply</source>
             <translation>Balas</translation>
+        </message>
+        <message>
+            <source>Esc again to stop</source>
+            <translation>Tekan Esc lagi untuk berhenti</translation>
+        </message>
+        <message>
+            <source>Queue a message for after this run</source>
+            <translation>Antrekan pesan untuk setelah proses ini</translation>
         </message>
     </context>
     <context>
@@ -3746,6 +3874,72 @@ Setelah masa tenggang berakhir, penghapusan tidak dapat dibatalkan. Sebelum itu,
             <source>Finish dictation</source>
             <translation>Selesaikan dikte</translation>
         </message>
+        <message>
+            <location filename="src/ui/composer.py" />
+            <source>{name} was removed from the project</source>
+            <translation>{name} dihapus dari proyek</translation>
+        </message>
+        <message>
+            <location filename="src/ui/composer.py" />
+            <source>{name} is now called {new}</source>
+            <translation>{name} sekarang bernama {new}</translation>
+        </message>
+        <message>
+            <location filename="src/ui/composer.py" />
+            <source>{names} were removed from the project</source>
+            <translation>{names} dihapus dari proyek</translation>
+        </message>
+        <message>
+            <location filename="src/ui/composer.py" />
+            <source>{n} layers named here were removed or renamed</source>
+            <translation>{n} layer yang disebut di sini dihapus atau diganti namanya</translation>
+        </message>
+        <message>
+            <location filename="src/ui/composer.py" />
+            <source>Sent as plain words: the AI agent gets no link to the layer.</source>
+            <translation>Dikirim sebagai teks biasa: agen AI tidak mendapat tautan ke layer.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/composer.py" />
+            <source>removed from the project</source>
+            <translation>dihapus dari proyek</translation>
+        </message>
+        <message>
+            <location filename="src/ui/composer.py" />
+            <source>renamed {new}</source>
+            <translation>diganti namanya menjadi {new}</translation>
+        </message>
+        <message>
+            <location filename="src/ui/composer.py" />
+            <source>Use</source>
+            <translation>Pakai</translation>
+        </message>
+        <message>
+            <location filename="src/ui/composer.py" />
+            <source>Write {new} in the message instead</source>
+            <translation>Tulis {new} di pesan sebagai gantinya</translation>
+        </message>
+        <message>
+            <location filename="src/ui/composer.py" />
+            <source>and {n} more</source>
+            <translation>dan {n} lainnya</translation>
+        </message>
+        <message>
+            <source>1 layer</source>
+            <translation>1 layer</translation>
+        </message>
+        <message>
+            <source>Edit as text</source>
+            <translation>Edit sebagai teks</translation>
+        </message>
+        <message>
+            <source>Show on map</source>
+            <translation>Tampilkan di peta</translation>
+        </message>
+        <message>
+            <source>{n} layers</source>
+            <translation>{n} layer</translation>
+        </message>
     </context>
     <context>
         <name>ComposerInput</name>
@@ -3762,6 +3956,14 @@ Setelah masa tenggang berakhir, penghapusan tidak dapat dibatalkan. Sebelum itu,
         <message>
             <source>Data sources</source>
             <translation>Sumber data</translation>
+        </message>
+        <message>
+            <source>Type to search layers, data sources and QGIS plugins</source>
+            <translation>Ketik untuk mencari layer, sumber data, dan plugin QGIS</translation>
+        </message>
+        <message>
+            <source>Message AI Agent</source>
+            <translation>Kirim pesan ke AI Agent</translation>
         </message>
     </context>
     <context>
@@ -4305,6 +4507,18 @@ Setelah masa tenggang berakhir, penghapusan tidak dapat dibatalkan. Sebelum itu,
             <source>Your Pro ends on {date}. Keep it in one click.</source>
             <translation>Pro Anda berakhir pada {date}. Pertahankan dengan satu klik.</translation>
         </message>
+        <message>
+            <source>AI Agent settings</source>
+            <translation>Pengaturan AI Agent</translation>
+        </message>
+        <message>
+            <source>Close AI Agent</source>
+            <translation>Tutup AI Agent</translation>
+        </message>
+        <message>
+            <source>Dock or undock AI Agent</source>
+            <translation>Sematkan atau lepas AI Agent</translation>
+        </message>
     </context>
     <context>
         <name>HistoryPopup</name>
@@ -4403,6 +4617,19 @@ Setelah masa tenggang berakhir, penghapusan tidak dapat dibatalkan. Sebelum itu,
         <message>
             <source>This deletes "{title}" and the project versions saved with it. It cannot be undone.</source>
             <translation>Ini menghapus "{title}" dan versi proyek yang disimpan bersamanya. Tindakan ini tidak dapat dibatalkan.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/history_popup.py" />
+            <source>Draft</source>
+            <translation>Draf</translation>
+        </message>
+        <message>
+            <source>Delete chat: {title}</source>
+            <translation>Hapus obrolan: {title}</translation>
+        </message>
+        <message>
+            <source>Open</source>
+            <translation>Buka</translation>
         </message>
     </context>
     <context>
@@ -4744,10 +4971,6 @@ Klik untuk membuka halamannya.</translation>
             <translation>Tidak ada di proyek ini: {}</translation>
         </message>
         <message>
-            <source>Other effects the preview could not read: {}</source>
-            <translation>Efek lain yang tidak terbaca oleh pratinjau: {}</translation>
-        </message>
-        <message>
             <source>Reads: {}</source>
             <translation>Membaca: {}</translation>
         </message>
@@ -4758,6 +4981,94 @@ Klik untuk membuka halamannya.</translation>
         <message>
             <source>Writes files: {}</source>
             <translation>Menulis file: {}</translation>
+        </message>
+        <message>
+            <source>Cancel</source>
+            <translation>Batal</translation>
+        </message>
+        <message>
+            <source>Delete 1 feature from {layer}</source>
+            <translation>Hapus 1 feature dari {layer}</translation>
+        </message>
+        <message>
+            <source>Delete {n}</source>
+            <translation>Hapus {n}</translation>
+        </message>
+        <message>
+            <source>Delete {n} features from {layer}</source>
+            <translation>Hapus {n} feature dari {layer}</translation>
+        </message>
+        <message>
+            <source>Details</source>
+            <translation>Detail</translation>
+        </message>
+        <message>
+            <source>Feature ids: {ids}</source>
+            <translation>ID feature: {ids}</translation>
+        </message>
+        <message>
+            <source>Feature ids: {ids} and {n} more</source>
+            <translation>ID feature: {ids} dan {n} lainnya</translation>
+        </message>
+        <message>
+            <source>Feature {fid}: {values}</source>
+            <translation>Feature {fid}: {values}</translation>
+        </message>
+        <message>
+            <source>Hatched in red on the map. Its data source stays as it is; nothing is removed yet.</source>
+            <translation>Diarsir merah di peta. Sumber datanya tetap utuh; belum ada yang dihapus.</translation>
+        </message>
+        <message>
+            <source>Hatched in red on the map. Nothing is deleted yet.</source>
+            <translation>Diarsir merah di peta. Belum ada yang dihapus.</translation>
+        </message>
+        <message>
+            <source>Hatched in red on the map. Nothing is written yet.</source>
+            <translation>Diarsir merah di peta. Belum ada yang ditulis.</translation>
+        </message>
+        <message>
+            <source>Hide details</source>
+            <translation>Sembunyikan detail</translation>
+        </message>
+        <message>
+            <source>Its features exist only in this project and go with it. Hatched in red on the map; nothing is removed yet.</source>
+            <translation>Feature-nya hanya ada di proyek ini dan ikut hilang bersamanya. Diarsir merah di peta; belum ada yang dihapus.</translation>
+        </message>
+        <message>
+            <source>Overwrite 1 feature of {layer}</source>
+            <translation>Timpa 1 feature di {layer}</translation>
+        </message>
+        <message>
+            <source>Overwrite {n}</source>
+            <translation>Timpa {n}</translation>
+        </message>
+        <message>
+            <source>Overwrite {n} features of {layer}</source>
+            <translation>Timpa {n} feature di {layer}</translation>
+        </message>
+        <message>
+            <source>Remove layer</source>
+            <translation>Hapus layer</translation>
+        </message>
+        <message>
+            <source>Remove {layer} from the project</source>
+            <translation>Hapus {layer} dari proyek</translation>
+        </message>
+        <message>
+            <source>Rule: {expression}</source>
+            <translation>Aturan: {expression}</translation>
+        </message>
+        <message>
+            <source>Show on map</source>
+            <translation>Tampilkan di peta</translation>
+        </message>
+        <message>
+            <source>{n} features in {layer}</source>
+            <translation>{n} feature di {layer}</translation>
+        </message>
+        <message>
+            <source>{n} of {total} features in {layer}</source>
+            <translation>{n} dari {total} feature di {layer}</translation>
         </message>
     </context>
     <context>
@@ -4978,6 +5289,18 @@ Klik untuk membuka halamannya.</translation>
     </context>
     <context>
         <name>QuotaCard</name>
+        <message>
+            <source>Card declined</source>
+            <translation>Kartu ditolak</translation>
+        </message>
+        <message>
+            <source>Your trial didn't start. Nothing was charged.</source>
+            <translation>Uji coba Anda belum dimulai. Tidak ada biaya yang ditagih.</translation>
+        </message>
+        <message>
+            <source>Try another card</source>
+            <translation>Coba kartu lain</translation>
+        </message>
         <message>
             <location filename="src/ui/quota_card.py" />
             <source>Free for 7 days, nothing to pay today, then monthly at your local price. Cancel in one click.</source>
@@ -6116,6 +6439,22 @@ Terima kasih</translation>
             <source>The AI agent's mark moves and follows the work. Off keeps it still.</source>
             <translation>Logo agen AI bergerak dan mengikuti pekerjaan. Jika nonaktif, logo diam.</translation>
         </message>
+        <message>
+            <source>Help improve AI Agent</source>
+            <translation>Bantu tingkatkan AI Agent</translation>
+        </message>
+        <message>
+            <source>Usage stats: errors, versions and the features you use, never your prompts, layers or files. We may read a chat, or have a model score it, to fix bugs, never to train AI.</source>
+            <translation>Statistik penggunaan: error, versi, dan fitur yang Anda pakai, tidak pernah prompt, layer, atau file Anda. Kami dapat membaca sebuah chat, atau meminta model menilainya, untuk memperbaiki bug, tidak pernah untuk melatih AI.</translation>
+        </message>
+        <message>
+            <source>Usage stats: only that you used the app and when. Chats are kept 30 days so a conversation survives an update; we may read one, or have a model score it, to fix bugs, never to train AI. 0 days of history stores nothing.</source>
+            <translation>Statistik penggunaan: hanya bahwa Anda memakai aplikasi dan kapan. Chat disimpan 30 hari agar percakapan tetap ada setelah pembaruan; kami dapat membaca satu chat, atau meminta model menilainya, untuk memperbaiki bug, tidak pernah untuk melatih AI. Riwayat 0 hari tidak menyimpan apa pun.</translation>
+        </message>
+        <message>
+            <source>Your usage and chats help us fix bugs. Turn it off anytime.</source>
+            <translation>Penggunaan dan chat Anda membantu kami memperbaiki bug. Matikan kapan saja.</translation>
+        </message>
     </context>
     <context>
         <name>SourcesButton</name>
@@ -6533,6 +6872,10 @@ Terima kasih</translation>
             <source>{area} m²</source>
             <translation>{area} m²</translation>
         </message>
+        <message>
+            <source>Always allowed</source>
+            <translation>Selalu diizinkan</translation>
+        </message>
     </context>
     <context>
         <name>TraceSteps</name>
@@ -6827,6 +7170,10 @@ Terima kasih</translation>
         <message>
             <source>Updating…</source>
             <translation>Memperbarui…</translation>
+        </message>
+        <message>
+            <source>Update {product} to continue</source>
+            <translation>Perbarui {product} untuk melanjutkan</translation>
         </message>
     </context>
     <context>
@@ -7874,6 +8221,18 @@ File ini tidak lagi berada di tempat proses menuliskannya.</translation>
             <source>Choose in Google Drive</source>
             <translation>Pilih di Google Drive</translation>
         </message>
+        <message>
+            <source>More ways to allow</source>
+            <translation>Opsi izin lainnya</translation>
+        </message>
+        <message>
+            <source>Always allow {label}</source>
+            <translation>Selalu izinkan {label}</translation>
+        </message>
+        <message>
+            <source>Always allowed</source>
+            <translation>Selalu diizinkan</translation>
+        </message>
     </context>
     <context>
         <name>ConnectedAccountsPage</name>
@@ -7980,6 +8339,18 @@ File ini tidak lagi berada di tempat proses menuliskannya.</translation>
         <message>
             <source>{name} sign-in</source>
             <translation>Masuk ke {name}</translation>
+        </message>
+        <message>
+            <source>Always allow</source>
+            <translation>Selalu izinkan</translation>
+        </message>
+        <message>
+            <source>Always allow {label}</source>
+            <translation>Selalu izinkan {label}</translation>
+        </message>
+        <message>
+            <source>Used with no card each time. Off: the AI agent asks first.</source>
+            <translation>Dipakai tanpa kartu setiap kali. Nonaktif: AI agent bertanya dulu.</translation>
         </message>
     </context>
     <context>
@@ -8127,6 +8498,14 @@ File ini tidak lagi berada di tempat proses menuliskannya.</translation>
         <message>
             <source>Show the plugin's panel.</source>
             <translation>Tampilkan panel plugin.</translation>
+        </message>
+        <message>
+            <source>Install {plugin}</source>
+            <translation>Instal {plugin}</translation>
+        </message>
+        <message>
+            <source>Open {plugin}</source>
+            <translation>Buka {plugin}</translation>
         </message>
     </context>
     <context>
@@ -8554,6 +8933,54 @@ File ini tidak lagi berada di tempat proses menuliskannya.</translation>
             <source>QGIS will ask you to choose a master password. It locks every sign-in saved in QGIS and cannot be recovered, so keep it somewhere safe.</source>
             <translation>QGIS akan meminta Anda memilih kata sandi utama. Kata sandi ini mengunci semua login yang tersimpan di QGIS dan tidak dapat dipulihkan, jadi simpan di tempat yang aman.</translation>
         </message>
+        <message>
+            <source>Cloud project ID</source>
+            <translation>ID proyek Cloud</translation>
+        </message>
+        <message>
+            <source>Shown next to the project name at the top of console.cloud.google.com.</source>
+            <translation>Tampil di samping nama proyek di bagian atas console.cloud.google.com.</translation>
+        </message>
+        <message>
+            <source>Type the ID of the Google Cloud project Earth Engine runs on.</source>
+            <translation>Ketik ID proyek Google Cloud tempat Earth Engine berjalan.</translation>
+        </message>
+        <message>
+            <source>Open the Cloud console</source>
+            <translation>Buka Cloud console</translation>
+        </message>
+        <message>
+            <source>You're signed in</source>
+            <translation>Anda sudah masuk</translation>
+        </message>
+        <message>
+            <source>You can close this tab and return to QGIS.</source>
+            <translation>Anda bisa menutup tab ini dan kembali ke QGIS.</translation>
+        </message>
+        <message>
+            <source>In QGIS, pick the Cloud project Earth Engine runs on.</source>
+            <translation>Di QGIS, pilih proyek Cloud tempat Earth Engine berjalan.</translation>
+        </message>
+        <message>
+            <source>Sign-in didn't finish</source>
+            <translation>Proses masuk belum selesai</translation>
+        </message>
+        <message>
+            <source>Close this tab and try again from QGIS.</source>
+            <translation>Tutup tab ini dan coba lagi dari QGIS.</translation>
+        </message>
+        <message>
+            <source>Checking {project} with Earth Engine...</source>
+            <translation>Memeriksa {project} dengan Earth Engine...</translation>
+        </message>
+        <message>
+            <source>Earth Engine refused the project {project} ({error}). Check the ID and your role on the project.</source>
+            <translation>Earth Engine menolak proyek {project} ({error}). Periksa ID dan peran Anda di proyek tersebut.</translation>
+        </message>
+        <message>
+            <source>Earth Engine could not be reached ({error}). Check your connection or the proxy in QGIS (Settings &gt; Options &gt; Network).</source>
+            <translation>Earth Engine tidak dapat dijangkau ({error}). Periksa koneksi Anda atau proxy di QGIS (Settings &gt; Options &gt; Network).</translation>
+        </message>
     </context>
     <context>
         <name>BrowserWait</name>
@@ -8926,6 +9353,22 @@ File ini tidak lagi berada di tempat proses menuliskannya.</translation>
             <source>Your words are sent with this chat and recent logs.</source>
             <translation>Tulisan Anda dikirim bersama chat ini dan log terbaru.</translation>
         </message>
+        <message>
+            <source>Add a comment</source>
+            <translation>Tambahkan komentar</translation>
+        </message>
+        <message>
+            <source>Ask the AI agent instead</source>
+            <translation>Tanyakan ke agen AI saja</translation>
+        </message>
+        <message>
+            <source>Message to the TerraLab team (optional)</source>
+            <translation>Pesan untuk tim TerraLab (opsional)</translation>
+        </message>
+        <message>
+            <source>Read by the TerraLab team, not by the AI agent. Sent with this chat and recent logs.</source>
+            <translation>Dibaca oleh tim TerraLab, bukan oleh agen AI. Dikirim bersama chat ini dan log terbaru.</translation>
+        </message>
     </context>
     <context>
         <name>NoteRow</name>
@@ -9141,6 +9584,295 @@ File ini tidak lagi berada di tempat proses menuliskannya.</translation>
         <message>
             <source>Recording</source>
             <translation>Merekam</translation>
+        </message>
+    </context>
+    <context>
+        <name>TransformationRow</name>
+        <message>
+            <source>A more accurate one ({accuracy}) needs a grid file this QGIS does not have.</source>
+            <translation>Yang lebih akurat ({accuracy}) memerlukan berkas grid yang tidak dimiliki QGIS ini.</translation>
+        </message>
+        <message>
+            <source>Change in Project Properties</source>
+            <translation>Ubah di Properti Proyek</translation>
+        </message>
+        <message>
+            <source>Coordinate transformation: {what}</source>
+            <translation>Transformasi koordinat: {what}</translation>
+        </message>
+        <message>
+            <source>Hide details</source>
+            <translation>Sembunyikan detail</translation>
+        </message>
+        <message>
+            <source>Show details</source>
+            <translation>Tampilkan detail</translation>
+        </message>
+        <message>
+            <source>The other option is no more accurate.</source>
+            <translation>Opsi lainnya tidak lebih akurat.</translation>
+        </message>
+        <message>
+            <source>The {count} other options are no more accurate.</source>
+            <translation>{count} opsi lainnya tidak lebih akurat.</translation>
+        </message>
+        <message>
+            <source>Transformation</source>
+            <translation>Transformasi</translation>
+        </message>
+        <message>
+            <source>{count} transformations</source>
+            <translation>{count} transformasi</translation>
+        </message>
+        <message>
+            <source>{layer} goes from {source} to {target} through {operation}, accurate to about {accuracy}.</source>
+            <translation>{layer} berubah dari {source} ke {target} melalui {operation}, dengan akurasi sekitar {accuracy}.</translation>
+        </message>
+        <message>
+            <source>{layer} goes from {source} to {target} through {operation}, of unknown accuracy.</source>
+            <translation>{layer} berubah dari {source} ke {target} melalui {operation}, dengan akurasi yang tidak diketahui.</translation>
+        </message>
+    </context>
+    <context>
+        <name>SelectionLine</name>
+        <message>
+            <source>Leave the selection out of this message</source>
+            <translation>Jangan sertakan seleksi dalam pesan ini</translation>
+        </message>
+        <message>
+            <source>The AI agent sees this selection with your message, along with the map view and the project's layers.</source>
+            <translation>AI agent melihat seleksi ini bersama pesan Anda, beserta tampilan peta dan layer proyek.</translation>
+        </message>
+        <message>
+            <source>{layer} · 1 feature selected</source>
+            <translation>{layer} · 1 fitur dipilih</translation>
+        </message>
+        <message>
+            <source>{layer} · {n} features selected</source>
+            <translation>{layer} · {n} fitur dipilih</translation>
+        </message>
+    </context>
+    <context>
+        <name>_Row</name>
+        <message>
+            <location filename="src/ui/sidebar.py" />
+            <source>Draft</source>
+            <translation>Draf</translation>
+        </message>
+        <message>
+            <source>Open</source>
+            <translation>Buka</translation>
+        </message>
+    </context>
+    <context>
+        <name>GeoPaste</name>
+        <message>
+            <source>1 feature</source>
+            <translation>1 feature</translation>
+        </message>
+        <message>
+            <source>1 vertex</source>
+            <translation>1 vertex</translation>
+        </message>
+        <message>
+            <source>ArcGIS FeatureServer</source>
+            <translation>ArcGIS FeatureServer</translation>
+        </message>
+        <message>
+            <source>ArcGIS ImageServer</source>
+            <translation>ArcGIS ImageServer</translation>
+        </message>
+        <message>
+            <source>ArcGIS MapServer</source>
+            <translation>ArcGIS MapServer</translation>
+        </message>
+        <message>
+            <source>FlatGeobuf file</source>
+            <translation>File FlatGeobuf</translation>
+        </message>
+        <message>
+            <source>GeoJSON file</source>
+            <translation>File GeoJSON</translation>
+        </message>
+        <message>
+            <source>GeoPackage file</source>
+            <translation>File GeoPackage</translation>
+        </message>
+        <message>
+            <source>GeoTIFF (COG)</source>
+            <translation>GeoTIFF (COG)</translation>
+        </message>
+        <message>
+            <source>Geometry</source>
+            <translation>Geometri</translation>
+        </message>
+        <message>
+            <source>KML file</source>
+            <translation>File KML</translation>
+        </message>
+        <message>
+            <source>Line</source>
+            <translation>Garis</translation>
+        </message>
+        <message>
+            <source>Multiline</source>
+            <translation>Multigaris</translation>
+        </message>
+        <message>
+            <source>Multipoint</source>
+            <translation>Multititik</translation>
+        </message>
+        <message>
+            <source>Multipolygon</source>
+            <translation>Multipoligon</translation>
+        </message>
+        <message>
+            <source>OGC API Features</source>
+            <translation>OGC API Features</translation>
+        </message>
+        <message>
+            <source>PMTiles</source>
+            <translation>PMTiles</translation>
+        </message>
+        <message>
+            <source>Parquet file</source>
+            <translation>File Parquet</translation>
+        </message>
+        <message>
+            <source>Pasted text</source>
+            <translation>Teks yang ditempel</translation>
+        </message>
+        <message>
+            <source>Point</source>
+            <translation>Titik</translation>
+        </message>
+        <message>
+            <source>Point cloud</source>
+            <translation>Point cloud</translation>
+        </message>
+        <message>
+            <source>Point · WGS 84</source>
+            <translation>Titik · WGS 84</translation>
+        </message>
+        <message>
+            <source>Polygon</source>
+            <translation>Poligon</translation>
+        </message>
+        <message>
+            <source>STAC catalog</source>
+            <translation>Katalog STAC</translation>
+        </message>
+        <message>
+            <source>Vector tiles</source>
+            <translation>Vector tiles</translation>
+        </message>
+        <message>
+            <source>WCS service</source>
+            <translation>Layanan WCS</translation>
+        </message>
+        <message>
+            <source>WFS service</source>
+            <translation>Layanan WFS</translation>
+        </message>
+        <message>
+            <source>WMS service</source>
+            <translation>Layanan WMS</translation>
+        </message>
+        <message>
+            <source>WMTS service</source>
+            <translation>Layanan WMTS</translation>
+        </message>
+        <message>
+            <source>XYZ tiles</source>
+            <translation>Tile XYZ</translation>
+        </message>
+        <message>
+            <source>{n} characters</source>
+            <translation>{n} karakter</translation>
+        </message>
+        <message>
+            <source>{n} features</source>
+            <translation>{n} feature</translation>
+        </message>
+        <message>
+            <source>{n} lines</source>
+            <translation>{n} baris</translation>
+        </message>
+        <message>
+            <source>{n} vertices</source>
+            <translation>{n} vertex</translation>
+        </message>
+        <message>
+            <source>{shape} GeoJSON</source>
+            <translation>{shape} GeoJSON</translation>
+        </message>
+        <message>
+            <source>{shape} WKT</source>
+            <translation>{shape} WKT</translation>
+        </message>
+    </context>
+    <context>
+        <name>CrashCommentBar</name>
+        <message>
+            <source>Dismiss</source>
+            <translation>Tutup</translation>
+        </message>
+        <message>
+            <source>Example: I had the attribute table open and pressed Save</source>
+            <translation>Contoh: Saya membuka tabel atribut lalu menekan Simpan</translation>
+        </message>
+        <message>
+            <source>QGIS closed unexpectedly</source>
+            <translation>QGIS tertutup tiba-tiba</translation>
+        </message>
+        <message>
+            <source>Send</source>
+            <translation>Kirim</translation>
+        </message>
+        <message>
+            <source>The crash report was sent. What were you doing just before?</source>
+            <translation>Laporan crash sudah terkirim. Apa yang sedang Anda lakukan sebelumnya?</translation>
+        </message>
+        <message>
+            <source>Not sent. Press Send to try again.</source>
+            <translation>Tidak terkirim. Tekan Kirim untuk mencoba lagi.</translation>
+        </message>
+    </context>
+    <context>
+        <name>_ModeRow</name>
+        <message>
+            <source>Locked: {tag}</source>
+            <translation>Terkunci: {tag}</translation>
+        </message>
+        <message>
+            <source>Selected</source>
+            <translation>Dipilih</translation>
+        </message>
+    </context>
+    <context>
+        <name>_RowText</name>
+        <message>
+            <source>Edit this queued message</source>
+            <translation>Edit pesan antrean ini</translation>
+        </message>
+    </context>
+    <context>
+        <name>_StopNames</name>
+        <message>
+            <source>Effort: {level}</source>
+            <translation>Upaya: {level}</translation>
+        </message>
+        <message>
+            <source>Locked until the end of the free trial</source>
+            <translation>Terkunci sampai uji coba gratis berakhir</translation>
+        </message>
+        <message>
+            <source>Locked: {tag}</source>
+            <translation>Terkunci: {tag}</translation>
+        </message>
+        <message>
+            <source>Selected</source>
+            <translation>Dipilih</translation>
         </message>
     </context>
 </TS>

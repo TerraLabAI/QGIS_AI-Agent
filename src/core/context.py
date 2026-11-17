@@ -46,6 +46,7 @@ from .context_layers import (
 from .layer_order import positions as tree_positions
 from .layer_rank import FLOOR_ORDER, fields_named_in, named_in, offset_from_view, rank_layers, view_of
 from .layer_rank import detailed_ids as choose_detailed
+from .logger import log_warning
 from .project_identity import project_key
 from .qt_compat import qgis_iface
 
@@ -379,7 +380,7 @@ def _canvas_facts(iface, project) -> tuple:
 
 
 def _layer_items(all_layers: list, root, ambiguous: set, places: dict, tree_ids: set, canvas_crs, project,
-                 thread_id: str) -> list[dict]:
+                 thread_id: str, omit_selection=frozenset()) -> list[dict]:
 
 
 
@@ -408,7 +409,7 @@ def _layer_items(all_layers: list, root, ambiguous: set, places: dict, tree_ids:
 
 
             record["filter"] = subset
-        sel = selected_count(layer) if layer is not None else 0
+        sel = selected_count(layer) if layer is not None and lid not in omit_selection else 0
         if sel:
             record["selected_count"] = sel
 
@@ -521,7 +522,42 @@ def _add_machine(context: dict) -> None:
         pass
 
 
-def build_context(chips: list | None = None, text: str = "", thread_id: str = "") -> dict:
+def hold_selection(snapshot) -> frozenset:
+
+
+
+
+
+
+
+
+    if not isinstance(snapshot, dict) or not snapshot.get("layer_id"):
+        return frozenset()
+    layer_id = str(snapshot["layer_id"])
+    if snapshot.get("omit"):
+        return frozenset({layer_id})
+    ids = snapshot.get("ids")
+    layer = QgsProject.instance().mapLayer(layer_id)
+    if not isinstance(layer, QgsVectorLayer) or not isinstance(ids, list) or not ids:
+        return frozenset()
+    if sorted(int(i) for i in layer.selectedFeatureIds()) != ids:
+        try:
+            layer.selectByIds(ids)
+        except Exception as exc:  # noqa: BLE001
+            log_warning(f"Selection not put back: {exc}")
+    return frozenset()
+
+
+def shown_selection(snapshot) -> dict | None:
+
+    if not isinstance(snapshot, dict) or snapshot.get("omit") or not snapshot.get("count"):
+        return None
+    return {"layer": str(snapshot.get("layer_name") or ""), "count": int(snapshot["count"])}
+
+
+def build_context(chips: list | None = None, text: str = "", thread_id: str = "",
+                  omit_selection=frozenset()) -> dict:
+
 
 
 
@@ -551,7 +587,8 @@ def build_context(chips: list | None = None, text: str = "", thread_id: str = ""
 
     all_layers = _capped_layers(all_layers_full, places,
                                 active.id() if active is not None else None)
-    items = _layer_items(all_layers, root, ambiguous, places, tree_ids, canvas_crs, project, thread_id)
+    items = _layer_items(all_layers, root, ambiguous, places, tree_ids, canvas_crs, project, thread_id,
+                         omit_selection)
 
     active_id = active.id() if active is not None else None
     detailed_ids, rest_ids, rich_ids = _detail_choice(items, chips, tree_ids, text, active_id, extent_rect)

@@ -13,6 +13,7 @@ from qgis.core import (
     QgsColorRampShader,
     QgsContrastEnhancement,
     QgsCoordinateReferenceSystem,
+    QgsExpression,
     QgsHillshadeRenderer,
     QgsMultiBandColorRenderer,
     QgsProject,
@@ -27,6 +28,7 @@ from qgis.core import (
 from qgis.PyQt.QtCore import QT_TRANSLATE_NOOP, QCoreApplication, QDate, QDateTime, QLocale, Qt, QTime
 
 from ..core import layer_order, limits
+from ..core.attribute_tables import tables_closed
 from ..core.context_layers import crs_units
 from ..core.crs_ref import crs_ref
 from ..core.numbers import as_int
@@ -1236,12 +1238,14 @@ def _delete_field(args: dict) -> dict:
     kmz = vector_write.kmz_in_place_error(layer, "delete a field")
     if kmz is not None:
         return kmz
-    if not layer.dataProvider().deleteAttributes([idx]):
+    with tables_closed(layer):
+        deleted = layer.dataProvider().deleteAttributes([idx])
+        layer.updateFields()
+    if not deleted:
         return tool_error(
             f"The provider refused to delete field {field_name!r}.",
             "INVALID_ARGS", hint="field_refused", field_name=field_name, layer=layer.name(),
         )
-    layer.updateFields()
     return {
         "layer_id": layer.id(),
         "name": layer.name(),
@@ -1308,12 +1312,18 @@ def _rename_field(args: dict) -> dict:
             new_name=new_name, layer_name=layer.name(),
         )
     before = _non_null_count(layer, old_name)
-    if not layer.dataProvider().renameAttributes({idx: new_name}):
+    with tables_closed(layer):
+        renamed = layer.dataProvider().renameAttributes({idx: new_name})
+        layer.updateFields()
+        config = layer.attributeTableConfig()
+        if renamed and config.sortExpression() == QgsExpression.quotedColumnRef(old_name):
+            config.setSortExpression(QgsExpression.quotedColumnRef(new_name))
+            layer.setAttributeTableConfig(config)
+    if not renamed:
         return tool_error(
             f"The provider refused to rename field {old_name!r}.",
             "INVALID_ARGS", hint="field_refused", field_name=old_name, layer=layer.name(), new_name=new_name,
         )
-    layer.updateFields()
     after = _non_null_count(layer, new_name)
     if before and not after:
         return tool_error(
@@ -1514,12 +1524,14 @@ def _add_table_join(args: dict) -> dict:
         )
 
     before = {f.name() for f in target.fields()}
-    if not target.addJoin(_join_spec(join, join_field, target_field, args.get("prefix"))):
+    with tables_closed(target):
+        joined = target.addJoin(_join_spec(join, join_field, target_field, args.get("prefix")))
+        target.updateFields()
+    if not joined:
         return tool_error(
             "Failed to add the table join.",
             "JOIN_FAILED", hint="join_failed",
         )
-    target.updateFields()
     added = [f.name() for f in target.fields() if f.name() not in before]
 
     result = {

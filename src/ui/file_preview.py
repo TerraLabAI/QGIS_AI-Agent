@@ -57,6 +57,7 @@ from .file_links import is_safe_to_open, reveal_target
 from .font_scale import scale_qss_font_px, widget_pixel_ratio
 from .icons import pixmap_for
 from .image_preview import open_image_preview
+from .shared import lightbox_window
 from .style import FONT_BASE, FONT_HINT, INK, INK_2, LINE, SURFACE, with_platform_font
 from .widgets import ElidedLabel, IconButton, break_anywhere
 
@@ -355,7 +356,7 @@ class FilePreview(QDialog):
 
 
     def __init__(self, item: dict, anchor: QWidget | None = None):
-        window = anchor.window() if anchor is not None else None
+        window = lightbox_window(anchor)
         super().__init__(window)
         self.setObjectName("filePreview")
         with_platform_font(self)
@@ -369,6 +370,13 @@ class FilePreview(QDialog):
         self.name = str(item.get("name") or os.path.basename(self.path))
         self.family = family_of(self.name)
         self.shows = ""
+
+        self._text_view = None
+        self._pasted = item.get("text") if isinstance(item.get("text"), str) else None
+        self._meta_line = str(item.get("meta") or "")
+        self._mono = bool(item.get("mono"))
+
+        self._tile = item.get("tile") if isinstance(item.get("tile"), tuple) else None
 
         self._panel = _Panel(self)
         self._panel.setObjectName("filePreviewPanel")
@@ -389,7 +397,7 @@ class FilePreview(QDialog):
         tile.setObjectName("filePreviewTile")
         tile.setFixedSize(32, 32)
         tile.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        glyph, color = tile_art(tile, self.name, 16)
+        glyph, color = self._tile or tile_art(tile, self.name, 16)
         tile.setPixmap(glyph)
         tile.setStyleSheet(f"QLabel {{ background: {color}; border-radius: 8px; }}")
         row.addWidget(tile)
@@ -418,9 +426,22 @@ class FilePreview(QDialog):
         close.setFixedSize(30, 30)
         close.clicked.connect(self.close)
         row.addWidget(close)
+        self._head_row = row
         return head
 
+    def add_button(self, words: str, action) -> QPushButton:
+
+        button = QPushButton(words, self._panel)
+        button.setObjectName("filePreviewOpen")
+        button.setCursor(Qt.CursorShape.PointingHandCursor)
+        button.clicked.connect(lambda: action())
+        button.clicked.connect(self.close)
+        self._head_row.insertWidget(self._head_row.count() - 1, button)
+        return button
+
     def _meta_words(self, pages: int = 0) -> str:
+        if self._meta_line:
+            return self._meta_line
 
         parts = [file_type({"name": self.name})]
         if pages == 1:
@@ -434,6 +455,8 @@ class FilePreview(QDialog):
         return "  ·  ".join(p for p in parts if p)
 
     def _body(self) -> QWidget:
+        if self._pasted is not None:
+            return self._text(self._pasted, False)
         if not can_open({"path": self.path}):
             return self._note(self.tr("This file is no longer at {path}.").format(path=self.path))
         if self.family == "pdf":
@@ -481,12 +504,13 @@ class FilePreview(QDialog):
     def _text(self, text: str, cut: bool) -> QWidget:
         self.shows = "text"
         view = QPlainTextEdit(self._panel)
+        self._text_view = view
         view.setObjectName("filePreviewText")
         view.setReadOnly(True)
         view.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse
                                      | Qt.TextInteractionFlag.TextSelectableByKeyboard)
         view.setCursorWidth(0)
-        if self.family == "code" or _suffix(self.name) in ("csv", "tsv"):
+        if self._mono or self.family == "code" or _suffix(self.name) in ("csv", "tsv"):
             view.setFont(QFontDatabase.systemFont(QFontDatabase.SystemFont.FixedFont))
             view.setProperty("mono", True)
             view.setLineWrapMode(QPlainTextEdit.LineWrapMode.NoWrap)
@@ -543,6 +567,15 @@ class FilePreview(QDialog):
     def _layout_panel(self) -> None:
         width = int(min(_PANEL_MAX_W, max(360, self.width() * _FILL_W), self.width() - 32))
         height = int(max(240, self.height() * _FILL_H))
+        if self._pasted is not None and self._text_view is not None:
+
+            view = self._text_view
+            metrics = view.fontMetrics()
+            room = max(1, width - 64)
+            wraps = view.lineWrapMode() != QPlainTextEdit.LineWrapMode.NoWrap
+            lines = sum(max(1, -(-metrics.horizontalAdvance(line) // room)) if wraps else 1
+                        for line in self._pasted.splitlines()[:200])
+            height = min(height, max(160, 72 + 48 + metrics.lineSpacing() * lines))
         if not self._pages and self.shows != "text":
             height = min(height, 420)
         self._panel.setGeometry((self.width() - width) // 2, (self.height() - height) // 2,

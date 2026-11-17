@@ -27,11 +27,13 @@
 
 from __future__ import annotations
 
+import os
 import re
 from contextlib import contextmanager
 
 from . import tuning
 from .background import current_call
+from .qt_compat import qt_deleted
 
 
 
@@ -84,10 +86,81 @@ def is_remote_vector(layer) -> bool:
     return provider in _REMOTE_VECTOR_PROVIDERS or remote_source or is_web_service(layer)
 
 
+def source_gone(layer) -> bool:
 
 
 
-BACKDROP_PROVIDERS = frozenset({"wms", "xyz", "arcgismapserver", "arcgisrest", "vectortile"})
+
+
+
+
+
+
+    from qgis.core import QgsVectorLayer
+
+    if not isinstance(layer, QgsVectorLayer):
+        return False
+    provider = layer.dataProvider()
+    return provider is None or not provider.isValid()
+
+
+def file_gone(layer) -> bool:
+
+
+
+
+
+
+
+
+    from qgis.core import QgsVectorLayer
+
+    if not isinstance(layer, QgsVectorLayer) or layer.providerType() != "ogr":
+        return False
+    from .snapshot_paths import source_path
+
+    path = source_path(layer)
+    return bool(path) and os.path.isabs(path) and not os.path.exists(path)
+
+
+def extent_known(layer):
+
+    return None if source_gone(layer) else layer.extent()
+
+
+def write_blocked_by(project):
+
+
+
+
+
+
+
+
+
+
+
+
+    return next((layer for layer in project.mapLayers().values() if blocks_write(layer)), None)
+
+
+def blocks_write(layer) -> bool:
+
+
+    return layer.isValid() and source_gone(layer)
+
+
+def write_refusal(project) -> str:
+
+
+    gone = write_blocked_by(project)
+    return f"{gone.name()} lost its file, and QGIS dies writing a project that holds it" if gone else ""
+
+
+
+
+
+BACKDROP_PROVIDERS = frozenset({"wms", "xyz", "arcgismapserver", "arcgisrest", "vectortile", "xyzvectortiles"})
 BACKDROP_CLASSES = ("QgsVectorTileLayer", "QgsTiledSceneLayer")
 
 MAX_COVERING = 5
@@ -400,10 +473,7 @@ def _opacity(layer) -> float:
 
 
 def _layer_id(layer) -> str:
-    try:
-        return layer.id()
-    except RuntimeError:
-        return ""
+    return "" if qt_deleted(layer) else layer.id()
 
 
 def _paints_fill(layer) -> bool:
@@ -771,7 +841,7 @@ def drawn_extent(layer, crs=None):
 
         if not isinstance(layer, QgsRasterLayer) and streamed_in_place(layer):
             return None
-        rect = layer.extent()
+        rect = extent_known(layer)
         if rect is None or rect.isNull() or rect.isEmpty():
             return None
         rect = QgsRectangle(rect)
@@ -846,22 +916,7 @@ def place_new(layer, root=None) -> dict:
         return {}
     parent = node.parent() or root
     others = [child for child in parent.children() if child is not node]
-    ranked = []
-    keyed = []
-    for child in others:
-        other = _node_layer(child)
-        if other is None:
-            ranked.append((None, None))
-            keyed.append((None, None))
-            continue
-        other_rank = stack_rank(other)
-        if other_rank is not None and stack_kind(other) == "polygon":
-            ranked.append((other_rank, drawn_area(other), _paints_fill(other)))
-        else:
-            ranked.append((other_rank, drawn_area(other)))
-        keyed.append((other_rank, series_key(other.name())))
-    target = stack_slot(rank, drawn_area(layer), ranked)
-    target = series_slot(rank, series_key(layer.name()), keyed, target)
+    target = _slot(layer, rank, others)
     moved = move_to_index(node, parent, target)
     follow_tree(layer, root)
     if parent is not root and _lift_over_backdrops(parent, root):
@@ -877,6 +932,85 @@ def place_new(layer, root=None) -> dict:
         except Exception:  # nosec B112
             continue
     return {"moved": moved, "under": under[:MAX_COVERING]}
+
+
+def _slot(layer, rank: int, others: list) -> int:
+
+    ranked = []
+    keyed = []
+    for child in others:
+        other = _node_layer(child)
+        if other is None:
+            ranked.append((None, None))
+            keyed.append((None, None))
+            continue
+        other_rank = stack_rank(other)
+        if other_rank is not None and stack_kind(other) == "polygon":
+            ranked.append((other_rank, drawn_area(other), _paints_fill(other)))
+        else:
+            ranked.append((other_rank, drawn_area(other)))
+        keyed.append((other_rank, series_key(other.name())))
+    target = stack_slot(rank, drawn_area(layer), ranked)
+    return series_slot(rank, series_key(layer.name()), keyed, target)
+
+
+def insert_at_slot(layer) -> bool:
+
+
+
+
+
+
+
+
+
+
+
+
+    rank = stack_rank(layer)
+    if rank is None or keeps_place(layer):
+        return False
+    try:
+        from qgis.core import QgsLayerTreeRegistryBridge, QgsProject
+        from qgis.PyQt.QtCore import QTimer
+
+        bridge = QgsProject.instance().layerTreeRegistryBridge()
+        point_type = getattr(QgsLayerTreeRegistryBridge, "InsertionPoint", None)
+        if bridge is None or point_type is None or not hasattr(bridge, "layerInsertionPoint"):
+            return False
+        before = bridge.layerInsertionPoint()
+        group, position = before.group, before.position
+        if group is None:
+            return False
+        target = _slot(layer, rank, list(group.children()))
+        if target == position:
+            return False
+        if not _AIMED:
+
+
+            _AIMED.append((bridge, group, position))
+            QTimer.singleShot(0, _put_back)
+        bridge.setLayerInsertionPoint(point_type(group, target))
+        return True
+    except Exception:  # noqa: BLE001
+        return False
+
+
+
+_AIMED: list = []
+
+
+def _put_back() -> None:
+    if not _AIMED:
+        return
+    bridge, group, position = _AIMED.pop()
+    try:
+        from qgis.core import QgsLayerTreeRegistryBridge
+
+        if not qt_deleted(bridge) and not qt_deleted(group):
+            bridge.setLayerInsertionPoint(QgsLayerTreeRegistryBridge.InsertionPoint(group, position))
+    except Exception:  # nosec B110
+        pass
 
 
 def _lift_over_backdrops(group, root) -> bool:
@@ -913,6 +1047,7 @@ def reset_insertion_point(root=None) -> None:
 
 
 
+    _AIMED.clear()
     if root is None:
         root = _root()
     if root is None:
@@ -930,15 +1065,6 @@ def reset_insertion_point(root=None) -> None:
             bridge.setLayerInsertionPoint(root, 0)
     except Exception:  # nosec B110
         pass
-
-
-def _group_alive(group) -> bool:
-
-    try:
-        group.name()
-        return True
-    except RuntimeError:
-        return False
 
 
 def _move_into_group(group, node, number: float) -> None:
@@ -1063,6 +1189,8 @@ class Stacker:
         self.from_task: set = set()
 
         self._call_of: dict = {}
+
+        self._slotted: set = set()
         self._token = None
 
     def begin(self) -> None:
@@ -1105,6 +1233,7 @@ class Stacker:
         self._added_ids = []
         self.from_task = set()
         self._call_of = {}
+        self._slotted = set()
 
     def _on_layers_added(self, layers) -> None:
 
@@ -1136,6 +1265,8 @@ class Stacker:
             if not is_backdrop(layer):
 
                 self._pending.append(layer)
+                if len(layers) == 1 and insert_at_slot(layer):
+                    self._slotted.add(layer.id())
 
     def _on_project_read(self, *_document) -> None:
 
@@ -1194,7 +1325,7 @@ class Stacker:
             try:
                 placed = place_new(layer)
                 fold_colour_bands(layer)
-                if placed.get("moved") and placed.get("under"):
+                if (placed.get("moved") or layer.id() in self._slotted) and placed.get("under"):
                     out[layer.name()] = placed["under"]
             except Exception as exc:  # noqa: BLE001
                 from .logger import log_warning
@@ -1277,7 +1408,7 @@ class Stacker:
         for stem, members in families.items():
             members.sort(key=lambda item: -item[0])
             group = self._series_groups.get(stem)
-            if group is not None and not _group_alive(group):
+            if group is not None and qt_deleted(group):
                 group = None
                 self._series_groups.pop(stem, None)
             if group is None:

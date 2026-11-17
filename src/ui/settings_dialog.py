@@ -54,7 +54,6 @@
 
 from __future__ import annotations
 
-from qgis.PyQt import sip
 from qgis.PyQt.QtCore import QSize, Qt, QTimer, pyqtSignal
 from qgis.PyQt.QtGui import QColor, QFont, QFontMetrics
 from qgis.PyQt.QtWidgets import (
@@ -76,9 +75,10 @@ from ..core import accounts
 from ..core.logger import log_warning
 from ..core.plan import memory_allowed
 from ..core.profile import profile_context
-from ..core.qt_compat import disconnect_quietly, one_shot
+from ..core.qt_compat import disconnect_quietly, one_shot, qt_deleted
 from ..core.served_state import get_privacy_url, get_product_url, get_site_url, get_terms_url
 from ..core.settings import Settings
+from .cards_click import HIDDEN_FROM_AX, PressSurface, RowButtons
 from .external_links import open_external_url
 from .font_scale import apply_font_scale_to_tree, scale_px_length
 from .icons import icon_for, logo_pixmap, logo_size
@@ -98,7 +98,7 @@ from .settings_pages import (
     sidebar_qss,
 )
 from .settings_personalisation import PersonalisationPageMixin
-from .shared import event_pos, exec_dialog, size_within_screen
+from .shared import exec_dialog, released_on, size_within_screen
 from .style import ACCENT, FONT_HINT, WEIGHT_MEDIUM, with_platform_font
 from .styles import PANEL_TEXT
 
@@ -110,7 +110,7 @@ _NAV_W = 186
 _SAVE_DEBOUNCE_MS = 600
 _SAVED_HINT_MS = 1600
 
-_NAV_QSS = nav_qss("settingsNav")
+_NAV_QSS = nav_qss(HIDDEN_FROM_AX)
 _SIDEBAR_QSS = sidebar_qss("settingsSidebar")
 
 
@@ -121,16 +121,15 @@ _WORDMARK_NOTE_QSS = f"font-size: {FONT_HINT}px; color: {MUTED}; background: tra
 _IDENTITY_QSS = (f"QLabel#settingsIdentity {{ font-size: {FONT_HINT}px; color: {MUTED};"
                  " background: transparent; }"
                  "QLabel#settingsIdentity:hover { color: " + PANEL_TEXT + "; }")
-class _LinkTile(QWidget):
+class _LinkTile(PressSurface):
 
 
 
-
-    clicked = pyqtSignal()
 
     def mouseReleaseEvent(self, event):  # noqa: N802
-        if event.button() == Qt.MouseButton.LeftButton and self.rect().contains(event_pos(event)):
-            self.clicked.emit()
+        if released_on(self, event):
+            self.click()
+            return
         super().mouseReleaseEvent(event)
 
 
@@ -218,7 +217,7 @@ class SettingsDialog(PersonalisationPageMixin, AccountPageMixin, QDialog):
         self._add_page("lu.keyboard", self.tr("Keyboard shortcuts"), self._build_shortcuts())
         self._account_row = self._nav.count()
         self._add_page("lu.user", self.tr("Account"), self._build_account())
-        if accounts.enabled():
+        if accounts.any_enabled():
             self._add_page("lu.lock", self.tr("Connected accounts"), ConnectedAccountsPage(self))
         self._add_separator()
 
@@ -247,7 +246,8 @@ class SettingsDialog(PersonalisationPageMixin, AccountPageMixin, QDialog):
         col.setSpacing(6)
         col.addWidget(self._build_wordmark(side))
         self._nav = QListWidget(side)
-        self._nav.setObjectName("settingsNav")
+
+        self._nav_buttons = RowButtons(self._nav, side, self._nav.setCurrentIndex)
         self._nav.setStyleSheet(_NAV_QSS)
         self._nav.setIconSize(QSize(16, 16))
         self._nav.setSpacing(0)
@@ -267,6 +267,7 @@ class SettingsDialog(PersonalisationPageMixin, AccountPageMixin, QDialog):
         self._rail_plan = _LinkTile(side)
         self._rail_plan.setCursor(Qt.CursorShape.PointingHandCursor)
         self._rail_plan.setToolTip(self.tr("See usage"))
+        self._rail_plan.setAccessibleName(self.tr("See usage"))
         self._rail_plan.clicked.connect(lambda: self._nav.setCurrentRow(self._account_row))
         plan_col = QVBoxLayout(self._rail_plan)
         plan_col.setContentsMargins(16, 10, 14, 8)
@@ -330,6 +331,7 @@ class SettingsDialog(PersonalisationPageMixin, AccountPageMixin, QDialog):
         host.clicked.connect(self._open_product)
         host.setCursor(Qt.CursorShape.PointingHandCursor)
         host.setToolTip(self.tr("Open the AI Agent page"))
+        host.setAccessibleName(self.tr("Open the AI Agent page"))
         row = QHBoxLayout(host)
         row.setContentsMargins(14, 0, 12, 6)
         row.setSpacing(8)
@@ -422,6 +424,7 @@ class SettingsDialog(PersonalisationPageMixin, AccountPageMixin, QDialog):
         item.setSizeHint(QSize(0, scale_px_length(32)))
         item.setData(Qt.ItemDataRole.UserRole, f"action:{kind}")
         item.setToolTip(self.tr("Opens a window"))
+        item.setData(Qt.ItemDataRole.AccessibleDescriptionRole, self.tr("Opens a window"))
         self._nav.addItem(item)
 
 
@@ -544,7 +547,7 @@ class SettingsDialog(PersonalisationPageMixin, AccountPageMixin, QDialog):
             exec_dialog(library)
         finally:
 
-            if not sip.isdeleted(library):
+            if not qt_deleted(library):
                 library.deleteLater()
 
     def _on_library_prompt(self, text: str, chip) -> None:

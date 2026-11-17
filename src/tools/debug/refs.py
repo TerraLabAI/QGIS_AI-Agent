@@ -15,7 +15,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from .._widgets import is_alive
+from ...core.qt_compat import qt_deleted
 
 _PARENT_LEVELS = 3
 
@@ -100,7 +100,7 @@ class SessionRefStore:
 
 
         for existing_ref in list(self._by_ref.keys()):
-            if not is_alive(self._by_ref.get(existing_ref)):
+            if qt_deleted(self._by_ref.get(existing_ref)):
                 self._by_ref.pop(existing_ref, None)
         self._prune_items()
 
@@ -113,7 +113,7 @@ class SessionRefStore:
             except Exception:
                 cached = None
             bound = self._by_ref.get(cached) if cached else None
-            if cached and self._sig.get(cached) == sig and (bound is widget or not is_alive(bound)):
+            if cached and self._sig.get(cached) == sig and (bound is widget or qt_deleted(bound)):
                 ref = cached
             else:
                 self._counter += 1
@@ -131,7 +131,7 @@ class SessionRefStore:
     def _prune_items(self):
         for ref in list(self._items.keys()):
             view, persistent = self._items[ref]
-            if not is_alive(view) or not persistent.isValid():
+            if qt_deleted(view) or not persistent.isValid():
                 self._items.pop(ref, None)
         live = set(self._items.keys())
         for key, ref in list(self._item_keys.items()):

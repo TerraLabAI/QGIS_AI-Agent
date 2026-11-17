@@ -36,11 +36,12 @@ from qgis.PyQt.QtWidgets import (
 
 from ..core.plan import autopilot_allowed, stated
 from ..core.served_state import get_pro_offer
+from .cards_click import PressSurface
 from .confirm_dialog import ask_confirm
 from .font_scale import scale_qss_font_px
 from .icons import icon_for, pixmap_for
 from .quota_card import get_pro_label, pro_price_per_month, trial_short
-from .shared import event_pos, paint_styled_ground, place_by_box, round_popup_corners, settle_hover, show_popped
+from .shared import paint_styled_ground, place_by_box, released_on, round_popup_corners, settle_hover, show_popped
 from .style import (
     _BTN_MODE,
     ACCENT,
@@ -164,10 +165,10 @@ _CHIP_QSS = select_qss("permissionChip")
 _POPOVER_QSS = scale_qss_font_px(
     f"QFrame#permissionPopover {{ background: {SURFACE};"
     f" border: 1px solid {LINE_STRONG}; border-radius: {RADIUS_CARD}px; }}"
-    f"QFrame#permissionRow {{ background: transparent; border: none; border-radius: {RADIUS_CONTROL}px; }}"
-    f'QFrame#permissionRow[current="true"] {{ background: {FIELD}; }}'
-    f'QFrame#permissionRow[hover="true"] {{ background: {HOVER}; }}'
-    f'QFrame#permissionRow[held="true"] {{ background: {HOVER_ON}; }}'
+    f"#permissionRow {{ background: transparent; border: none; border-radius: {RADIUS_CONTROL}px; }}"
+    f'#permissionRow[current="true"] {{ background: {FIELD}; }}'
+    f'#permissionRow[hover="true"] {{ background: {HOVER}; }}'
+    f'#permissionRow[held="true"] {{ background: {HOVER_ON}; }}'
     f"QLabel#permissionName {{ font-size: {FONT_BODY}px; font-weight: {WEIGHT_MEDIUM};"
     f" color: {INK}; background: transparent; border: none; }}"
     f"QLabel#permissionNote {{ font-size: {FONT_HINT}px; color: {INK_2};"
@@ -189,7 +190,8 @@ def normalize_mode(approval: str) -> str:
     return approval if approval in MODES else DEFAULT_MODE
 
 
-class _ModeRow(QFrame):
+class _ModeRow(PressSurface):
+
 
 
 
@@ -205,6 +207,9 @@ class _ModeRow(QFrame):
         self.setProperty("current", False)
         self.setCursor(Qt.CursorShape.PointingHandCursor)
         self.setToolTip(detail)
+        self.setAccessibleName(name)
+
+        self.clicked.connect(self.pick)
         row = QHBoxLayout(self)
         row.setContentsMargins(_ROW_PAD_X, _ROW_PAD_Y, _ROW_PAD_X, _ROW_PAD_Y)
         row.setSpacing(_ROW_SPACING)
@@ -251,10 +256,17 @@ class _ModeRow(QFrame):
         self._check.setVisible(not self._locked)
         if self._locked:
             self._check.clear()
+        self._describe()
 
     def _label_tag(self) -> None:
 
         self._tag.setText(trial_short() if get_pro_offer() == "trial" else get_pro_label())
+        self._describe()
+
+    def _describe(self) -> None:
+        state = (self.tr("Locked: {tag}").format(tag=self._tag.text()) if self._locked
+                 else self.tr("Selected") if self._current else "")
+        self.setAccessibleDescription(", ".join(w for w in (state, self._note.text()) if w))
 
     def is_locked(self) -> bool:
         return self._locked
@@ -267,6 +279,7 @@ class _ModeRow(QFrame):
             self._check.setPixmap(pixmap_for(self, "check", _CHECK_SIZE, QColor(ACCENT_INK)))
         else:
             self._check.clear()
+        self._describe()
 
     def fit_to_width(self, width: int) -> None:
 
@@ -314,8 +327,9 @@ class _ModeRow(QFrame):
         self.setProperty("held", False)
         repolish(self)
 
-        if event.button() == Qt.MouseButton.LeftButton and self.rect().contains(event_pos(event)):
-            self.pick()
+        if released_on(self, event):
+            self.click()
+            return
         super().mouseReleaseEvent(event)
 
     def pick(self) -> None:

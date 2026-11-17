@@ -34,7 +34,6 @@ from qgis.PyQt.QtCore import QT_TRANSLATE_NOOP
 
 from ..core import canvas_glide, tuning
 from ..core import zone_of_interest as zoi
-from ..core.layer_order import keep_place
 from ..core.logger import log, log_warning
 from ..core.qt_compat import enum_member
 from ..core.tool_registry import Tool, ToolRegistry, tool_error
@@ -172,7 +171,6 @@ def _zone_set(args: dict) -> dict:
     if layer is None:
         return tool_error("The zone of interest layer could not be created.", "EXECUTION_FAILED",
                           hint="zone_layer_not_created")
-    keep_place(layer)
     log(f"Area of interest set from {source} ({area_text(zoi.area_km2(geom, crs))})")
 
     if args.get("zoom", True):

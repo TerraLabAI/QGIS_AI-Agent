@@ -39,3 +39,20 @@ def first_feature(layer, request):
         return next(iterator, None)
     finally:
         iterator.close()
+
+
+def matching_ids(layer, text: str, limit: int) -> tuple[list | None, str]:
+
+
+
+
+
+    from qgis.core import QgsExpression, QgsExpressionContext, QgsExpressionContextUtils
+
+    expression = QgsExpression(text)
+    if expression.hasParserError():
+        return None, expression.parserErrorString()
+    context = QgsExpressionContext(QgsExpressionContextUtils.globalProjectLayerScopes(layer))
+    request = QgsFeatureRequest().setFilterExpression(text).setExpressionContext(context)
+    request.setLimit(max(0, int(limit)) + 1)
+    return [f.id() for f in layer.getFeatures(request)], ""

@@ -23,7 +23,7 @@ from qgis.PyQt.QtWidgets import QAction, QApplication, QDockWidget, QMenu
 
 from . import LOADED_AT, plugin_self_update
 from .api.terralab_client import HARD_CONNECTIVITY_CODES
-from .core import first_run_funnel, i18n, policy, telemetry, tuning
+from .core import i18n, policy, telemetry, tuning
 from .core import telemetry_events as ev
 from .core.dev_env import dev_env
 from .core.logger import log, log_warning, start_log_capture, stop_log_capture
@@ -92,6 +92,9 @@ class AIAgentPlugin:
 
         from .core import crash_note
         crash_note.start()
+
+        from .core import datum_choice
+        datum_choice.restore_after_crash()
         self.plugin_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
@@ -520,7 +523,6 @@ class AIAgentPlugin:
 
         if self._unloading:
             return
-        first_run_funnel.note_panel(visible)
         if not visible:
             if self._config_refresh_timer is not None:
                 self._config_refresh_timer.stop()
@@ -599,10 +601,9 @@ class AIAgentPlugin:
             locale = self._settings.locale if self._settings is not None else ""
             account = self.controller.account if self.controller is not None else None
             auth = account.get_auth_header() if account is not None else {}
-            counted = account is not None and not auth and telemetry.first_signed_out_open_today()
             task = GenericRequestTask(
                 tr("Refreshing AI Agent settings"),
-                lambda: TerraLabClient().get_config(lang=locale, auth=auth, signed_out_open=counted),
+                lambda: TerraLabClient().get_config(lang=locale, auth=auth),
                 hidden=True,
             )
             task.succeeded.connect(self._on_server_config_loaded)
@@ -903,8 +904,6 @@ class AIAgentPlugin:
             from .core import crash_note
             crash_note.stop()
         with contextlib.suppress(Exception):
-            first_run_funnel.shutdown()
-        with contextlib.suppress(Exception):
 
             from .core import canvas_glide
             canvas_glide.stop()
@@ -1124,18 +1123,8 @@ class AIAgentPlugin:
 
     def _prefill_composer(self, text: str, chip=None):
 
-        if self.panel is None:
-            return
-        composer = self.panel.composer
-        if isinstance(chip, dict) and chip.get("value"):
-
-
-            composer.set_text("")
-            composer.pin_mention(chip)
-            composer.append_text(text)
-        else:
-            composer.set_text(text)
-        composer.focus_input()
+        if self.panel is not None:
+            self.panel.composer.add_prompt(text, chip)
 
     def _pin_chip(self, chip: dict):
         if self.panel is not None:
@@ -1601,8 +1590,18 @@ class AIAgentPlugin:
                 view.setCurrentLayer(layer)
             if action in ("show", "zoom"):
                 self._show_layers_panel()
+            if action == "show":
+                from .ui.map_preview import flash_native
+
+                flash_native(layer.id())
             if action == "zoom":
-                iface.zoomToActiveLayer()
+                from .core.layer_order import source_gone
+
+                if source_gone(layer):
+                    self._push(tr("This layer's file can no longer be read, so the map cannot zoom to it."),
+                               "warning")
+                else:
+                    iface.zoomToActiveLayer()
             elif action == "table":
                 if isinstance(layer, QgsVectorLayer):
                     iface.showAttributeTable(layer)

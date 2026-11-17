@@ -45,6 +45,7 @@ from qgis.PyQt.QtCore import QObject
 from qgis.PyQt.QtNetwork import QHostAddress, QTcpServer
 
 from . import canvas_glide
+from .layer_order import extent_known
 from .logger import log, log_warning
 from .policy import AGENT_HOME, ensure_agent_directories
 from .qt_compat import enum_member
@@ -336,7 +337,7 @@ def _reveal(layer, fids: list[int], zoom: bool) -> None:
         except Exception:  # nosec B110
             pass
     elif zoom:
-        extent = layer.extent()
+        extent = extent_known(layer)
         if extent is not None and not extent.isEmpty():
             try:
                 transform = QgsCoordinateTransform(layer.crs(), canvas.mapSettings().destinationCrs(), project)

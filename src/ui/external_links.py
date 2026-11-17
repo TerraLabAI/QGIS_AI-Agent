@@ -161,7 +161,9 @@ def open_external_url(url: str, parent=None) -> bool:
     return False
 
 
-def open_local_path(path: str, parent=None, where: str = "") -> bool:
+def open_local_path(path: str, parent=None, where: str = "", tell_user: bool = True) -> bool:
+
+
 
 
 
@@ -174,13 +176,15 @@ def open_local_path(path: str, parent=None, where: str = "") -> bool:
     from .file_links import is_safe_to_open
 
     if not is_safe_to_open(path):
-        _show_refusal(path, parent=parent)
+        if tell_user:
+            _show_refusal(path, parent=parent)
         return False
     if _try_open(QUrl.fromLocalFile(path)):
         if where and path.lower().endswith((".html", ".htm")):
             _track_report_opened(where)
         return True
-    _show_address(path, parent=parent, kind=FOLDER)
+    if tell_user:
+        _show_address(path, parent=parent, kind=FOLDER)
     return False
 
 

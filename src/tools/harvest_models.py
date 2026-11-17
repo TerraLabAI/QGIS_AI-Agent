@@ -59,6 +59,7 @@ from ._layers import resolve_layer
 from .core_tools import _runs_a_script
 from .processing_decisions import _threadable
 from .processing_destinations import _destination_names, _output_names
+from .processing_guards import _gone_input_check, crash_refusal
 from .processing_run import (
     _POLL_INTERVAL_S,
     _cancel_task,
@@ -862,6 +863,9 @@ def _execute_processing_batch(args: dict) -> dict:
     paid = guards.paid_algorithm_refusal({"algorithm_id": algorithm_id})
     if paid:
         return paid
+    gone = next(filter(None, (_gone_input_check(entry) for entry in parameters_list if isinstance(entry, dict))), None)
+    if gone:
+        return gone
 
     alg = QgsApplication.processingRegistry().algorithmById(algorithm_id)
     names = _output_names_for(args.get("output_name"), algorithm_id, parameters_list)
@@ -1508,6 +1512,12 @@ def _run_model(args: dict) -> dict:
             outcome["poll"]["label"] = f"Running {os.path.basename(model)}"
         return outcome
 
+    gone = _gone_input_check(parameters)
+    if gone:
+        return gone
+    refusal = crash_refusal(file_alg, parameters)
+    if refusal:
+        return tool_error(f"{refusal} Nothing was run.", "INVALID_ARGS")
     if _heavy_inputs(parameters):
         return tool_error(
             "A step of this model cannot run in the background, and the inputs are too large to run it on "

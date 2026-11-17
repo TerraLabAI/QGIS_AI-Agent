@@ -26,10 +26,13 @@ from qgis.PyQt.QtWidgets import (
 )
 
 from .icons import icon_factory, icon_for, ink_of
-from .shared import exec_menu
+from .shared import popup_menu
 from .style import _BTN_ICON, ACCENT_INK, INK_3, RADIUS_CONTROL, accent_color, qcolor, repolish
 
 _FLOW_ITEM_MIN_PX = 64
+
+
+_PLACEHOLDER_INK = "placeholderInk"
 
 
 class _PlaceholderInk(QObject):
@@ -38,8 +41,13 @@ class _PlaceholderInk(QObject):
 
     def __init__(self, field, colour: str):
         super().__init__(field)
+        self.setObjectName(_PLACEHOLDER_INK)
         self._colour = qcolor(colour)
         field.installEventFilter(self)
+        self._apply(field)
+
+    def recolour(self, field, colour: str) -> None:
+        self._colour = qcolor(colour)
         self._apply(field)
 
     def _apply(self, field) -> None:
@@ -60,7 +68,14 @@ def placeholder_ink(field, colour: str = INK_3) -> None:
 
 
 
-    _PlaceholderInk(field, colour)
+
+
+
+    ink = field.findChild(QObject, _PLACEHOLDER_INK, Qt.FindChildOption.FindDirectChildrenOnly)
+    if isinstance(ink, _PlaceholderInk):
+        ink.recolour(field, colour)
+    else:
+        _PlaceholderInk(field, colour)
 
 def paint_keyboard_ring(widget, radius: float = RADIUS_CONTROL) -> None:
 
@@ -454,7 +469,7 @@ class ChatLabel(QLabel):
         copy.triggered.connect(lambda: QApplication.clipboard().setText(self.selected_text()))
         select_all = menu.addAction(self.tr("Select All"))
         select_all.triggered.connect(lambda: self.setSelection(0, len(super(ChatLabel, self).text())))
-        exec_menu(menu, event.globalPos())
+        popup_menu(menu, event.globalPos())
         event.accept()
 
 
@@ -552,7 +567,9 @@ class IconButton(QToolButton):
     def keyPressEvent(self, event):  # noqa: N802
 
         if event.key() in (Qt.Key.Key_Return, Qt.Key.Key_Enter) and self.isEnabled():
-            self.click()
+
+            if not event.isAutoRepeat():
+                self.click()
             return
         super().keyPressEvent(event)
 

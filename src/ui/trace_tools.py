@@ -44,7 +44,7 @@ import re
 import time
 
 from qgis.PyQt.QtCore import QCoreApplication, Qt, QTimer
-from qgis.PyQt.QtGui import QPainter
+from qgis.PyQt.QtGui import QIcon, QPainter
 from qgis.PyQt.QtWidgets import (
     QFrame,
     QGridLayout,
@@ -53,14 +53,18 @@ from qgis.PyQt.QtWidgets import (
     QProgressBar,
     QPushButton,
     QSizePolicy,
+    QToolButton,
     QVBoxLayout,
     QWidget,
 )
 
 from ..core.layer_release import task_state
+from ..core.logger import log_warning
 from ..core.qt_compat import disconnect_quietly
 from ..core.tool_registry import spec
+from . import map_preview
 from .card_base import local_decimal
+from .cards_click import LabelButton, PressSurface
 from .cards_tool import ToolCard
 from .font_scale import widget_pixel_ratio
 from .icons import pixmap_for
@@ -115,6 +119,11 @@ _RESULT_LIST_QSS = (f"QFrame#resultList {{ background: {INSET}; border: 1px soli
                     f" border-radius: {RADIUS_CONTROL}px; }}")
 _RESULTS_SHOWN = 5
 _CHEVRON_PX = 12
+_LOCATE_PX = 20
+
+_PEEK_DELAY_MS = 120
+_LOCATE_QSS = ("QToolButton { border: none; border-radius: 6px; background: transparent; padding: 0; }"
+               "QToolButton:hover { background: rgba(128,128,128,0.16); }")
 
 _VERB_MIN_PX = 130
 _QWIDGETSIZE_MAX = (1 << 24) - 1
@@ -346,24 +355,16 @@ class _RowSpinner(Spinner):
             return
 
 
-class _MoreRow(QLabel):
+class _MoreRow(LabelButton):
 
 
     def __init__(self, text: str, on_click, parent=None):
-        super().__init__(text, parent)
-        self._on_click = on_click
-        self.setCursor(Qt.CursorShape.PointingHandCursor)
-
-    def mousePressEvent(self, event):  # noqa: N802
-        event.accept()
-
-    def mouseReleaseEvent(self, event):  # noqa: N802
-        if event.button() == Qt.MouseButton.LeftButton and self.rect().contains(event.pos()):
-            self._on_click()
-        event.accept()
+        super().__init__(QLabel(text), parent)
+        self.setAccessibleName(text)
+        self.clicked.connect(on_click)
 
 
-class _ResultRow(QWidget):
+class _ResultRow(PressSurface):
 
 
 
@@ -417,10 +418,12 @@ class _ResultRow(QWidget):
             self._arrow.setPixmap(pixmap_for(self, "external", _RESULT_ARROW_PX, qcolor(INK_3)))
         row.addWidget(self._arrow, 0, Qt.AlignmentFlag.AlignVCenter)
         self.setFixedHeight(28)
+        self.setAccessibleName(" ".join(part for part in (name, host) if part))
         if link:
 
             for child in self.findChildren(QLabel):
                 child.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, True)
+            self.clicked.connect(self._open_link)
 
     def _paint_mark(self) -> None:
         ratio = widget_pixel_ratio(self)
@@ -453,12 +456,15 @@ class _ResultRow(QWidget):
 
     def mouseReleaseEvent(self, event) -> None:
         if self._link and event.button() == Qt.MouseButton.LeftButton and self.rect().contains(event.pos()):
-            from .external_links import open_external_url
-
-            open_external_url(self._link, parent=self.window())
             event.accept()
+            self.click()
             return
         super().mouseReleaseEvent(event)
+
+    def _open_link(self) -> None:
+        from .external_links import open_external_url
+
+        open_external_url(self._link, parent=self.window())
 
 
 class ActivityRow(QWidget):
@@ -540,6 +546,26 @@ class ActivityRow(QWidget):
         self._outcome.setSizePolicy(QSizePolicy.Policy.Maximum, QSizePolicy.Policy.Preferred)
         self._outcome.hide()
         row.addWidget(self._outcome, 0, Qt.AlignmentFlag.AlignVCenter)
+
+
+        self._locate = QToolButton(self._head)
+        self._locate.setObjectName("activityShowOnMap")
+        self._locate.setToolTip(self.tr("Show on map"))
+        self._locate.setAutoRaise(True)
+        self._locate.setCursor(Qt.CursorShape.PointingHandCursor)
+        self._locate.setFixedSize(_LOCATE_PX, _LOCATE_PX)
+        self._locate.setIcon(QIcon(pixmap_for(self._locate, "lu.locate-fixed", GLYPH_PX, qcolor(INK_3))))
+        self._locate.setStyleSheet(_LOCATE_QSS)
+        keyboard_ring(self._locate)
+        self._locate.clicked.connect(self._show_on_map)
+        self._locate.hide()
+        row.addWidget(self._locate, 0, Qt.AlignmentFlag.AlignVCenter)
+        self._target = None
+        self._peek = None
+        self._peek_timer = QTimer(self)
+        self._peek_timer.setSingleShot(True)
+        self._peek_timer.setInterval(_PEEK_DELAY_MS)
+        self._peek_timer.timeout.connect(self._peek_now)
         self._chevron = Chevron(_CHEVRON_PX, self._head)
         self._chevron.hide()
         row.addWidget(self._chevron, 0, Qt.AlignmentFlag.AlignVCenter)
@@ -759,7 +785,7 @@ class ActivityRow(QWidget):
         margins = lay.contentsMargins()
         fixed = 0
         shown = 0
-        for widget in (self._icon, self._spinner, self._count, self._chevron,
+        for widget in (self._icon, self._spinner, self._count, self._locate, self._chevron,
                        self._label, self._secondary, self._outcome):
             if not widget.isVisibleTo(self._head):
                 continue
@@ -1175,6 +1201,45 @@ class ActivityRow(QWidget):
     def _on_hover(self, hot: bool) -> None:
         self._chevron.set_hot(hot)
         self._chevron.setVisible(self._opens and (hot or self._open))
+        self._target = self._map_target() if hot else None
+        self._locate.setVisible(self._target is not None)
+        if self._target is not None:
+            self._peek_timer.start()
+        else:
+            self._peek_timer.stop()
+            if self._peek is not None:
+                self._peek.hide()
+        self._fit_verb()
+
+    def _map_target(self):
+
+        try:
+            for card in reversed(self.cards):
+                if card.ok is not True:
+                    continue
+                target = map_preview.call_target(card.name, card.args, getattr(card, "map_result", None))
+                if target is not None:
+                    return target
+        except Exception as exc:  # noqa: BLE001
+            log_warning(f"Show on map: no target for the line: {exc}")
+        return None
+
+    def _peek_now(self) -> None:
+        if self._target is None or not self._head.is_hot():
+            return
+        if self._peek is None:
+            self._peek = map_preview.Outline("peek")
+        try:
+            self._peek.show(self._target)
+        except Exception as exc:  # noqa: BLE001
+            log_warning(f"Show on map: outline failed: {exc}")
+
+    def _show_on_map(self) -> None:
+        target = self._target or self._map_target()
+        try:
+            map_preview.show_on_map(target)
+        except Exception as exc:  # noqa: BLE001
+            log_warning(f"Show on map failed: {exc}")
 
     def opens(self) -> bool:
         return self._opens
@@ -1226,6 +1291,9 @@ class ActivityRow(QWidget):
 
     def cleanup(self) -> None:
         self._spinner.finish()
+        self._peek_timer.stop()
+        if self._peek is not None:
+            self._peek.hide()
         if self._logo_hooked:
             from .library.pictures import store
 

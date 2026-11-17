@@ -347,6 +347,8 @@ def _run_in_qgis(args: dict, made: list) -> dict:
     _put_capped(out, "stdout", stdout_capture.getvalue())
     if "result" in namespace:
         value, kind = code_namespace.result_json(namespace["result"])
+        value, images = code_namespace.lift_images(value)
+        out.update(images)
         text = json.dumps(value, default=repr, ensure_ascii=False)
         if len(text) > _MAX_OUTPUT:
             out["result"] = _cap(text)

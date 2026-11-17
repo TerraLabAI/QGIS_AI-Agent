@@ -24,7 +24,7 @@ from .card_base import msg_kind_colour
 from .confirm_dialog import ask_confirm
 from .font_scale import scale_px_length, scale_qss_font_px
 from .icons import icon_for, pixmap_for
-from .settings_pages import GHOST_BTN_QSS, MUTED, ROW_NOTE_QSS, Page, SettingGroup, SettingRow
+from .settings_pages import GHOST_BTN_QSS, MUTED, ROW_NOTE_QSS, Page, SettingGroup, SettingRow, Switch
 from .shared import exec_dialog, resolve_qt_enum
 from .style import _MENU_QSS, INK_2, INK_3
 from .widgets import IconButton
@@ -95,7 +95,7 @@ class ConnectedAccountsPage(Page):
         menu = QMenu(add)
         menu.setStyleSheet(scale_qss_font_px(_MENU_QSS))
         for key, info in sorted(accounts.PROVIDERS.items(), key=lambda kv: kv[1]["label"].lower()):
-            if info.get("own") and not accounts_oauth.browser_ready(key):
+            if (info.get("own") and not accounts_oauth.browser_ready(key)) or not accounts.enabled(key):
                 continue
             what = (self.tr("S3 keys") if info.get("keys") == accounts.S3
                     else self.tr("{name} sign-in").format(name=accounts_oauth.browser_name(key, "Google"))
@@ -165,6 +165,8 @@ class ConnectedAccountsPage(Page):
         self._group.clear()
         rows = sorted(accounts.entries().items(), key=lambda kv: str(kv[1].get("label") or kv[0]).lower())
         for key, entry in rows:
+
+            held = not accounts.enabled(key)
             host = str(entry.get("host") or key)
             label = accounts.label_of(key, entry)
             more = IconButton(self._group, "more", 16, self.tr("More actions for {label}").format(label=label))
@@ -173,19 +175,35 @@ class ConnectedAccountsPage(Page):
             more.setStyleSheet(more.styleSheet() + "QToolButton::menu-indicator { image: none; width: 0px; }")
             menu = QMenu(more)
             menu.setStyleSheet(scale_qss_font_px(_MENU_QSS))
-            if key == "earthengine":
+            if key == "earthengine" and not held:
                 change = menu.addAction(self.tr("Change project…"))
                 change.setObjectName("earthEngineChangeProject")
                 change.triggered.connect(self._change_project)
 
-            replace = menu.addAction(self.tr("Choose files…") if key == "googledrive" else self.tr("Replace…"))
-            replace.setObjectName("accountReplace")
-            replace.triggered.connect(lambda _=False, k=key: self._connect(k))
+            if not held:
+                replace = menu.addAction(self.tr("Choose files…") if key == "googledrive" else self.tr("Replace…"))
+                replace.setObjectName("accountReplace")
+                replace.triggered.connect(lambda _=False, k=key: self._connect(k))
             remove = menu.addAction(self.tr("Remove…"))
             remove.setObjectName("accountRemove")
             remove.triggered.connect(lambda _=False, k=key: self._remove(k))
             more.setMenu(menu)
-            row = SettingRow(label, "", more, self._group)
+            control = QWidget(self._group)
+            pair = QHBoxLayout(control)
+            pair.setContentsMargins(0, 0, 0, 0)
+            pair.setSpacing(8)
+            if not held:
+                said = QLabel(self.tr("Always allow"), control)
+                said.setStyleSheet(ROW_NOTE_QSS)
+                flip = Switch(control, accounts.always(key))
+                flip.setObjectName("accountAlways")
+                flip.setAccessibleName(self.tr("Always allow {label}").format(label=label))
+                flip.setToolTip(self.tr("Used with no card each time. Off: the AI agent asks first."))
+                flip.toggled.connect(lambda on, k=key: accounts.set_always(k, on))
+                pair.addWidget(said)
+                pair.addWidget(flip)
+            pair.addWidget(more)
+            row = SettingRow(label, "", control, self._group)
             row.note_label.setTextFormat(Qt.TextFormat.RichText)
             row.note_label.setText(self._note(key, entry))
             row.note_label.show()

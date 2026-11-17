@@ -22,6 +22,8 @@ import os
 import posixpath
 import re
 import shutil
+import struct
+import sys
 import types
 from typing import Any, Callable
 
@@ -668,21 +670,32 @@ _GDAL_ALLOWED = ("Info", "VersionInfo", "UseExceptions", "DontUseExceptions", "G
                  "OF_VERBOSE_ERROR", "GetConfigOption", "GetColorInterpretationName",
 
 
-                 "InvGeoTransform", "ApplyGeoTransform")
+                 "InvGeoTransform", "ApplyGeoTransform",
+
+                 "GCP", "ColorTable", "ErrorReset", "GetLastErrorNo", "GetLastErrorType", "GA_Update")
 _OGR_ALLOWED = ("CreateGeometryFromWkt", "CreateGeometryFromWkb", "CreateGeometryFromJson",
                 "CreateGeometryFromGML", "Geometry", "UseExceptions", "DontUseExceptions", "GetFieldTypeName",
                 "Feature", "FieldDefn", "GeomFieldDefn", "GeometryTypeToName",
 
-                "GT_Flatten", "GT_HasZ", "GT_HasM")
+                "GT_Flatten", "GT_HasZ", "GT_HasM",
+
+                "ForceToMultiPolygon", "ForceToMultiLineString", "ForceToMultiPoint", "ForceToPolygon",
+                "ForceToLineString")
 
 
-_GDAL_CONSTANT_PREFIXES = ("GDT_", "GCI_", "wkb", "OFT", "OFST", "GRIORA_", "GMF_")
+_GDAL_CONSTANT_PREFIXES = ("GDT_", "GCI_", "wkb", "OFT", "OFST", "GRIORA_", "GMF_", "GRA_")
 
 
 
 _GDAL_WRITERS = {"Translate": ("destName", "srcDS"), "Warp": ("destNameOrDestDS", "srcDSOrSrcDSTab"),
                  "VectorTranslate": ("destNameOrDestDS", "srcDS"), "BuildVRT": ("destName", "srcDSOrSrcDSTab")}
 _GDAL_DRIVER_WRITERS = {"Create": ("utf8_path", ""), "CreateCopy": ("utf8_path", "src")}
+
+
+
+
+
+_GDAL_HANDLE_WRITERS = ("RasterizeLayer", "Polygonize", "FPolygonize", "SieveFilter")
 _OGR_DRIVER_WRITERS = {"CreateDataSource": ("utf8_path", "")}
 
 
@@ -778,6 +791,21 @@ def _gdal_destination(dest) -> tuple[object, str]:
     if error:
         raise PermissionError(error)
     return target, target
+
+
+def _handle_writer(algorithm: Callable) -> Callable:
+
+
+    def _run(*args, **kwargs):
+        for text in _strings(list(args) + list(kwargs.values())):
+            key, equals, value = text.partition("=")
+            problem = _no_network(text) or (_config_refusal(key, value) if equals else None)
+            if problem:
+                raise PermissionError(problem)
+        return algorithm(*args, **kwargs)
+
+    _run.__name__ = getattr(algorithm, "__name__", "gdal_algorithm")
+    return _run
 
 
 def _checked_writer(writer: Callable, names: tuple[str, str]) -> Callable:
@@ -939,6 +967,9 @@ def _safe_osgeo_module(sub: str) -> types.ModuleType:
                 extra[name] = _checked_writer(getattr(gdal, name), names)
             if hasattr(gdal, name + "Options"):
                 extra[name + "Options"] = _checked_options(getattr(gdal, name + "Options"))
+        for name in _GDAL_HANDLE_WRITERS:
+            if hasattr(gdal, name):
+                extra[name] = _handle_writer(getattr(gdal, name))
         return extra
 
     modules = {
@@ -1069,6 +1100,106 @@ _FROM_OS = {
 }
 
 
+
+
+
+
+
+
+
+
+_CURVED_TYPES = range(8, 13)
+_CURVED_WKT = ("CIRCULARSTRING", "COMPOUNDCURVE", "CURVEPOLYGON", "MULTICURVE", "MULTISURFACE")
+
+
+def _curved_wkb(data) -> bool:
+
+
+    view = memoryview(data)
+    offset = 0
+    left = [1]
+    try:
+        while left:
+            if not left[-1]:
+                left.pop()
+                continue
+            left[-1] -= 1
+            order = "<" if view[offset] == 1 else ">"
+            code = struct.unpack_from(order + "I", view, offset + 1)[0]
+            offset += 9 if code & 0x20000000 else 5
+            kind, iso = (code & 0x0FFFFFFF) % 1000, (code & 0x0FFFFFFF) // 1000
+            point = 8 * (2 + (bool(code & 0x80000000) or iso in (1, 3)) + (bool(code & 0x40000000) or iso in (2, 3)))
+            if kind in _CURVED_TYPES:
+                return True
+            if kind == 1:
+                offset += point
+            elif kind == 2:
+                offset += 4 + point * struct.unpack_from(order + "I", view, offset)[0]
+            elif kind == 3:
+                rings = struct.unpack_from(order + "I", view, offset)[0]
+                offset += 4
+                for _ in range(rings):
+                    offset += 4 + point * struct.unpack_from(order + "I", view, offset)[0]
+            elif 4 <= kind <= 7:
+                left.append(struct.unpack_from(order + "I", view, offset)[0])
+                offset += 4
+            else:
+                return False
+    except (struct.error, IndexError, TypeError):
+        return False
+    return False
+
+
+def _curved_item(item, wkt: bool) -> bool:
+    if isinstance(item, (bytes, bytearray, memoryview)) and not wkt:
+        return _curved_wkb(item)
+    if isinstance(item, (bytes, bytearray)):
+        item = bytes(item).decode("latin-1")
+    if not isinstance(item, str):
+        return False
+    if wkt:
+        text = item.upper()
+        return any(word in text for word in _CURVED_WKT)
+    try:
+        return _curved_wkb(bytes.fromhex(item))
+    except ValueError:
+        return False
+
+
+def _curves_refused(reader, wkt: bool, version: str):
+    def read(geometry, *args, **kwargs):
+        flat = getattr(geometry, "flat", None)
+        if any(_curved_item(item, wkt) for item in (flat if flat is not None else (geometry,))):
+            raise NotImplementedError(
+                f"Nonlinear geometry types are not currently supported: shapely {version} in this QGIS "
+                "cannot read a curved geometry (CurvePolygon, MultiSurface, CircularString...) and QGIS "
+                "died reading one. QgsAbstractGeometry.segmentize() gives the same shape in straight "
+                "segments, which it reads.")
+        return reader(geometry, *args, **kwargs)
+    return read
+
+
+def _refuse_curves_in_old_shapely() -> None:
+
+
+
+
+
+    shapely, lib = sys.modules.get("shapely"), sys.modules.get("shapely.lib")
+    if shapely is None or lib is None or getattr(lib, "_terralab_curves_checked", False):
+        return
+    try:
+        version = tuple(int("0" + "".join(c for c in part if c.isdigit()))
+                        for part in shapely.__version__.split(".")[:3])
+        affected = (2, 0, 0) <= version < (2, 0, 7) and tuple(shapely.geos_version) >= (3, 13, 0)
+        if affected:
+            for name, wkt in (("from_wkb", False), ("from_wkt", True)):
+                setattr(lib, name, _curves_refused(getattr(lib, name), wkt, shapely.__version__))
+        lib._terralab_curves_checked = True
+    except (AttributeError, TypeError, ValueError):
+        return
+
+
 def _guarded_import(name, globals=None, locals=None, fromlist=(), level=0):  # noqa: A002
     if level:
         raise ImportError("relative imports are not available in execute_code")
@@ -1094,6 +1225,7 @@ def _guarded_import(name, globals=None, locals=None, fromlist=(), level=0):  # n
         if top not in _QT_BINDINGS:
             raise
         module = _host_qt(name, fromlist)
+    _refuse_curves_in_old_shapely()
     for attr in fromlist or ():
         if attr in DENIED_ATTRS or attr in DENIED_NAMES or _module_denied(f"{name}.{attr}"):
             raise ImportError(f"{name}.{attr} is not available in execute_code")

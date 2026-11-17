@@ -46,6 +46,7 @@ import io
 import json
 import os
 import pickle  # nosec B403
+import re
 import subprocess  # nosec B404
 import tempfile
 import threading
@@ -56,15 +57,16 @@ from collections import OrderedDict
 from ..core import background, limits, net, security, tuning
 from ..core import code_effects as ce
 from ..core.background import run_on_main_thread
+from ..core.crash_note import shape_stack
 from ..core.host_platform import IS_WINDOWS, remove_tree
-from ..core.layer_order import WEB_SERVICE_PROVIDERS
+from ..core.layer_order import WEB_SERVICE_PROVIDERS, source_gone
 from ..core.logger import log_warning
 from ..core.policy import create_managed_temp_dir
 from ..core.serialization import cut_string
 from ..core.tool_registry import tool_error
 from . import code_guard, code_guard_runtime, code_hints, code_namespace, code_runtime, code_split, code_tripwire
+from .child_python import _tail, exit_name, python_for_child, read_json, start_refused
 from .child_python import environment as _environment
-from .child_python import python_for_child, read_json, start_refused
 
 _PLUGIN_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 _WORKER = os.path.join(_PLUGIN_ROOT, "src", "workers", "isolated_code_worker.py")
@@ -143,6 +145,8 @@ def _ineligible(layer) -> str:
 
     if not layer.isValid():
         return "is not valid"
+    if source_gone(layer):
+        return "lost its file"
     if isinstance(layer, QgsVectorLayer):
         if layer.providerType() not in VECTOR_PROVIDERS:
             return "is not a local file layer"
@@ -435,17 +439,18 @@ def plan(code: str) -> dict:
     dynamic = code_split.lists_layers(code)
 
     written = code_split.helper_layer_names(code)
-    helper_names = {name.casefold() for name in written}
+    helper_names = {code_namespace.loose_name(name) for name in written}
 
 
 
-    known = {layer.name().casefold() for layer in project.mapLayers().values()}
-    missing = sorted(name for name in written if name.casefold() not in known and project.mapLayer(name) is None)
+    known = {code_namespace.loose_name(layer.name()) for layer in project.mapLayers().values()}
+    missing = sorted(name for name in written
+                     if code_namespace.loose_name(name) not in known and project.mapLayer(name) is None)
     if missing:
         return {"reason": f"layer({missing[0]!r}) names no layer of this project"}
     pending = [layer for layer in project.mapLayers().values()
                if dynamic or (layer.name() and layer.name() in code) or layer.id() in code
-               or layer.name().casefold() in helper_names]
+               or code_namespace.loose_name(layer.name()) in helper_names]
     partners: set[str] = set()
     seen: set[str] = set()
     reached = []
@@ -577,14 +582,52 @@ def _read_text(path: str, limit: int) -> str:
         return ""
 
 
-def _tail(path: str, limit: int = 800) -> str:
+
+
+
+_WINDOWS_FAULTS = {0xC0000005: "access violation", 0xC000008E: "float divide by zero",
+                   0xC0000091: "float overflow", 0xC0000094: "int divide by zero",
+                   0xC0000095: "integer overflow", 0xC0000006: "page error",
+                   0xC00000FD: "stack overflow"}
+_FRAME = re.compile(r'^\s*File "([^"]*)", line (\d+) in (\S+)', re.MULTILINE)
+_LIBRARY_ROOT = re.compile(r"site-packages|dist-packages|lib|python\d+(\.\d+)?", re.IGNORECASE)
+
+
+def _crashed_in(log_path: str, exit_code: int) -> tuple:
+
+
+
+
+
+
     try:
-        with open(path, "rb") as handle:
+        with open(log_path, "rb") as handle:
             handle.seek(0, os.SEEK_END)
-            handle.seek(max(0, handle.tell() - limit))
-            return " ".join(handle.read().decode("utf-8", "replace").split())[-limit:]
+            handle.seek(max(0, handle.tell() - 65_536))
+            text = handle.read().decode("utf-8", "replace")
     except OSError:
-        return ""
+        return "", "", 0
+    head, _, dump = shape_stack(text, len(text) + 1).partition("\n")
+    kind, _, fault = head.partition(": ")
+    if kind == "Windows fatal exception":
+        code = exit_code & 0xFFFFFFFF
+        if fault.strip() != _WINDOWS_FAULTS.get(code, f"code 0x{code:08x}"):
+            return "", "", 0
+    elif kind != "Fatal Python error":
+        return "", "", 0
+    blocks = [block for block in re.split(r"\n\s*\n", dump)
+              if block.lstrip().startswith(("Thread ", "Current thread "))]
+    current = [block for block in blocks if block.lstrip().startswith("Current thread ")]
+    frames = _FRAME.findall((current or blocks or [""])[-1])
+    inner = next(((path, line, func) for path, line, func in frames
+                  if not path.startswith("<frozen") and path != "<snippet-owner>"), None)
+    snippet_line = next((int(line) for path, line, _func in frames if path == "<snippet>"), 0)
+    if inner is None:
+        return fault.strip(), "", snippet_line
+    parts = re.split(r"[\\/]+", inner[0])
+    cut = max((at for at, part in enumerate(parts) if _LIBRARY_ROOT.fullmatch(part)), default=-1)
+    where = "/".join(parts[cut + 1:]) if cut >= 0 else parts[-1]
+    return fault.strip(), f"{where}:{inner[1]} {inner[2]}", snippet_line
 
 
 class _TooBig(Exception):
@@ -924,6 +967,10 @@ def run_child(code: str, planned: dict, python: str, cancel_check, timeout_s: fl
             out = {"executed": True, "isolated": True}
             _put_capped(out, "stdout", stdout)
             if status.get("result_set"):
+                images = status.get("images")
+                if isinstance(images, dict):
+                    out.update({k: v for k, v in images.items()
+                                if k in code_namespace.IMAGE_KEYS and isinstance(v, str)})
                 text = str(status.get("result") or "null")
                 parsed = len(text) <= MAX_OUTPUT
                 if parsed:
@@ -974,13 +1021,23 @@ def run_child(code: str, planned: dict, python: str, cancel_check, timeout_s: fl
             _put_names(out, status, names_dir)
             return out
         if phase == "running":
+            fault, frame, line = _crashed_in(log_path, process.returncode)
+            fault = fault or exit_name(process.returncode)
+            where = f" ({fault})" if fault else ""
+            if frame.startswith("<snippet>"):
+                where += f" at snippet line {line}"
+            elif frame:
+                where += f" inside {frame}" + (f", called from snippet line {line}" if line else "")
             return tool_error(
                 f"The separate Python process running this snippet ended with exit code "
-                f"{process.returncode} before it finished. QGIS itself was not affected.",
+                f"{process.returncode}{where} before it finished. QGIS itself was not affected.",
                 "EXEC_CRASHED", hint="exec_crashed", executed=False, stdout=_cap(stdout),
                 exit_code=process.returncode, isolated=True,
+                **({"crashed_in": frame} if frame else {}),
+                **({"snippet_line": line} if line else {}),
             )
-        detail = str(status.get("setup_error") or _tail(log_path) or f"exit code {process.returncode}")
+        detail = str(status.get("setup_error") or _tail(log_path, 800)
+                     or f"exit code {exit_name(process.returncode) or process.returncode}")
         if os.path.exists(stdout_path):
 
 
@@ -1080,7 +1137,7 @@ def _read_web_services(code: str, cancel_check) -> dict | None:
         return None
 
     for name, source in sources:
-        request, feedback = QgsFeatureRequest(), QgsFeedback()
+        request, feedback = QgsFeatureRequest(), background.prime(QgsFeedback())
         if hasattr(request, "setFeedback"):
             request.setFeedback(feedback)
         over, failure = threading.Event(), []

@@ -16,6 +16,7 @@ from ..core import geodata_rules, ground, net
 from ..core.background import run_on_main_thread
 from ..core.feature_requests import feature_request
 from ..core.geometry_budget import VertexBudget, vertex_count
+from ..core.layer_order import extent_known
 from ..core.logger import log_warning
 from ..core.qt_compat import enum_member
 from ..core.serialization import CodedText
@@ -57,8 +58,8 @@ def _footprint_outline(layer, target):
 
     from qgis.core import QgsGeometry, QgsPointXY
 
-    extent = layer.extent()
-    if extent.isNull() or extent.isEmpty() or extent.width() <= 0 or extent.height() <= 0:
+    extent = extent_known(layer)
+    if extent is None or extent.isNull() or extent.isEmpty() or extent.width() <= 0 or extent.height() <= 0:
         return None
     xmin, ymin, xmax, ymax = extent.xMinimum(), extent.yMinimum(), extent.xMaximum(), extent.yMaximum()
     steps = _FOOTPRINT_SIDE_POINTS

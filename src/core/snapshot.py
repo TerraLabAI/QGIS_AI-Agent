@@ -37,7 +37,7 @@ import zipfile
 
 from qgis.core import QgsProject, QgsVectorLayer
 
-from . import designer_guard, net, snapshot_watch, tuning
+from . import background, designer_guard, net, snapshot_watch, tuning
 from .host_platform import (
     file_error_kind,
     in_synced_folder,
@@ -46,7 +46,7 @@ from .host_platform import (
     resolved,
     retry_file_op,
 )
-from .layer_order import is_remote_vector, is_web_service, read_back
+from .layer_order import is_remote_vector, is_web_service, read_back, write_refusal
 from .logger import log, log_warning
 from .numbers import as_float, as_int
 from .settings import account_dir
@@ -423,9 +423,21 @@ def _remove_soon(path: str, what: str) -> bool:
 _COUNT_KEPT_PROVIDERS = frozenset({"ogr", "memory", "delimitedtext", "gpx", "spatialite"})
 
 
+
+
+_OGR_COUNT_KEPT_DRIVERS = frozenset({"GPKG", "ESRI Shapefile", "FlatGeobuf", "GeoJSON", "LIBKML", "KML",
+                                     "OpenFileGDB", "Parquet"})
+
+
+def _scans_to_count(layer) -> bool:
+    if str(layer.providerType() or "") != "ogr":
+        return False
+    return bool(layer.subsetString()) or str(layer.dataProvider().storageType() or "") not in _OGR_COUNT_KEPT_DRIVERS
+
+
 def _keeps_count(layer) -> bool:
     return (str(layer.providerType() or "") in _COUNT_KEPT_PROVIDERS
-            and not is_remote_vector(layer))
+            and not is_remote_vector(layer) and not _scans_to_count(layer))
 
 
 def prune_soon(protect: str = "") -> None:
@@ -562,7 +574,7 @@ class RunSnapshot:
 
 
 
-        if threading.current_thread() is threading.main_thread():
+        if background.on_main_thread():
             self.adopt_copies()
         return {
             "run_id": self.run_id,
@@ -772,6 +784,7 @@ class RunSnapshot:
 
 
 
+
         path = layer_file_path(layer) if with_hash else source_path(layer)
         record = {
             "id": layer.id(), "name": layer.name(), "source": layer.source() or "",
@@ -786,7 +799,7 @@ class RunSnapshot:
 
 
 
-                if not is_web_service(layer) and (count or _keeps_count(layer)):
+                if not is_web_service(layer) and not _scans_to_count(layer) and (count or _keeps_count(layer)):
                     n = layer.featureCount()
                     record["feature_count"] = int(n) if n is not None and n >= 0 else None
             except Exception:  # nosec B110
@@ -861,6 +874,12 @@ class RunSnapshot:
             return True
         scope = None if layer_ids is None else {str(lid) for lid in layer_ids}
         project = QgsProject.instance()
+        refusal = write_refusal(project)
+        if refusal:
+
+            log_warning(f"Snapshot not taken: {refusal}.")
+            self.copy_kind = "failed"
+            return False
         started = time.monotonic()
         try:
             os.makedirs(self.dir, exist_ok=True)
@@ -1161,7 +1180,7 @@ class RunSnapshot:
                 self.copy_progress = [0, len(sweep) + len(jobs)]
                 if sweep:
                     self._swept.append(self._sweep(sweep, stop))
-                    if threading.current_thread() is threading.main_thread():
+                    if background.on_main_thread():
                         self.adopt_copies()
                 done, refusals = 0, []
                 for folder, copies, label in jobs:

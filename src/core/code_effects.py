@@ -1241,14 +1241,14 @@ def classify(code: object, tool_class: Callable[[str], str | None] | None = None
 
 
                 pass
+            elif kind == "name" and id(node.func) in lookups:
+                for name in ((_literal_lookup(node),) if _literal_lookup(node) else _loop_lookup(node, tree)):
+                    if name.startswith("__"):
+                        unknown.append(f"getattr {name}")
+                    else:
+                        method(_receiver_root(node.args[0]), name, handed_on=True, recv=node.args[0])
             elif kind == "name":
-                if id(node.func) in lookups:
-                    for name in ((_literal_lookup(node),) if _literal_lookup(node) else _loop_lookup(node, tree)):
-                        if name.startswith("__"):
-                            unknown.append(f"getattr {name}")
-                        else:
-                            method(_receiver_root(node.args[0]), name, handed_on=True, recv=node.args[0])
-                elif id(node.func) in membership:
+                if id(node.func) in membership:
                     pass
                 elif callee in t["unprovable"]:
                     unknown.append(callee)

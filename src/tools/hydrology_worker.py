@@ -402,11 +402,13 @@ def _extract_streams(args: dict, checkpoint) -> dict:
         if "_error" in mask:
             return mask
         xmin, ymin, xmax, ymax = mask["extent"]
-        cols = sorted(((xmin - x0) / dx, (xmax - x0) / dx))
-        rows = sorted(((ymin - y0) / dy, (ymax - y0) / dy))
+
+        finite = all(map(math.isfinite, mask["extent"]))
+        cols = sorted(((xmin - x0) / dx, (xmax - x0) / dx)) if finite else (0, 0)
+        rows = sorted(((ymin - y0) / dy, (ymax - y0) / dy)) if finite else (0, 0)
         c_min, c_max = max(0, int(math.floor(cols[0])) - 2), min(facts["width"], int(math.ceil(cols[1])) + 2)
         r_min, r_max = max(0, int(math.floor(rows[0])) - 2), min(facts["height"], int(math.ceil(rows[1])) + 2)
-        if c_min >= c_max or r_min >= r_max:
+        if not finite or c_min >= c_max or r_min >= r_max:
             return tool_error(f"{mask['name']} does not overlap {facts['name']}.", "INVALID_ARGS",
                               hint="hydrology_mask_outside_dem", mask=mask["name"], dem=facts["name"])
         if cols[0] < 0 or rows[0] < 0 or cols[1] > facts["width"] or rows[1] > facts["height"]:
@@ -500,7 +502,8 @@ def _extract_streams(args: dict, checkpoint) -> dict:
     if args.get("threshold_cells") is not None:
         threshold = max(2, int(math.ceil(int(args["threshold_cells"]) / per_cell)))
     elif args.get("threshold_km2") is not None:
-        threshold = max(2, int(math.ceil(float(args["threshold_km2"]) / cell_km2)))
+
+        threshold = max(2, int(math.ceil(min(float(args["threshold_km2"]) / cell_km2, analysed + 1))))
     else:
         threshold = max(_MIN_THRESHOLD_CELLS, analysed // _THRESHOLD_SHARE,
                         int(math.ceil(_MIN_THRESHOLD_M2 / 1e6 / cell_km2)))

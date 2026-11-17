@@ -830,10 +830,18 @@ def wcs10_description(body: bytes) -> dict:
             "crs_offered": _unique(epsg_of(c) for c in offered)}
 
 
-def pick_tiff_format(formats: list) -> str:
+def pick_grid_format(formats: list) -> tuple[str, str, int]:
+
+
+
+
+
 
     tiffs = [f for f in formats if "tif" in f.lower() and "rgb" not in f.lower()]
-    return next((f for f in tiffs if "float" in f.lower()), tiffs[0] if tiffs else "")
+    if tiffs:
+        return next((f for f in tiffs if "float" in f.lower()), tiffs[0]), ".tif", 4
+    grid = next((f for f in formats if "aaigrid" in f.lower() or "arcgrid" in f.lower()), "")
+    return (grid, ".asc", 20) if grid else ("", "", 0)
 
 
 def _local_copy(entries: list) -> dict | None:

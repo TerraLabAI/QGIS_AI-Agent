@@ -1806,6 +1806,82 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <source>{words} · {done} of {total}</source>
             <translation>{words} · {done} من {total}</translation>
         </message>
+        <message>
+            <source>Allow chat review</source>
+            <translation>السماح بمراجعة المحادثة</translation>
+        </message>
+        <message>
+            <source>Both switches stay in Settings, where you can change them whenever you want.</source>
+            <translation>يبقى الخياران في الإعدادات، ويمكنك تغييرهما متى شئت.</translation>
+        </message>
+        <message>
+            <source>Counts and error codes, linked to your account. Never your text or your map.</source>
+            <translation>أعداد ورموز أخطاء، مرتبطة بحسابك. لا نصك ولا خريطتك أبدًا.</translation>
+        </message>
+        <message>
+            <source>Each message sends your text, the map extent, your layer and field names, one sample row and, while it works, pictures of the map. Never your files unless you attach them. No model is trained on them.</source>
+            <translation>تُرسل كل رسالة نصك ونطاق الخريطة وأسماء طبقاتك وحقولك وصفًا واحدًا كعيّنة، وأثناء العمل صورًا للخريطة. لا تُرسل ملفاتك أبدًا ما لم ترفقها. ولا يُدرَّب أي نموذج عليها.</translation>
+        </message>
+        <message>
+            <source>Our team may read your chats to fix the AI agent.</source>
+            <translation>قد يقرأ فريقنا محادثاتك لإصلاح وكيل الذكاء الاصطناعي.</translation>
+        </message>
+        <message>
+            <source>Runs on Microsoft Azure in Europe, stored in France.</source>
+            <translation>يعمل على Microsoft Azure في أوروبا، ويُخزَّن في فرنسا.</translation>
+        </message>
+        <message>
+            <source>Share usage statistics</source>
+            <translation>مشاركة إحصاءات الاستخدام</translation>
+        </message>
+        <message>
+            <source>The message you send is the part that reaches us: we keep it 90 days, and with chat review on, our team may read it to fix the AI agent. On {pro}, 30 days, or none at 0 days of history.</source>
+            <translation>الرسالة التي ترسلها هي الجزء الذي يصل إلينا: نحتفظ بها 90 يومًا، ومع تفعيل السماح بمراجعة المحادثة قد يقرأها فريقنا لإصلاح وكيل الذكاء الاصطناعي. في {pro}، 30 يومًا، أو لا شيء عند 0 أيام من السجل.</translation>
+        </message>
+        <message>
+            <source>You choose below.</source>
+            <translation>أنت من يختار في الأسفل.</translation>
+        </message>
+        <message>
+            <source>Close the open list</source>
+            <translation>إغلاق القائمة المفتوحة</translation>
+        </message>
+        <message>
+            <source>Press it twice</source>
+            <translation>اضغط عليه مرتين</translation>
+        </message>
+        <message>
+            <source>Deleted after 90 days at most</source>
+            <translation>تُحذف بعد 90 يومًا كحد أقصى</translation>
+        </message>
+        <message>
+            <source>Help improve AI Agent</source>
+            <translation>ساعد في تحسين AI Agent</translation>
+        </message>
+        <message>
+            <source>Hosted in the EU</source>
+            <translation>مستضافة في الاتحاد الأوروبي</translation>
+        </message>
+        <message>
+            <source>Never used to train AI</source>
+            <translation>لا تُستخدم أبدًا لتدريب الذكاء الاصطناعي</translation>
+        </message>
+        <message>
+            <source>Your chats are private</source>
+            <translation>محادثاتك خاصة</translation>
+        </message>
+        <message>
+            <source>Your usage and chats help us fix bugs. Turn it off anytime.</source>
+            <translation>استخدامك ومحادثاتك يساعداننا في إصلاح الأخطاء. يمكنك إيقافه في أي وقت.</translation>
+        </message>
+        <message>
+            <source>included</source>
+            <translation>مشمول</translation>
+        </message>
+        <message>
+            <source>left out</source>
+            <translation>مستبعد</translation>
+        </message>
     </context>
     <context>
         <name>AIAgentContext</name>
@@ -2042,6 +2118,10 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <source>Your AI agent inside QGIS</source>
             <translation>وكيل الذكاء الاصطناعي داخل QGIS</translation>
+        </message>
+        <message>
+            <source>This layer's file can no longer be read, so the map cannot zoom to it.</source>
+            <translation>لم يعد ملف هذه الطبقة قابلاً للقراءة، لذلك لا يمكن للخريطة التكبير إليها.</translation>
         </message>
     </context>
     <context>
@@ -2393,6 +2473,10 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <source>{words} · {done} of {total}</source>
             <translation>{words} · {done} من {total}</translation>
         </message>
+        <message>
+            <source>Show on map</source>
+            <translation>عرض على الخريطة</translation>
+        </message>
     </context>
     <context>
         <name>AgentBubble</name>
@@ -2427,6 +2511,18 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <source>Remove rating</source>
             <translation>إزالة التقييم</translation>
+        </message>
+        <message>
+            <source>Did this do what you wanted?</source>
+            <translation>هل حقق هذا ما تريده؟</translation>
+        </message>
+        <message>
+            <source>No</source>
+            <translation>لا</translation>
+        </message>
+        <message>
+            <source>Yes</source>
+            <translation>نعم</translation>
         </message>
     </context>
     <context>
@@ -2815,6 +2911,26 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <source>Stopped: AI Agent was updated or turned off during this run.</source>
             <translation>تم الإيقاف: جرى تحديث AI Agent أو إيقاف تشغيله أثناء هذا التشغيل.</translation>
         </message>
+        <message>
+            <source>Not sent: TerraLab is not connected.</source>
+            <translation>لم يتم الإرسال: TerraLab غير متصل.</translation>
+        </message>
+        <message>
+            <source>Thanks. Your note went with the crash report.</source>
+            <translation>شكرًا. تم إرسال ملاحظتك مع تقرير الانهيار.</translation>
+        </message>
+        <message>
+            <source>{layer} lost its file, and QGIS closes when it saves a project that holds it, so nothing was restored. Remove {layer} from the project, or put its file back and turn its editing on and off once, then try again.</source>
+            <translation>فقدت {layer} ملفها، ويُغلق QGIS عند حفظ مشروع يحتويها، لذلك لم تتم استعادة أي شيء. أزل {layer} من المشروع، أو أعد ملفها إلى مكانه ثم فعّل «تبديل التحرير» وعطّله مرة واحدة، ثم حاول مجددًا.</translation>
+        </message>
+        <message>
+            <source>Your note could not be added to the crash report.</source>
+            <translation>تعذّرت إضافة ملاحظتك إلى تقرير الانهيار.</translation>
+        </message>
+        <message>
+            <source>Your note was sent.</source>
+            <translation>تم إرسال ملاحظتك.</translation>
+        </message>
     </context>
     <context>
         <name>AgentSession</name>
@@ -2961,6 +3077,10 @@ The erasure is final once the grace period ends. Until then you can cancel it by
     </context>
     <context>
         <name>ChatPanel</name>
+        <message>
+            <source>Try another card</source>
+            <translation>جرّب بطاقة أخرى</translation>
+        </message>
         <message>
             <source>Add a few words: what should the AI agent do with it?</source>
             <translation>أضف بضع كلمات: ماذا يفعل الوكيل به؟</translation>
@@ -3220,6 +3340,14 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <source>Reply</source>
             <translation>ردّ</translation>
+        </message>
+        <message>
+            <source>Esc again to stop</source>
+            <translation>اضغط Esc مرة أخرى للإيقاف</translation>
+        </message>
+        <message>
+            <source>Queue a message for after this run</source>
+            <translation>ضع رسالة في الانتظار لما بعد هذا التشغيل</translation>
         </message>
     </context>
     <context>
@@ -3520,6 +3648,72 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <source>Finish dictation</source>
             <translation>إنهاء الإملاء</translation>
         </message>
+        <message>
+            <location filename="src/ui/composer.py" />
+            <source>{name} was removed from the project</source>
+            <translation>تمت إزالة {name} من المشروع</translation>
+        </message>
+        <message>
+            <location filename="src/ui/composer.py" />
+            <source>{name} is now called {new}</source>
+            <translation>أصبح اسم {name} الآن {new}</translation>
+        </message>
+        <message>
+            <location filename="src/ui/composer.py" />
+            <source>{names} were removed from the project</source>
+            <translation>تمت إزالة {names} من المشروع</translation>
+        </message>
+        <message>
+            <location filename="src/ui/composer.py" />
+            <source>{n} layers named here were removed or renamed</source>
+            <translation>الطبقات المذكورة هنا التي أُزيلت أو أُعيدت تسميتها: {n}</translation>
+        </message>
+        <message>
+            <location filename="src/ui/composer.py" />
+            <source>Sent as plain words: the AI agent gets no link to the layer.</source>
+            <translation>تُرسل ككلمات عادية: لا يحصل وكيل الذكاء الاصطناعي على رابط إلى الطبقة.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/composer.py" />
+            <source>removed from the project</source>
+            <translation>أُزيلت من المشروع</translation>
+        </message>
+        <message>
+            <location filename="src/ui/composer.py" />
+            <source>renamed {new}</source>
+            <translation>أُعيدت تسميتها إلى {new}</translation>
+        </message>
+        <message>
+            <location filename="src/ui/composer.py" />
+            <source>Use</source>
+            <translation>استخدم</translation>
+        </message>
+        <message>
+            <location filename="src/ui/composer.py" />
+            <source>Write {new} in the message instead</source>
+            <translation>اكتب {new} في الرسالة بدلاً من ذلك</translation>
+        </message>
+        <message>
+            <location filename="src/ui/composer.py" />
+            <source>and {n} more</source>
+            <translation>و{n} أخرى</translation>
+        </message>
+        <message>
+            <source>1 layer</source>
+            <translation>طبقة واحدة</translation>
+        </message>
+        <message>
+            <source>Edit as text</source>
+            <translation>تحرير كنص</translation>
+        </message>
+        <message>
+            <source>Show on map</source>
+            <translation>عرض على الخريطة</translation>
+        </message>
+        <message>
+            <source>{n} layers</source>
+            <translation>{n} طبقات</translation>
+        </message>
     </context>
     <context>
         <name>ComposerInput</name>
@@ -3534,6 +3728,14 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <source>QGIS plugins</source>
             <translation>إضافات QGIS</translation>
+        </message>
+        <message>
+            <source>Type to search layers, data sources and QGIS plugins</source>
+            <translation>اكتب للبحث في الطبقات ومصادر البيانات وإضافات QGIS</translation>
+        </message>
+        <message>
+            <source>Message AI Agent</source>
+            <translation>راسل AI Agent</translation>
         </message>
     </context>
     <context>
@@ -4051,6 +4253,18 @@ This file is no longer where the run wrote it.</source>
             <source>Your Pro ends on {date}. Keep it in one click.</source>
             <translation>ينتهي اشتراك Pro الخاص بك في {date}. أبقِه بنقرة واحدة.</translation>
         </message>
+        <message>
+            <source>AI Agent settings</source>
+            <translation>إعدادات AI Agent</translation>
+        </message>
+        <message>
+            <source>Close AI Agent</source>
+            <translation>إغلاق AI Agent</translation>
+        </message>
+        <message>
+            <source>Dock or undock AI Agent</source>
+            <translation>تثبيت AI Agent أو فصله</translation>
+        </message>
     </context>
     <context>
         <name>HistoryPopup</name>
@@ -4133,6 +4347,19 @@ This file is no longer where the run wrote it.</source>
         <message>
             <source>{n} min ago</source>
             <translation>قبل {n} د</translation>
+        </message>
+        <message>
+            <location filename="src/ui/history_popup.py" />
+            <source>Draft</source>
+            <translation>مسودة</translation>
+        </message>
+        <message>
+            <source>Delete chat: {title}</source>
+            <translation>حذف المحادثة: {title}</translation>
+        </message>
+        <message>
+            <source>Open</source>
+            <translation>فتح</translation>
         </message>
     </context>
     <context>
@@ -4534,10 +4761,6 @@ Click to show it in the Layers panel.</source>
             <translation>ليس في هذا المشروع: {}</translation>
         </message>
         <message>
-            <source>Other effects the preview could not read: {}</source>
-            <translation>تأثيرات أخرى لم تتمكن المعاينة من قراءتها: {}</translation>
-        </message>
-        <message>
             <source>Reads: {}</source>
             <translation>يقرأ: {}</translation>
         </message>
@@ -4548,6 +4771,94 @@ Click to show it in the Layers panel.</source>
         <message>
             <source>Writes files: {}</source>
             <translation>يكتب ملفات: {}</translation>
+        </message>
+        <message>
+            <source>Cancel</source>
+            <translation>إلغاء</translation>
+        </message>
+        <message>
+            <source>Delete 1 feature from {layer}</source>
+            <translation>حذف ميزة واحدة من {layer}</translation>
+        </message>
+        <message>
+            <source>Delete {n}</source>
+            <translation>حذف {n}</translation>
+        </message>
+        <message>
+            <source>Delete {n} features from {layer}</source>
+            <translation>حذف {n} ميزة من {layer}</translation>
+        </message>
+        <message>
+            <source>Details</source>
+            <translation>التفاصيل</translation>
+        </message>
+        <message>
+            <source>Feature ids: {ids}</source>
+            <translation>معرّفات الميزات: {ids}</translation>
+        </message>
+        <message>
+            <source>Feature ids: {ids} and {n} more</source>
+            <translation>معرّفات الميزات: {ids} و{n} أخرى</translation>
+        </message>
+        <message>
+            <source>Feature {fid}: {values}</source>
+            <translation>الميزة {fid}: {values}</translation>
+        </message>
+        <message>
+            <source>Hatched in red on the map. Its data source stays as it is; nothing is removed yet.</source>
+            <translation>مظللة بخطوط حمراء على الخريطة. يبقى مصدر بياناتها كما هو، ولم يُزل شيء بعد.</translation>
+        </message>
+        <message>
+            <source>Hatched in red on the map. Nothing is deleted yet.</source>
+            <translation>مظللة بخطوط حمراء على الخريطة. لم يُحذف شيء بعد.</translation>
+        </message>
+        <message>
+            <source>Hatched in red on the map. Nothing is written yet.</source>
+            <translation>مظللة بخطوط حمراء على الخريطة. لم يُكتب شيء بعد.</translation>
+        </message>
+        <message>
+            <source>Hide details</source>
+            <translation>إخفاء التفاصيل</translation>
+        </message>
+        <message>
+            <source>Its features exist only in this project and go with it. Hatched in red on the map; nothing is removed yet.</source>
+            <translation>ميزاتها موجودة في هذا المشروع فقط وتزول معه. مظللة بخطوط حمراء على الخريطة، ولم يُزل شيء بعد.</translation>
+        </message>
+        <message>
+            <source>Overwrite 1 feature of {layer}</source>
+            <translation>استبدال ميزة واحدة من {layer}</translation>
+        </message>
+        <message>
+            <source>Overwrite {n}</source>
+            <translation>استبدال {n}</translation>
+        </message>
+        <message>
+            <source>Overwrite {n} features of {layer}</source>
+            <translation>استبدال {n} ميزة من {layer}</translation>
+        </message>
+        <message>
+            <source>Remove layer</source>
+            <translation>إزالة الطبقة</translation>
+        </message>
+        <message>
+            <source>Remove {layer} from the project</source>
+            <translation>إزالة {layer} من المشروع</translation>
+        </message>
+        <message>
+            <source>Rule: {expression}</source>
+            <translation>القاعدة: {expression}</translation>
+        </message>
+        <message>
+            <source>Show on map</source>
+            <translation>عرض على الخريطة</translation>
+        </message>
+        <message>
+            <source>{n} features in {layer}</source>
+            <translation>{n} ميزة في {layer}</translation>
+        </message>
+        <message>
+            <source>{n} of {total} features in {layer}</source>
+            <translation>{n} من أصل {total} ميزة في {layer}</translation>
         </message>
     </context>
     <context>
@@ -4755,6 +5066,18 @@ Click to show it in the Layers panel.</source>
     </context>
     <context>
         <name>QuotaCard</name>
+        <message>
+            <source>Card declined</source>
+            <translation>تم رفض البطاقة</translation>
+        </message>
+        <message>
+            <source>Your trial didn't start. Nothing was charged.</source>
+            <translation>لم تبدأ تجربتك. لم يتم خصم أي مبلغ.</translation>
+        </message>
+        <message>
+            <source>Try another card</source>
+            <translation>جرّب بطاقة أخرى</translation>
+        </message>
         <message>
             <location filename="src/ui/quota_card.py" />
             <source>Free for 7 days, nothing to pay today, then monthly at your local price. Cancel in one click.</source>
@@ -5867,6 +6190,22 @@ Thank you</source>
             <source>The AI agent's mark moves and follows the work. Off keeps it still.</source>
             <translation>تتحرك علامة وكيل الذكاء الاصطناعي وتتابع العمل. عند الإيقاف تبقى ثابتة.</translation>
         </message>
+        <message>
+            <source>Help improve AI Agent</source>
+            <translation>ساعد في تحسين AI Agent</translation>
+        </message>
+        <message>
+            <source>Usage stats: errors, versions and the features you use, never your prompts, layers or files. We may read a chat, or have a model score it, to fix bugs, never to train AI.</source>
+            <translation>إحصاءات الاستخدام: الأخطاء والإصدارات والميزات التي تستخدمها، وليس رسائلك أو طبقاتك أو ملفاتك أبدًا. قد نقرأ محادثة، أو نجعل نموذجًا يقيّمها، لإصلاح الأخطاء، وليس لتدريب الذكاء الاصطناعي أبدًا.</translation>
+        </message>
+        <message>
+            <source>Usage stats: only that you used the app and when. Chats are kept 30 days so a conversation survives an update; we may read one, or have a model score it, to fix bugs, never to train AI. 0 days of history stores nothing.</source>
+            <translation>إحصاءات الاستخدام: فقط أنك استخدمت التطبيق ومتى. تُحفظ المحادثات 30 يومًا حتى تبقى المحادثة بعد التحديث. قد نقرأ محادثة، أو نجعل نموذجًا يقيّمها، لإصلاح الأخطاء، وليس لتدريب الذكاء الاصطناعي أبدًا. 0 أيام من السجل تعني عدم حفظ أي شيء.</translation>
+        </message>
+        <message>
+            <source>Your usage and chats help us fix bugs. Turn it off anytime.</source>
+            <translation>استخدامك ومحادثاتك يساعداننا في إصلاح الأخطاء. يمكنك إيقافه في أي وقت.</translation>
+        </message>
     </context>
     <context>
         <name>SiblingCard</name>
@@ -6266,6 +6605,10 @@ Thank you</source>
             <source>{area} m²</source>
             <translation>{area} m²</translation>
         </message>
+        <message>
+            <source>Always allowed</source>
+            <translation>مسموح دائماً</translation>
+        </message>
     </context>
     <context>
         <name>UpdateBanner</name>
@@ -6319,6 +6662,10 @@ Thank you</source>
         <message>
             <source>{product} {version} is out</source>
             <translation>صدر {product} {version}</translation>
+        </message>
+        <message>
+            <source>Update {product} to continue</source>
+            <translation>حدّث {product} للمتابعة</translation>
         </message>
     </context>
     <context>
@@ -6920,6 +7267,18 @@ Thank you</source>
             <source>Choose in Google Drive</source>
             <translation>الاختيار من Google Drive</translation>
         </message>
+        <message>
+            <source>More ways to allow</source>
+            <translation>المزيد من خيارات السماح</translation>
+        </message>
+        <message>
+            <source>Always allow {label}</source>
+            <translation>السماح دائماً بـ {label}</translation>
+        </message>
+        <message>
+            <source>Always allowed</source>
+            <translation>مسموح دائماً</translation>
+        </message>
     </context>
     <context>
         <name>ConnectedAccountsPage</name>
@@ -7026,6 +7385,18 @@ Thank you</source>
         <message>
             <source>{name} sign-in</source>
             <translation>تسجيل الدخول إلى {name}</translation>
+        </message>
+        <message>
+            <source>Always allow</source>
+            <translation>السماح دائماً</translation>
+        </message>
+        <message>
+            <source>Always allow {label}</source>
+            <translation>السماح دائماً بـ {label}</translation>
+        </message>
+        <message>
+            <source>Used with no card each time. Off: the AI agent asks first.</source>
+            <translation>يُستخدم دون بطاقة في كل مرة. عند الإيقاف: يسأل وكيل الذكاء الاصطناعي أولاً.</translation>
         </message>
     </context>
     <context>
@@ -7173,6 +7544,14 @@ Thank you</source>
         <message>
             <source>Show the plugin's panel.</source>
             <translation>إظهار لوحة المكوّن الإضافي.</translation>
+        </message>
+        <message>
+            <source>Install {plugin}</source>
+            <translation>تثبيت {plugin}</translation>
+        </message>
+        <message>
+            <source>Open {plugin}</source>
+            <translation>فتح {plugin}</translation>
         </message>
     </context>
     <context>
@@ -7600,6 +7979,54 @@ Thank you</source>
             <source>QGIS will ask you to choose a master password. It locks every sign-in saved in QGIS and cannot be recovered, so keep it somewhere safe.</source>
             <translation>سيطلب منك QGIS اختيار كلمة مرور رئيسية. تقفل هذه الكلمة كل عمليات تسجيل الدخول المحفوظة في QGIS ولا يمكن استرجاعها، لذا احتفظ بها في مكان آمن.</translation>
         </message>
+        <message>
+            <source>Cloud project ID</source>
+            <translation>معرّف مشروع Cloud</translation>
+        </message>
+        <message>
+            <source>Shown next to the project name at the top of console.cloud.google.com.</source>
+            <translation>يظهر بجانب اسم المشروع في أعلى console.cloud.google.com.</translation>
+        </message>
+        <message>
+            <source>Type the ID of the Google Cloud project Earth Engine runs on.</source>
+            <translation>اكتب معرّف مشروع Google Cloud الذي يعمل عليه Earth Engine.</translation>
+        </message>
+        <message>
+            <source>Open the Cloud console</source>
+            <translation>افتح Cloud console</translation>
+        </message>
+        <message>
+            <source>You're signed in</source>
+            <translation>تم تسجيل دخولك</translation>
+        </message>
+        <message>
+            <source>You can close this tab and return to QGIS.</source>
+            <translation>يمكنك إغلاق هذا التبويب والعودة إلى QGIS.</translation>
+        </message>
+        <message>
+            <source>In QGIS, pick the Cloud project Earth Engine runs on.</source>
+            <translation>في QGIS، اختر مشروع Cloud الذي يعمل عليه Earth Engine.</translation>
+        </message>
+        <message>
+            <source>Sign-in didn't finish</source>
+            <translation>لم يكتمل تسجيل الدخول</translation>
+        </message>
+        <message>
+            <source>Close this tab and try again from QGIS.</source>
+            <translation>أغلق هذا التبويب وحاول مرة أخرى من QGIS.</translation>
+        </message>
+        <message>
+            <source>Checking {project} with Earth Engine...</source>
+            <translation>جارٍ فحص {project} مع Earth Engine...</translation>
+        </message>
+        <message>
+            <source>Earth Engine refused the project {project} ({error}). Check the ID and your role on the project.</source>
+            <translation>رفض Earth Engine المشروع {project} ({error}). تحقق من المعرّف ومن دورك في المشروع.</translation>
+        </message>
+        <message>
+            <source>Earth Engine could not be reached ({error}). Check your connection or the proxy in QGIS (Settings &gt; Options &gt; Network).</source>
+            <translation>تعذّر الوصول إلى Earth Engine ({error}). تحقق من اتصالك أو من الوكيل (proxy) في QGIS (الإعدادات &gt; خيارات &gt; الشبكة).</translation>
+        </message>
     </context>
     <context>
         <name>BrowserWait</name>
@@ -7972,6 +8399,22 @@ Thank you</source>
             <source>Your words are sent with this chat and recent logs.</source>
             <translation>تُرسل كلماتك مع هذه المحادثة وأحدث السجلات.</translation>
         </message>
+        <message>
+            <source>Add a comment</source>
+            <translation>أضف تعليقًا</translation>
+        </message>
+        <message>
+            <source>Ask the AI agent instead</source>
+            <translation>اسأل وكيل الذكاء الاصطناعي بدلًا من ذلك</translation>
+        </message>
+        <message>
+            <source>Message to the TerraLab team (optional)</source>
+            <translation>رسالة إلى فريق TerraLab (اختياري)</translation>
+        </message>
+        <message>
+            <source>Read by the TerraLab team, not by the AI agent. Sent with this chat and recent logs.</source>
+            <translation>يقرأها فريق TerraLab وليس وكيل الذكاء الاصطناعي. تُرسل مع هذه المحادثة وأحدث السجلات.</translation>
+        </message>
     </context>
     <context>
         <name>NoteRow</name>
@@ -8187,6 +8630,295 @@ Thank you</source>
         <message>
             <source>Recording</source>
             <translation>جارٍ التسجيل</translation>
+        </message>
+    </context>
+    <context>
+        <name>TransformationRow</name>
+        <message>
+            <source>A more accurate one ({accuracy}) needs a grid file this QGIS does not have.</source>
+            <translation>يتطلب تحويل أدق ({accuracy}) ملف شبكة غير موجود في نسخة QGIS هذه.</translation>
+        </message>
+        <message>
+            <source>Change in Project Properties</source>
+            <translation>التغيير في خصائص المشروع</translation>
+        </message>
+        <message>
+            <source>Coordinate transformation: {what}</source>
+            <translation>تحويل الإحداثيات: {what}</translation>
+        </message>
+        <message>
+            <source>Hide details</source>
+            <translation>إخفاء التفاصيل</translation>
+        </message>
+        <message>
+            <source>Show details</source>
+            <translation>عرض التفاصيل</translation>
+        </message>
+        <message>
+            <source>The other option is no more accurate.</source>
+            <translation>الخيار الآخر ليس أدق.</translation>
+        </message>
+        <message>
+            <source>The {count} other options are no more accurate.</source>
+            <translation>الخيارات الأخرى وعددها {count} ليست أدق.</translation>
+        </message>
+        <message>
+            <source>Transformation</source>
+            <translation>التحويل</translation>
+        </message>
+        <message>
+            <source>{count} transformations</source>
+            <translation>{count} تحويلات</translation>
+        </message>
+        <message>
+            <source>{layer} goes from {source} to {target} through {operation}, accurate to about {accuracy}.</source>
+            <translation>تنتقل الطبقة {layer} من {source} إلى {target} عبر {operation}، بدقة تقارب {accuracy}.</translation>
+        </message>
+        <message>
+            <source>{layer} goes from {source} to {target} through {operation}, of unknown accuracy.</source>
+            <translation>تنتقل الطبقة {layer} من {source} إلى {target} عبر {operation}، بدقة غير معروفة.</translation>
+        </message>
+    </context>
+    <context>
+        <name>SelectionLine</name>
+        <message>
+            <source>Leave the selection out of this message</source>
+            <translation>استبعد التحديد من هذه الرسالة</translation>
+        </message>
+        <message>
+            <source>The AI agent sees this selection with your message, along with the map view and the project's layers.</source>
+            <translation>يرى وكيل الذكاء الاصطناعي هذا التحديد مع رسالتك، إلى جانب عرض الخريطة وطبقات المشروع.</translation>
+        </message>
+        <message>
+            <source>{layer} · 1 feature selected</source>
+            <translation>{layer} · تم تحديد معلم واحد</translation>
+        </message>
+        <message>
+            <source>{layer} · {n} features selected</source>
+            <translation>{layer} · المعالم المحددة: {n}</translation>
+        </message>
+    </context>
+    <context>
+        <name>_Row</name>
+        <message>
+            <location filename="src/ui/sidebar.py" />
+            <source>Draft</source>
+            <translation>مسودة</translation>
+        </message>
+        <message>
+            <source>Open</source>
+            <translation>فتح</translation>
+        </message>
+    </context>
+    <context>
+        <name>GeoPaste</name>
+        <message>
+            <source>1 feature</source>
+            <translation>ميزة واحدة</translation>
+        </message>
+        <message>
+            <source>1 vertex</source>
+            <translation>رأس واحد</translation>
+        </message>
+        <message>
+            <source>ArcGIS FeatureServer</source>
+            <translation>ArcGIS FeatureServer</translation>
+        </message>
+        <message>
+            <source>ArcGIS ImageServer</source>
+            <translation>ArcGIS ImageServer</translation>
+        </message>
+        <message>
+            <source>ArcGIS MapServer</source>
+            <translation>ArcGIS MapServer</translation>
+        </message>
+        <message>
+            <source>FlatGeobuf file</source>
+            <translation>ملف FlatGeobuf</translation>
+        </message>
+        <message>
+            <source>GeoJSON file</source>
+            <translation>ملف GeoJSON</translation>
+        </message>
+        <message>
+            <source>GeoPackage file</source>
+            <translation>ملف GeoPackage</translation>
+        </message>
+        <message>
+            <source>GeoTIFF (COG)</source>
+            <translation>GeoTIFF (COG)</translation>
+        </message>
+        <message>
+            <source>Geometry</source>
+            <translation>هندسة</translation>
+        </message>
+        <message>
+            <source>KML file</source>
+            <translation>ملف KML</translation>
+        </message>
+        <message>
+            <source>Line</source>
+            <translation>خط</translation>
+        </message>
+        <message>
+            <source>Multiline</source>
+            <translation>خطوط متعددة</translation>
+        </message>
+        <message>
+            <source>Multipoint</source>
+            <translation>نقاط متعددة</translation>
+        </message>
+        <message>
+            <source>Multipolygon</source>
+            <translation>مضلعات متعددة</translation>
+        </message>
+        <message>
+            <source>OGC API Features</source>
+            <translation>OGC API Features</translation>
+        </message>
+        <message>
+            <source>PMTiles</source>
+            <translation>PMTiles</translation>
+        </message>
+        <message>
+            <source>Parquet file</source>
+            <translation>ملف Parquet</translation>
+        </message>
+        <message>
+            <source>Pasted text</source>
+            <translation>نص ملصق</translation>
+        </message>
+        <message>
+            <source>Point</source>
+            <translation>نقطة</translation>
+        </message>
+        <message>
+            <source>Point cloud</source>
+            <translation>سحابة نقاط</translation>
+        </message>
+        <message>
+            <source>Point · WGS 84</source>
+            <translation>نقطة · WGS 84</translation>
+        </message>
+        <message>
+            <source>Polygon</source>
+            <translation>مضلع</translation>
+        </message>
+        <message>
+            <source>STAC catalog</source>
+            <translation>فهرس STAC</translation>
+        </message>
+        <message>
+            <source>Vector tiles</source>
+            <translation>بلاطات متجهة</translation>
+        </message>
+        <message>
+            <source>WCS service</source>
+            <translation>خدمة WCS</translation>
+        </message>
+        <message>
+            <source>WFS service</source>
+            <translation>خدمة WFS</translation>
+        </message>
+        <message>
+            <source>WMS service</source>
+            <translation>خدمة WMS</translation>
+        </message>
+        <message>
+            <source>WMTS service</source>
+            <translation>خدمة WMTS</translation>
+        </message>
+        <message>
+            <source>XYZ tiles</source>
+            <translation>بلاطات XYZ</translation>
+        </message>
+        <message>
+            <source>{n} characters</source>
+            <translation>{n} حرفًا</translation>
+        </message>
+        <message>
+            <source>{n} features</source>
+            <translation>{n} ميزة</translation>
+        </message>
+        <message>
+            <source>{n} lines</source>
+            <translation>{n} سطرًا</translation>
+        </message>
+        <message>
+            <source>{n} vertices</source>
+            <translation>{n} رأسًا</translation>
+        </message>
+        <message>
+            <source>{shape} GeoJSON</source>
+            <translation>{shape} GeoJSON</translation>
+        </message>
+        <message>
+            <source>{shape} WKT</source>
+            <translation>{shape} WKT</translation>
+        </message>
+    </context>
+    <context>
+        <name>CrashCommentBar</name>
+        <message>
+            <source>Dismiss</source>
+            <translation>إغلاق</translation>
+        </message>
+        <message>
+            <source>Example: I had the attribute table open and pressed Save</source>
+            <translation>مثال: كان جدول البيانات الوصفية مفتوحًا وضغطت على حفظ</translation>
+        </message>
+        <message>
+            <source>QGIS closed unexpectedly</source>
+            <translation>أُغلق QGIS بشكل غير متوقع</translation>
+        </message>
+        <message>
+            <source>Send</source>
+            <translation>إرسال</translation>
+        </message>
+        <message>
+            <source>The crash report was sent. What were you doing just before?</source>
+            <translation>تم إرسال تقرير الانهيار. ماذا كنت تفعل قبل ذلك مباشرة؟</translation>
+        </message>
+        <message>
+            <source>Not sent. Press Send to try again.</source>
+            <translation>لم يتم الإرسال. اضغط على إرسال للمحاولة مرة أخرى.</translation>
+        </message>
+    </context>
+    <context>
+        <name>_ModeRow</name>
+        <message>
+            <source>Locked: {tag}</source>
+            <translation>مقفل: {tag}</translation>
+        </message>
+        <message>
+            <source>Selected</source>
+            <translation>محدد</translation>
+        </message>
+    </context>
+    <context>
+        <name>_RowText</name>
+        <message>
+            <source>Edit this queued message</source>
+            <translation>تعديل هذه الرسالة في قائمة الانتظار</translation>
+        </message>
+    </context>
+    <context>
+        <name>_StopNames</name>
+        <message>
+            <source>Effort: {level}</source>
+            <translation>الجهد: {level}</translation>
+        </message>
+        <message>
+            <source>Locked until the end of the free trial</source>
+            <translation>مقفل حتى نهاية الفترة التجريبية المجانية</translation>
+        </message>
+        <message>
+            <source>Locked: {tag}</source>
+            <translation>مقفل: {tag}</translation>
+        </message>
+        <message>
+            <source>Selected</source>
+            <translation>محدد</translation>
         </message>
     </context>
 </TS>

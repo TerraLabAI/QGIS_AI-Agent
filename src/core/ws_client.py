@@ -1513,7 +1513,11 @@ if _QT_AVAILABLE:
 
         def _on_disconnected(self, thread, code: int, reason: str):
             thread.wait(1000)
-            thread.deleteLater()
+
+
+            thread.finished.connect(thread.deleteLater)
+            if thread.isFinished():
+                thread.deleteLater()
             if thread is not self._thread:
                 if thread in self._retired:
                     self._retired.remove(thread)

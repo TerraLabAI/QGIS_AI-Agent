@@ -28,7 +28,7 @@ import os
 import uuid
 
 from qgis.PyQt.QtCore import QBuffer, QByteArray, QIODevice, QRectF, QSize, Qt, pyqtSignal
-from qgis.PyQt.QtGui import QColor, QImage, QImageReader, QPainter, QPainterPath, QPixmap
+from qgis.PyQt.QtGui import QColor, QColorSpace, QImage, QImageReader, QPainter, QPainterPath, QPixmap
 from qgis.PyQt.QtWidgets import QFrame, QVBoxLayout
 
 from .attach_card import (
@@ -46,6 +46,7 @@ from .file_preview import can_open, open_file_preview, size_words, tile_art
 from .font_scale import widget_pixel_ratio
 from .icons import ink_of, paper_of, theme_pixmap
 from .image_preview import ClickableThumb, open_image_preview
+from .shared import resolve_qt_enum
 from .widgets import IconButton
 
 DATA_EXTS = (".gpkg", ".geojson", ".json", ".shp", ".csv", ".tif", ".tiff",
@@ -175,6 +176,10 @@ def image_to_png_base64(image: QImage) -> str:
     if image is None or image.isNull() or image.width() <= 0 or image.height() <= 0:
         return ""
     image = reduced_image(image)
+
+
+    image = image.convertToFormat(resolve_qt_enum(QImage, "Format", "Format_RGBA8888"))
+    image.setColorSpace(QColorSpace(resolve_qt_enum(QColorSpace, "NamedColorSpace", "SRgb")))
     data = QByteArray()
     buffer = QBuffer(data)
     buffer.open(QIODevice.OpenModeFlag.WriteOnly)
@@ -537,7 +542,7 @@ class AttachmentTag(QFrame):
                           glyph=glyph, tile_color=color)
         card.removed.connect(lambda: self.removed.emit(self.key))
         if clickable:
-            card.clicked.connect(lambda: open_file_preview(self.item, self))
+            card.opened.connect(lambda: open_file_preview(self.item, self))
         col.addWidget(card)
 
     def _open(self) -> None:

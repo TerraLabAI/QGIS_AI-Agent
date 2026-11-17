@@ -11,14 +11,15 @@
 
 from __future__ import annotations
 
-from qgis.PyQt.QtCore import QRectF, Qt, pyqtSignal
+from qgis.PyQt.QtCore import QRectF, Qt
 from qgis.PyQt.QtGui import QBrush, QPainter
-from qgis.PyQt.QtWidgets import QHBoxLayout, QLabel, QSizePolicy, QVBoxLayout, QWidget
+from qgis.PyQt.QtWidgets import QHBoxLayout, QLabel, QSizePolicy, QVBoxLayout
 
+from .cards_click import PressSurface
 from .font_scale import scale_qss_font_px
 from .icons import pixmap_for
 from .permission_chip import glyph_tile
-from .shared import event_pos
+from .shared import released_on
 from .style import (
     FONT_BASE,
     FONT_BODY,
@@ -78,11 +79,9 @@ _POPOVER_QSS = scale_qss_font_px(
 )
 
 
-class _Row(QWidget):
+class _Row(PressSurface):
 
 
-
-    clicked = pyqtSignal()
 
     def __init__(self, glyph: str, accent: str, title: str, note: str, tag: str = "", parent=None,
                  bare: bool = False):
@@ -145,6 +144,9 @@ class _Row(QWidget):
         self._width_hint = max(0, int(width or 0))
 
     def _elide(self) -> None:
+
+        self.setAccessibleName(self._full_title)
+        self.setAccessibleDescription(", ".join(w for w in (self._full_note, self._tag.text()) if w))
         width = self._title.width()
         if width < 30 or self._width_hint:
             width = self.text_width()
@@ -178,8 +180,9 @@ class _Row(QWidget):
     def mouseReleaseEvent(self, event):  # noqa: N802
         self._down = False
         self.update()
-        if event.button() == Qt.MouseButton.LeftButton and self.rect().contains(event_pos(event)):
-            self.clicked.emit()
+        if released_on(self, event):
+            self.click()
+            return
         super().mouseReleaseEvent(event)
 
     def paintEvent(self, event):  # noqa: N802

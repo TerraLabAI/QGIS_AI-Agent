@@ -13,7 +13,7 @@ import time
 from qgis.PyQt.QtCore import Qt, QTimer
 from qgis.PyQt.QtWidgets import QApplication, QWidget
 
-from ..core import first_run_funnel, quota_view, telemetry
+from ..core import improve, quota_view, telemetry
 from ..core import telemetry_events as ev
 from ..core.layer_mime import mime_has_layers
 from ..core.numbers import as_int
@@ -37,6 +37,7 @@ from .external_links import open_external_url
 from .feedback_dialog import show_feedback
 from .privacy_notice_dialog import PrivacyNoticeDialog
 from .quota_card import trial_promise
+from .selection_line import selection_key
 from .shared import format_reset_date
 
 
@@ -141,6 +142,7 @@ class _ChatPanelLayout:
         if text and self._task_cards and self._answer_open_question(text):
             return
         chips = self.composer.peek_chips()
+        selection = self.composer.selection_snapshot()
 
 
 
@@ -149,14 +151,17 @@ class _ChatPanelLayout:
 
         before = self._last_run
         try:
-            self.send_requested.emit(text, "", "", chips, attachments)
+            self.send_requested.emit(text, "", "", chips, attachments, selection)
         except Exception:  # noqa: BLE001
             self.composer.show_warning(
                 self.tr("The message could not be sent. It is still here; try again."), sticky=True)
             raise
         if self._last_run == before:
             return
+
+        self._run_selection = (self._last_run, selection_key(selection))
         self.composer.take_chips()
+        self.composer.selection_sent()
         self.composer.clear()
         self.composer.clear_attachments()
 
@@ -185,14 +190,24 @@ class _ChatPanelLayout:
         if self._privacy_dialog is not None:
             self._privacy_dialog.raise_()
             return
-        first_run_funnel.note_notice(declined=False)
         dialog = PrivacyNoticeDialog(self)
+        dialog.chosen.connect(self._on_privacy_chosen)
         dialog.accepted.connect(self._on_privacy_accepted)
         dialog.rejected.connect(self._on_privacy_declined)
         dialog.finished.connect(self._on_privacy_closed)
         self._privacy_dialog = dialog
         self._privacy_shown_at = time.monotonic()
         dialog.open()
+
+    def _on_privacy_chosen(self, help_improve: bool) -> None:
+
+
+
+
+        if bool(help_improve) != telemetry.is_telemetry_enabled():
+            telemetry.set_telemetry_enabled(bool(help_improve))
+        if bool(help_improve) != improve.is_improve_enabled():
+            improve.set_improve_enabled(bool(help_improve))
 
     def _on_privacy_accepted(self) -> None:
         save_privacy_notice_accepted()
@@ -212,7 +227,6 @@ class _ChatPanelLayout:
 
 
         self._privacy_on_accept = None
-        first_run_funnel.note_notice(declined=True)
         self.composer.show_warning(
             self.tr("Nothing was sent. Send again to read the notice."))
 
@@ -447,9 +461,11 @@ class _ChatPanelLayout:
 
 
             self._runs_host.hide()
-            self.quota_card.show_payment_failed(self._payfail["amount"])
+            declined = bool(self._payfail.get("declined"))
+            self.quota_card.show_payment_failed(self._payfail["amount"], declined)
             self._quota_host.show()
-            self.composer.set_blocked(left <= 0, self.tr("Pay to get Pro back") if left <= 0 else "")
+            blocked = self.tr("Try another card") if declined else self.tr("Pay to get Pro back")
+            self.composer.set_blocked(left <= 0, blocked if left <= 0 else "")
             self._low_balance_visible = False
             if left <= 0 and not self._limit_said:
                 self._limit_said = True
@@ -535,7 +551,8 @@ class _ChatPanelLayout:
         if key in self._upsell_seen or not self.isVisible():
             return
         self._upsell_seen.add(key)
-        self.payment_card_shown.emit(self._payfail_surface(), bool(self._payfail["amount"]))
+        self.payment_card_shown.emit(self._payfail_surface(), bool(self._payfail["amount"]),
+                                     bool(self._payfail.get("declined")))
 
     def set_payment_failed(self, info) -> None:
 
@@ -671,7 +688,6 @@ class _ChatPanelLayout:
             state = "error"
         detail = str(detail or "")[:500]
         self._connection = state
-        first_run_funnel.note_connection(state)
         if state == "signed_out":
             if self._signed_in:
                 self.mascot_stage.fire("signout")
@@ -864,6 +880,9 @@ class _ChatPanelLayout:
 
     def set_dictation(self, dictation) -> None:
         self.composer.set_dictation(dictation)
+
+    def set_suggester(self, suggester) -> None:
+        self.composer.set_suggester(suggester)
 
     def set_permission_mode(self, approval: str) -> None:
 

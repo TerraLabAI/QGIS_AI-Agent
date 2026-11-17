@@ -89,9 +89,7 @@ _flush_timer: QTimer | None = None
 _auth_provider = None
 _inflight: list = []
 _first_open_key = "AIAgent/telemetry_first_open_sent"
-
 FIRST_RUN_KEY = "AIAgent/telemetry_first_run_sent"
-SIGNED_OUT_DAY_KEY = "AIAgent/telemetry_signed_out_day"
 _first_paid_run_key = "AIAgent/telemetry_first_paid_run_sent"
 
 
@@ -171,24 +169,6 @@ def first_open_recorded() -> bool:
         return True
     except Exception:  # noqa: BLE001
         return False
-
-
-def first_signed_out_open_today() -> bool:
-
-
-
-
-    if not is_telemetry_enabled():
-        return False
-    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
-    try:
-        settings = profile_settings()
-        if str(settings.value(SIGNED_OUT_DAY_KEY, "", type=str)) == today:
-            return False
-        settings.setValue(SIGNED_OUT_DAY_KEY, today)
-    except Exception:  # noqa: BLE001
-        return False
-    return True
 
 
 def first_run_recorded() -> bool:

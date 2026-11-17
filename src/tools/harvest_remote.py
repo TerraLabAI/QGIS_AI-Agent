@@ -38,7 +38,8 @@ from ..core.links import host_is
 from ..core.tool_registry import Tool, ToolRegistry, tool_error
 from . import stac_tools as _stac
 from . import volume_guard
-from .data_common import built_here, worker_options
+from ._layers import error_summary
+from .data_common import built_here, provider_may_try, worker_options
 from .harvest_view import _extent_dict, _feature_count
 
 _ARCGIS_URL_RE = re.compile(
@@ -46,8 +47,6 @@ _ARCGIS_URL_RE = re.compile(
     re.IGNORECASE,
 )
 _ARCGIS_TIMEOUT = 15
-
-
 _RASTER_MEDIA = ("geotiff", "image/tiff", "image/jp2", "jpeg2000", "x-hdf", "netcdf", "zarr")
 _PREVIEW_MEDIA = ("image/png", "image/jpeg", "image/jpg", "image/webp")
 
@@ -230,6 +229,9 @@ ARCGIS_TOKEN_HEADER = "X-Esri-Authorization"  # nosec B105
 def _arcgis_describe(url: str, token: str | None):
 
 
+
+
+
     query = {"f": "json"}
     if token:
         query["token"] = token
@@ -257,16 +259,21 @@ def _arcgis_describe(url: str, token: str | None):
 
 
         return None
-    except (urllib.error.URLError, OSError, ValueError) as exc:
-
-
-
-
+    except ValueError:
+        return None
+    except (urllib.error.URLError, OSError) as exc:
         reason = getattr(exc, "reason", exc)
+        if isinstance(exc, (net.LocalUrlRefused, net.FetchWithdrawn)):
+            return {"_refused": str(reason)[:200]}
+
+
+
+
+
         if (isinstance(exc, (net.FetchDeadline, net.NetworkUnreachable))
                 or isinstance(reason, (socket.timeout, TimeoutError))
                 or net._never_reached_a_server(exc)):
-            return {"_unreachable": str(reason)[:160]}
+            return {"_unreachable": str(reason)[:160], "_may_try": provider_may_try(exc, url)}
         return None
     return payload if isinstance(payload, dict) else None
 
@@ -400,9 +407,15 @@ def _add_arcgis_rest_layer(args: dict) -> dict:
         )
 
     info = _arcgis_describe(url, token)
-    if info and info.get("_unreachable"):
+    if info and info.get("_refused"):
+        return tool_error(f"{url} was not opened: {info['_refused']}", "NETWORK_ERROR")
+    silent = bool(info and info.get("_unreachable"))
+    if silent and (kind != "feature" or not info.get("_may_try")):
+
         return tool_error(f"{url} sent no answer to its description request ({info['_unreachable']}), so "
                           "no layer was opened.", "NETWORK_ERROR")
+    if silent:
+        info = None
     if info and isinstance(info.get("error"), dict):
         err = info["error"]
         code = err.get("code")
@@ -497,6 +510,11 @@ def _add_arcgis_rest_layer(args: dict) -> dict:
         count = None
         if kind == "feature":
             layer = take(built)
+            if layer is None and silent:
+
+
+                return tool_error(f"{url} sent no answer to its description request and QGIS could not "
+                                  "open it on a worker either, so no layer was opened.", "NETWORK_ERROR")
             if layer is None:
                 layer = _feature_layer(QgsVectorLayer.LayerOptions())
             else:
@@ -514,14 +532,13 @@ def _add_arcgis_rest_layer(args: dict) -> dict:
             layer = QgsRasterLayer(uri.uri(False), name, "arcgismapserver")
 
         if not layer.isValid():
-            reason = ""
-            try:
 
 
 
-                reason = layer.error().summary()
-            except Exception:  # nosec B110
-                pass
+            reason = error_summary(layer)
+            if silent:
+                return tool_error(f"{url} sent no answer to its description request, and QGIS could not "
+                                  "open it either." + (f" Provider: {reason}" if reason else ""), "NETWORK_ERROR")
             return tool_error(
                 f"QGIS could not open the {kind} layer at {url}." + (f" Provider: {reason}" if reason else ""),
                 "INVALID_ARGS",

@@ -569,35 +569,24 @@ class AccountPageMixin:
         page.add_group_title(self.tr("Privacy"))
 
         group = SettingGroup(page)
-        self._telemetry_switch = Switch(group, self._telemetry_enabled)
-        self._telemetry_switch.toggled.connect(self._on_telemetry_toggled)
 
 
-        telemetry_note = self.tr("Never your prompts, layers, coordinates or files.")
-        telemetry_detail = self.tr("Errors, versions and which features you use, linked to your "
-                                   "account. On Pro, only that you used the app and when.")
-        self._telemetry_switch.setAccessibleDescription(f"{telemetry_note} {telemetry_detail}")
-        telemetry_row = SettingRow(self.tr("Share usage statistics"), telemetry_note,
-                                   self._telemetry_switch, group)
-        telemetry_row.setToolTip(telemetry_detail)
-        group.add_row(telemetry_row)
+
+
+
+        self._improve_switch = Switch(group, self._help_improve_on())
+        self._improve_switch.toggled.connect(self._on_help_improve_toggled)
+        self._improve_row = SettingRow(self.tr("Help improve AI Agent"),
+                                       self.tr("Your usage and chats help us fix bugs. Turn it off anytime."),
+                                       self._improve_switch, group)
+        self._improve_row.setToolTip(self._improve_tip(False))
+        group.add_row(self._improve_row)
 
         self._retention = RetentionRow(self, group)
         group.add_row(self._retention.row)
         divider = group.layout().itemAt(group.layout().count() - 2)
         self._retention.divider = divider.widget() if divider is not None else None
         self._retention.load()
-
-
-
-
-
-        self._improve_switch = Switch(group, self._improve_enabled)
-        self._improve_switch.toggled.connect(self._on_improve_toggled)
-        self._improve_row = SettingRow(self.tr("Allow chat review"),
-                                       self._improve_note(False), self._improve_switch, group)
-        self._improve_row.setToolTip(self._improve_tip(False))
-        group.add_row(self._improve_row)
 
         reset = QPushButton(self.tr("Reset"), group)
         reset.setStyleSheet(GHOST_BTN_QSS)
@@ -662,19 +651,14 @@ class AccountPageMixin:
         self.delete_account_requested.emit(typed)
         self.accept()
 
-    def _improve_note(self, subscriber: bool) -> str:
-
-        if subscriber:
-            return self.tr("We may read a chat, or have a model score it, to fix bugs and improve the agent, "
-                           "never to train AI. Chats are kept 30 days.")
-        return self.tr("We may read a chat, or have a model score it, to fix a wrong answer or a bug "
-                       "and improve the agent, never to train AI.")
-
     def _improve_tip(self, subscriber: bool) -> str:
+
         if subscriber:
-            return self.tr("Your chats are kept 30 days so a conversation survives an update. "
-                           "Off, we never read or score them. 0 days of history stores nothing.")
-        return self.tr("Turn it off any time, with no other effect.")
+            return self.tr("Usage stats: only that you used the app and when. Chats are kept 30 days so a "
+                           "conversation survives an update; we may read one, or have a model score it, to fix "
+                           "bugs, never to train AI. 0 days of history stores nothing.")
+        return self.tr("Usage stats: errors, versions and the features you use, never your prompts, layers or "
+                       "files. We may read a chat, or have a model score it, to fix bugs, never to train AI.")
 
     def _sync_improve_plan(self, info: dict) -> None:
 
@@ -683,38 +667,37 @@ class AccountPageMixin:
             return
         if info.get("loading") or info.get("error") or info.get("error_code"):
             return
-        subscriber = self._is_subscriber(info)
         try:
-            row.set_note(self._improve_note(subscriber))
-            row.setToolTip(self._improve_tip(subscriber))
+            row.setToolTip(self._improve_tip(self._is_subscriber(info)))
         except RuntimeError:
             pass
 
-    def set_improve_enabled(self, enabled: bool) -> None:
-        self._improve_enabled = bool(enabled)
+    def _help_improve_on(self) -> bool:
+        return bool(self._telemetry_enabled) and bool(self._improve_enabled)
+
+    def _sync_help_improve(self) -> None:
         switch = getattr(self, "_improve_switch", None)
         if switch is not None:
             switch.blockSignals(True)
-            switch.setChecked(self._improve_enabled)
+            switch.setChecked(self._help_improve_on())
             switch.blockSignals(False)
 
-    def _on_improve_toggled(self, on: bool) -> None:
-        self._improve_enabled = bool(on)
-        self._show_saved()
-        self.improve_toggled.emit(self._improve_enabled)
+    def set_improve_enabled(self, enabled: bool) -> None:
+        self._improve_enabled = bool(enabled)
+        self._sync_help_improve()
 
     def set_telemetry_enabled(self, enabled: bool) -> None:
         self._telemetry_enabled = bool(enabled)
-        switch = getattr(self, "_telemetry_switch", None)
-        if switch is not None:
-            switch.blockSignals(True)
-            switch.setChecked(self._telemetry_enabled)
-            switch.blockSignals(False)
+        self._sync_help_improve()
 
-    def _on_telemetry_toggled(self, on: bool) -> None:
-        self._telemetry_enabled = bool(on)
+    def _on_help_improve_toggled(self, on: bool) -> None:
         self._show_saved()
-        self.telemetry_toggled.emit(self._telemetry_enabled)
+        if bool(on) != self._telemetry_enabled:
+            self._telemetry_enabled = bool(on)
+            self.telemetry_toggled.emit(self._telemetry_enabled)
+        if bool(on) != self._improve_enabled:
+            self._improve_enabled = bool(on)
+            self.improve_toggled.emit(self._improve_enabled)
 
     def _on_reset(self) -> None:
         if not ask_confirm(self, title=self.tr("Reset all settings?"),

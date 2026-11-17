@@ -12,6 +12,7 @@
 
 
 
+
 from __future__ import annotations
 
 import base64
@@ -26,6 +27,7 @@ from qgis.PyQt.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QLineEdit,
+    QMenu,
     QPushButton,
     QVBoxLayout,
     QWidget,
@@ -52,11 +54,22 @@ from .external_links import open_external_url
 from .font_scale import scale_px_length, scale_qss_font_px, widget_pixel_ratio
 from .icons import icon_for, pixmap_for
 from .settings_pages import GHOST_BTN_QSS, INPUT_QSS, PRIMARY_BTN_QSS
-from .shared import AGENT_CARD_KIND, AGENT_REQUEST_ID, available_screen_rect, exec_dialog, resolve_qt_enum
-from .style import FONT_BASE, INK, INK_2, INK_3, MOTION_POP_MS, SPACE_CARD
+from .shared import (
+    AGENT_CARD_KIND,
+    AGENT_REQUEST_ID,
+    available_screen_rect,
+    exec_dialog,
+    popup_menu,
+    resolve_qt_enum,
+)
+from .style import _BTN_PRIMARY, _MENU_QSS, FONT_BASE, INK, INK_2, INK_3, MOTION_POP_MS, SPACE_CARD
 from .styles import PANEL_BASE, PANEL_TEXT
 from .widgets import ChatLabel, placeholder_ink
 
+_SPLIT_LEFT = (_BTN_PRIMARY.replace("padding: 0 12px", "padding: 0 12px 0 14px")
+               + "QPushButton { border-top-right-radius: 0px; border-bottom-right-radius: 0px; }")
+_SPLIT_RIGHT = (_BTN_PRIMARY.replace("padding: 0 12px", "padding: 0px")
+                + "QPushButton { border-top-left-radius: 0px; border-bottom-left-radius: 0px; }")
 _TITLE_QSS = scale_qss_font_px(
     f"QLabel {{ font-size: {FONT_BASE}px; font-weight: 600; color: {INK}; background: transparent; border: none; }}")
 _SUB_QSS = scale_qss_font_px(
@@ -181,6 +194,8 @@ class AccountCard(_Card, FoldMixin):
         host, label = self.host, self.label
         if self.kind == "consent":
             what = str(self.need.get("what") or "").strip()
+            if what and what[-1] not in ".!?":
+                what += "."
             sent = self.tr("Sent to {host} only.").format(host=host)
             return self.tr("Use your {label} access?").format(label=label), f"{what} {sent}".strip()
         if self.provider == "earthengine":
@@ -276,15 +291,10 @@ class AccountCard(_Card, FoldMixin):
             body.addWidget(self._details(body_widget, details))
         footer = AnswerFooter(body_widget)
         if self.kind == "consent":
-            link = self._button(self.tr("Allow for this conversation"), _BTN_QUIET_LINK,
-                                lambda: self._answer(accounts.ANSWER + "thread"))
-            link.setObjectName("accountAllowThread")
             no = _pill(self._button(self.tr("Deny"), _BTN_GHOST_PILL, lambda: self._answer("")))
             no.setObjectName("accountDeny")
-            yes = _pill(self._button(self.tr("Allow"), _BTN_PRIMARY_PILL,
-                                     lambda: self._answer(accounts.ANSWER + "once")))
-            yes.setObjectName("accountAllow")
-            footer.set_widgets(link, [no, yes])
+            footer.set_widgets(*self._allow_widgets(body_widget, no))
+            yes = self._allow_yes
         else:
             body.addWidget(_privacy_row(body_widget, self.tr(
                 "Stored encrypted in QGIS on this computer. Never sent to TerraLab or the AI agent.")))
@@ -315,7 +325,8 @@ class AccountCard(_Card, FoldMixin):
                 yes = _pill(self._button(text, _BTN_PRIMARY_PILL, self._sign_in))
                 yes.setObjectName("accountSignIn")
                 footer.set_widgets(None, [no, yes])
-        for button in (no, yes):
+        more = getattr(self, "_allow_more", None) if self.kind == "consent" else None
+        for button in (no, yes, *([more] if more is not None else [])):
             button.setProperty(AGENT_REQUEST_ID, self.tool_call_id)
             button.setProperty(AGENT_CARD_KIND, "account")
         self._error = ChatLabel("", body_widget, wrap=True, selectable=True)
@@ -326,6 +337,43 @@ class AccountCard(_Card, FoldMixin):
         self._footer, self._yes = footer, yes
         body.addWidget(footer)
         return body_widget
+
+    def _allow_widgets(self, parent: QWidget, no: QPushButton):
+
+
+        yes = _pill(self._button(self.tr("Allow"), _SPLIT_LEFT, lambda: self._answer(accounts.ANSWER + "once")))
+        yes.setObjectName("accountAllow")
+        more = _pill(self._button("", _SPLIT_RIGHT, lambda: self._allow_menu(more)))
+        more.setObjectName("accountAllowMore")
+        more.setIcon(icon_for(more, "chevron_down", scale_px_length(12), QColor(S.ON_ACCENT)))
+        more.setFixedWidth(scale_px_length(26))
+        more.setToolTip(self.tr("More ways to allow"))
+        more.setAccessibleName(self.tr("More ways to allow"))
+        pair = QWidget(parent)
+        line = QHBoxLayout(pair)
+        line.setContentsMargins(0, 0, 0, 0)
+        line.setSpacing(1)
+        line.addWidget(yes)
+        line.addWidget(more)
+        self._allow_yes, self._allow_more = yes, more
+        return None, [no, pair]
+
+    def _allow_menu(self, anchor: QWidget) -> None:
+        menu = QMenu(anchor)
+        menu.setStyleSheet(scale_qss_font_px(_MENU_QSS))
+        thread = menu.addAction(self.tr("Allow for this conversation"))
+        thread.setObjectName("accountAllowThread")
+        thread.triggered.connect(self._allow_thread)
+        always = menu.addAction(self.tr("Always allow {label}").format(label=self.label))
+        always.setObjectName("accountAllowAlways")
+        always.triggered.connect(self._allow_always)
+        popup_menu(menu, anchor.mapToGlobal(anchor.rect().bottomLeft()))
+
+    def _allow_thread(self) -> None:
+        self._answer(accounts.ANSWER + "thread")
+
+    def _allow_always(self) -> None:
+        self._answer(accounts.ANSWER + "always")
 
     def _details(self, parent: QWidget, lines: list) -> QWidget:
 
@@ -449,7 +497,8 @@ class AccountCard(_Card, FoldMixin):
         self.answer = answer or ""
         choice = self.answer[len(accounts.ANSWER):] if self.answer.startswith(accounts.ANSWER) else None
         said = {"signed_in": self.tr("Connected"), "once": self.tr("Allowed once"),
-                "thread": self.tr("Allowed for this conversation")}.get(choice or "")
+                "thread": self.tr("Allowed for this conversation"),
+                "always": self.tr("Always allowed")}.get(choice or "")
         if said:
             glyph, colour = "check", QColor(S.GREEN)
         else:

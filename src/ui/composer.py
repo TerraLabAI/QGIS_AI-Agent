@@ -23,6 +23,14 @@
 
 
 
+
+
+
+
+
+
+
+
 from __future__ import annotations
 
 import html
@@ -30,25 +38,35 @@ import os
 import sys
 import time
 
-from qgis.core import QgsProject
-from qgis.PyQt.QtCore import QEvent, QLocale, QSize, Qt, QTimer, pyqtSignal
-from qgis.PyQt.QtGui import QColor, QImage
+from qgis.core import (
+    QgsCoordinateReferenceSystem,
+    QgsCoordinateTransform,
+    QgsCsException,
+    QgsGeometry,
+    QgsNetworkAccessManager,
+    QgsProject,
+)
+from qgis.PyQt.QtCore import QEvent, QLocale, QMimeData, QSize, Qt, QTimer, QUrl, pyqtSignal
+from qgis.PyQt.QtGui import QColor, QImage, QTextCharFormat, QTextCursor
+from qgis.PyQt.QtNetwork import QNetworkReply, QNetworkRequest
 from qgis.PyQt.QtWidgets import (
     QFileDialog,
     QFrame,
     QHBoxLayout,
     QLabel,
+    QPushButton,
     QToolButton,
     QVBoxLayout,
     QWidget,
 )
 
-from ..core import drafts, first_run_funnel, limits, telemetry, trace
+from ..core import drafts, limits, telemetry, trace
 from ..core import telemetry_events as ev
 from ..core.layer_mime import ChipRow, layer_chip, layer_ids_from_mime, live_layer_chips, mime_has_layers
 from ..core.prompt_quality import NOT_A_TASK, TOO_SHORT, check_prompt
 from ..core.qt_compat import one_shot
 from ..core.settings import account_tag
+from .attach_card import TILE_GLYPH, AttachCard
 from .attach_menu import AttachPopover
 from .attachments import (
     MAX_ATTACHMENTS,
@@ -61,34 +79,50 @@ from .attachments import (
     wire_shape,
 )
 from .composer_input import EMPTY_CHAT_LINES, MIN_LINES, ComposerInput
+from .composer_suggest import ComposerSuggest
 from .dictation_bar import ComposerDictation
 from .effort_chip import EffortChip, effort_texts
+from .file_preview import FilePreview
 from .font_scale import scale_qss_font_px
-from .icons import icon_for, paper_of
+from .geo_paste import capabilities_url, count_layers, place, read_paste, splice
+from .icons import icon_for, paper_of, pixmap_for
 from .layer_card import LayerCard
 from .layer_icons import layer_name, resolve_layer
 from .library.dialog import HOME_KEY, SOURCES_KEY, ExamplesDialog
+from .mention_search import live_mentions
 from .permission_chip import PermissionChip
 from .prompt_notice import PromptNotice
+from .selection_line import SelectionLine
 from .shared import exec_dialog, settle_hover
 from .style import (
+    _BTN_GHOST,
     _BTN_SEND,
     ACCENT_TINT,
     ACCENT_TINT_ON,
     BTN_PX,
+    FILE_BADGES,
+    FONT_BODY,
     FONT_HINT,
+    HIT_PX,
     INK,
     INK_2,
     INK_3,
+    INSET,
+    LINE,
     ON_ACCENT,
+    RADIUS_CONTROL,
+    RED,
     SPACE_CARD,
     SPACE_OUTER,
     SPACE_TIGHT,
+    TAGS,
+    WEIGHT_MEDIUM,
+    keyboard_ring,
     qcolor,
     repolish,
 )
 from .styles import WARNING_TEXT
-from .widgets import FlowLayout, IconButton
+from .widgets import ElidedLabel, FlowLayout, IconButton
 
 _SEND_SIZE = BTN_PX
 _DISC_GLYPH = 16
@@ -96,6 +130,14 @@ _HINT_MS = 2500
 STOP_AFTER_SEND_S = 0.6
 _OFFLINE_GRACE_MS = 15000
 _HINT_QSS = scale_qss_font_px(f"font-size: {FONT_HINT}px; color: {INK_2}; background: transparent; border: none;")
+_STALE_NAME_QSS = scale_qss_font_px(f"font-size: {FONT_BODY}px; font-weight: {WEIGHT_MEDIUM}; color: {RED};"
+                                    " background: transparent; border: none;")
+_STALE_BUTTON_QSS = scale_qss_font_px(_BTN_GHOST.replace(f"font-size: {FONT_BODY}px", f"font-size: {FONT_HINT}px"))
+_STALE_GLYPH = 13
+_STALE_NAME_PX = 150
+_STALE_BUTTON_PX = 22
+
+_STALE_ROWS = 3
 
 _HINT_WARN_QSS = scale_qss_font_px(f"font-size: {FONT_HINT}px; color: {WARNING_TEXT};"
                                    " background: transparent; border: none;")
@@ -128,6 +170,14 @@ _ATTACH_BTN_QSS = (
 
 
 _DRAFT_SAVE_MS = 500
+
+
+_PASTE_TONES = {"service": TAGS["info"], "geometry": TAGS["purple"], "point": FILE_BADGES["image"],
+                "table": FILE_BADGES["table"], "text": TAGS["neutral"]}
+
+
+_CAPABILITIES_MS = 10000
+_CAPABILITIES_BYTES = 12 * 1024 * 1024
 
 
 def _heavier_than(path: str, cap: int) -> bool:
@@ -214,6 +264,8 @@ class Composer(QFrame):
         self._blocked_placeholder = ""
         self._reply_placeholder = ""
 
+        self._run_placeholder = ""
+
 
         self._effort_locked = False
 
@@ -223,6 +275,9 @@ class Composer(QFrame):
 
 
         self._last_sent_items = []
+
+        self._last_sent_marks: list = []
+        self._last_sent_cards: list = []
         self._offline = False
 
 
@@ -253,6 +308,14 @@ class Composer(QFrame):
         self._tags: dict[str, AttachmentTag] = {}
         self._chips = ChipRow()
         self._cards: dict[tuple, LayerCard] = {}
+
+
+        self._pastes: list[dict] = []
+
+
+        self._fresh_paste: tuple | None = None
+
+        self._last_sent_pastes: tuple = ("", [])
         self._attach: AttachPopover | None = None
         self._placeholder = self.tr("Ask or describe a task in QGIS")
 
@@ -269,10 +332,17 @@ class Composer(QFrame):
         col.setContentsMargins(_ROW_PAD_X + 2, SPACE_OUTER, _ROW_PAD_X, _ROW_PAD_X)
         col.setSpacing(SPACE_CARD)
 
+
+        self._selection = SelectionLine(self)
+        col.addWidget(self._selection)
+        self._selection.left_out.connect(lambda: self._input.setFocus(Qt.FocusReason.OtherFocusReason))
+
         self._attach_host = QWidget(self)
         self._attach_flow = FlowLayout(self._attach_host, SPACE_CARD, SPACE_TIGHT)
         self._attach_host.hide()
         col.addWidget(self._attach_host)
+        self._stale_line = self._build_stale_line()
+        col.addWidget(self._stale_line)
 
 
 
@@ -307,11 +377,17 @@ class Composer(QFrame):
         self._input.textChanged.connect(self._clear_warning)
         self._input.textChanged.connect(self._on_draft_edit)
         self._input.mentions_changed.connect(self._on_mentions_changed)
+        self._input.stale_changed.connect(self._sync_stale_line)
+        self.chips_changed.connect(self._on_draft_edit)
+        self.attachments_changed.connect(self._on_draft_edit)
         self._input.files_requested.connect(self._on_add_files)
         self._input.recall_requested.connect(self._recall_last)
         self._input.image_pasted.connect(lambda image: self.add_image(image, "pasted.png"))
         self._input.paths_pasted.connect(self.add_paths)
+        self._input.paste_taker = self._take_paste
+        self._input.undo_paste = self._undo_paste
         self._input.installEventFilter(self)
+        self._input.sheet().installEventFilter(self)
         col.addWidget(self._input)
 
         self._effort_chip = EffortChip(self)
@@ -343,6 +419,7 @@ class Composer(QFrame):
 
         self._dictation_ui = ComposerDictation(self, row, col, self._input, self._send_btn)
         QWidget.setTabOrder(self._effort_chip, self._dictation_ui.button)
+        self._suggest_ui = ComposerSuggest(self, self._input)
 
         self._hint = QLabel(self)
         self._hint.setStyleSheet(_HINT_QSS)
@@ -418,39 +495,152 @@ class Composer(QFrame):
         effort.set_compact(compact)
 
     def text(self) -> str:
-        return self._input.text()
+
+        return splice(self._input.text(), [(p["anchor"].position(), p["raw"]) for p in self._pastes])
 
     def set_text(self, text: str) -> None:
+        self._clear_pastes()
         self._input.set_text(text)
+
+    def _build_stale_line(self) -> QWidget:
+
+        box = QFrame(self)
+        box.setObjectName("composerStale")
+        box.setStyleSheet(f"#composerStale {{ background: {INSET}; border: 1px solid {LINE};"
+                          f" border-radius: {RADIUS_CONTROL}px; }}")
+        self._stale_rows = QVBoxLayout(box)
+        self._stale_rows.setContentsMargins(SPACE_OUTER, 3, 3, 3)
+        self._stale_rows.setSpacing(0)
+        box.setToolTip(self.tr("Sent as plain words: the AI agent gets no link to the layer."))
+        box.hide()
+        return box
+
+    def _stale_row(self, label: str, name: str | None) -> QWidget:
+        row = QWidget(self._stale_line)
+        row.setMinimumHeight(HIT_PX)
+        line = QHBoxLayout(row)
+        line.setContentsMargins(0, 0, 0, 0)
+        line.setSpacing(SPACE_CARD)
+        glyph = QLabel(row)
+        glyph.setPixmap(icon_for(self, "layers", _STALE_GLYPH, qcolor(RED)).pixmap(_STALE_GLYPH, _STALE_GLYPH))
+        line.addWidget(glyph)
+        title = QLabel(row)
+        title.setTextFormat(Qt.TextFormat.PlainText)
+        title.setStyleSheet(_STALE_NAME_QSS)
+        title.ensurePolished()
+        title.setText(title.fontMetrics().elidedText(label, Qt.TextElideMode.ElideMiddle, _STALE_NAME_PX))
+        title.setToolTip(label)
+        line.addWidget(title)
+        state = ElidedLabel(self.tr("removed from the project") if name is None
+                            else self.tr("renamed {new}").format(new=name), row)
+        state.setStyleSheet(_HINT_QSS)
+        line.addWidget(state, 1)
+        if name is not None:
+            use = QPushButton(self.tr("Use"), row)
+            use.setStyleSheet(_STALE_BUTTON_QSS)
+            use.setFixedHeight(_STALE_BUTTON_PX)
+            use.setCursor(Qt.CursorShape.PointingHandCursor)
+            use.setToolTip(self.tr("Write {new} in the message instead").format(new=name))
+            keyboard_ring(use)
+            use.setProperty("staleLabel", label)
+            use.clicked.connect(self._adopt_new_name)
+            line.addWidget(use)
+        return row
+
+    def _sync_stale_line(self) -> None:
+        stale = self._input.stale_mentions()
+        while self._stale_rows.count():
+            widget = self._stale_rows.takeAt(0).widget()
+            if widget is not None:
+                widget.hide()
+                widget.deleteLater()
+        if not stale:
+            self._stale_line.hide()
+            self._input.setAccessibleDescription("")
+            return
+        for label, name in stale[:_STALE_ROWS]:
+            self._stale_rows.addWidget(self._stale_row(label, name))
+        if len(stale) > _STALE_ROWS:
+            more = QLabel(self.tr("and {n} more").format(n=len(stale) - _STALE_ROWS), self._stale_line)
+            more.setStyleSheet(_HINT_QSS)
+            more.setMinimumHeight(HIT_PX)
+            self._stale_rows.addWidget(more)
+
+        self._input.setAccessibleDescription("; ".join(
+            f"{label}: " + (self.tr("removed from the project") if name is None
+                            else self.tr("renamed {new}").format(new=name))
+            for label, name in stale))
+        self._stale_line.show()
+
+    def _adopt_new_name(self) -> None:
+
+        self._input.adopt_new_names(str(self.sender().property("staleLabel")))
+        self.focus_input()
+
+    def _draft_state(self) -> dict:
+
+        files = [str(item["path"]) for item in self._items if item.get("path")]
+        images = [{key: item.get(key) for key in ("id", "name", "data_base64", "width", "height")}
+                  for item in self._items if item.get("kind") == "image" and not item.get("path")]
+
+        pastes = [{"at": p["anchor"].position(), "text": p["raw"]} for p in self._pastes]
+        return {"text": self._input.text(), "chips": self._input.chip_marks(), "cards": self._chips.chips(),
+                "pastes": pastes, "files": files, "images": images}
+
+    def _draft_empty(self) -> bool:
+        return not (self.text().strip() or self._items or len(self._chips))
 
     def _on_draft_edit(self) -> None:
         if self._draft_busy:
             return
-        text = self.text()
-        first_run_funnel.note_text(len(text))
-        if text.strip():
+        if not self._draft_empty():
             self._draft_timer.start()
         else:
             self._draft_timer.stop()
             self._save_draft()
 
     def _save_draft(self) -> None:
-        drafts.put(self._draft_tag, self._draft_key, self.text())
+        drafts.put(self._draft_tag, self._draft_key, self._draft_state())
 
     def _restore_first_draft(self) -> None:
 
-        if self._draft_key != drafts.NEW_CHAT or self.text().strip():
+        if self._draft_key != drafts.NEW_CHAT or not self._draft_empty():
             return
         self._show_draft(drafts.get(self._draft_tag, self._draft_key))
 
-    def _show_draft(self, text: str) -> None:
-        if text == self.text():
-            return
+    def _show_draft(self, draft: dict) -> None:
+
+
+
+
+
         self._draft_busy = True
         try:
-            self.set_text(text)
+            if draft["text"] != self._input.text() or self._input.chip_marks() or self._pastes:
+                self.set_text(draft["text"])
+            self._input.restore_chips(draft["chips"])
+            for paste in draft.get("pastes", ()):
+                info = read_paste(paste["text"])
+                if info is not None:
+                    self._add_paste(paste["text"], info, paste["at"])
+            self.clear_chips()
+            for card in draft["cards"]:
+                self.add_chip(card)
+            self.clear_attachments()
+            for path in draft["files"]:
+                item = attachment_from_path(path)
+                if item:
+                    self.add_attachment(item)
+            for image in draft["images"]:
+                self.add_attachment(image)
         finally:
             self._draft_busy = False
+
+    def thread_key(self) -> str:
+
+        if self._draft_between or self._draft_key == drafts.NEW_CHAT:
+            return ""
+        return self._draft_key
 
     def bind_draft(self, thread_id) -> None:
 
@@ -474,6 +664,7 @@ class Composer(QFrame):
         if between:
             self._draft_tag, self._draft_key = tag, key
             self._show_draft(drafts.get(tag, key))
+            self._suggest_ui.refresh()
             return
         drafts.put(self._draft_tag, self._draft_key, "")
         self._draft_tag, self._draft_key = tag, key
@@ -484,6 +675,7 @@ class Composer(QFrame):
 
         self._pending_send = False
         self._clear_hint()
+        self._clear_pastes()
         self._input.clear()
 
     def focus_input(self) -> None:
@@ -574,7 +766,11 @@ class Composer(QFrame):
         self._sync_send_enabled()
 
     def _apply_placeholder(self) -> None:
-        if self._blocked and self._blocked_placeholder:
+        suggest_ui = getattr(self, "_suggest_ui", None)
+        if suggest_ui is not None and suggest_ui.predicting():
+
+            self._input.setPlaceholderText("")
+        elif self._blocked and self._blocked_placeholder:
             self._input.setPlaceholderText(self._blocked_placeholder)
         elif self._effort_locked and not self._blocked:
             names = {e: n for e, n, _note in effort_texts(self._effort_chip)}
@@ -589,12 +785,19 @@ class Composer(QFrame):
             self._input.setPlaceholderText(self.tr("Can't reach TerraLab. Retrying."))
         elif self._reply_placeholder:
             self._input.setPlaceholderText(self._reply_placeholder)
+        elif self._running and self._run_placeholder:
+            self._input.setPlaceholderText(self._run_placeholder)
         else:
             self._input.setPlaceholderText(self._placeholder)
 
     def set_reply_placeholder(self, text: str) -> None:
 
         self._reply_placeholder = text or ""
+        self._apply_placeholder()
+
+    def set_run_placeholder(self, text: str) -> None:
+
+        self._run_placeholder = text or ""
         self._apply_placeholder()
 
     def set_placeholder(self, text: str) -> None:
@@ -658,6 +861,11 @@ class Composer(QFrame):
         return (f'{html.escape(str(text))} <a href="{html.escape(str(href), quote=True)}" '
                 f'style="color: {INK}; text-decoration: underline;">{html.escape(str(label))}</a>')
 
+    def drop_hint(self, text: str) -> None:
+
+        if not self._hint.isHidden() and self._hint.text() == text:
+            self._passing_line_over()
+
     def hint_text(self) -> str:
         return self._notice.text() or (self._hint.text() if self._hint.isVisible() else "")
 
@@ -707,7 +915,7 @@ class Composer(QFrame):
 
         dialog = ExamplesDialog(self.window() or self, opened_from=opened_from,
                                 place=place or HOME_KEY)
-        dialog.prompt_chosen.connect(self._on_example_prompt)
+        dialog.prompt_chosen.connect(self.add_prompt)
         dialog.example_chosen.connect(self.example_chosen.emit)
         return dialog
 
@@ -746,12 +954,10 @@ class Composer(QFrame):
         finally:
             dialog.deleteLater()
 
-    def take_example_prompt(self, text: str, chip=None) -> None:
+    def add_prompt(self, text: str, chip=None, marks=()) -> None:
 
 
-        self._on_example_prompt(text, chip)
 
-    def _on_example_prompt(self, text: str, chip=None) -> None:
 
 
 
@@ -767,10 +973,15 @@ class Composer(QFrame):
         mention = dict(chip) if isinstance(chip, dict) and chip.get("value") else None
         draft = self.text().strip()
         if mention is None:
+            base = 0
             if not draft:
                 self.set_text(text)
-            else:
+            elif text:
+                base = len(self._input.text()) + 2
                 self._input.append_text("\n\n" + text, at_end=True)
+            if text and marks:
+                self._input.restore_chips([dict(m, at=m["at"] + base) for m in marks
+                                           if isinstance(m, dict) and isinstance(m.get("at"), int)])
         else:
             if not draft:
                 self.set_text("")
@@ -942,8 +1153,193 @@ class Composer(QFrame):
             self.remove_attachment(key)
         self._items = []
 
+    def _take_paste(self, text: str, cursor: QTextCursor) -> bool:
+
+        info = read_paste(text)
+        if info is None or self._input.isReadOnly():
+            return False
+        if cursor.hasSelection():
+            cursor.removeSelectedText()
+            self._input.setTextCursor(cursor)
+        paste = self._add_paste(text, info, cursor.position())
+        self._fresh_paste = (paste, self._input.document().revision())
+        self._paste_changed()
+        too_large = self._too_large()
+        if too_large:
+            self.show_warning(too_large)
+        return True
+
+    def _add_paste(self, text: str, info: dict, position: int) -> dict:
+        anchor = QTextCursor(self._input.document())
+        anchor.setPosition(max(0, min(int(position), len(self._input.text()))))
+
+        anchor.setKeepPositionOnInsert(True)
+        ground, ink = _PASTE_TONES[info["tone"]]
+        card = AttachCard(info["name"], info["kind"], pixmap_for(self, info["glyph"], TILE_GLYPH, qcolor(ink)),
+                          self._attach_host, closable=True, clickable=True, tooltip=info["tip"],
+                          tile_color=ground)
+
+        card.setAccessibleDescription(f"{info['kind']}. {info['tip']}")
+        paste = {"raw": text, "anchor": anchor, "card": card, "info": info}
+        card.removed.connect(lambda: self._drop_paste(paste))
+        card.opened.connect(lambda: self._open_paste(paste))
+        self._pastes.append(paste)
+        self._attach_flow.addWidget(card)
+        self._attach_host.show()
+        self._attach_host.updateGeometry()
+        self._count_service_layers(paste)
+        return paste
+
+    def _count_service_layers(self, paste: dict) -> None:
+
+
+
+
+
+
+        url = capabilities_url(paste["raw"].strip(), paste["info"].get("service", ""))
+        if not url:
+            return
+        reply = QgsNetworkAccessManager.instance().get(QNetworkRequest(QUrl(url)))
+
+
+
+        reply.setParent(self)
+        timer = one_shot(reply, reply.abort, _CAPABILITIES_MS)
+        timer.start()
+
+        def progress(received, _total):
+            if received > _CAPABILITIES_BYTES:
+                reply.abort()
+
+        def finished():
+            timer.stop()
+            ok = reply.error() == QNetworkReply.NetworkError.NoError
+            body = bytes(reply.readAll()) if ok else b""
+            reply.deleteLater()
+            count = count_layers(paste["info"]["service"], body) if body else 0
+            if not count or paste not in self._pastes:
+                return
+            words = (self.tr("1 layer") if count == 1
+                     else self.tr("{n} layers").format(n=QLocale().toString(count)))
+            paste["info"]["kind"] = f"{paste['info']['kind']} · {words}"
+            paste["card"].set_kind(paste["info"]["kind"])
+            paste["card"].updateGeometry()
+
+        reply.downloadProgress.connect(progress)
+        reply.finished.connect(finished)
+
+    def _undo_paste(self) -> bool:
+        paste, revision = self._fresh_paste or (None, -1)
+        self._fresh_paste = None
+        if paste not in self._pastes or revision != self._input.document().revision():
+            return False
+        self._paste_as_text(paste)
+        return True
+
+    def _paste_as_text(self, paste: dict) -> None:
+
+        if paste not in self._pastes:
+            return
+        position = paste["anchor"].position()
+        self._remove_paste_card(paste)
+        typed = self._input.text()
+
+        before, after = typed[position - 1:position], typed[position:position + 1]
+        words = splice(before + after, [(len(before), paste["raw"])])[len(before):]
+        words = words[:len(words) - len(after)] if after else words
+        cursor = QTextCursor(self._input.document())
+        cursor.setPosition(position)
+        cursor.insertText(words, QTextCharFormat())
+        self._input.setTextCursor(cursor)
+        self._paste_changed()
+        self.focus_input()
+
+    def _drop_paste(self, paste: dict) -> None:
+        self._remove_paste_card(paste)
+        self._paste_changed()
+        self.focus_input()
+
+    def _open_paste(self, paste: dict) -> None:
+        info = paste["info"]
+        ground, ink = _PASTE_TONES[info["tone"]]
+        preview = FilePreview({"name": info["name"], "text": paste["raw"], "meta": info["kind"],
+                               "mono": info["mono"],
+                               "tile": (pixmap_for(self, info["glyph"], 16, qcolor(ink)), ground)}, self)
+        if self._paste_place(paste) is not None:
+            preview.add_button(self.tr("Show on map"), lambda: self._show_paste_on_map(paste))
+        preview.add_button(self.tr("Edit as text"), lambda: self._paste_as_text(paste))
+        preview.open_over_window()
+
+    def _paste_place(self, paste: dict):
+
+        if paste["info"]["tone"] not in ("point", "geometry"):
+            return None
+        try:
+            from qgis.utils import iface
+        except ImportError:
+            return None
+        found = place(paste["raw"]) if iface is not None else None
+        if found is None or found[0].isNull() or found[0].isEmpty():
+            return None
+        geometry, authid = found
+        canvas_crs = iface.mapCanvas().mapSettings().destinationCrs()
+        if not authid:
+
+
+            return (geometry, canvas_crs) if not canvas_crs.isGeographic() else None
+        geometry = QgsGeometry(geometry)
+        try:
+            transform = QgsCoordinateTransform(QgsCoordinateReferenceSystem(authid), canvas_crs,
+                                               QgsProject.instance())
+            geometry.transform(transform)
+        except QgsCsException:
+            return None
+        return geometry, canvas_crs
+
+    def _show_paste_on_map(self, paste: dict) -> None:
+
+        found = self._paste_place(paste)
+        if found is None:
+            return
+        from qgis.utils import iface
+
+        geometry, crs = found
+        canvas = iface.mapCanvas()
+        box = geometry.boundingBox()
+        if box.width() == 0 and box.height() == 0:
+            if canvas.extent().isEmpty():
+
+                box.grow(0.01 if crs.isGeographic() else 1000)
+                canvas.setExtent(box)
+            else:
+                canvas.setCenter(box.center())
+        else:
+            box.scale(1.2)
+            canvas.setExtent(box)
+        canvas.refresh()
+        canvas.flashGeometries([geometry], crs)
+
+    def _remove_paste_card(self, paste: dict) -> None:
+        if paste in self._pastes:
+            self._pastes.remove(paste)
+        card = paste["card"]
+        self._attach_flow.removeWidget(card)
+        card.deleteLater()
+        self._sync_row()
+
+    def _clear_pastes(self) -> None:
+
+        self._fresh_paste = None
+        for paste in list(self._pastes):
+            self._remove_paste_card(paste)
+
+    def _paste_changed(self) -> None:
+        self._sync_send_enabled()
+        self._on_draft_edit()
+
     def _sync_row(self) -> None:
-        self._attach_host.setVisible(bool(self._items) or bool(len(self._chips)))
+        self._attach_host.setVisible(bool(self._items) or bool(len(self._chips)) or bool(self._pastes))
         self._attach_host.updateGeometry()
 
     def chips(self) -> list:
@@ -957,7 +1353,8 @@ class Composer(QFrame):
 
         out = live_layer_chips(self._chips.chips(), layer_name)
         seen = {ChipRow.key(chip) for chip in out}
-        for chip in self._input.mentions():
+
+        for chip in live_mentions(self._input.mentions(), layer_name):
             if ChipRow.key(chip) not in seen:
                 out.append(chip)
         return out
@@ -1025,8 +1422,18 @@ class Composer(QFrame):
 
 
 
-        self._input.drop_stale_mentions(layer_name)
+
         return self.chips()
+
+    def sent_marks(self) -> list:
+
+
+
+        if self._pastes:
+            return []
+        full = self._input.text()
+        lead = len(full) - len(full.lstrip())
+        return [dict(m, at=m["at"] - lead) for m in self._input.chip_marks() if m["at"] >= lead]
 
     def take_chips(self) -> list:
 
@@ -1035,7 +1442,6 @@ class Composer(QFrame):
 
 
 
-        self._input.drop_stale_mentions(layer_name)
         chips = self.chips()
         self.clear_chips()
         return chips
@@ -1051,16 +1457,32 @@ class Composer(QFrame):
             self.focus_input()
 
     def set_running(self, running: bool) -> None:
+        ended = self._running and not running
         self._running = bool(running)
         self._send_btn.setProperty("running", self._running)
         repolish(self._send_btn)
         self._paint_send()
         self._sync_send_enabled()
         self._sync_effort_run_lock()
+        if self._running:
+            self._suggest_ui.forget_prediction()
+            self._suggest_ui.forget_rows()
+        elif ended:
+            self._suggest_ui.prepare()
         self._apply_placeholder()
 
     def is_running(self) -> bool:
         return self._running
+
+    def selection_snapshot(self) -> dict | None:
+
+        return self._selection.snapshot()
+
+    def selection_sent(self) -> None:
+        self._selection.sent()
+
+    def unwire_selection(self) -> None:
+        self._selection.unwire()
 
     def set_queue_count(self, count: int, cap: int) -> None:
 
@@ -1198,6 +1620,18 @@ class Composer(QFrame):
 
         self._dictation_ui.attach(dictation)
 
+    def set_suggester(self, suggester) -> None:
+
+        self._suggest_ui.attach(suggester)
+
+    def suggestion_drawn(self) -> None:
+
+        self._apply_placeholder()
+
+    def suggest_quiet(self) -> bool:
+
+        return self._running or self._blocked or self._offline or bool(self._pastes) or self._dictation_ui.active
+
     def dictation_blocked(self) -> bool:
         return self._blocked
 
@@ -1321,9 +1755,7 @@ class Composer(QFrame):
             return
         if self._blocked:
             return
-        first_run_funnel.note_send_pressed()
         if self._offline and not self._effort_locked:
-            first_run_funnel.note_banner("send_offline")
 
 
 
@@ -1350,9 +1782,6 @@ class Composer(QFrame):
             return
 
 
-        self._input.drop_stale_mentions(layer_name)
-
-
 
         too_large = self._too_large()
         if too_large:
@@ -1371,11 +1800,14 @@ class Composer(QFrame):
                 self.text(), len(self._items), len(self.chips()), first_message=self._empty_chat,
                 known_names=tuple(layer.name() for layer in QgsProject.instance().mapLayers().values()))
             if reason:
-                first_run_funnel.note_banner(f"prompt_{reason}")
                 self._ask_before_sending(reason)
                 return
         self._last_sent = self.text()
+        self._last_sent_pastes = (self._input.text(), [(p["anchor"].position(), p["raw"]) for p in self._pastes])
         self._last_sent_items = [dict(item) for item in self._items]
+
+        self._last_sent_marks = self._input.chip_marks()
+        self._last_sent_cards = self._chips.chips()
         self._sent_at = time.monotonic()
         trace.mark("send.click")
         self.send_clicked.emit()
@@ -1387,21 +1819,41 @@ class Composer(QFrame):
 
 
 
-        if self._input.isReadOnly() or self._blocked or not self._last_sent:
+        if self._input.isReadOnly() or self._blocked or not self._last_sent or self._pastes:
             return
-        self.set_text(self._last_sent)
+        typed, pastes = self._last_sent_pastes
+        if pastes and splice(typed, pastes) == self._last_sent:
+
+            self.set_text(typed)
+            self._input.restore_chips(self._last_sent_marks)
+            for position, raw in pastes:
+                info = read_paste(raw)
+                if info is not None:
+                    self._add_paste(raw, info, position)
+            self._paste_changed()
+        else:
+            self.set_text(self._last_sent)
+            self._input.restore_chips(self._last_sent_marks)
+        for card in self._last_sent_cards:
+            self.add_chip(dict(card))
         for item in self._last_sent_items:
             self.add_attachment(dict(item))
 
-    def remember_sent(self, text: str, items=()) -> None:
+    def remember_sent(self, text: str, items=(), marks=()) -> None:
 
         self._last_sent = str(text or "")
+        self._last_sent_pastes = ("", [])
         self._last_sent_items = [dict(item) for item in items or [] if isinstance(item, dict)]
+        self._last_sent_marks = [dict(m) for m in marks or () if isinstance(m, dict)]
+        self._last_sent_cards = []
 
     def forget_last_sent(self) -> None:
 
         self._last_sent = ""
+        self._last_sent_pastes = ("", [])
         self._last_sent_items = []
+        self._last_sent_marks = []
+        self._last_sent_cards = []
 
     def _on_hint_link(self, href: str) -> None:
 
@@ -1460,12 +1912,11 @@ class Composer(QFrame):
             self._on_submit()
 
     def eventFilter(self, watched, event):  # noqa: N802
-        if watched is self._input:
-            if event.type() == QEvent.Type.FocusIn:
-                first_run_funnel.note_focus()
-                self._set_flag("focused", True)
-            elif event.type() == QEvent.Type.FocusOut:
-                self._set_flag("focused", False)
+        if watched is self._input.sheet() and event.type() in (QEvent.Type.Show, QEvent.Type.Hide):
+            self.show_focus()
+        elif watched is self._input:
+            if event.type() in (QEvent.Type.FocusIn, QEvent.Type.FocusOut):
+                self.show_focus()
             elif (event.type() in (QEvent.Type.KeyPress, QEvent.Type.ShortcutOverride)
                   and event.key() == Qt.Key.Key_D
                   and event.modifiers() == (Qt.KeyboardModifier.ControlModifier | Qt.KeyboardModifier.ShiftModifier)):
@@ -1480,6 +1931,21 @@ class Composer(QFrame):
             settle_hover(self._attach_btn)
             self._attach_btn.paint_glyph(self._attach_btn.underMouse())
         return super().eventFilter(watched, event)
+
+    def show_focus(self) -> None:
+
+
+
+        self._set_flag("focused", self._input.hasFocus() or self._input.sheet().isVisible())
+
+    def mousePressEvent(self, event):  # noqa: N802
+
+        if event.button() == Qt.MouseButton.LeftButton and self._input.isEnabled():
+            self._input.setFocus(Qt.FocusReason.MouseFocusReason)
+            self._input.moveCursor(QTextCursor.MoveOperation.End)
+            event.accept()
+            return
+        super().mousePressEvent(event)
 
     def _set_flag(self, name: str, value: bool) -> None:
         if bool(self.property(name)) == value:
@@ -1496,9 +1962,11 @@ class Composer(QFrame):
     @classmethod
     def accepts_mime(cls, mime) -> bool:
 
+
         if mime is None:
             return False
-        return bool(mime_has_layers(mime) or cls.local_paths(mime) or mime.hasImage())
+        return bool(mime_has_layers(mime) or cls.local_paths(mime) or mime.hasImage()
+                    or (mime.hasText() and mime.text().strip()))
 
     def take_drop(self, mime) -> bool:
 
@@ -1516,4 +1984,15 @@ class Composer(QFrame):
             return bool(accepted)
         if mime is not None and mime.hasImage():
             return self.add_image(QImage(mime.imageData()), "dropped.png")
+        if mime is not None and mime.hasText() and mime.text().strip() and not self._input.isReadOnly():
+
+
+            words = QMimeData()
+            words.setText(mime.text())
+            cursor = self._input.textCursor()
+            cursor.movePosition(QTextCursor.MoveOperation.End)
+            self._input.setTextCursor(cursor)
+            self._input.insertFromMimeData(words)
+            self.focus_input()
+            return True
         return False

@@ -43,10 +43,12 @@ from qgis.PyQt.QtXml import QDomDocument
 from ..core import net, tuning
 from ..core.background import heartbeat, run_on_main_thread
 from ..core.host_platform import release_pooled_handles, remove_quietly, retry_file_op
+from ..core.layer_order import blocks_write, write_blocked_by
 from ..core.logger import log_warning
 from ..core.output_paths import safe_file_name
 from ..core.security import fits_path, validate_path
 from ..core.tool_registry import tool_error
+from ._layers import source_gone_error
 
 
 
@@ -124,6 +126,9 @@ def snapshot(args: dict) -> dict:
     error = validate_path(output, write=True)
     if error:
         return tool_error(error, "INVALID_ARGS")
+    gone = write_blocked_by(project)
+    if gone is not None:
+        return source_gone_error(gone, writing=True)
     folder = os.path.dirname(output)
     name = os.path.splitext(os.path.basename(output))[0]
     stage = os.path.join(folder, f".{name}.{uuid.uuid4().hex[:8]}.part.gpkg")
@@ -388,6 +393,7 @@ def finish(snap: dict, written: dict) -> dict:
     package = QgsProject()
     added = []
     left_out = []
+
     try:
         _copy_project_settings(live, package)
         styles = 0
@@ -395,6 +401,9 @@ def finish(snap: dict, written: dict) -> dict:
             layer = live.mapLayer(entry["id"])
             if layer is None:
                 left_out.append(f"layer {entry['name']} (no longer in the project)")
+                continue
+            if blocks_write(layer):
+                left_out.append(f"layer {layer.name()} (lost its file while the package was written)")
                 continue
             if entry["kind"] != "kept" and entry["id"] not in written:
                 entry.update(kind="kept", why="not written")

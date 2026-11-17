@@ -22,13 +22,12 @@ from qgis.core import (
     QgsProperty,
     QgsTask,
 )
-from qgis.PyQt import sip
 
 from . import background
 from .host_platform import IS_WINDOWS, release_pooled_handles, remove_quietly, remove_tree
 from .logger import log_warning
 from .policy import AGENT_TMP_DIR
-from .qt_compat import disconnect_quietly, enum_member
+from .qt_compat import disconnect_quietly, enum_member, qt_deleted
 
 PROCESSING_TASKS: dict[str, dict] = {}
 
@@ -298,6 +297,7 @@ def remove_layers(layers) -> list:
             if layer is None:
                 continue
             name = layer.name()
+            _unhook_layouts(project, layer)
             readers = readers_of(layer)
             if not readers:
                 project.removeMapLayer(layer.id())
@@ -318,6 +318,34 @@ def remove_layers(layers) -> list:
     return gone
 
 
+def _unhook_layouts(project, layer) -> None:
+
+
+
+
+
+
+    try:
+        layouts = project.layoutManager().printLayouts()
+    except Exception:  # noqa: BLE001
+        return
+    for layout in layouts:
+        try:
+            atlas = layout.atlas()
+            if atlas is not None and atlas.coverageLayer() is layer:
+                atlas.setEnabled(False)
+                atlas.setCoverageLayer(None)
+            for item in layout.items():
+                if type(item).__name__ != "QgsLayoutItemElevationProfile":
+                    continue
+                listed = item.layers()
+                kept = [other for other in listed if other is not None and other is not layer]
+                if len(kept) != len(listed):
+                    item.setLayers(kept)
+        except Exception as exc:  # noqa: BLE001
+            log_warning(f"A layout kept a reference to a removed layer: {exc}")
+
+
 def hold_on_removal(removed) -> None:
 
 
@@ -329,7 +357,7 @@ def hold_on_removal(removed) -> None:
     for item in removed or ():
         try:
             layer = project.mapLayer(item) if isinstance(item, str) else item
-            if layer is None or sip.isdeleted(layer):
+            if qt_deleted(layer):
                 continue
             readers = readers_of(layer)
             if not readers:
@@ -413,7 +441,7 @@ def release_held(entry: dict) -> None:
         if any(other is layer for holder in holders for other in holder.get("held_layers") or ()):
             continue
         try:
-            if not sip.isdeleted(layer) and QgsProject.instance().mapLayer(layer.id()) is not layer:
+            if not qt_deleted(layer) and QgsProject.instance().mapLayer(layer.id()) is not layer:
                 background.delete_here(layer)
         except Exception as exc:  # noqa: BLE001
             log_warning(f"A removed layer was not deleted after its task: {exc}")

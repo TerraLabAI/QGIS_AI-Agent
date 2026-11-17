@@ -175,20 +175,24 @@ def gis_data_path(path: str) -> str:
     text = str(path or "")
     if not text or is_remote_or_device(text):
         return ""
+
+    remote = _is_remote_windows_root(text)
     lowered = text.lower()
     for tail in (".aux.xml", ".ovr", ".shp.xml"):
         if lowered.endswith(tail) and len(text) > len(tail):
             base = text[: -len(tail)]
-            return base if suffix_of(base) in GIS_SUFFIXES and os.path.isfile(base) else ""
+            return base if suffix_of(base) in GIS_SUFFIXES and (remote or os.path.isfile(base)) else ""
     suffix = suffix_of(text)
     stem = os.path.splitext(text)[0]
     if suffix in _SHAPE_SIDECARS or suffix == "dbf":
         for ext in (".shp", ".SHP"):
-            if os.path.isfile(stem + ext):
+            if remote or os.path.isfile(stem + ext):
                 return stem + ext
         return text if suffix == "dbf" else ""
     if suffix in GIS_SUFFIXES:
         return text
+    if remote:
+        return ""
     if suffix in _TEXT_TABLES:
         return text if _table_has_geometry(text) else ""
     if suffix == "json":
@@ -225,7 +229,7 @@ def is_safe_to_open(path: str) -> bool:
     suffix = suffix_of(text)
     if suffix in BUNDLE_SUFFIXES or suffix.startswith("{") or ":" in os.path.splitdrive(text)[1]:
         return False
-    if os.path.isdir(text):
+    if (not suffix) if _is_remote_windows_root(text) else os.path.isdir(text):
         return True
     if suffix in PAGE_SUFFIXES:
 
@@ -271,7 +275,7 @@ def reveal_target(path: str) -> str:
     if is_remote_or_device(text):
         return text
     parent = os.path.dirname(text.rstrip("/\\")) or text
-    return parent if os.path.isdir(parent) else text
+    return parent if _is_remote_windows_root(parent) or os.path.isdir(parent) else text
 
 
 class _ExistsBudget:
@@ -303,12 +307,16 @@ def _is_remote_windows_root(path: str) -> bool:
 
     if sys.platform != "win32":
         return False
+    root = os.path.splitdrive(path)[0]
+    if not root or root.startswith(("\\\\", "//")):
+        return False
     try:
         import ctypes
-        root = os.path.splitdrive(path)[0] + "\\"
-        if not root or root == "\\":
-            return False
-        return ctypes.windll.kernel32.GetDriveTypeW(root) == 4
+
+        kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+        kernel32.GetDriveTypeW.argtypes = [ctypes.c_wchar_p]
+        kernel32.GetDriveTypeW.restype = ctypes.c_uint
+        return kernel32.GetDriveTypeW(root + "\\") == 4
     except Exception:
         return False
 

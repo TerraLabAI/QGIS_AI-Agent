@@ -34,10 +34,13 @@ from qgis.PyQt.QtWidgets import (
     QWidget,
 )
 
+from ..core import drafts
+from ..core.settings import account_tag
 from .card_base import reduced_motion
+from .cards_click import PressSurface
 from .font_scale import scale_qss_font_px
 from .icons import icon_for, pixmap_for
-from .shared import CHAT_PANEL_OBJECT, event_pos
+from .shared import CHAT_PANEL_OBJECT, released_on
 from .style import (
     _BTN_ICON,
     ACCENT_INK,
@@ -107,7 +110,7 @@ def _project_name(path: str) -> str:
     return str(path or "").replace("\\", "/").rstrip("/").split("/")[-1]
 
 
-class _Row(QWidget):
+class _Row(PressSurface):
 
 
 
@@ -115,11 +118,11 @@ class _Row(QWidget):
 
 
 
-    clicked = pyqtSignal()
     hovered = pyqtSignal(object)
 
     def __init__(self, glyph: str, text: str, role: str = "sidebarNav", parent=None, color=None):
-        super().__init__(parent)
+
+        super().__init__(parent, Qt.FocusPolicy.StrongFocus)
         self._glyph_name = glyph
         self._color = color
         self._on = False
@@ -127,9 +130,6 @@ class _Row(QWidget):
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         self.setCursor(Qt.CursorShape.PointingHandCursor)
         self.setAttribute(Qt.WidgetAttribute.WA_Hover, True)
-
-
-        self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
         self.setAccessibleName(text)
         row = QHBoxLayout(self)
         row.setContentsMargins(_PAD, 0, _PAD, 0)
@@ -146,6 +146,12 @@ class _Row(QWidget):
         self._text.setProperty("on", False)
         self._text.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Preferred)
         row.addWidget(self._text, 1, Qt.AlignmentFlag.AlignVCenter)
+
+        self._draft = QLabel(self.tr("Draft"), self)
+        self._draft.setObjectName("sidebarMicro")
+        self._draft.hide()
+        row.addWidget(self._draft, 0, Qt.AlignmentFlag.AlignVCenter)
+        self._draft_on = False
         self.setToolTip(plain_tip(text))
         self._paint_glyph()
 
@@ -158,10 +164,21 @@ class _Row(QWidget):
 
     def set_copy_visible(self, visible: bool) -> None:
         self._text.setVisible(visible)
+        self._draft.setVisible(visible and self._draft_on)
+
+    def set_draft(self, on: bool) -> None:
+        self._draft_on = bool(on)
+        self._draft.setVisible(self._draft_on and self._text.isVisibleTo(self))
+        self._describe()
+
+    def _describe(self) -> None:
+        words = ([self.tr("Open")] if self._on else []) + ([self.tr("Draft")] if self._draft_on else [])
+        self.setAccessibleDescription(", ".join(words))
 
     def set_on(self, on: bool) -> None:
 
         self._on = bool(on)
+        self._describe()
         self._text.setProperty("on", self._on)
         repolish(self._text)
         self.update()
@@ -169,6 +186,7 @@ class _Row(QWidget):
     def set_text(self, text: str) -> None:
         self._text.setText(text)
         self.setToolTip(plain_tip(text))
+        self.setAccessibleName(text)
 
     def enterEvent(self, event):  # noqa: N802
         super().enterEvent(event)
@@ -184,16 +202,10 @@ class _Row(QWidget):
             repolish(self._text)
 
     def mouseReleaseEvent(self, event):  # noqa: N802
-        if event.button() == Qt.MouseButton.LeftButton and self.rect().contains(event_pos(event)):
-            self.clicked.emit()
-        super().mouseReleaseEvent(event)
-
-    def keyPressEvent(self, event):  # noqa: N802
-        if event.key() in (Qt.Key.Key_Return, Qt.Key.Key_Enter, Qt.Key.Key_Space):
-            self.clicked.emit()
-            event.accept()
+        if released_on(self, event):
+            self.click()
             return
-        super().keyPressEvent(event)
+        super().mouseReleaseEvent(event)
 
     def focusInEvent(self, event):  # noqa: N802
         super().focusInEvent(event)
@@ -429,8 +441,12 @@ class ChatSidebar(QWidget):
 
     def set_current_thread(self, thread_id: str) -> None:
         self._current_thread = str(thread_id or "")
+        with_drafts = drafts.chats_with_drafts(account_tag())
         for row, item in zip(self._recent_rows, self._threads):
-            row.set_on(str(item.get("id") or "") == self._current_thread)
+            thread = str(item.get("id") or "")
+            row.set_on(thread == self._current_thread)
+
+            row.set_draft(thread in with_drafts and thread != self._current_thread)
 
     def set_paid(self, paid: bool) -> None:
 
@@ -461,13 +477,14 @@ class ChatSidebar(QWidget):
             thread_id = str(item.get("id") or "")
             title = str(item.get("title") or self.tr("Untitled chat")).strip()
             row = _Row("", title, "sidebarRecent", self._host)
-            row.clicked.connect(lambda t=thread_id: self.thread_selected.emit(t))
+            row.clicked.connect(lambda _c=False, t=thread_id: self.thread_selected.emit(t))
             row.hovered.connect(self._host.glide_to)
             row.set_on(thread_id == self._current_thread)
             row.set_copy_visible(not self._collapsed)
             self._rows.insertWidget(at, row)
             self._recent_rows.append(row)
             at += 1
+        self.set_current_thread(self._current_thread)
         self._recents_label.setVisible(bool(self._threads) and not self._collapsed)
 
     def host_is_wide(self) -> bool:

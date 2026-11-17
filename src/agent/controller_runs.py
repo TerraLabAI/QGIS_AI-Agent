@@ -16,14 +16,15 @@ from qgis.PyQt.QtCore import QTimer
 from ..core import telemetry, trace
 from ..core import telemetry_events as ev
 from ..core.checkpoints import KIND_BEFORE
-from ..core.context import build_context
+from ..core.context import build_context, hold_selection, shown_selection
 from ..core.logger import log_warning
 from ..core.profile import driven_session, profile_context
 from ..core.project_identity import open_project_file
-from ..core.protocol import CANCEL_SERVER_SILENT, CANCEL_STOP, Approval, Mode, RunStatus
+from ..core.protocol import CANCEL_SERVER_SILENT, CANCEL_STOP, FEEDBACK_ASK_REASONS, Approval, Mode, RunStatus
 from ..core.security import allow_attached_paths, remember_user_text, vouched_for_thread
 from ..core.telemetry_errors import report_exception, track_plugin_error
 from ..core.threads import user_message_record
+from ..tools import code_runtime
 from .controller_shared import (
     CANCEL_GRACE_MS,
     CONTINUE_TEXT,
@@ -51,8 +52,9 @@ def _context_bytes(context: dict) -> int | None:
 
 
 class _ControllerRuns:
-    def _on_send(self, text: str, mode: str, approval: str, chips, attachments, reuse_layers: bool = False,
-                 replaces: str | None = None) -> None:
+    def _on_send(self, text: str, mode: str, approval: str, chips, attachments, selection=None,
+                 reuse_layers: bool = False, replaces: str | None = None) -> None:
+
 
         text = (text or "").strip()
         if not text:
@@ -63,7 +65,7 @@ class _ControllerRuns:
 
 
             QTimer.singleShot(RESTORE_RECHECK_MS, lambda: self._on_send(
-                text, mode, approval, chips, attachments, reuse_layers, replaces))
+                text, mode, approval, chips, attachments, selection, reuse_layers, replaces))
             return
         from ..ui.plugin_self_update import updated_on_disk_note
 
@@ -72,6 +74,10 @@ class _ControllerRuns:
             self.notice.emit("warning", restart_note)
         if self._run is not None:
             self.notice.emit("info", tr("A run is in progress. Stop it or wait for it to finish."))
+            return
+        if self._session.update_required:
+
+            self._panel_call("show_update_required", self._session.update_required)
             return
         if not self._session.is_online:
 
@@ -88,7 +94,8 @@ class _ControllerRuns:
             self._runs.remember(key, {
                 "run_id": "", "text": text, "mode": mode, "approval": approval,
                 "chips": [c for c in (chips or []) if isinstance(c, dict)],
-                "attachments": [a for a in (attachments or []) if isinstance(a, dict)]})
+                "attachments": [a for a in (attachments or []) if isinstance(a, dict)],
+                "selection": selection})
             self._panel_call("show_error", None, "OFFLINE",
                              tr("Not connected to TerraLab, so nothing was sent. Reconnecting now: "
                                 "your message is kept, and Retry sends it once the connection is back."),
@@ -134,7 +141,10 @@ class _ControllerRuns:
 
         prep_began = time.perf_counter()
         try:
-            context = build_context(chips, text=text, thread_id=self._thread_id)
+
+
+            omit = hold_selection(selection)
+            context = build_context(chips, text=text, thread_id=self._thread_id, omit_selection=omit)
         except Exception as exc:  # noqa: BLE001
             log_warning(f"Context build failed: {exc}")
             context = {"error": str(exc)[:200], "layers": [], "chips": chips}
@@ -167,11 +177,21 @@ class _ControllerRuns:
             undone = []
         if undone:
             context["undone_requests"] = undone
+        try:
+            kept = code_runtime.kept_names(self._thread_id or "")
+        except Exception as exc:  # noqa: BLE001
+            log_warning(f"Kept names not read: {exc}")
+            kept = []
+        if kept:
+            context["kept_names"] = kept
         prep_ms = int((time.perf_counter() - prep_began) * 1000)
         _dump_context(context, run_id)
         record = user_message_record(run_id, text, chips, attachments, mode=mode, approval=approval)
+        shown = shown_selection(selection)
+        if shown:
+            record["selection"] = shown
         self._runs.remember(run_id, dict(record, chips=asked_chips, attachments=sent_attachments,
-                                         thread_id=self._thread_id))
+                                         thread_id=self._thread_id, selection=selection))
         self._runs.begin({"run_id": run_id, "thread_id": self._thread_id, "mode": mode, "approval": approval,
                           "effort": effort, "text": text, "started": time.monotonic(), "cancelled": False,
                           "example": example, "replaces": replaces if self._session.edit_last_available else "",
@@ -199,7 +219,7 @@ class _ControllerRuns:
             self._panel_call("set_steer_available",
                              self._session.steer_available and self._session.unsteer_available)
             began = True
-            self._panel_call("append_user_message", run_id, text, chips, attachments)
+            self._panel_call("append_user_message", run_id, text, chips, attachments, shown)
             self._store.append_message(self._thread_id, record)
             self._store.update_agent_message(self._thread_id, run_id, {"status": "running"})
             self._note_project_before(run_id)
@@ -332,8 +352,9 @@ class _ControllerRuns:
         attachments = asked.get("attachments") or []
         self._on_send(str(asked.get("text") or ""), mode, approval,
                       [dict(c) for c in asked.get("chips") or [] if isinstance(c, dict)],
-                      [dict(a) for a in attachments if isinstance(a, dict)], reuse_layers=True,
-                      replaces=str(replaces or ""))
+                      [dict(a) for a in attachments if isinstance(a, dict)],
+                      selection=asked.get("selection") if isinstance(asked.get("selection"), dict) else None,
+                      reuse_layers=True, replaces=str(replaces or ""))
 
     def _on_undo_retry(self, run_id: str) -> None:
 
@@ -403,6 +424,60 @@ class _ControllerRuns:
         if run_id and rating in ("up", "down"):
             self._session.send_feedback(run_id, rating == "up", code, text)
 
+    def _on_feedback_ask(self, run_id: str, ask: dict) -> None:
+
+
+
+
+
+
+
+
+        reason = ask.get("reason")
+        if reason not in FEEDBACK_ASK_REASONS:
+            return
+        if not self._runs.owns(run_id):
+
+
+            self._session.send_feedback_ask(run_id, "skipped", reason, ask.get("doubt") is True, "gone")
+            return
+
+        def decide() -> None:
+            week = self._settings.feedback_asks_shown(time.time())
+            per_week = ask.get("per_week") if type(ask.get("per_week")) is int else 3
+            per_sitting = ask.get("per_sitting") if type(ask.get("per_sitting")) is int else 1
+            sitting = self.__dict__.get("_feedback_asks_sitting", 0)
+            randoms = sum(1 for _at, shown in week if shown == "random")
+
+
+            cap = f"s={sitting};w={len(week)};r={randoms}"
+            asks = self.__dict__.setdefault("_feedback_asks", {})
+            asks[run_id] = (reason, ask.get("doubt") is True, cap)
+            if reason == "random":
+                capped = randoms >= per_week
+            else:
+                capped = sitting >= per_sitting or len(week) >= per_week
+            if capped:
+                self._on_feedback_ask_state(run_id, "skipped", "cap")
+            else:
+                self._panel_call("ask_feedback", run_id)
+
+
+        QTimer.singleShot(0, decide)
+
+    def _on_feedback_ask_state(self, run_id: str, state: str, skip: str = "") -> None:
+
+
+        asks = self.__dict__.get("_feedback_asks", {})
+        if run_id not in asks:
+            return
+        reason, doubt, cap = asks[run_id] if state == "shown" else asks.pop(run_id)
+        if state == "shown":
+            self._settings.note_feedback_ask_shown(time.time(), reason)
+            self.__dict__["_feedback_asks_sitting"] = self.__dict__.get("_feedback_asks_sitting", 0) + 1
+        self._session.send_feedback_ask(run_id, state, reason, doubt, skip,
+                                        cap if state in ("shown", "skipped") else "")
+
     def _on_steer(self, run_id: str, steer_id: str, text: str) -> None:
 
 
@@ -425,12 +500,12 @@ class _ControllerRuns:
 
             self._session.send_unsteer(run_id, steer_id)
 
-    def _on_queue_send(self, text: str, chips, attachments) -> None:
+    def _on_queue_send(self, text: str, chips, attachments, selection=None) -> None:
 
 
         if not self._session.is_online:
             return
-        self._on_send(text, "", "", chips, attachments, replaces="")
+        self._on_send(text, "", "", chips, attachments, selection, replaces="")
 
     def _on_steer_ack(self, run_id: str, steer_id: str, taken: bool) -> None:
         steer = (self._steers.get(run_id) or {}).pop(steer_id, None)

@@ -1140,7 +1140,7 @@ def _inspect_file(gdal, osr, args: dict, found: dict, page, cancelled) -> dict:
         if "georeferenced_pdf" in pdf:
             placed = pdf["georeferenced_pdf"]
             result.update({"raster": path, **placed})
-            result["suggest"] = ("The PDF is a GeoPDF: add it with add_raster_layer, no control points are needed"
+            result["suggest"] = ("The PDF is a GeoPDF: add_data (kind raster) adds it, no control points are needed"
                                  + ("." if placed.get("crs") else ", then set its CRS."))
             return result
         image = pdf["image"]
@@ -1163,10 +1163,11 @@ def _inspect_file(gdal, osr, args: dict, found: dict, page, cancelled) -> dict:
         if placed is not None and placed["georeferenced"]:
             if placed.get("crs"):
                 result["suggest"] = (f"Already georeferenced ({placed['georeferenced_by']}, {placed['crs']}); "
-                                     "add_raster_layer adds it, no control points needed.")
+                                     "add_data (kind raster) adds it, no control points needed.")
             else:
                 result["suggest"] = (f"It has coordinates ({placed['georeferenced_by']}) but no CRS; "
-                                     "add_raster_layer adds it, and the CRS its extent is in still needs setting.")
+                                     "add_data (kind raster) adds it, and the CRS its extent is in "
+                                     "still needs setting.")
             return result
         result["georeferenced"] = False
         photo = _photo_facts(image, width, height)

@@ -16,14 +16,14 @@ from ..core.crs_ref import crs_ref
 from ..core.feature_requests import feature_request
 from ..core.follow import hold_view
 from ..core.layer_order import is_remote_vector as _is_remote_vector
-from ..core.layer_order import is_web_service
+from ..core.layer_order import is_web_service, source_gone
 from ..core.layer_release import remove_layers
 from ..core.policy import get_security_context
 from ..core.serialization import dump_json, size_budget
 from ..core.snapshot import layer_file_path
 from ..core.tool_registry import coded_fact, tool_error
 from ..core.vsi import streamed_in_place
-from ._layers import layer_not_found, resolve_layer
+from ._layers import SOURCE_GONE_NOTE, layer_not_found, resolve_layer, source_gone_error
 from .layer_lookup import (
     _duplicate_layer_names,
     _geometry_type_name,
@@ -62,7 +62,9 @@ def _safe_feature_count(layer):
     return None
 
 
-def _extent_omission():
+def _extent_omission(layer=None):
+    if layer is not None and source_gone(layer):
+        return {"extent_available": False, "source_gone": True, "extent_note": SOURCE_GONE_NOTE}
     return {"extent_available": False,
             "extent_note": "Remote extent was not queried: QGIS may fetch provider data on the main thread."}
 
@@ -127,8 +129,8 @@ def _get_project_context(args: dict) -> dict:
         node = root.findLayer(lid)
         info["visible"] = node.isVisible() if node is not None else True
         if verbose:
-            if _is_remote_vector(layer):
-                info.update(_extent_omission())
+            if _is_remote_vector(layer) or source_gone(layer):
+                info.update(_extent_omission(layer))
             else:
                 ext = layer.extent()
                 if ext and not ext.isEmpty():
@@ -272,7 +274,7 @@ def _layer_extent(layer) -> list | None:
 
 
 
-    if _is_remote_vector(layer):
+    if _is_remote_vector(layer) or source_gone(layer):
         return None
     try:
         box = layer.extent()
@@ -551,9 +553,9 @@ def _get_layer_info(args: dict) -> dict:
         "type": layer_kind(layer),
         "crs": crs_ref(layer.crs()),
     }
-    skip_remote_extent = not full_detail and remote
+    skip_remote_extent = (not full_detail and remote) or source_gone(layer)
     if skip_remote_extent:
-        info.update(_extent_omission())
+        info.update(_extent_omission(layer))
     else:
         info["extent"] = extent_block(layer.extent(), layer.crs())
         if not remote:
@@ -690,6 +692,8 @@ def _zoom_to_layer(args: dict) -> dict:
 
     import math
 
+    if source_gone(layer):
+        return source_gone_error(layer)
     canvas = iface.mapCanvas()
     extent = layer.extent()
 

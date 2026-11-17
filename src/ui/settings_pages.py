@@ -10,7 +10,7 @@
 from __future__ import annotations
 
 from qgis.PyQt.QtCore import QRectF, Qt, pyqtSignal
-from qgis.PyQt.QtGui import QColor, QFont, QFontMetrics, QPainter, QPalette
+from qgis.PyQt.QtGui import QColor, QFont, QFontMetrics, QPainter
 from qgis.PyQt.QtWidgets import (
     QAbstractButton,
     QButtonGroup,
@@ -239,7 +239,8 @@ class Switch(QAbstractButton):
         knob_d = rect.height() - 6
         x = rect.right() - 3 - knob_d if on else rect.left() + 3
         if on:
-            knob = QColor(self.palette().color(QPalette.ColorRole.Base))
+
+            knob = QColor("#ffffff")
         else:
             knob = QColor(ink)
             knob.setAlphaF(0.9)

@@ -337,7 +337,7 @@ def _open(plan: dict, state: dict) -> dict | None:
     if plan.get("selected_ids") is not None:
         request.setFilterFids(plan["selected_ids"])
     request.setLimit(plan["max_features"] + 1)
-    feedback = QgsFeedback()
+    feedback = background.prime(QgsFeedback())
     if hasattr(request, "setFeedback"):
         request.setFeedback(feedback)
     state.update(source=QgsVectorLayerFeatureSource(layer), request=request, feedback=feedback)

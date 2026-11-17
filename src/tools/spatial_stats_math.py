@@ -21,6 +21,7 @@
 
 from __future__ import annotations
 
+import itertools
 import math
 import random
 from bisect import bisect_left, bisect_right
@@ -113,14 +114,13 @@ def k_nearest(points: list, k: int, cancelled=None) -> tuple:
         found: list = []
         ring = 0
         while True:
-            for gx in range(cx - ring, cx + ring + 1):
-                for gy in range(cy - ring, cy + ring + 1):
-                    if max(abs(gx - cx), abs(gy - cy)) != ring:
-                        continue
-                    for other in grid.get((gx, gy), ()):
-                        if other != index:
-                            ox, oy = points[other]
-                            found.append((math.hypot(ox - x, oy - y), other))
+            for gx, gy in itertools.product(range(cx - ring, cx + ring + 1), range(cy - ring, cy + ring + 1)):
+                if max(abs(gx - cx), abs(gy - cy)) != ring:
+                    continue
+                for other in grid.get((gx, gy), ()):
+                    if other != index:
+                        ox, oy = points[other]
+                        found.append((math.hypot(ox - x, oy - y), other))
             if len(found) >= k:
                 found.sort()
                 if found[k - 1][0] <= ring * cell:
@@ -156,13 +156,12 @@ def distance_band(points: list, distance: float, max_links: int, cancelled=None)
         _check(index, cancelled)
         cx, cy = math.floor(x / distance), math.floor(y / distance)
         near = []
-        for gx in (cx - 1, cx, cx + 1):
-            for gy in (cy - 1, cy, cy + 1):
-                for other in grid.get((gx, gy), ()):
-                    if other != index:
-                        ox, oy = points[other]
-                        if math.hypot(ox - x, oy - y) <= limit:
-                            near.append(other)
+        for gx, gy in itertools.product((cx - 1, cx, cx + 1), (cy - 1, cy, cy + 1)):
+            for other in grid.get((gx, gy), ()):
+                if other != index:
+                    ox, oy = points[other]
+                    if math.hypot(ox - x, oy - y) <= limit:
+                        near.append(other)
         near.sort()
         links += len(near)
         if links > max_links:

@@ -19,17 +19,19 @@ from __future__ import annotations
 import itertools
 import uuid
 
-from qgis.PyQt.QtCore import QEasingCurve, QPropertyAnimation, Qt, QTimer, pyqtSignal
+from qgis.PyQt.QtCore import QEasingCurve, QLocale, QPropertyAnimation, Qt, QTimer, pyqtSignal
 from qgis.PyQt.QtGui import QFontMetrics
 from qgis.PyQt.QtWidgets import QFrame, QGraphicsOpacityEffect, QHBoxLayout, QLabel, QVBoxLayout
 
 from ..core.layer_mime import live_layer_chips
 from .bubbles import UserBubble
+from .cards_click import LabelButton
 from .cards_question import QuestionCard
 from .cards_run import InstallWaitCard
 from .font_scale import scale_qss_font_px
 from .icons import pixmap_for
 from .layer_icons import layer_name
+from .selection_line import selection_key, selection_words
 from .style import (
     CANVAS,
     FONT_BODY,
@@ -72,10 +74,12 @@ _TRAY_QSS = (
 )
 
 
-def new_item(text: str, chips=(), attachments=()) -> dict:
+def new_item(text: str, chips=(), attachments=(), selection=None, marks=()) -> dict:
+
+
 
     return {"id": next(_ids), "text": str(text or ""), "chips": list(chips or []),
-            "attachments": list(attachments or [])}
+            "attachments": list(attachments or []), "selection": selection, "marks": list(marks or [])}
 
 
 
@@ -109,10 +113,8 @@ def _extras_tip(item: dict) -> str:
     return "\n".join(n for n in names if n)
 
 
-class _RowText(QLabel):
+class _RowTextLabel(QLabel):
 
-
-    clicked = pyqtSignal()
 
     def __init__(self, text: str, parent=None):
         super().__init__(parent)
@@ -140,13 +142,18 @@ class _RowText(QLabel):
         if shown != self.text():
             self.setText(shown)
 
-    def mousePressEvent(self, event):  # noqa: N802
 
-        event.accept()
+class _RowText(LabelButton):
 
-    def mouseReleaseEvent(self, event):  # noqa: N802
-        if event.button() == Qt.MouseButton.LeftButton and self.rect().contains(event.pos()):
-            self.clicked.emit()
+
+    def __init__(self, text: str, parent=None):
+        label = _RowTextLabel(text)
+        super().__init__(label, parent)
+        self.setAccessibleName(label.full_text())
+        self.setAccessibleDescription(self.tr("Edit this queued message"))
+
+    def full_text(self) -> str:
+        return self.label.full_text()
 
 
 class _QueueRow(QFrame):
@@ -179,6 +186,20 @@ class _QueueRow(QFrame):
         self.text = _RowText(item["text"], self)
         self.text.clicked.connect(lambda: self.edit.emit(self.item_id))
         line.addWidget(self.text, 1)
+        selection = item.get("selection")
+        if selection_key(selection) is not None:
+
+            mark = QLabel(self)
+            mark.setPixmap(pixmap_for(mark, "lu.square-dashed-mouse-pointer", 12, qcolor(INK_3)))
+            mark.setFixedSize(14, 18)
+            mark.setStyleSheet("background: transparent; border: none;")
+            sel_count = QLabel(QLocale().toString(int(selection.get("count") or 0)), self)
+            sel_count.setObjectName("queueExtra")
+            words = selection_words(str(selection.get("layer_name") or ""), int(selection.get("count") or 0))
+            for widget in (mark, sel_count):
+                widget.setToolTip(words)
+                line.addWidget(widget, 0, Qt.AlignmentFlag.AlignVCenter)
+            mark.setAccessibleName(words)
         count = extras_of(item)
         self.extra = QLabel(f"+{count}", self)
         self.extra.setObjectName("queueExtra")
@@ -314,15 +335,18 @@ class _QueueRow(QFrame):
         self._alpha.stop()
 
 
-class _MoreLine(QLabel):
-    clicked = pyqtSignal()
+class _MoreLine(LabelButton):
 
-    def mousePressEvent(self, event):  # noqa: N802
-        event.accept()
 
-    def mouseReleaseEvent(self, event):  # noqa: N802
-        if event.button() == Qt.MouseButton.LeftButton:
-            self.clicked.emit()
+    def __init__(self, parent=None):
+        super().__init__(QLabel(), parent)
+
+    def setText(self, text: str) -> None:  # noqa: N802
+        self.label.setText(text)
+        self.setAccessibleName(text)
+
+    def text(self) -> str:
+        return self.label.text()
 
 
 class QueueStrip(QFrame):
@@ -367,9 +391,8 @@ class QueueStrip(QFrame):
         self._list.setSpacing(2)
         col.addLayout(self._list)
         self._more = _MoreLine(self)
-        self._more.setObjectName("queueMore")
-        self._more.setCursor(Qt.CursorShape.PointingHandCursor)
-        self._more.setContentsMargins(30, 2, 0, 2)
+        self._more.label.setObjectName("queueMore")
+        self._more.label.setContentsMargins(30, 2, 0, 2)
         self._more.clicked.connect(self._expand)
         self._more.hide()
         col.addWidget(self._more)
@@ -473,6 +496,8 @@ class _ChatPanelQueue:
         self._queues: dict = {}
         self._queue_key = None
         self._steer_ok = False
+
+        self._run_selection = (None, None)
         strip = self.queue_strip
         strip.send_now.connect(self._queue_send_now)
         strip.remove.connect(self._queue_remove)
@@ -557,8 +582,17 @@ class _ChatPanelQueue:
     def _joins_run(self, item: dict) -> bool:
 
 
+
         return (self._current_run is not None and self._steer_ok and not extras_of(item)
-                and item.get("held") != self._current_run)
+                and item.get("held") != self._current_run and self._same_selection(item))
+
+    def _same_selection(self, item: dict) -> bool:
+        key = selection_key(item.get("selection"))
+        if key is None:
+            return True
+        run_id, run_key = self._run_selection
+
+        return run_id != self._current_run or run_key == key
 
     def _queue_header(self, entry: dict) -> str:
         items = entry["items"]
@@ -596,6 +630,9 @@ class _ChatPanelQueue:
         self.queue_strip.set_items(items, header=self._queue_header(entry), arrow=self._arrow)
         self.composer.set_queue_count(len(items), QUEUE_MAX)
 
+        self.composer.set_run_placeholder(self.tr("Reply") if self._steer_ok
+                                          else self.tr("Queue a message for after this run"))
+
     def _find(self, item_id: int):
         items = self._queue()["items"]
         return next((i for i in items if int(i["id"]) == int(item_id)), None)
@@ -609,8 +646,10 @@ class _ChatPanelQueue:
         entry = self._queue()
         if not text or len(entry["items"]) >= QUEUE_MAX:
             return
-        entry["items"].append(new_item(text, self.composer.peek_chips(), self.composer.attachments()))
+        entry["items"].append(new_item(text, self.composer.peek_chips(), self.composer.attachments(),
+                                       self.composer.selection_snapshot(), self.composer.sent_marks()))
         self.composer.take_chips()
+        self.composer.selection_sent()
         self.composer.clear()
         self.composer.clear_attachments()
         self._sync_queue()
@@ -631,10 +670,11 @@ class _ChatPanelQueue:
         sent = reply_attachments(live_layer_chips(c.peek_chips(), layer_name), files)
         names = [str(a.get("layer_name") or a.get("name") or "") for a in sent]
         shown = " · ".join([text] + [n for n in names if n])
+        marks = c.sent_marks()
         c.take_chips()
         c.clear()
         c.clear_attachments()
-        c.remember_sent(text, files)
+        c.remember_sent(text, files, marks)
         card.collapse(shown, tool_call_id)
         self._card_answered(tool_call_id)
         self.question_reply.emit(tool_call_id, text, sent)
@@ -674,16 +714,18 @@ class _ChatPanelQueue:
 
     def _queue_edit(self, item_id: int) -> None:
 
+
         item = self._find(item_id)
         if item is None:
             return
         self._withdraw(item)
         self._queue()["items"].remove(item)
         c = self.composer
-        typed = c.text().strip()
-        c.set_text(typed + "\n\n" + item["text"] if typed else item["text"])
+        marks = item.get("marks") or []
+        c.add_prompt(item["text"], marks=marks)
+        written = {(m.get("kind"), m.get("value")) for m in marks}
         for chip in item["chips"]:
-            if isinstance(chip, dict):
+            if isinstance(chip, dict) and (chip.get("kind"), chip.get("value")) not in written:
                 c.add_chip(dict(chip))
         for attachment in item["attachments"]:
             if isinstance(attachment, dict):
@@ -710,10 +752,11 @@ class _ChatPanelQueue:
             return False
         before = self._last_run
         chips = live_layer_chips(item["chips"], layer_name)
-        self.queue_send_requested.emit(item["text"], chips, list(item["attachments"]))
+        self.queue_send_requested.emit(item["text"], chips, list(item["attachments"]), item.get("selection"))
         if self._last_run == before:
             return False
-        self.composer.remember_sent(item["text"], item["attachments"])
+        self._run_selection = (self._last_run, selection_key(item.get("selection")))
+        self.composer.remember_sent(item["text"], item["attachments"], item.get("marks"))
         return True
 
     def _queue_after_run(self, status: str) -> None:

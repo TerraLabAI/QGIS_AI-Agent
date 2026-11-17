@@ -820,6 +820,9 @@ class ToolRegistry:
 
 
             return f"Value for {path} in tool '{tool_name}' is not a finite number"
+        if isinstance(value, int) and not isinstance(value, bool) and not -2 ** 63 <= value < 2 ** 63:
+
+            return f"Value for {path} in tool '{tool_name}' is outside the 64-bit integer range"
         if isinstance(value, (int, float)) and not isinstance(value, bool):
             low = schema.get("minimum")
             if isinstance(low, (int, float)) and value < low:

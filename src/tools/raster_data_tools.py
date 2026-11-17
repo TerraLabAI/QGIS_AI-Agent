@@ -14,6 +14,7 @@ import re
 
 from qgis.core import (
     QgsCoordinateTransform,
+    QgsCsException,
     QgsFeature,
     QgsField,
     QgsGeometry,
@@ -171,10 +172,13 @@ def _sample_rasters_at_points(args: dict) -> dict:
                 sample_point = point
                 transform = transforms.get(raster.id())
                 if transform is not None:
-                    sample_point = transform.transform(point)
-                result = raster.dataProvider().identify(
+                    try:
+                        sample_point = transform.transform(point)
+                    except QgsCsException:
+                        sample_point = None
+                result = None if sample_point is None else raster.dataProvider().identify(
                     sample_point, enum_member(QgsRaster, "IdentifyFormat", "IdentifyFormatValue"))
-                identified = result.results() if result.isValid() else {}
+                identified = result.results() if result is not None and result.isValid() else {}
                 value = identified.get(1)
                 try:
                     value = float(value) if value is not None else None

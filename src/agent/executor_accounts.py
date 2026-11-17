@@ -13,6 +13,7 @@
 
 
 
+
 from __future__ import annotations
 
 from ..core import accounts
@@ -37,12 +38,32 @@ class _ExecutorAccounts:
         failure = result.pop("failure", None)
         tool_call_id, run_id = str(call.get("tool_call_id")), str(call.get("run_id") or "")
         cards = int(call.get("account_cards") or 0)
-        if not isinstance(need, dict) or cards >= _MAX_CARDS or not accounts.enabled():
+        if not isinstance(need, dict) or cards >= _MAX_CARDS \
+                or not accounts.enabled(str(need.get("provider") or need.get("key") or "")):
             result.clear()
             result.update(failure if isinstance(failure, dict) else
                           {"_error": "The service refused the request.", "code": "PERMISSION_DENIED"})
             accounts.release_call(tool_call_id)
             return False
+        key, thread_id = str(need.get("key") or ""), self._threads.get(run_id, "")
+        auto = call.setdefault("account_auto", [])
+        if need.get("kind") == "consent" and key not in auto and accounts.always(key):
+            if not accounts.vault_ready():
+
+                self._session.send_permission_response(tool_call_id, run_id, Decision.PENDING)
+            unlocked = accounts.vault_ready(prompt=True)
+        else:
+            unlocked = False
+        if unlocked:
+
+
+            auto.append(key)
+            accounts.grant(key, tool_call_id, "thread", thread_id)
+            call["account_used"] = {"host": need.get("host"), "how": "always", "key": key}
+            self._executing.discard(tool_call_id)
+            log(f"ACCOUNT {tool_call_id}: always allowed {need.get('host')}")
+            self._execute(call)
+            return True
         call["account_cards"] = cards + 1
         call["account_wait"] = {"need": need, "failure": failure or {}, "started": started}
         call["sentence"] = tr("Access to {host}").format(host=need.get("host") or need.get("key") or "")
@@ -66,10 +87,12 @@ class _ExecutorAccounts:
         answer = (answer or "").strip()
         choice = answer[len(accounts.ANSWER):] if answer.startswith(accounts.ANSWER) else ""
         thread_id = self._threads.get(str(call.get("run_id") or ""), "")
-        if choice in ("once", "thread", "signed_in") and key and accounts.vault_ready(prompt=True):
+        if choice in ("once", "thread", "always", "signed_in") and key and accounts.vault_ready(prompt=True):
             accounts.grant(key, tool_call_id, "once" if choice == "once" else "thread", thread_id)
+            if choice == "always":
+                accounts.set_always(key, True)
             shown = {"once": tr("Allowed once"), "thread": tr("Allowed for this conversation"),
-                     "signed_in": tr("Signed in")}[choice]
+                     "always": tr("Always allowed"), "signed_in": tr("Signed in")}[choice]
             self.question_resolved.emit(tool_call_id, shown)
             call["account_used"] = {"host": need.get("host"), "how": choice, "key": key}
             self._execute(call)

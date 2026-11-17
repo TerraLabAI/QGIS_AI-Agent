@@ -238,10 +238,16 @@ def _configure_attribute_form(args: dict) -> dict:
             result["widget_config"] = layer.editorWidgetSetup(index).config()
         if "default_expression" in entry:
             expression = str(entry.get("default_expression") or "")
-            layer.setDefaultValueDefinition(
-                index, QgsDefaultValue(expression, bool(entry.get("apply_default_on_update", False)))
-            )
-            result["default_expression"] = layer.defaultValueDefinition(index).expression()
+            from qgis.core import Qgis
+            if 33600 <= Qgis.QGIS_VERSION_INT < 33602 and "now(" in expression.lower().replace(" ", ""):
+
+                result["default_expression_not_set"] = ("QGIS 3.36.0 and 3.36.1 crash on a default using now(); "
+                                                        "fixed in 3.36.2.")
+            else:
+                layer.setDefaultValueDefinition(
+                    index, QgsDefaultValue(expression, bool(entry.get("apply_default_on_update", False)))
+                )
+                result["default_expression"] = layer.defaultValueDefinition(index).expression()
         constraints = entry.get("constraints")
         if constraints is not None:
             strength = _STRENGTHS.get(str(entry.get("constraint_strength") or "hard").lower())

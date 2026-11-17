@@ -299,7 +299,7 @@ def _open_places(plan: dict, state: dict) -> dict | None:
     request = QgsFeatureRequest()
     request.setSubsetOfAttributes([plan["places_key_index"]])
     request.setLimit(plan["max_places"] + 1)
-    feedback = QgsFeedback()
+    feedback = background.prime(QgsFeedback())
     if hasattr(request, "setFeedback"):
         request.setFeedback(feedback)
     state.update(source=QgsVectorLayerFeatureSource(layer), request=request, feedback=feedback)
@@ -377,7 +377,7 @@ def _open_table(plan: dict, state: dict):
     request.setFlags(enum_member(QgsFeatureRequest, "Flag", "NoGeometry"))
     request.setSubsetOfAttributes(sorted(set(indexes)))
     request.setLimit(plan["max_table_rows"] + 1)
-    feedback = QgsFeedback()
+    feedback = background.prime(QgsFeedback())
     if hasattr(request, "setFeedback"):
         request.setFeedback(feedback)
     state.update(source=QgsVectorLayerFeatureSource(layer), request=request, feedback=feedback)

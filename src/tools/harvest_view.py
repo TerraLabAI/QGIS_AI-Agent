@@ -30,6 +30,7 @@ from qgis.PyQt.QtCore import QT_TRANSLATE_NOOP
 from qgis.utils import iface
 
 from ..core import background, canvas_glide, layer_egress, layer_order, limits, security
+from ..core.attribute_tables import tables_closed
 from ..core.follow import hold_view
 from ..core.layer_release import PROCESSING_TASKS, readers_of, remove_layers, sweep_consumed_tasks
 from ..core.logger import log, log_warning
@@ -39,7 +40,7 @@ from ..core.postcondition import read_ahead
 from ..core.qt_compat import enum_member
 from ..core.tool_registry import Tool, ToolRegistry, coded_fact, tool_error
 from ..core.vsi import thread_options
-from ._layers import layer_not_found, resolve_layer, wfs_feature_cap
+from ._layers import file_gone_error, layer_not_found, resolve_layer, wfs_feature_cap
 from .data_common import built_here, worker_options
 from .layer_files import release_layers_at_path
 from .layer_lookup import require_vector
@@ -178,6 +179,8 @@ def _set_layer_filter(args: dict) -> dict:
             "INVALID_ARGS",
             hint="filter_edit_session_open", layer=layer.name(),
         )
+    if layer_order.file_gone(layer):
+        return file_gone_error(layer)
     previous = layer.subsetString() or ""
     lifted = None
     if expression:
@@ -264,6 +267,7 @@ def _read_again(layer, source: str):
 
 
 
+
     from qgis.core import QgsReadWriteContext
     from qgis.PyQt.QtXml import QDomDocument
 
@@ -275,7 +279,7 @@ def _read_again(layer, source: str):
     element = document.createElement("maplayer")
     document.appendChild(element)
     layer_id = layer.id()
-    if not layer.writeLayerXml(element, document, context):
+    if layer_order.blocks_write(layer) or not layer.writeLayerXml(element, document, context):
         return None
     written = element.firstChildElement("datasource")
     if written.isNull():
@@ -411,7 +415,8 @@ def _tie_again(project, layer, ties: dict) -> None:
         other, info = entry
         if not any(kept.joinLayerId() == layer.id() for kept in other.vectorJoins()):
             info.setJoinLayer(layer)
-            other.addJoin(info)
+            with tables_closed(other):
+                other.addJoin(info)
 
     def snapping(settings):
         config = project.snappingConfig()

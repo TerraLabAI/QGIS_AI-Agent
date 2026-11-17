@@ -11,7 +11,6 @@ from __future__ import annotations
 
 import os
 
-from qgis.PyQt import sip
 from qgis.PyQt.QtCore import QDateTime, QLocale, Qt, QUrl, pyqtSignal
 from qgis.PyQt.QtGui import QDesktopServices
 from qgis.PyQt.QtWidgets import (
@@ -45,6 +44,8 @@ from ..core.profile import (
     remove_memory_note,
     save_memory_notes,
 )
+from ..core.qt_compat import qt_deleted
+from .cards_click import press_combo_rows
 from .font_scale import apply_font_scale_to_tree, scale_px_length
 from .mascot_stage import refresh_mascots
 from .memory_mascot import ADD_HOVER, ADDED, CLEARED, DELETED, EDITED, EMPTY, OFF, ON, REST, Companion, HoverWatch
@@ -110,6 +111,7 @@ class PersonalisationPageMixin:
         for code, native in REPLY_LANGUAGES:
             self._language_combo.addItem(native, code)
         self._language_combo.setMinimumWidth(scale_px_length(180))
+        self._language_rows = press_combo_rows(self._language_combo)
         self._language_combo.currentIndexChanged.connect(self._on_language_changed)
         group.add_row(SettingRow(self.tr("Response language"),
                                  "",
@@ -517,7 +519,7 @@ class PersonalisationPageMixin:
     def _memory_companions(self) -> list:
 
         found = [getattr(self, "_memory_mark", None), getattr(self, "_memory_empty", None)]
-        return [c for c in found if c is not None and not sip.isdeleted(c) and not sip.isdeleted(c.mascot)]
+        return [c for c in found if not qt_deleted(c) and not qt_deleted(c.mascot)]
 
     def _memory_moment(self, event: str = "", look=None) -> None:
 

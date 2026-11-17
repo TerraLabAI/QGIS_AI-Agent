@@ -33,18 +33,19 @@ from qgis.PyQt import sip
 from qgis.PyQt.QtCore import QT_TRANSLATE_NOOP, QThread, QTimer
 
 from ..core import background, limits, net
+from ..core.attribute_tables import tables_closed
 from ..core.background import run_on_main_thread
 from ..core.context_layers import crs_units
 from ..core.crs_ref import crs_ref
 from ..core.feature_requests import feature_request
 from ..core.invariants import metres_per_map_unit
-from ..core.layer_order import feature_count_of, is_remote_vector
+from ..core.layer_order import feature_count_of, is_remote_vector, source_gone
 from ..core.qt_compat import enum_member
 from ..core.serialization import size_budget
 from ..core.tool_registry import Tool, ToolRegistry, coded_fact, tool_error
 from . import guards, kml_description, vector_write
 from ._compat import FIELD_TYPES, QVAR_DOUBLE, WKB_NO_GEOMETRY, is_raster, is_vector, py_value
-from ._layers import layer_not_found, resolve_layer
+from ._layers import error_summary, layer_not_found, resolve_layer, source_gone_error
 from .danger import sql_mutates
 from .layer_lookup import _field_not_found_error, require_vector
 from .query_tools import _measurement
@@ -263,7 +264,7 @@ def _sql_error_detail(vlayer) -> str:
 
 
     try:
-        detail = vlayer.error().summary() or vlayer.error().message()
+        detail = error_summary(vlayer) or vlayer.error().message()
     except Exception:  # nosec B110
         detail = ""
     if detail:
@@ -271,7 +272,7 @@ def _sql_error_detail(vlayer) -> str:
     try:
         provider = vlayer.dataProvider()
         if provider is not None:
-            return provider.error().summary() or provider.error().message()
+            return error_summary(provider) or provider.error().message()
     except Exception:  # nosec B110
         pass
     return ""
@@ -424,7 +425,7 @@ def _execute_sql(args: dict) -> dict:
             measured = f"{read:,} features plus {named}" if read else named
         return limits.refusal(
             "The tables this query reads", measured, f"{ceiling:,} for a query run on the main thread",
-            "A spatial join as Processing with async true (native:extractbylocation, "
+            "A spatial join through run_processing (native:extractbylocation, "
             "native:joinattributesbylocation) uses a spatial index; set_layer_filter or "
             "native:extractbyextent narrows the big layer before the query.",
             code="TOO_MANY_FEATURES")
@@ -545,7 +546,10 @@ def _calc_open(args: dict) -> dict:
     layer, error = require_vector(args["layer_name"])
     if error:
         return error
-    field_name = args["field_name"]
+
+    field_name = str(args.get("field_name") or "").strip()
+    if not field_name:
+        return tool_error("Field names cannot be empty.", "INVALID_ARGS", hint="field_name_empty")
     expression = args["expression"]
     expr = QgsExpression(expression)
     if expr.hasParserError():
@@ -628,14 +632,16 @@ def _calc_open(args: dict) -> dict:
         if type_plan.get("type_name"):
             new_field = QgsField(field_name, type_plan["type"], type_plan["type_name"],
                                  type_plan["length"], type_plan["precision"])
-        if not layer.addAttribute(new_field):
+        with tables_closed(layer):
+            added = layer.addAttribute(new_field)
+            layer.updateFields()
+        if not added:
             vector_write.force_out_of_edit(layer)
             return tool_error(
                 f"The provider refused to add field {field_name!r}.",
                 "INVALID_ARGS",
                 hint="field_refused", field_name=field_name,
             )
-        layer.updateFields()
         idx = layer.fields().indexOf(field_name)
         created = True
 
@@ -922,7 +928,9 @@ def _value_frequencies(layer, index: int, scan_cap: int) -> tuple[dict, int]:
     request = QgsFeatureRequest().setSubsetOfAttributes([index])
     flag = enum_member(QgsFeatureRequest, "Flag", "NoGeometry", None)
     if flag is not None:
-        request.setFlags(flag)
+
+
+        request.setFlags(request.flags() | flag)
     counts: dict = {}
     scanned = 0
     features = layer.getFeatures(request)
@@ -1278,6 +1286,10 @@ def _identify_off_thread(args: dict) -> dict:
 
     cancelled = net.current_cancel_check()
     out, asks = run_on_main_thread(_identify_here, args, True, timeout=60)
+
+
+
+    held = background.hand_over(asks)
     try:
         for ask in asks:
             ask.cancelled = cancelled
@@ -1285,12 +1297,15 @@ def _identify_off_thread(args: dict) -> dict:
     finally:
         for ask in asks:
             ask.wait()
-    if any(ask.row is None for ask in asks):
+        rows = [ask.row for ask in asks]
+        asks = ask = None
+        held.release()
+    if any(row is None for row in rows):
         return tool_error("Stopped while a web service was asked what lies at the point.", "CANCELLED")
-    for ask in asks:
-        if ask.row.get("error") or ask.row.get("features") or ask.row.get("text"):
-            out["results"].append(ask.row)
-            out["count"] += ask.row.get("count", 0)
+    for row in rows:
+        if row.get("error") or row.get("features") or row.get("text"):
+            out["results"].append(row)
+            out["count"] += row.get("count", 0)
     return out
 
 
@@ -1495,10 +1510,8 @@ def _get_layer_extent(args: dict) -> dict:
     layer = resolve_layer(args["layer_name"])
     if layer is None:
         return layer_not_found(args["layer_name"])
-    if is_vector(layer) and (layer.dataProvider() is None or not layer.dataProvider().isValid()):
-
-        return tool_error(f"{layer.name()} cannot be read any more: its source no longer answers.",
-                          "EXECUTION_FAILED", hint="layer_source_gone")
+    if source_gone(layer):
+        return source_gone_error(layer)
     box, crs = layer.extent(), layer.crs()
     corners = {"xmin": box.xMinimum(), "ymin": box.yMinimum(), "xmax": box.xMaximum(), "ymax": box.yMaximum()}
     out = {"layer_id": layer.id(), "name": layer.name()}

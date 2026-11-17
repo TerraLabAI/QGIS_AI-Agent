@@ -425,6 +425,10 @@ def write_zone(geometry: QgsGeometry, crs: QgsCoordinateReferenceSystem,
         layer.setCustomProperty(ZONE_PROPERTY + "/approximate", "1")
     else:
         layer.removeCustomProperty(ZONE_PROPERTY + "/approximate")
+
+    from .layer_order import keep_place
+
+    keep_place(layer)
     if fresh:
         proj.addMapLayer(layer)
     try:
@@ -520,6 +524,10 @@ def outline_of_layer(layer: Any, selected_only: bool = False
     else:
         count = layer.featureCount()
         if count is not None and count > MAX_UNION_FEATURES:
+            provider = layer.dataProvider()
+            if provider is None or not provider.isValid():
+
+                return None
             extent = layer.extent()
             if extent is None or extent.isEmpty():
                 return None

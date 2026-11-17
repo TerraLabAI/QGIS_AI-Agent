@@ -36,6 +36,7 @@ from qgis.core import (
 from qgis.PyQt.QtCore import QT_TRANSLATE_NOOP
 
 from ..core import layer_order, output_paths, policy, security
+from ..core.attribute_tables import tables_closed
 from ..core.background import main_thread_invoker, run_on_main_thread, start_kept_thread
 from ..core.context import THREAD_PROPERTY
 from ..core.host_platform import remove_tree
@@ -212,7 +213,8 @@ def _repoint(layer, uri: str, provider: str) -> None:
     options.transformContext = QgsProject.instance().transformContext()
 
     metadata = layer.metadata()
-    layer.setDataSource(uri, layer.name(), provider, options)
+    with tables_closed(layer):
+        layer.setDataSource(uri, layer.name(), provider, options)
     layer.setMetadata(metadata)
     layer.triggerRepaint()
 
@@ -379,7 +381,10 @@ def _make_layers_permanent(args: dict) -> dict:
     if skipped:
         out["skipped"] = skipped
     if moved and args.get("save", True) is not False:
-        if project.fileName():
+        refusal = layer_order.write_refusal(project)
+        if refusal:
+            out["project_note"] = f"The layers read the new files; the project is not written: {refusal}."
+        elif project.fileName():
             temp_folder_ready("agent")
             if project.write():
                 out["project_saved"] = project.fileName()
@@ -679,7 +684,10 @@ def _repoint_now(done: list, gpkg: str, busy, save: bool, before_save=None) -> N
     if not moved:
         return
     saved = False
-    if save and project.fileName():
+    refusal = layer_order.write_refusal(project) if save and project.fileName() else ""
+    if refusal:
+        log_warning(f"Project not written after its layers' save: {refusal}.")
+    elif save and project.fileName():
         temp_folder_ready("agent")
 
         written = None

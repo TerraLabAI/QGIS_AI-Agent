@@ -40,6 +40,7 @@ from qgis.PyQt.QtWidgets import (
 
 from ..core.qgis_plugins import plugin_logo
 from ..core.siblings import is_sibling_installed, sibling_info
+from .cards_click import PressSurface
 from .cross_plugin_discovery import open_sibling
 from .font_scale import scale_px_length, scale_qss_font_px
 from .icons import pixmap_for
@@ -56,7 +57,7 @@ from .settings_pages import (
     Page,
     SettingGroup,
 )
-from .shared import event_pos, get_learn_items
+from .shared import get_learn_items, released_on
 from .style import FONT_BASE, FONT_HINT, GREEN, RADIUS_CARD
 from .styles import PANEL_TEXT
 from .thumbnail_cache import (
@@ -85,9 +86,9 @@ _KIND_GLYPHS = {"video": "play", "article": "book"}
 
 _CARD_QSS = (
 
-    scale_qss_font_px(f"QFrame#learnCard {{ background: transparent; border: none;"
+    scale_qss_font_px(f"#learnCard {{ background: transparent; border: none;"
     f" border-radius: {RADIUS_CARD}px; }}"
-    f"QFrame#learnCard:hover {{ background: {TINT_HOVER}; }}"
+    f"#learnCard:hover {{ background: {TINT_HOVER}; }}"
     f"QLabel#learnTitle {{ font-size: {FONT_BASE}px; font-weight: 600; color: {PANEL_TEXT};"
     " background: transparent; }"
     f"QLabel#learnNote {{ font-size: {FONT_HINT}px; color: {MUTED}; background: transparent; }}")
@@ -257,14 +258,14 @@ class Thumbnail(QLabel):
         painter.end()
 
 
-class LearnCard(QFrame):
+class LearnCard(PressSurface):
 
-
-    clicked = pyqtSignal()
 
     def __init__(self, item: dict, parent=None):
         super().__init__(parent)
         self.setObjectName("learnCard")
+
+        self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
         self.setStyleSheet(_CARD_QSS)
         self.setCursor(Qt.CursorShape.PointingHandCursor)
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
@@ -283,6 +284,7 @@ class LearnCard(QFrame):
 
         title = QLabel(str(item.get("title") or ""), self)
         title.setObjectName("learnTitle")
+        self.setAccessibleName(title.text())
         title.setWordWrap(True)
         col.addWidget(title)
         col.addSpacing(4)
@@ -290,6 +292,7 @@ class LearnCard(QFrame):
         line = str(item.get("note") or "")
         note = QLabel(f"{kind_word} · {line}" if line else kind_word, self)
         note.setObjectName("learnNote")
+        self.setAccessibleDescription(note.text())
         note.setWordWrap(True)
         col.addWidget(note)
 
@@ -311,8 +314,9 @@ class LearnCard(QFrame):
         return self._url
 
     def mouseReleaseEvent(self, event):  # noqa: N802
-        if self.rect().contains(event_pos(event)):
-            self.clicked.emit()
+        if released_on(self, event):
+            self.click()
+            return
         super().mouseReleaseEvent(event)
 
 
@@ -327,6 +331,7 @@ class SiblingRow(QFrame):
     def __init__(self, product_id: str, title: str, note: str, parent=None):
         super().__init__(parent)
         self.product_id = str(product_id)
+        self._title = title
         sibling = sibling_info(self.product_id) or {}
         self.setObjectName("settingsRow")
         self.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Maximum)
@@ -371,6 +376,9 @@ class SiblingRow(QFrame):
 
         installed = is_sibling_installed(self.product_id)
         self._action.setText(self.tr("Open") if installed else self.tr("Install"))
+
+        self._action.setAccessibleName((self.tr("Open {plugin}") if installed
+                                        else self.tr("Install {plugin}")).format(plugin=self._title))
         self._action.setStyleSheet(GHOST_BTN_QSS if installed else PRIMARY_BTN_QSS)
         self._action.setToolTip(
             self.tr("Show the plugin's panel.") if installed
@@ -447,7 +455,7 @@ class LearnPage(Page):
         for index, item in enumerate(items[:2]):
             card = LearnCard(item, row_host)
             kind, url = card.kind, card.url()
-            card.clicked.connect(lambda k=kind, u=url: self.opened.emit(k, u))
+            card.clicked.connect(lambda _c=False, k=kind, u=url: self.opened.emit(k, u))
             card.setMinimumWidth(scale_px_length(_CARD_W // 2))
 
             row.addWidget(card, 3 if index == 0 else 2)

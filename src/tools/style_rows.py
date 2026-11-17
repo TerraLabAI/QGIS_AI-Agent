@@ -152,11 +152,11 @@ class Read:
         if self._names is not None:
             request.setSubsetOfAttributes(sorted(self._names), self.fields)
         if not self._geometry:
-            request.setFlags(enum_member(QgsFeatureRequest, "Flag", "NoGeometry"))
+            request.setFlags(request.flags() | enum_member(QgsFeatureRequest, "Flag", "NoGeometry"))
         rows = [job.rows for job in self.jobs.values()]
         if rows and all(count is not None for count in rows):
             request.setLimit(max(rows))
-        feedback = QgsFeedback()
+        feedback = background.prime(QgsFeedback())
         if hasattr(request, "setFeedback"):
             request.setFeedback(feedback)
         return {"source": QgsVectorLayerFeatureSource(self._layer), "request": request, "feedback": feedback,

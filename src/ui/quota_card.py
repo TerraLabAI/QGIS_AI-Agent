@@ -467,11 +467,20 @@ class QuotaCard(QWidget):
         self._offer(trial, wall=True)
         self._moment("wall")
 
-    def show_payment_failed(self, amount: str = "") -> None:
+    def show_payment_failed(self, amount: str = "", declined: bool = False) -> None:
+
 
 
 
         self.state = "payment_failed"
+        if declined:
+            self._set(offer_text("declined.title", self.tr("Card declined")),
+                      offer_text("declined.note", self.tr("Your trial didn't start. Nothing was charged.")))
+            self._button_says(offer_text("declined.button", self.tr("Try another card")))
+            self._route_button(self.pay_requested.emit)
+            self._links.hide()
+            self._moment("payment")
+            return
         self._set(offer_text("payment.title.amount", self.tr("Your payment of {amount} failed"), amount=amount)
                   if amount else offer_text("payment.title", self.tr("Your Pro payment failed")),
                   offer_text("payment.note", self.tr("Pro is off until it's paid.")))

@@ -27,20 +27,12 @@
 
 
 
-
-
-
-
-
-
-
-
 from __future__ import annotations
 
 from .numbers import as_int
 from .settings import profile_settings
 
-PRIVACY_NOTICE_VERSION = 1
+PRIVACY_NOTICE_VERSION = 3
 
 
 

@@ -69,10 +69,11 @@ from qgis.PyQt.QtCore import QT_TRANSLATE_NOOP
 from qgis.utils import iface
 
 from ..core import output_paths, security, view3d_windows
+from ..core.layer_order import source_gone
 from ..core.tool_registry import Tool, ToolRegistry, tool_error
 from . import style_3d
 from ._compat import enum_value
-from ._layers import resolve_layer
+from ._layers import resolve_layer, source_gone_error
 from .pointcloud_style import give_3d_renderer
 
 TOOL = "configure_3d_map_view"
@@ -191,6 +192,10 @@ def _configure_3d_map_view(args: dict) -> dict:
         refused = _opengl_refusal()
         if refused:
             return tool_error(refused, "UNSUPPORTED_QGIS_VERSION", hint="map3d_opengl_refused")
+
+        gone = next((layer for layer in QgsProject.instance().mapLayers().values() if source_gone(layer)), None)
+        if gone is not None:
+            return source_gone_error(gone)
         full = iface.mapCanvas().projectExtent()
         if full.isEmpty() or not full.isFinite():
 
@@ -356,11 +361,29 @@ def _annotations_3d() -> bool:
 
 def _opengl_refusal() -> str | None:
 
+
+
+
+
+
+
+    from qgis.core import QgsSettings
     from qgis.PyQt.QtGui import QOpenGLContext, QSurfaceFormat
 
+    from ..core.settings import GROUP
+
+    key = f"{GROUP}/openglProbeDiedOn"
+    settings = QgsSettings()
+    if settings.value(key, "", type=str) == Qgis.version():
+        return ("Checking OpenGL closed this QGIS version on this machine before, so no 3D view is opened: one "
+                "would close it the same way. Another QGIS version is checked again.")
+    settings.setValue(key, Qgis.version())
+    settings.sync()
     context = QOpenGLContext()
     context.setFormat(QSurfaceFormat.defaultFormat())
-    if not context.create():
+    created = context.create()
+    settings.remove(key)
+    if not created:
         return "This machine gives QGIS no OpenGL context, and a 3D view draws through one."
     found = context.format()
     version = (found.majorVersion(), found.minorVersion())
@@ -531,6 +554,8 @@ def _content_height(settings, x, y, distance) -> float | None:
     for layer in settings.layers():
         if not _has_3d_renderer(layer) or not hasattr(layer, "wkbType") or not QgsWkbTypes.hasZ(layer.wkbType()):
             continue
+        if source_gone(layer):
+            continue
         _, symbols = style_3d.kept_renderer(layer)
         if symbols and all(symbol.altitudeClamping() == Qgis.AltitudeClamping.Terrain for symbol in symbols):
 
@@ -555,7 +580,7 @@ def _z_span(layer):
 
     from qgis.core import QgsFeatureRequest
 
-    box = layer.extent3D() if hasattr(layer, "extent3D") else None
+    box = layer.extent3D() if hasattr(layer, "extent3D") and not source_gone(layer) else None
     if box is not None and math.isfinite(box.zMinimum()) and math.isfinite(box.zMaximum()):
         return box.zMinimum(), box.zMaximum()
     if layer.providerType() not in ("memory", "ogr", "spatialite"):
@@ -628,7 +653,7 @@ _GROUND_DISTANCES = 5.0
 def _content_reach(settings, x: float, y: float) -> float:
 
     terrain = _terrain_of(settings)
-    layers = [layer for layer in settings.layers() if _has_3d_renderer(layer)]
+    layers = [layer for layer in settings.layers() if _has_3d_renderer(layer) and not source_gone(layer)]
     dem = terrain.layer() if hasattr(terrain, "layer") else None
     if dem is not None:
         layers.append(dem)
@@ -713,8 +738,9 @@ def _rebuild_when_idle(canvas, ground, terrain, show_terrain=None, scene_xml=Non
     if scene is None or not callable(pending) or pending() == 0:
         apply()
         return []
-    from qgis.PyQt import sip
     from qgis.PyQt.QtCore import QTimer
+
+    from ..core.qt_compat import qt_deleted
 
 
 
@@ -724,7 +750,7 @@ def _rebuild_when_idle(canvas, ground, terrain, show_terrain=None, scene_xml=Non
 
     def settle() -> None:
 
-        if done or sip.isdeleted(scene) or scene.totalPendingJobsCount() != 0:
+        if done or qt_deleted(scene) or scene.totalPendingJobsCount() != 0:
             return
         done.append(True)
         scene.totalPendingJobsCountChanged.disconnect(check)

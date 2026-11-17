@@ -198,6 +198,8 @@ def _private_place(url: str) -> str:
 _RTL_LETTER = re.compile("[\u0590-\u08ff\ufb1d-\ufdff\ufe70-\ufefc]")
 _LTR_LETTER = re.compile("[A-Za-z\u00c0-\u024f\u0370-\u03ff\u0400-\u04ff]")
 
+_UNSPOKEN = re.compile("[\u200b\ufffc]")
+
 
 def _reads_right_to_left(text: str) -> bool:
 
@@ -318,8 +320,15 @@ class MarkdownView(QTextBrowser):
         if self._stream is not None and text.startswith(self._stream.text):
             if text != self._stream.text:
                 self.stream_markdown(text)
-            return
-        self._set_whole(text)
+        else:
+            self._set_whole(text)
+        self._name_from_text()
+
+    def _name_from_text(self) -> None:
+
+
+
+        self.setAccessibleName(_UNSPOKEN.sub("", self.document().toPlainText()).strip())
 
     def _set_whole(self, text: str) -> None:
         cursor_state = self._cursor_state()
@@ -340,6 +349,7 @@ class MarkdownView(QTextBrowser):
         self._stream = None
         self.document().setPlainText(text or "")
         self._sync_height()
+        self._name_from_text()
 
     def chip_open_data_links(self) -> None:
 

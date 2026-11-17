@@ -622,15 +622,18 @@ def _processing_effect(name: str, args: dict) -> str:
 
     outputs = processing_output_params(str(args.get("algorithm_id") or args.get("algorithm") or ""))
     params = args.get("parameters") if isinstance(args.get("parameters"), dict) else {}
-    inputs = [security.expand_path(file_part(str(v))) for k, v in params.items()
-              if (outputs is None or k not in outputs) and isinstance(v, str) and os.path.isfile(
-                  security.expand_path(file_part(v)))]
+    named = {k: security.expand_path(file_part(v)) for k, v in params.items() if isinstance(v, str)}
+    targets = [security.expand_path(target) for target in write_targets(name, args)]
+
+
+    if any(security.refused_share(path) for path in (*named.values(), *targets)):
+        return ""
+    inputs = [path for k, path in named.items() if (outputs is None or k not in outputs) and os.path.isfile(path)]
     if outputs is not None and not outputs:
         return tr("This algorithm has no output of its own: it changes its input in place.")
     parts = []
     replaces_input = False
-    for target in write_targets(name, args):
-        path = security.expand_path(target)
+    for path in targets:
 
         if outputs is not None and any(_same_file(path, source) for source in inputs):
             replaces_input = True
@@ -653,6 +656,8 @@ def _page_effect(raw: str) -> str:
     if not raw.strip():
         return ""
     path = security.expand_path(raw.strip())
+    if security.refused_share(path):
+        return ""
     file_name = os.path.basename(path)
     folder = os.path.basename(os.path.dirname(path)) or os.path.dirname(path)
     if os.path.isfile(path):
@@ -667,6 +672,8 @@ def _gpkg_effect(name: str, args: dict) -> str:
         where = tr("It writes the layer into the project's GeoPackage.")
     else:
         path = security.expand_path(raw)
+        if security.refused_share(path):
+            return ""
         shown = _path_text(path)
         if not os.path.isfile(path):
             where = tr("It creates the GeoPackage {path}.").format(path=shown)

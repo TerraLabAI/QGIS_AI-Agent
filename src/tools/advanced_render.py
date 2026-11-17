@@ -28,10 +28,11 @@ from qgis.utils import iface
 
 from ..core import layer_order
 from ..core.background import on_main_thread, run_on_main_thread
+from ..core.host_platform import remove_tree
 from ..core.qt_compat import enum_member
 from ..core.security import MAX_PATH, long_paths_ok, validate_path
 from ..core.tool_registry import coded_fact, tool_error
-from . import layout_ready, render_look
+from . import layout_child, layout_ready, render_look
 from ._layers import layer_not_found, resolve_layer
 from .harvest_canvas import _labels_in_view, _labels_placed
 from .render_look import _clamp_render_size
@@ -575,7 +576,7 @@ def _extent_in(layer, destination) -> QgsRectangle | None:
 
 
     try:
-        if _is_tiled_raster(layer):
+        if _is_tiled_raster(layer) or layer_order.source_gone(layer):
             return None
         rect = _edited_extent(layer)
         if rect is None:
@@ -700,6 +701,8 @@ def _layer_stamp(layer) -> str:
 
         blend = layer.blendMode()
         parts.append(str(int(getattr(blend, "value", blend))))
+        if layer_order.source_gone(layer):
+            return ""
         parts.append(layer.extent().toString(9))
     except Exception:  # noqa: BLE001
         return ""
@@ -981,6 +984,13 @@ def _layout_page(args: dict) -> dict:
     started = run_on_main_thread(render_look.layout_page_start, args, timeout=30)
     if "_error" in started:
         return started
+    if started.get("job"):
+        drawn = _page_in_separate_qgis(started)
+        if drawn is not None:
+            return drawn
+        started = run_on_main_thread(render_look.layout_page_ready, started, timeout=30)
+        if "_error" in started:
+            return started
     ready = started["ready"]
     try:
         layout_ready.wait(ready, _RENDER_TOTAL_SECONDS)
@@ -994,6 +1004,26 @@ def _layout_page(args: dict) -> dict:
         return run_on_main_thread(render_look.layout_page_draw, started, timeout=60)
     finally:
         layout_ready.discard(ready)
+
+
+def _page_in_separate_qgis(started: dict) -> dict | None:
+
+
+    from qgis.PyQt.QtGui import QImage
+
+    job = started["job"]
+    try:
+        report = layout_child.run(job, stop_requested, _RENDER_TOTAL_SECONDS)
+        if report.get("stopped"):
+            return tool_error("The render was stopped.", "CANCELLED")
+        image = QImage(job["output_path"]) if report.get("ok") else None
+        if image is None or image.isNull():
+            return None
+
+        render_look.note_page_seconds(started["page_key"], report.get("export_s"))
+        return {"image": image, "facts": started["facts"]}
+    finally:
+        remove_tree(os.path.dirname(job["project_path"]))
 
 
 def _render_target(args: dict) -> dict:
@@ -1232,6 +1262,8 @@ def _plan_render(args: dict) -> dict:
             placed, framed, written_in = 0, False, {}
             for layer in layers:
                 try:
+                    if layer_order.source_gone(layer):
+                        continue
                     own, source = QgsRectangle(layer.extent()), layer.crs()
                     if _is_tiled_raster(layer) or own.isNull():
                         continue

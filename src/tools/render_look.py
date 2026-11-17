@@ -16,6 +16,7 @@
 from __future__ import annotations
 
 import os
+import time
 import uuid
 
 from qgis.PyQt.QtCore import QSize
@@ -25,7 +26,7 @@ from ..core.numbers import as_int
 from ..core.qt_compat import enum_member
 from ..core.security import validate_path
 from ..core.tool_registry import coded_fact, tool_error
-from . import layout_ready
+from . import layout_child, layout_ready
 
 
 
@@ -142,6 +143,19 @@ def cropped(image, args: dict):
                                  "drawn at full size. Without crop the whole page shows.")}
 
 
+
+
+
+
+_PAGE_SECONDS: dict = {}
+SLOW_PAGE_S = 3.0
+
+
+def note_page_seconds(key, seconds) -> None:
+    if isinstance(seconds, (int, float)):
+        _PAGE_SECONDS[key] = float(seconds)
+
+
 def _print_layouts(manager) -> list:
     try:
         return list(manager.printLayouts())
@@ -209,9 +223,46 @@ def layout_page_start(args: dict) -> dict:
         out["note_next_hint"] = "layout_items_outside_page"
     if facts.get("warnings"):
         out["layout_warnings"] = facts["warnings"][:8]
-    return {"layout_name": layout.name(), "page": page, "width": width, "height": height, "facts": out,
+    plan = {"layout_name": layout.name(), "page": page, "width": width, "height": height, "dpi": dpi,
+            "facts": out, "page_key": (QgsProject.instance().fileName(), layout.name(), page)}
+    job = _page_job(layout, plan)
+    if job is not None:
+        plan["job"] = job
+        return plan
+    return layout_page_ready(plan)
 
-            "ready": layout_ready.start(layout, {page - 1}, dpi, device={"size": (width, height)})}
+
+def layout_page_ready(plan: dict) -> dict:
+
+    from qgis.core import QgsProject
+
+    layout = QgsProject.instance().layoutManager().layoutByName(plan["layout_name"])
+    if layout is None:
+        return tool_error(f"Layout not found: {plan['layout_name']}", "INVALID_ARGS", hint="render_layout_list")
+
+    plan["ready"] = layout_ready.start(layout, {plan["page"] - 1}, plan["dpi"],
+                                       device={"size": (plan["width"], plan["height"])})
+    return plan
+
+
+def _page_job(layout, plan: dict) -> dict | None:
+
+
+
+    if _PAGE_SECONDS.get(plan["page_key"], 0.0) < SLOW_PAGE_S:
+        return None
+
+    if layout_child.why_not({"format": "pdf"}, layout):
+        return None
+    try:
+        copy = layout_child.write_copy()
+    except Exception:  # noqa: BLE001
+        return None
+    return {"project_path": copy, "layout_name": layout.name(), "format": "png", "dpi": plan["dpi"],
+            "output_path": os.path.join(os.path.dirname(copy), "page.png"),
+            "page_image": [plan["page"] - 1, plan["width"], plan["height"]], "settings": layout_child.settings(),
+
+            "simplify_for_print": False}
 
 
 def layout_page_draw(started: dict) -> dict:
@@ -228,8 +279,10 @@ def layout_page_draw(started: dict) -> dict:
         return tool_error(f"Layout not found: {started['layout_name']}", "INVALID_ARGS",
                           hint="render_layout_list")
     page, size = started["page"], QSize(started["width"], started["height"])
+    began = time.monotonic()
     image = layout_ready.drawn(layout, started["ready"],
                                lambda: QgsLayoutExporter(layout).renderPageToImage(page - 1, size, 0))
+    note_page_seconds(started.get("page_key"), time.monotonic() - began)
     if image is None or image.isNull():
         return tool_error(f"QGIS could not draw page {page} of '{layout.name()}'.", "EXECUTION_FAILED",
                           hint="render_page_not_drawn")

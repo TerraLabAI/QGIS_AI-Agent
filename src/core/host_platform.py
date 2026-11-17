@@ -356,11 +356,13 @@ def _windows_memory_counters():
         counters = _Counters()
         counters.cb = ctypes.sizeof(_Counters)
 
-        get_handle = ctypes.windll.kernel32.GetCurrentProcess
+
+
+        get_handle = ctypes.WinDLL("kernel32", use_last_error=True).GetCurrentProcess
         get_handle.restype = wintypes.HANDLE
 
 
-        query = ctypes.windll.psapi.GetProcessMemoryInfo
+        query = ctypes.WinDLL("psapi", use_last_error=True).GetProcessMemoryInfo
         query.argtypes = [wintypes.HANDLE, ctypes.POINTER(_Counters), wintypes.DWORD]
         query.restype = wintypes.BOOL
 

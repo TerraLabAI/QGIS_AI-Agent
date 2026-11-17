@@ -16,7 +16,7 @@ import time
 from qgis.PyQt.QtCore import QObject, QTimer, pyqtSignal
 
 from ..api.account import Account
-from ..core import crash_note, first_run_funnel, telemetry, trace
+from ..core import crash_note, telemetry, trace
 from ..core import telemetry_events as ev
 from ..core.context import mention_candidates
 from ..core.dictation import Dictation
@@ -26,10 +26,11 @@ from ..core.machine import desk_classes
 from ..core.plan import autopilot_allowed, effort_allowed, efforts_stated
 from ..core.project_identity import open_project_file
 from ..core.protocol import CANCEL_QGIS_CLOSED, Approval, Effort, RunStatus
-from ..core.qt_compat import one_shot
+from ..core.qt_compat import one_shot, qt_deleted
 from ..core.run_state import RunMachine
 from ..core.session import AgentSession
 from ..core.settings import DEFAULT_SERVER_URL, Settings
+from ..core.suggest import Suggester
 from ..core.telemetry_errors import report_exception
 from ..core.threads import ThreadStore
 from .controller_account import _ControllerAccount
@@ -54,14 +55,7 @@ __all__ = ["AgentController", "CANCEL_GRACE_MS", "RESUME_GRACE_S", "RUN_SILENCE_
 
 _TASK_FINAL = ("done", "failed", "stopped")
 
-
-def _panel_deleted(panel) -> bool:
-
-    try:
-        from qgis.PyQt import sip
-        return bool(sip.isdeleted(panel))
-    except (ImportError, TypeError):
-        return False
+CRASH_ACK_WAIT_MS = 15_000
 
 
 class AgentController(_ControllerRuns, _ControllerFrames, _ControllerProjects, _ControllerOffers,
@@ -109,6 +103,11 @@ class AgentController(_ControllerRuns, _ControllerFrames, _ControllerProjects, _
 
 
         self._steers: dict[str, dict] = {}
+
+
+        self._crash_ack_keys: set[str] = set()
+        self._crash_ack_pending: dict[str, int] = {}
+        self._crash_ack_wait = 0
 
         self._retry_after_restore: tuple[str, str] = ("", "")
 
@@ -162,12 +161,16 @@ class AgentController(_ControllerRuns, _ControllerFrames, _ControllerProjects, _
         self._wire_executor()
         self._wire_account()
         self._dictation = Dictation(self._session, self) if hasattr(self._session, "transcript") else None
+        self._suggester = (Suggester(self._session, getattr(iface, "activeLayer", None), self)
+                           if hasattr(self._session, "suggestions") else None)
 
 
     def start(self) -> None:
         self._panel_call("set_mention_provider", mention_candidates)
         if self._dictation is not None:
             self._panel_call("set_dictation", self._dictation)
+        if self._suggester is not None:
+            self._panel_call("set_suggester", self._suggester)
         self._panel_call("set_permission_mode", self._approval())
 
 
@@ -178,7 +181,6 @@ class AgentController(_ControllerRuns, _ControllerFrames, _ControllerProjects, _
         telemetry.set_auth_provider(self._account.get_auth_header)
         telemetry.new_session()
         telemetry.start_flush_timer()
-        first_run_funnel.set_sender(self._session.send_funnel)
         if telemetry.first_open_recorded():
             telemetry.track(ev.PLUGIN_FIRST_OPEN)
 
@@ -243,6 +245,8 @@ class AgentController(_ControllerRuns, _ControllerFrames, _ControllerProjects, _
         self._shut_down = True
         if self._dictation is not None:
             self._dictation.shutdown()
+        if self._suggester is not None:
+            self._suggester.shutdown()
         self._unwatch_project()
         if hasattr(self._account, "unwatch_focus"):
             self._account.unwatch_focus()
@@ -395,7 +399,7 @@ class AgentController(_ControllerRuns, _ControllerFrames, _ControllerProjects, _
             self._panel_now(name, *args)
 
     def _panel_now(self, name: str, *args) -> None:
-        if self._panel is not None and _panel_deleted(self._panel):
+        if self._panel is not None and qt_deleted(self._panel):
             return
         method = getattr(self._panel, name, None)
         if method is None:
@@ -417,8 +421,10 @@ class AgentController(_ControllerRuns, _ControllerFrames, _ControllerProjects, _
         self._connect("stop_requested", self._on_stop)
         self._connect("answer_rated", self._on_answer_rated)
         self._connect("answer_reason", self._on_answer_reason)
+        self._connect("feedback_ask_state", self._on_feedback_ask_state)
         self._connect("steer_requested", self._on_steer)
         self._connect("task_stop_requested", self._on_task_stop)
+        self._connect("crash_comment_sent", self._on_crash_comment)
         self._connect("unsteer_requested", self._on_unsteer)
         self._connect("queue_send_requested", self._on_queue_send)
         self._connect("undo_retry_requested", self._on_undo_retry)
@@ -457,8 +463,9 @@ class AgentController(_ControllerRuns, _ControllerFrames, _ControllerProjects, _
         self._connect("plans_requested", self._on_plans_requested)
         self._connect("start_now_requested", self._on_start_now_requested)
         self._connect("upsell_shown", self._on_upsell_shown)
-        self._connect("payment_card_shown", lambda surface, amount_shown: telemetry.track(
-            ev.PAYMENT_FAILED_CARD_SHOWN, {"surface": surface, "amount_shown": amount_shown}))
+        self._connect("payment_card_shown", lambda surface, amount_shown, declined: telemetry.track(
+            ev.PAYMENT_FAILED_CARD_SHOWN, {"surface": surface, "amount_shown": amount_shown,
+                                           **({"reason": "trial_card_declined"} if declined else {})}))
         self._connect("pay_requested", self._account.open_payment)
         self._connect("keep_pro_requested", self._on_keep_pro_requested)
         self._connect("limit_reached", self._on_limit_reached)
@@ -482,6 +489,7 @@ class AgentController(_ControllerRuns, _ControllerFrames, _ControllerProjects, _
         s.plan.connect(self._on_plan)
         s.plan_update.connect(self._on_plan_update)
         s.tool_call.connect(self._on_tool_call)
+        s.feedback_ask.connect(self._on_feedback_ask)
         s.run_end.connect(self._on_run_end)
         s.server_error.connect(self._on_server_error)
         s.usage.connect(self._on_usage)
@@ -489,9 +497,13 @@ class AgentController(_ControllerRuns, _ControllerFrames, _ControllerProjects, _
         s.memory_note.connect(self._on_memory_note)
         s.status_line.connect(self._on_status_line)
         s.sources.connect(self._on_sources)
+        if hasattr(s, "report_offer"):
+            s.report_offer.connect(lambda run_id, show: self._panel_call("set_report_decision", run_id, show))
         s.counts.connect(self._on_counts)
         if hasattr(s, "steer_ack"):
             s.steer_ack.connect(self._on_steer_ack)
+        if hasattr(s, "crash_comment_ack"):
+            s.crash_comment_ack.connect(self._on_crash_comment_ack)
         if hasattr(s, "task_update"):
             s.task_update.connect(self._on_task_update)
             s.task_result.connect(self._on_task_result)
@@ -605,3 +617,36 @@ class AgentController(_ControllerRuns, _ControllerFrames, _ControllerProjects, _
 
     def _on_task_stop(self, task_id: str) -> None:
         self._session.send_task_stop(task_id)
+
+    def _on_crash_comment(self, key: str, text: str) -> None:
+
+
+        if not self._session.send_crash_comment(key, text):
+            self._panel_call("crash_comment_failed", key)
+            self.notice.emit("warning", tr("Not sent: TerraLab is not connected."))
+            return
+        if key not in self._crash_ack_keys:
+            self._panel_call("crash_comment_done", key)
+            self.notice.emit("info", tr("Your note was sent."))
+            return
+        self._crash_ack_wait += 1
+        attempt = self._crash_ack_wait
+        self._crash_ack_pending[key] = attempt
+        QTimer.singleShot(CRASH_ACK_WAIT_MS, lambda: self._crash_ack_missing(key, attempt))
+
+    def _on_crash_comment_ack(self, key: str, stored: bool) -> None:
+        if self._crash_ack_pending.pop(key, None) is None:
+            return
+        if stored:
+            self._panel_call("crash_comment_done", key)
+            self.notice.emit("info", tr("Thanks. Your note went with the crash report."))
+        else:
+
+            self._panel_call("crash_comment_failed", key)
+            self.notice.emit("warning", tr("Your note could not be added to the crash report."))
+
+    def _crash_ack_missing(self, key: str, attempt: int) -> None:
+        if self._crash_ack_pending.get(key) != attempt:
+            return
+        del self._crash_ack_pending[key]
+        self._panel_call("crash_comment_failed", key)

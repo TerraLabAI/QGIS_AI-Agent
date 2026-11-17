@@ -40,6 +40,7 @@ from qgis.PyQt.QtCore import (
     QElapsedTimer,
     QEvent,
     QPointF,
+    QRect,
     QRectF,
     QSize,
     Qt,
@@ -64,6 +65,7 @@ from ..core.host_platform import prefers_reduced_motion
 from ..core.numbers import as_float
 from ..core.plan import effort_name, efforts_allowed, efforts_stated, efforts_trial_locked, efforts_trial_note
 from ..core.served_state import get_effort_text, get_pro_offer, offer_text
+from .cards_click import PressSurface
 from .font_scale import scale_qss_font_px
 from .icons import pixmap_for
 from .permission_chip import select_qss
@@ -779,6 +781,11 @@ class _StopNames(QWidget):
 
 
 
+
+
+
+
+
     def __init__(self, slider: EffortSlider, names: list, parent=None):
         super().__init__(parent)
         self._slider = slider
@@ -789,6 +796,32 @@ class _StopNames(QWidget):
         self.setFont(font)
         self.setFixedHeight(QFontMetrics(font).height() + 2)
         self.setCursor(Qt.CursorShape.PointingHandCursor)
+        self._stops = []
+        for index, name in enumerate(self._names):
+            stop = PressSurface(self)
+            stop.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, True)
+            stop.setAccessibleName(self.tr("Effort: {level}").format(level=name))
+            stop.clicked.connect(lambda _c=False, i=index: self._slider._commit(i))
+            self._stops.append(stop)
+
+    def _place_stops(self, metrics: QFontMetrics) -> None:
+
+
+        for index, (stop, name) in enumerate(zip(self._stops, self._names)):
+            width = metrics.horizontalAdvance(name) + 8
+            x = int(round(max(0.0, min(float(self.width() - width), self._slider._stop_x(index) - width / 2))))
+            if stop.geometry() != QRect(x, 0, width, self.height()):
+                stop.setGeometry(x, 0, width, self.height())
+            if EFFORTS[index] in self.trial:
+                state = self.tr("Locked until the end of the free trial")
+            elif index >= self._slider._locked_from:
+                state = self.tr("Locked: {tag}").format(tag=get_pro_label())
+            elif index == self._slider._value:
+                state = self.tr("Selected")
+            else:
+                state = ""
+            if stop.accessibleDescription() != state:
+                stop.setAccessibleDescription(state)
 
     def mousePressEvent(self, event):  # noqa: N802
 
@@ -797,6 +830,7 @@ class _StopNames(QWidget):
             self._slider._commit(min(range(len(self._names)), key=lambda i: abs(self._slider._stop_x(i) - x)))
 
     def paintEvent(self, event):  # noqa: N802
+        self._place_stops(QFontMetrics(self.font()))
         painter = QPainter(self)
         try:
             plain = QFont(self.font())

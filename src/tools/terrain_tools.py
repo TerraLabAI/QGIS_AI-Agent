@@ -1092,7 +1092,7 @@ def _detect_anomalies(args: dict, folder: str) -> dict:
         class_band.FlushCache()
 
 
-        min_px = max(2, int(math.ceil(min_area / pixel_m2)))
+        min_px = max(2, int(math.ceil(min(min_area / pixel_m2, 2 ** 31 - 1))))
         gdal.SieveFilter(class_band, None, class_band, min_px, 8, callback=None)
         class_band.FlushCache()
         _stop(cancelled)

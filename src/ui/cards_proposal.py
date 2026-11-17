@@ -50,9 +50,10 @@ from .card_controls import (
     ask_head,
     done_row,
 )
+from .cards_click import PressSurface
 from .font_scale import scale_px_length, scale_qss_font_px
 from .icons import pixmap_for
-from .shared import AGENT_ACTION, AGENT_CARD_KIND, AGENT_REQUEST_ID, event_pos, exec_menu
+from .shared import AGENT_ACTION, AGENT_CARD_KIND, AGENT_REQUEST_ID, event_pos, popup_menu, tr
 from .style import (
     _MENU_QSS,
     CHIP_PX,
@@ -383,7 +384,7 @@ class RecommendationCard(_DecidedCard):
 
             action = menu.addAction(text.replace("&", "&&"))
             action.triggered.connect(lambda checked=False, t=text: self._decide(f"alternative:{t}"))
-        exec_menu(menu, button.mapToGlobal(button.rect().bottomLeft()))
+        popup_menu(menu, button.mapToGlobal(button.rect().bottomLeft()))
 
     def _decide(self, decision: str) -> None:
         if self.decision is not None:
@@ -504,7 +505,9 @@ class _DiffRow:
         cells = (cells + [""] * ncols)[:ncols]
         struck_at = as_int(row.get("changed", ncols - 1), ncols - 1)
 
-        self.back = QWidget(table)
+
+
+        self.back = PressSurface(table) if self.changed else QWidget(table)
         self.back.setObjectName(f"diffRow{_DiffRow._serial}")
         self.back.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
         self.back.setFixedHeight(scale_px_length(_DIFF_ROW_PX))
@@ -528,6 +531,11 @@ class _DiffRow:
             self._labels.append((label, first, self.kind == "removed" and col == struck_at))
         self.mark = None
         if self.changed:
+            self.back.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, True)
+            self.back.setAccessibleName(", ".join(
+                str(cell.get("pill") if isinstance(cell, dict) else cell) for cell in cells
+                if (cell.get("pill") if isinstance(cell, dict) else cell) not in (None, "")))
+            self.back.clicked.connect(lambda _checked=False: (self.toggle(), table.toggled.emit()))
             self.mark = _Mark("check", table, colour=self._colour(), glyph=_WHITE)
             self.mark.set_checked(True)
             grid.addWidget(self.mark, index, ncols, Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
@@ -553,6 +561,8 @@ class _DiffRow:
             label.setFont(font)
         if self.mark is not None:
             self.mark.set_checked(on)
+            self.back.setAccessibleDescription(
+                tr("included") if on else tr("left out"))
 
     def toggle(self) -> None:
         if not self.changed:
@@ -595,8 +605,11 @@ class _DiffBody(QWidget):
         if event.button() == Qt.MouseButton.LeftButton:
             row = self._row_at(event_pos(event))
             if row is not None:
+
+                event.accept()
                 row.toggle()
                 self.toggled.emit()
+                return
         super().mouseReleaseEvent(event)
 
 

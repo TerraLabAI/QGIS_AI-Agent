@@ -24,6 +24,7 @@ from qgis.core import (
 )
 
 from ..core import ground, tool_rules, tuning
+from ..core.layer_order import extent_known
 from ..core.tool_registry import tool_error
 from ._compat import enum_value
 from ._layers import resolve_layer
@@ -76,8 +77,8 @@ def _utm_authid(lon: float, lat: float) -> str:
 def _centre_lonlat(layer) -> tuple[float, float] | None:
 
     try:
-        extent = layer.extent()
-        if extent.isNull():
+        extent = extent_known(layer)
+        if extent is None or extent.isNull():
             return None
         centre = extent.center()
         crs = layer.crs()
@@ -129,8 +130,8 @@ class _ProjectCrsProbe:
 
     def extent(self):
         source = self._layer.crs()
-        extent = self._layer.extent()
-        if not source.isValid() or source == self._crs:
+        extent = extent_known(self._layer)
+        if extent is None or not source.isValid() or source == self._crs:
             return extent
         return QgsCoordinateTransform(source, self._crs, QgsProject.instance()).transformBoundingBox(extent)
 
@@ -438,7 +439,7 @@ def crs_plausibility(layer, new_crs) -> dict | None:
     try:
         if layer is None or not hasattr(layer, "extent") or not new_crs.isValid():
             return None
-        extent = layer.extent()
+        extent = extent_known(layer)
         if extent is None or extent.isEmpty():
             return None
         degrees = _looks_like_degrees(extent, layer)

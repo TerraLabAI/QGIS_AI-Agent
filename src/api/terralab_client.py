@@ -20,6 +20,7 @@
 
 from __future__ import annotations
 
+import copy
 import json
 import os
 import random
@@ -87,6 +88,7 @@ _SAME_ORIGIN_REDIRECT = getattr(_RedirectPolicy, "SameOriginRedirectPolicy", Non
 
 _WORTH_ASKING_AGAIN_CODES = ("TIMEOUT", "NO_INTERNET")
 _RATE_LIMITED_STATUS = 429
+_NOT_MODIFIED_STATUS = 304
 _RETRY_AFTER_MAX_S = 10.0
 _RETRY_PAUSE_MIN_S = 0.3
 _RETRY_PAUSE_MAX_S = 0.8
@@ -96,6 +98,13 @@ _URL_RE = re.compile(r"https?://[^\s\"'<>]+")
 _MAX_RESPONSE_BYTES = 4 * 1024 * 1024
 _MAX_REQUEST_BYTES = 2 * 1024 * 1024
 _HEADER_NAME_RE = re.compile(r"^[A-Za-z0-9-]{1,64}$")
+_ETAG_RE = re.compile(r'^(W/)?"[\x21\x23-\x7e]{1,128}"$')
+
+
+
+
+
+_config_validators: dict[str, tuple[str, dict]] = {}
 
 
 def tr(text: str) -> str:
@@ -141,12 +150,8 @@ def own_cache_entry(url: str) -> str:
     return f"{url}{'&' if '?' in url else '?'}_={secrets.token_hex(6)}"
 
 
-def config_query(product: str, lang: str = "", signed_out_open: bool = False) -> str:
+def config_query(product: str, lang: str = "") -> str:
     params = {"product": product}
-    if signed_out_open:
-
-
-        params["so"] = "1"
     if lang:
         params["lang"] = lang[:5]
     params["v"] = plugin_version()
@@ -419,11 +424,25 @@ class TerraLabClient:
         return self._request("POST", "/api/plugin/data-retention", auth=auth, body=body,
                              timeout_ms=_TIMEOUT_INTERACTIVE, require_body=True)
 
-    def get_config(self, product: str = PRODUCT_ID, lang: str = "", auth: dict | None = None,
-                   signed_out_open: bool = False) -> dict:
+    def get_config(self, product: str = PRODUCT_ID, lang: str = "", auth: dict | None = None) -> dict:
 
-        return self._request("GET", config_query(product, lang, signed_out_open and not auth), auth=auth or None,
-                             timeout_ms=_TIMEOUT_INTERACTIVE, require_body=True)
+
+
+        path = config_query(product, lang)
+        held = _config_validators.get(product)
+        meta: dict = {}
+        answer = self._request("GET", path, auth=auth or None, timeout_ms=_TIMEOUT_INTERACTIVE,
+                               require_body=True, meta=meta,
+                               extra_headers={"If-None-Match": held[0]} if held else None)
+        if held and isinstance(answer, dict) and answer.get("not_modified") is True:
+            return copy.deepcopy(held[1])
+        if isinstance(answer, dict) and "error" not in answer:
+            etag = meta.get("etag")
+            if etag:
+                _config_validators[product] = (etag, copy.deepcopy(answer))
+            else:
+                _config_validators.pop(product, None)
+        return answer
 
     def send_telemetry_batch(self, events: list, auth: dict, timeout_ms: int | None = None) -> dict:
 
@@ -511,7 +530,8 @@ class TerraLabClient:
         body = json.dumps({"code": code, "product": PRODUCT_ID}).encode("utf-8")
         return self._request("POST", "/api/plugin/pair/cancel", body=body, timeout_ms=5_000)
 
-    def _make_qnetwork_request(self, auth: dict | None, timeout_ms: int, path: str) -> QNetworkRequest:
+    def _make_qnetwork_request(self, auth: dict | None, timeout_ms: int, path: str,
+                               extra_headers: dict | None = None) -> QNetworkRequest:
         req = QNetworkRequest(QUrl(own_cache_entry(self._resolve_url(path))))
         req.setRawHeader(b"Content-Type", b"application/json")
         req.setRawHeader(b"X-Plugin-Version", plugin_version().encode("ascii", "replace"))
@@ -520,8 +540,9 @@ class TerraLabClient:
         if hasattr(req, "setTransferTimeout"):
             req.setTransferTimeout(max(1_000, min(int(timeout_ms), 120_000)))
         _apply_redirect_policy(req, bool(auth))
-        if auth:
-            for key, value in auth.items():
+        headers = {**(auth or {}), **(extra_headers or {})}
+        if headers:
+            for key, value in headers.items():
                 if not _HEADER_NAME_RE.fullmatch(str(key)):
                     raise ValueError("Invalid request header")
                 value = str(value)
@@ -533,31 +554,36 @@ class TerraLabClient:
 
     def _request(self, method: str, path: str, auth: dict | None = None, body: bytes | None = None,
                  timeout_ms: int | None = None, allow_list: bool = False,
-                 require_body: bool = False):
+                 require_body: bool = False, extra_headers: dict | None = None,
+                 meta: dict | None = None):
+
+
 
 
         if timeout_ms is None:
             timeout_ms = _TIMEOUT_API
 
 
-        state: dict = {}
+        state: dict = {} if meta is None else meta
         answer, http_status, _ = self._request_once(
-            method, path, auth, body, timeout_ms, allow_list, require_body, state)
+            method, path, auth, body, timeout_ms, allow_list, require_body, state, extra_headers)
         if method == "GET" and _worth_asking_again(answer, http_status):
             time.sleep(state.get("retry_after_s") or _retry_pause_s())
             answer, _, _ = self._request_once(
-                method, path, auth, body, timeout_ms, allow_list, require_body, state)
+                method, path, auth, body, timeout_ms, allow_list, require_body, state, extra_headers)
         return answer
 
     def _request_once(self, method: str, path: str, auth: dict | None, body: bytes | None,
-                      timeout_ms: int, allow_list: bool, require_body: bool, state: dict | None = None):
+                      timeout_ms: int, allow_list: bool, require_body: bool, state: dict | None = None,
+                      extra_headers: dict | None = None):
         state = {} if state is None else state
         state["retry_after_s"] = 0.0
+        state.pop("etag", None)
         method = str(method or "").upper()
         if body is not None and len(body) > _MAX_REQUEST_BYTES:
             return ({"error": "Request is too large", "code": "CLIENT_ERROR"}, None, False)
         try:
-            req = self._make_qnetwork_request(auth, timeout_ms, path)
+            req = self._make_qnetwork_request(auth, timeout_ms, path, extra_headers)
         except ValueError as err:
             return ({"error": str(err), "code": "CLIENT_ERROR"}, None, False)
 
@@ -582,6 +608,10 @@ class TerraLabClient:
 
         http_status = _http_status_of(reply)
         _log_timing(req, reply, path, http_status, time.monotonic() - asked)
+        if http_status == _NOT_MODIFIED_STATUS and "If-None-Match" in (extra_headers or {}):
+
+            note_server_contact()
+            return ({"not_modified": True}, http_status, False)
 
 
 
@@ -651,6 +681,12 @@ class TerraLabClient:
             if require_body:
                 return (_unreadable_answer(), http_status, False)
             return ({"error": "Invalid server response", "code": "SERVER_ERROR"}, http_status, False)
+        try:
+            etag = bytes(reply.rawHeader(b"ETag")).decode("ascii").strip()
+        except (AttributeError, RuntimeError, TypeError, UnicodeDecodeError):
+            etag = ""
+        if _ETAG_RE.fullmatch(etag):
+            state["etag"] = etag
         return (parsed, http_status, True)
 
     @staticmethod

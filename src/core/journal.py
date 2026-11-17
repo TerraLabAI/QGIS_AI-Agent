@@ -16,6 +16,7 @@
 
 
 
+
 from __future__ import annotations
 
 import os
@@ -25,7 +26,7 @@ import unicodedata
 from qgis.core import QgsVectorLayer
 
 from . import tuning
-from .snapshot import _sidecars, _stamp, source_path
+from .snapshot import _keeps_count, _sidecars, _stamp, source_path
 
 
 
@@ -211,12 +212,14 @@ def layer_state(layer, files: bool = True, disk: _Disk | None = None) -> dict:
             state["subset"] = str(layer.subsetString() or "")
         except Exception:  # noqa: BLE001
             state["subset"] = ""
-        if state["provider"] == "memory" or path:
-            try:
+
+
+        try:
+            if (state["provider"] == "memory" or path) and _keeps_count(layer):
                 count = int(layer.featureCount())
                 state["count"] = count if count >= 0 else None
-            except Exception:  # noqa: BLE001
-                state["count"] = None
+        except Exception:  # noqa: BLE001
+            state["count"] = None
         try:
             state["fields"] = [str(field.name()) for field in layer.fields()][:500]
         except Exception:  # noqa: BLE001

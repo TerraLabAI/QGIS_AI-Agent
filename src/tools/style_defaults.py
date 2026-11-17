@@ -15,6 +15,7 @@
 from __future__ import annotations
 
 import contextlib
+import itertools
 import math
 
 from qgis.core import Qgis, QgsContrastEnhancement, QgsSingleBandGrayRenderer
@@ -208,15 +209,12 @@ def _closest_pair(colours: dict):
         cells.setdefault(tuple(math.floor(c / _CLOSE_DELTA_E) for c in lab), []).append(name)
     best = None
     for (x, y, z), names in cells.items():
-        for dx in (-1, 0, 1):
-            for dy in (-1, 0, 1):
-                for dz in (-1, 0, 1):
-                    for b in cells.get((x + dx, y + dy, z + dz), ()):
-                        for a in names:
-                            if a < b:
-                                pair = (math.dist(colours[a][1], colours[b][1]), a, b)
-                                if best is None or pair < best:
-                                    best = pair
+        for dx, dy, dz in itertools.product((-1, 0, 1), repeat=3):
+            for b, a in itertools.product(cells.get((x + dx, y + dy, z + dz), ()), names):
+                if a < b:
+                    pair = (math.dist(colours[a][1], colours[b][1]), a, b)
+                    if best is None or pair < best:
+                        best = pair
     return best if best is not None and best[0] < _CLOSE_DELTA_E else None
 
 

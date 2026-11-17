@@ -48,7 +48,7 @@ from qgis.core import (
 
 from ..core import tuning
 from ..core.host_platform import resolved
-from ..core.layer_order import canvas_view, feature_count_of, in_view, switched_on
+from ..core.layer_order import canvas_view, extent_known, feature_count_of, in_view, switched_on
 from ..core.layer_release import canceled_output
 from ..core.snapshot import RunSnapshot, layer_file_path
 from ..core.snapshot_report import diff_changed
@@ -70,6 +70,9 @@ MAX_CALL_WARNINGS = 40
 
 
 MAX_OUTPUT_FILES = 20
+
+
+MAX_TRANSFORMATIONS = 12
 
 
 def _cap(key: str, shipped: int) -> int:
@@ -182,7 +185,7 @@ def _added_layer(project, raw: dict, orphans: set, view, hidden: frozenset = fro
 
     extent = None
     try:
-        extent = layer.extent()
+        extent = extent_known(layer)
 
         if extent is not None and extent.isNull():
             extent = None
@@ -388,7 +391,7 @@ def _changed_view(project, items: list, view, hidden: frozenset) -> None:
             continue
         try:
             if view is not None and not _is_table(layer):
-                seen = in_view(layer, layer.extent(), view)
+                seen = in_view(layer, extent_known(layer), view)
                 if seen is not None:
                     item["in_view"] = seen
             node = root.findLayer(lid)

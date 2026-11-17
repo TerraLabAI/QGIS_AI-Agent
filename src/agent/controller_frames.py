@@ -131,11 +131,26 @@ class _ControllerFrames:
             self._link_notice = text
             self._panel_call("set_link_notice", self._run["run_id"], text)
 
+    def _offer_crash_comment(self, reported) -> None:
+
+
+
+        key = reported.get("key") if isinstance(reported, dict) else None
+        if not (isinstance(key, str) and key):
+            return
+        if reported.get("ack") is True:
+
+            self._crash_ack_keys.add(key)
+        if telemetry.is_telemetry_enabled() and not self._settings.crash_asked(key):
+            self._settings.note_crash_asked(key)
+            self._panel_call("offer_crash_comment", key)
+
     def _on_session_started(self, session: dict) -> None:
         self._session_error_shown = None
 
         self._panel.mascot_stage.apply_served(session.get("mascot"))
         self._note_crashed_chat()
+        self._offer_crash_comment(session.get("crash_reported"))
         resumed = bool(session.get("resumed"))
         action = self._runs.session_started(session.get("resumed"))
         run = self._run
@@ -894,6 +909,8 @@ class _ControllerFrames:
 
         self._panel_call("set_run_changes", changed, self._history_available(), touched, run_changes)
         self._send_history()
+        if getattr(self._session, "report_offer_decided", False):
+            self._panel_call("await_report_decision", run_id)
         self._panel_call("end_run", run_id, status, summary, usage or {}, merged)
         ended.append(True)
         self._offer_cleanup(run_id, status)
@@ -1000,15 +1017,20 @@ class _ControllerFrames:
         on_sign_in_card = (code == ServerErrorCode.AUTH_FAILED and error.get("retryable") is not True
                            and not (isinstance(run_id, str) and run_id))
 
-        if (code != ServerErrorCode.QUOTA_EXHAUSTED or not self._run) and not on_sign_in_card:
+        if code == ServerErrorCode.PLUGIN_UPDATE_REQUIRED:
+
+            self._panel_call("show_update_required", message)
+        elif (code != ServerErrorCode.QUOTA_EXHAUSTED or not self._run) and not on_sign_in_card:
             self._panel_call("show_error", run_id if isinstance(run_id, str) else None, code, message, retryable, "",
                              "", str(error.get("reason") or "")[:64])
-        if code != ServerErrorCode.QUOTA_EXHAUSTED:
+        if code != ServerErrorCode.QUOTA_EXHAUSTED and not names_run:
+
+
 
 
             track_plugin_error("server", code, run_id if isinstance(run_id, str) else "",
                                reason=str(error.get("reason") or ""), retryable=bool(error.get("retryable")),
-                               in_run=names_run)
+                               in_run=False)
         if code == ServerErrorCode.QUOTA_EXHAUSTED:
 
 

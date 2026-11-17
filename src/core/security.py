@@ -380,11 +380,15 @@ def allow_attached_paths(paths) -> None:
 
 
 
+
     for path in paths or []:
-        full = expand_path(str(path))
+        share = _is_remote_share(str(path))
+        full = ntpath.normpath(str(path)) if share else expand_path(str(path))
         if full not in _attached_files:
             _attached_files.append(full)
-        folder = os.path.dirname(os.path.realpath(str(path)))
+        folder = ntpath.dirname(full) if share else os.path.dirname(os.path.realpath(str(path)))
+        if share:
+            _name_share(full)
         if not folder or folder in _allowed_roots:
             continue
         reason = _read_denied(folder, _explicit_roots())
@@ -392,7 +396,11 @@ def allow_attached_paths(paths) -> None:
 
 
             continue
+        if share and ntpath.splitdrive(folder)[1].strip("\\/") == "":
+            continue
         _allowed_roots.append(folder)
+        if share:
+            _name_share(folder)
 
 
 def attached_file_named(name: str) -> str:
@@ -489,7 +497,7 @@ def set_read_roots(roots) -> None:
 def write_roots() -> dict:
 
     return {"project_dir": project_dir(), "output_root": _output_root, "allowed": list(_allowed_roots),
-            "shares": _shares_in_use()}
+            "shares": _shares_in_use() + list(_named_shares)}
 
 
 def set_write_roots(roots) -> None:
@@ -843,6 +851,9 @@ def read_roots() -> list[str]:
 
     folders = {_norm(root) for root in roots}
     covered = {root for root in roots if _FOLDERS.get(root) is False and _norm(os.path.dirname(root)) in folders}
+
+
+    covered |= {root for root in roots if _is_remote_share(root) and _in_named_share(root)}
     warm_roots([root for root in roots if root not in covered])
     out: list[str] = []
     for root in roots:
@@ -889,12 +900,15 @@ def _scope_problem(expanded: str, real: str) -> str | None:
 
     if any(path_is_under(real, root) for root in roots):
         return None
-    if os.path.lexists(expanded) and any(
+
+
+    on_share = _is_remote_share(expanded)
+    if not on_share and os.path.lexists(expanded) and any(
             path_is_under(_in_agent_spelling(c), work) for c in candidates for work in _AGENT_WORK_DIRS):
 
 
         return None
-    if not os.path.lexists(expanded) and not any(ch in os.path.basename(expanded) for ch in "*?["):
+    if not on_share and not os.path.lexists(expanded) and not any(ch in os.path.basename(expanded) for ch in "*?["):
 
 
 
@@ -1120,12 +1134,67 @@ def refused_share(path: str) -> bool:
 
 
     return (isinstance(path, str) and _is_remote_share(path) and not _in_own_share_folder(path)
-            and not _in_used_share(path))
+            and not _in_used_share(path) and not _in_named_share(path))
 
 
 
 
 _shares_override: list = [None]
+
+
+
+
+_named_shares: list[str] = []
+
+
+
+_offered_shares: list[str] = []
+
+
+def note_model_text(text: str, typed: str = "") -> None:
+
+
+    own = {_share_root(path) for path in typed_paths(typed, probe=False) if _is_remote_share(path)}
+    _offered_shares[:] = [root for root in _offered_shares if root not in own]
+    for path in typed_paths(text, probe=False):
+        root = _share_root(path) if _is_remote_share(path) else ""
+        if root and root not in own and root not in _offered_shares:
+            _offered_shares.append(root)
+    del _offered_shares[:-_USER_PATHS_MAX]
+
+
+def _share_root(path: str) -> str:
+
+    return ntpath.splitdrive(_share_text(path))[0]
+
+
+def _share_text(path: str) -> str:
+
+
+    text = ntpath.normcase(ntpath.normpath(path))
+    for prefix in ("\\\\?\\unc\\", "\\\\.\\unc\\"):
+        if text.startswith(prefix):
+            return ntpath.normpath("\\\\" + text[len(prefix):])
+    return text
+
+
+def _name_share(path: str) -> None:
+    text = _share_text(path)
+    drive = ntpath.splitdrive(text)[0]
+    if text in _named_shares or len([part for part in drive.split("\\") if part]) < 2:
+        return
+    if len(_named_shares) >= _USER_PATHS_MAX:
+        del _named_shares[:2]
+    _named_shares.append(text)
+
+
+def _in_named_share(path: str) -> bool:
+
+
+
+
+    text = _share_text(path)
+    return any(text == root or text.startswith(root.rstrip("\\") + "\\") for root in _named_shares)
 
 
 def _shares_in_use() -> list[str]:
@@ -1257,6 +1326,7 @@ def validate_path(path: str, write: bool = False, overwrite: bool | None = None,
 
 
 
+
         return CodedText("A path on another machine (\\\\host\\share) is not written or read by the agent.",
                          "network_share_refused")
     expanded = expand_path(path)
@@ -1281,7 +1351,9 @@ def validate_path(path: str, write: bool = False, overwrite: bool | None = None,
             return CodedText(f"The path is {len(expanded)} characters and Windows stops this process at "
                              f"{MAX_PATH}.", "windows_path_too_long", length=len(expanded), limit=MAX_PATH)
     try:
-        real = os.path.realpath(expanded)
+
+
+        real = expanded if _is_remote_share(expanded) else os.path.realpath(expanded)
     except Exception:
         real = expanded
     if not write and all(_is_style_undo_file(c) for c in (expanded, real)):
@@ -1346,7 +1418,10 @@ def safe_read_text(path: str, encoding: str = "utf-8", max_chars: int = 200_000)
         return handle.read(max(0, min(int(max_chars), 200_000)))
 
 
-def remember_user_text(text: str) -> None:
+def remember_user_text(text: str, offered: bool = False) -> None:
+
+
+
 
 
 
@@ -1355,9 +1430,16 @@ def remember_user_text(text: str) -> None:
 
     remember_user_hosts(text)
     for path in typed_paths(text):
+        share = _is_remote_share(path)
+        if share and (offered or _share_root(path) in _offered_shares):
+            continue
         if len(_user_paths) >= _USER_PATHS_MAX:
             del _user_paths[:2]
-        for spelling in dict.fromkeys((path, os.path.realpath(path))):
+        if share:
+            _name_share(path)
+            if not _in_named_share(path):
+                continue
+        for spelling in dict.fromkeys((path,) if share else (path, os.path.realpath(path))):
             if spelling not in _user_paths:
                 _user_paths.append(spelling)
 
@@ -1365,7 +1447,7 @@ def remember_user_text(text: str) -> None:
 
 
 
-_PATH_START_RE = re.compile(r"(file:///?|~[\\/]|[A-Za-z]:[\\/]|/(?=[^\s/]))")
+_PATH_START_RE = re.compile(r"(file:///?|~[\\/]|[A-Za-z]:[\\/]|\\\\(?=[^\\\s])|/(?=[^\s/]))")
 _PATH_OPENERS = "\"'([<`"
 _PATH_END_CHARS = ".,;:!?)]}>\"'`"
 
@@ -1391,7 +1473,20 @@ def _trimmed(candidate: str) -> str:
     return candidate[:end]
 
 
-def typed_paths(text: str) -> list[str]:
+def _inside_folder_name(share: str, longer: str) -> bool:
+
+
+    if len(longer) <= len(share) or not longer.startswith(share) or longer[len(share)] == "\\":
+        return False
+    slash = longer.find("\\", len(share))
+    if slash < 0:
+        return False
+    start = _PATH_START_RE.search(longer, len(share))
+    return start is None or start.start() > slash
+
+
+def typed_paths(text: str, probe: bool = True) -> list[str]:
+
 
 
 
@@ -1407,21 +1502,42 @@ def typed_paths(text: str) -> list[str]:
             continue
         rest = text[start:].split("\n", 1)[0]
         closer = {'"': '"', "'": "'", "`": "`", "<": ">", "(": ")", "[": "]"}.get(opener)
-        if closer and closer in rest:
+        quoted = bool(closer and closer in rest)
+        if quoted:
 
             rest = rest[:rest.index(closer)]
         cuts = _path_cuts(rest)
+        head = local_part(_trimmed(rest[:cuts[0]])) if rest.lower().startswith("file:") else ""
+        if _is_remote_share(head):
+
+
+            whole = local_part(rest)
+            rest = ntpath.normpath(whole if _is_remote_share(whole) else head)
+            cuts = _path_cuts(rest)
+        if _is_remote_share(rest):
+
+
+            shares = [_trimmed(rest)] if quoted else [_trimmed(rest[:cut]) for cut in cuts[:12]]
+            for share in shares:
+
+
+                if not _is_remote_share(share) or any(_inside_folder_name(share, longer) for longer in shares):
+                    continue
+                full = ntpath.normpath(share)
+                if full not in found:
+                    found.append(full)
+            continue
         chosen = ""
-        for cut in cuts[:24][::-1]:
+        for cut in cuts[:24][::-1] if probe else ():
             candidate = _trimmed(rest[:cut])
             local = local_part(candidate) if candidate.lower().startswith("file:") else candidate
-            if local and os.path.exists(expand_path(local)):
+            if local and not local.replace("/", "\\").startswith("\\\\") and os.path.exists(expand_path(local)):
                 chosen = local
                 break
         if not chosen:
             first = _trimmed(rest[:cuts[0]])
             chosen = local_part(first) if first.lower().startswith("file:") else first
-        if chosen and not _is_remote_share(chosen):
+        if chosen:
             full = expand_path(chosen)
             if full not in found:
                 found.append(full)

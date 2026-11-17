@@ -384,7 +384,13 @@ def is_elevation_alias(ramp_name: str | None) -> bool:
 RELIEF_PROPERTY = "ai_agent/relief_of"
 
 
-def _early_bilinear(layer) -> None:
+_PROVIDER_METHODS = {"nearest": "Nearest", "bilinear": "Bilinear", "cubic": "Cubic"}
+
+
+def resample_early(layer, zoomed_in: str, zoomed_out: str) -> bool:
+
+
+
 
 
 
@@ -396,17 +402,22 @@ def _early_bilinear(layer) -> None:
 
     provider = layer.dataProvider()
     try:
-        if not provider.enableProviderResampling(True):
-            return
-        method = enum_member(QgsRasterDataProvider, "ResamplingMethod", "Bilinear", None)
-        if method is not None:
-            provider.setZoomedInResamplingMethod(method)
-            provider.setZoomedOutResamplingMethod(method)
+        if provider is None or not provider.enableProviderResampling(True):
+            return False
+        for name, setter in ((zoomed_in, provider.setZoomedInResamplingMethod),
+                             (zoomed_out, provider.setZoomedOutResamplingMethod)):
+            method = enum_member(QgsRasterDataProvider, "ResamplingMethod",
+                                 _PROVIDER_METHODS.get(name, "Nearest"), None)
+            if method is None:
+                return False
+            setter(method)
         stage = enum_member(Qgis, "RasterResamplingStage", "Provider", None)
-        if stage is not None:
-            layer.setResamplingStage(stage)
+        if stage is None:
+            return False
+        layer.setResamplingStage(stage)
+        return True
     except Exception:  # noqa: BLE001
-        return
+        return False
 
 
 def degrees_z_factor(layer) -> float | None:
@@ -453,12 +464,12 @@ def add_relief_overlay(layer, band: int = 1) -> dict:
     z_factor = degrees_z_factor(layer) or 1.0
     renderer.setZFactor(z_factor)
     copy.setRenderer(renderer)
-    pipe = copy.resampleFilter()
-    if pipe is not None:
 
-        pipe.setZoomedInResampler(QgsBilinearRasterResampler())
-        pipe.setZoomedOutResampler(QgsBilinearRasterResampler())
-    _early_bilinear(copy)
+
+    if not resample_early(copy, "bilinear", "bilinear"):
+        pipe = copy.resampleFilter()
+        if pipe is not None:
+            pipe.setZoomedOutResampler(QgsBilinearRasterResampler())
     mode = composition_mode("multiply")
     if mode is not None:
         copy.setBlendMode(mode)

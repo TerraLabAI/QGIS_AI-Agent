@@ -304,6 +304,14 @@ def _cache_path(name: str) -> str:
 
 
 
+CRASH_ASKED_KEPT = 20
+
+
+def _short_hash(text: str) -> str:
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()[:16]
+
+
+
 PANEL_RETURN_DAYS = 7
 
 
@@ -417,6 +425,34 @@ class Settings:
     @last_paid.setter
     def last_paid(self, value: bool) -> None:
         self._set("last_paid", "1" if value else "0")
+
+    def feedback_asks_shown(self, now: float) -> list[list]:
+
+        try:
+            data = json.loads(self._get("feedback_asks_shown", "") or "[]")
+        except ValueError:
+            return []
+        return [row for row in data if isinstance(row, list) and len(row) == 2
+                and isinstance(row[0], (int, float)) and 0 <= now - row[0] < 7 * 86400]
+
+    def note_feedback_ask_shown(self, now: float, reason: str) -> None:
+        self._set("feedback_asks_shown", json.dumps(self.feedback_asks_shown(now) + [[int(now), reason]]))
+
+    def crash_asked(self, key: str) -> bool:
+
+
+        return _short_hash(key) in self._crash_asked()
+
+    def note_crash_asked(self, key: str) -> None:
+        kept = [k for k in self._crash_asked() if k != _short_hash(key)] + [_short_hash(key)]
+        self._set("crash_asked", json.dumps(kept[-CRASH_ASKED_KEPT:]))
+
+    def _crash_asked(self) -> list:
+        try:
+            data = json.loads(self._get("crash_asked", "") or "[]")
+        except ValueError:
+            return []
+        return [k for k in data if isinstance(k, str)] if isinstance(data, list) else []
 
     def plan_seen(self, tag: str) -> str:
 
@@ -1125,24 +1161,23 @@ class Settings:
     @property
     def activation_key(self) -> str:
         authcfg_id = self._get(_AUTHCFG_KEY, "")
-        if authcfg_id:
-            am = self._auth_manager()
-            if am is not None:
-                try:
-                    cfg = QgsAuthMethodConfig()
-                    if am.loadAuthenticationConfig(authcfg_id, cfg, True):
-                        key = cfg.config("password", "") or ""
-                        if key:
+        am = self._auth_manager() if authcfg_id else None
+        if am is not None:
+            try:
+                cfg = QgsAuthMethodConfig()
+                if am.loadAuthenticationConfig(authcfg_id, cfg, True):
+                    key = cfg.config("password", "") or ""
+                    if key:
 
 
-                            sealed = _protect(key)
-                            if sealed:
-                                self._set(_PROTECTED_KEY, sealed)
-                                self._set(_AUTHCFG_KEY, "")
-                                self._remove_auth_config(authcfg_id)
-                            return key
-                except Exception:  # nosec B110
-                    pass
+                        sealed = _protect(key)
+                        if sealed:
+                            self._set(_PROTECTED_KEY, sealed)
+                            self._set(_AUTHCFG_KEY, "")
+                            self._remove_auth_config(authcfg_id)
+                        return key
+            except Exception:  # nosec B110
+                pass
         protected = self._get(_PROTECTED_KEY, "")
         if protected:
             key = _unprotect(protected)

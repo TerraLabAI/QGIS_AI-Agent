@@ -15,6 +15,7 @@ import uuid
 from qgis.core import QgsProject, QgsVectorLayer, QgsWkbTypes
 
 from ..core import security
+from ..core.attribute_tables import close_tables, reopen_tables
 from ..core.host_platform import IS_WINDOWS, file_holders, release_pooled_handles, remove_quietly, retry_file_op
 from ..core.layer_release import remove_layers
 from ..core.logger import log_warning
@@ -354,6 +355,7 @@ def detach_vector_layers_at_path(path: str) -> tuple[list[dict], dict]:
 
 
         release_pooled_handles(layer)
+        state["tables"] = close_tables(layer)
         layer.setDataSource(temporary, state["name"], "memory")
         if not layer.isValid() or layer.providerType() != "memory":
             restore_detached_layers(detached)
@@ -377,6 +379,7 @@ def restore_detached_layers(states: list[dict]) -> list[str]:
         if state["selection"]:
             layer.selectByIds(state["selection"])
         layer.triggerRepaint()
+        reopen_tables(layer, state.get("tables") or [])
     return failed
 
 

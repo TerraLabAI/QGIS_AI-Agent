@@ -62,6 +62,10 @@ from .writeback import write_atomic
 PROMPT_CHARS = 120
 
 
+
+IN_MEMORY_SNAPSHOTS = 2
+
+
 def _opening(text: str) -> str:
 
     words = str(text or "").split()
@@ -425,6 +429,7 @@ def _light_styles(snapshot) -> None:
 
 
 
+
     for lid, record in (getattr(snapshot, "layers", None) or {}).items():
         if isinstance(record, dict) and record.get("light") and record.get("style") is None:
             record["style"] = cached_style_digest(lid)
@@ -583,6 +588,13 @@ class Checkpoint:
         return entry
 
 
+def _drop_copied_features(snapshot: RunSnapshot) -> None:
+
+    features = snapshot.memory_features
+    for lid in [lid for lid in features if lid in snapshot.memory_files]:
+        features.pop(lid, None)
+
+
 class CheckpointHistory:
 
 
@@ -619,6 +631,7 @@ class CheckpointHistory:
         self._remember(open_project_file())
         self._restore_running = False
         self._restore_noted = False
+        self._held_in_memory: list[RunSnapshot] = []
 
 
     def _index_path(self, thread_id: str) -> str:
@@ -1137,7 +1150,19 @@ class CheckpointHistory:
         self._trim_soon(thread_id, entry.id)
         if snapshot is not None:
             snapshot.on_features_ready(lambda: self._save(thread_id))
+            self._hold_in_memory(snapshot)
         return entry
+
+    def _hold_in_memory(self, snapshot: RunSnapshot) -> None:
+
+
+
+
+
+        held = [s for s in self._held_in_memory if s is not snapshot] + [snapshot]
+        self._held_in_memory = held[-IN_MEMORY_SNAPSHOTS:]
+        for older in held[:-IN_MEMORY_SNAPSHOTS]:
+            older.on_features_ready(lambda s=older: _drop_copied_features(s))
 
     def mark_current(self, entry: Checkpoint) -> None:
 

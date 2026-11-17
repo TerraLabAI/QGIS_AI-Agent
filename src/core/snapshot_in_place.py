@@ -35,7 +35,7 @@ import zipfile
 from qgis.core import QgsProject, QgsVectorLayer
 
 from .host_platform import release_pooled_handles
-from .layer_order import read_back
+from .layer_order import read_back, write_refusal
 from .logger import log, log_warning
 from .snapshot_features import held_features, refill_from_copy
 from .snapshot_files import restore_group
@@ -79,6 +79,9 @@ def _document(path: str):
 
 def _write_now(project, folder: str, absolute: bool):
 
+    refusal = write_refusal(project)
+    if refusal:
+        raise OSError(refusal)
     path = os.path.join(folder, _NOW_FILE)
     file_name, dirty = project.fileName(), project.isDirty()
     with _signals_blocked(project):

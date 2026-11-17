@@ -11,7 +11,7 @@ import traceback
 
 from qgis.PyQt.QtCore import QTimer
 
-from ..core import background, crash_note, net, protocol, security, stalls, tuning
+from ..core import background, crash_note, datum_choice, net, protocol, security, stalls, tuning
 from ..core import code_effects as ce
 from ..core.layer_release import note_adopted_bytes, settle_adopted
 from ..core.logger import log, log_warning
@@ -339,13 +339,14 @@ class _ExecutorExecute:
 
         try:
             with stalls.probe(f"tool.{name}"), self._code_context(call), background.calling(tool_call_id), \
-                    background.answerable(tool_call_id, answer_now):
+                    background.answerable(tool_call_id, answer_now), datum_choice.held():
                 self._share_clock(call)
                 result = self._registry.execute(name, args)
         except Exception as exc:  # noqa: BLE001
             result = {"_error": f"{type(exc).__name__}: {exc}", "traceback": traceback.format_exc()[-2000:]}
         finally:
             crash_note.clear()
+            call["datum_chosen"] = datum_choice.take()
             _phase(call, "handler_ms", call["handler_from"])
         if early:
             return

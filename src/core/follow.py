@@ -47,10 +47,10 @@ from qgis.core import (
 )
 from qgis.PyQt.QtCore import QEvent, QObject, QTimer
 
-from . import canvas_glide, tuning
-from .layer_order import is_backdrop, reading_back
+from . import canvas_glide, datum_choice, tuning
+from .layer_order import is_backdrop, reading_back, source_gone
 from .logger import log, log_warning
-from .qt_compat import disconnect_quietly, enum_member, one_shot, qgis_iface
+from .qt_compat import disconnect_quietly, enum_member, one_shot, qgis_iface, qt_deleted
 from .tool_registry import NAMED_LAYER, spec
 from .vsi import streamed_in_place
 
@@ -139,25 +139,6 @@ def _to_canvas_crs(rect, layer, canvas) -> QgsRectangle | None:
         return None
 
 
-def _deleted(obj) -> bool:
-
-
-
-
-
-    try:
-        import sip
-    except ImportError:
-        try:
-            from qgis.PyQt import sip  # type: ignore[no-redef]
-        except ImportError:
-            return False
-    try:
-        return bool(sip.isdeleted(obj))
-    except (TypeError, ValueError, RuntimeError):
-        return False
-
-
 def _grown(rect: QgsRectangle, share: float) -> QgsRectangle:
 
     pad = max(rect.width(), rect.height()) * share
@@ -231,7 +212,7 @@ class EditWatcher:
                     pass
             self._project = None
         for layer, bound in self._layers:
-            if _deleted(layer):
+            if qt_deleted(layer):
                 continue
             for signal, slot in bound:
                 try:
@@ -258,7 +239,7 @@ class EditWatcher:
         def repaint():
             self._repaint_pending = False
             canvas = _canvas()
-            if canvas is None or _deleted(canvas):
+            if qt_deleted(canvas):
                 return
             try:
                 canvas.refresh()
@@ -274,7 +255,7 @@ class EditWatcher:
             return
         kept = []
         for layer, bound in self._layers:
-            if _deleted(layer):
+            if qt_deleted(layer):
                 continue
             try:
                 mine = layer.id() in ids
@@ -355,7 +336,7 @@ class EditWatcher:
         canvas = _canvas()
         for layer in layers or []:
             self._watch(layer)
-            if canvas is None or reading_back() or is_backdrop(layer) or streamed_in_place(layer):
+            if canvas is None or reading_back() or is_backdrop(layer) or streamed_in_place(layer) or source_gone(layer):
                 continue
             try:
                 extent = layer.extent()
@@ -602,6 +583,13 @@ def _is_framing(now: QgsRectangle, full: QgsRectangle) -> bool:
     return full.width() >= now.width() * FRAME_SHARE or full.height() >= now.height() * FRAME_SHARE
 
 
+def _full_extent(canvas):
+
+    if any(source_gone(layer) for layer in canvas.layers(True)):
+        return QgsRectangle()
+    return QgsRectangle(canvas.fullExtent())
+
+
 def _undo_first_layer_frame(canvas) -> None:
 
 
@@ -626,7 +614,7 @@ def _undo_first_layer_frame(canvas) -> None:
         try:
             now = QgsRectangle(canvas.extent())
             crs_now = canvas.mapSettings().destinationCrs()
-            full = QgsRectangle(canvas.fullExtent())
+            full = _full_extent(canvas)
         except Exception:  # noqa: BLE001
             finish()
             return
@@ -688,7 +676,7 @@ def keep_view_over_add(canvas=None) -> None:
             return
         try:
             now = QgsRectangle(canvas.extent())
-            full = QgsRectangle(canvas.fullExtent())
+            full = _full_extent(canvas)
         except Exception:  # noqa: BLE001
             finish()
             return
@@ -710,7 +698,9 @@ def _area(rect) -> float:
     return max(0.0, float(rect.width())) * max(0.0, float(rect.height()))
 
 
-def move_to(rect, canvas=None) -> str:
+def move_to(rect, canvas=None, whole: bool = False) -> str:
+
+
 
 
 
@@ -736,7 +726,7 @@ def move_to(rect, canvas=None) -> str:
 
     if current.contains(padded):
         return "kept"
-    if target.contains(current) and _area(current) >= _area(target) * FEEL["contained_share"]:
+    if not whole and target.contains(current) and _area(current) >= _area(target) * FEEL["contained_share"]:
         return "kept"
     picture = canvas_glide.take(canvas)
     if padded.width() <= current.width() and padded.height() <= current.height():
@@ -832,7 +822,8 @@ def hold_view(canvas=None, prefer=None, target=None) -> dict | None:
     except Exception as exc:  # noqa: BLE001
         log_warning(f"Follow: cannot frame the view in {chosen.authid()}: {exc}")
         return None
-    project.setCrs(chosen)
+    with datum_choice.held():
+        project.setCrs(chosen)
     if _canvas_crs(canvas) != chosen:
         canvas.setDestinationCrs(chosen)
     canvas.setExtent(frame)
@@ -928,6 +919,8 @@ def _crs(authid: str):
 
 def _canvas_extent_of(layer, canvas):
 
+    if source_gone(layer):
+        return None
     try:
         rect = _to_canvas_crs(layer.extent(), layer, canvas)
     except Exception:  # noqa: BLE001

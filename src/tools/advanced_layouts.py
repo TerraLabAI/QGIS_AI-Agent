@@ -543,6 +543,8 @@ def _export_layout_with(args: dict, ready, separate: bool = False):
         heavy = _heavy_layers(layout)
         if heavy:
             failure["slow_layers"] = heavy
+        if separate_qgis:
+            failure["separate_qgis"] = separate_qgis
         return failure
 
 
@@ -644,10 +646,11 @@ def _drawn_in_separate_qgis(layout_name, fmt, output_path, dpi, args, held):
     success = int(getattr(success, "value", success))
     if report.get("ok") and report.get("result") == success and os.path.exists(staged):
         try:
-            layout_child.put_in_place(staged, output_path)
+            placed = layout_child.put_in_place(staged, output_path)
         except OSError as exc:
+
             return {"drawn": False, "reason": f"the page could not take the place of {output_path}: {exc}",
                     **facts}, None
-        return {"drawn": True, **facts}, enum_member(QgsLayoutExporter, "ExportResult", "Success")
+        return {"drawn": True, "placed": placed, **facts}, enum_member(QgsLayoutExporter, "ExportResult", "Success")
     reason = str(report.get("error") or report.get("error_text") or f"export result {report.get('result')}")
     return {"drawn": False, "reason": reason[:300], **facts}, None

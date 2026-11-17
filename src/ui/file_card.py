@@ -48,6 +48,7 @@ from qgis.PyQt.QtWidgets import (
 
 from . import run_objects
 from .attach_card import HoverReveal
+from .cards_click import PressSurface
 from .file_links import suffix_of
 from .icons import theme_pixmap
 from .layer_links import _MoreChip
@@ -166,7 +167,7 @@ def _focus_inside(widget: QWidget) -> bool:
     return False
 
 
-class FileOutputCard(QWidget):
+class FileOutputCard(PressSurface):
 
 
 
@@ -267,6 +268,7 @@ class FileOutputCard(QWidget):
         self._set_tooltip()
         self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
         self.setAccessibleName(self._name)
+        self.clicked.connect(lambda _checked=False: self._fire("open"))
         if self.on_disk:
             self.setCursor(Qt.CursorShape.PointingHandCursor)
         self._reveal = _ActionReveal(self, self._actions)
@@ -329,12 +331,6 @@ class FileOutputCard(QWidget):
             "{path}\nThis file is no longer where the run wrote it.").format(path=self.path)
         self.setAccessibleDescription(tip)
 
-    def keyPressEvent(self, event):  # noqa: N802
-        if event.key() in (Qt.Key.Key_Return, Qt.Key.Key_Enter, Qt.Key.Key_Space):
-            self._fire("open")
-            event.accept()
-            return
-        super().keyPressEvent(event)
 
     def mousePressEvent(self, event):  # noqa: N802
 
@@ -346,9 +342,9 @@ class FileOutputCard(QWidget):
     def mouseReleaseEvent(self, event):  # noqa: N802
 
         if event.button() == Qt.MouseButton.LeftButton:
-            if self.rect().contains(event_pos(event)):
-                self._fire("open")
             event.accept()
+            if self.rect().contains(event_pos(event)):
+                self.click()
             return
         super().mouseReleaseEvent(event)
 
@@ -375,7 +371,7 @@ _OBJECT_ICONS = {
 OBJECT_ICON = 16
 
 
-class ObjectRow(QWidget):
+class ObjectRow(PressSurface):
 
 
 
@@ -443,6 +439,7 @@ class ObjectRow(QWidget):
         self.setCursor(Qt.CursorShape.PointingHandCursor)
         self.setAccessibleName(f"{self.name}, {words}")
         self.setToolTip(self.tr("Show {name}").format(name=self.name))
+        self.clicked.connect(self._fire)
         self._watch()
 
     def _watch(self) -> None:
@@ -475,13 +472,6 @@ class ObjectRow(QWidget):
         if self.check() and not self._objects.bring_back(self.entry):
             self.check()
 
-    def keyPressEvent(self, event):  # noqa: N802
-        if event.key() in (Qt.Key.Key_Return, Qt.Key.Key_Enter, Qt.Key.Key_Space):
-            self._fire()
-            event.accept()
-            return
-        super().keyPressEvent(event)
-
     def mousePressEvent(self, event):  # noqa: N802
         if event.button() == Qt.MouseButton.LeftButton:
             event.accept()
@@ -490,9 +480,9 @@ class ObjectRow(QWidget):
 
     def mouseReleaseEvent(self, event):  # noqa: N802
         if event.button() == Qt.MouseButton.LeftButton:
-            if self.rect().contains(event_pos(event)):
-                self._fire()
             event.accept()
+            if self.rect().contains(event_pos(event)):
+                self.click()
             return
         super().mouseReleaseEvent(event)
 
@@ -507,13 +497,6 @@ class _FilesMore(_MoreChip):
     def set_count(self, count: int) -> None:
         super().set_count(count)
         self.setToolTip("")
-
-    def keyPressEvent(self, event):  # noqa: N802
-        if event.key() in (Qt.Key.Key_Return, Qt.Key.Key_Enter, Qt.Key.Key_Space):
-            self.clicked.emit()
-            event.accept()
-            return
-        super().keyPressEvent(event)
 
 
 class FileCardStack(QWidget):

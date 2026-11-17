@@ -200,12 +200,25 @@ def deps_dir() -> str:
                         f"py{sys.version_info[0]}.{sys.version_info[1]}")
 
 
+def _imported_from(folder: str) -> list[str]:
+
+    root = os.path.normcase(os.path.abspath(folder)) + os.sep
+    names = set()
+    for name, module in list(sys.modules.items()):
+        attrs = getattr(module, "__dict__", None)
+        path = attrs.get("__file__") if isinstance(attrs, dict) else None
+        if isinstance(path, str) and os.path.normcase(os.path.abspath(path)).startswith(root):
+            names.add(name.partition(".")[0])
+    return sorted(names)
+
+
 def _refresh_user_site():
 
-    try:
-        site.main()
-    except Exception:  # nosec B110
-        pass
+
+
+
+
+
     for path in (deps_dir(), _legacy_user_site()):
         if path and path not in sys.path:
             sys.path.append(path)
@@ -509,8 +522,14 @@ class _InstallWorker(QThread):
                 os.makedirs(target, exist_ok=True)
 
 
+
+
+
+                in_use = _imported_from(target)
+                if in_use:
+                    t["kept_loaded"] = in_use
                 rc = _pip_main([
-                    "install", "--target", target, "--upgrade",
+                    "install", "--target", target, *([] if in_use else ["--upgrade"]),
                     "--disable-pip-version-check",
                     "--no-input", "-q", "--log", log_path, self._package,
                 ])
@@ -545,6 +564,10 @@ class _InstallWorker(QThread):
                     if rc != 0:
                         t["error"], fact = _pip_failure_message(rc, t.get("output_tail") or "")
                         t.update(fact)
+                    elif t.get("kept_loaded"):
+                        t["error"] = (f"pip finished but '{self._import_name}' still does not import: packages "
+                                      "this QGIS already loaded were left as they are.")
+                        t.update(coded_fact(hint="pip_file_held"))
                     else:
                         t["error"] = f"pip finished but '{self._import_name}' still does not import."
                 self._record("failed")
@@ -647,6 +670,8 @@ def _install_status(args: dict) -> dict:
     }
     if t.get("output_tail"):
         out["output_tail"] = t["output_tail"]
+    if t.get("kept_loaded"):
+        out["kept_loaded"] = t["kept_loaded"]
     if t["error"]:
         out["error"] = t["error"]
 

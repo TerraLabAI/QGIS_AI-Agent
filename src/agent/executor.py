@@ -25,7 +25,17 @@ from collections import OrderedDict, deque
 from qgis.core import QgsApplication
 from qgis.PyQt.QtCore import QObject, QTimer, pyqtSignal
 
-from ..core import background, follow, layer_order, layer_removed, restore_guard, scratch, stalls, telemetry
+from ..core import (
+    background,
+    datum_choice,
+    follow,
+    layer_order,
+    layer_removed,
+    restore_guard,
+    scratch,
+    stalls,
+    telemetry,
+)
 from ..core import telemetry_events as ev
 from ..core.checkpoints import KIND_BEFORE, CheckpointHistory
 from ..core.logger import log, log_warning
@@ -143,6 +153,10 @@ class ToolExecutor(_ExecutorAccounts, _ExecutorInstallWait, _ExecutorRuns, _Exec
 
         self._objects: dict[str, list[dict]] = {}
         self._ended_objects: tuple = ()
+
+
+        self._transformations: dict[str, list[dict]] = {}
+        self._ended_transformations: tuple = ()
         self._call_warnings: dict[str, list[dict]] = {}
 
         self._ended_run: tuple = ("", (), ())
@@ -162,8 +176,7 @@ class ToolExecutor(_ExecutorAccounts, _ExecutorInstallWait, _ExecutorRuns, _Exec
         self._inflight: dict[str, tuple[str, str, float, bool]] = {}
 
 
-
-        self._dialog_waits: dict[str, tuple[float, float, str, tuple[str, ...]]] = {}
+        self._dialog_waits: dict[str, tuple[float, float, str]] = {}
         self._dialog_tick: float | None = None
 
 
@@ -403,7 +416,7 @@ class ToolExecutor(_ExecutorAccounts, _ExecutorInstallWait, _ExecutorRuns, _Exec
         started = time.monotonic()
         history.restore_begins(entry)
         try:
-            with layer_removed.undoing():
+            with layer_removed.undoing(), datum_choice.held(choose=False):
                 result = entry.snapshot.restore(file_name=entry.file_to_keep(),
                                                 extra_copies=history.file_versions(thread_id, entry),
                                                 own_saves=history.own_saves_after(thread_id, entry))

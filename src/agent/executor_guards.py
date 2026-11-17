@@ -12,6 +12,7 @@ import os
 from qgis.core import QgsProject, QgsVectorLayer
 
 from ..core import limits, output_paths
+from ..core.layer_order import source_gone
 from ..core.logger import log, log_warning
 from ..core.protocol import Danger
 from ..core.tool_registry import coded_fact, spec
@@ -270,6 +271,8 @@ class _ExecutorGuards:
 
 
 
+        if source_gone(layer):
+            return "EPSG:3857"
         try:
             center = layer.extent().center()
             lon, lat = center.x(), center.y()

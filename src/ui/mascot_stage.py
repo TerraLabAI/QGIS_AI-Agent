@@ -20,12 +20,12 @@ import json
 import time
 import weakref
 
-from qgis.PyQt import sip
 from qgis.PyQt.QtCore import QEasingCurve, QEvent, QObject, QPoint, QPointF, Qt, QTimer
 from qgis.PyQt.QtWidgets import QApplication
 
 from ..core import mascot as table_of
 from ..core.host_platform import prefers_reduced_motion
+from ..core.qt_compat import qt_deleted
 from .font_scale import scale_px_length
 from .mascot import BOX_H, BOX_W, GAZE, LIVE, STILL, Mascot
 
@@ -40,10 +40,6 @@ def refresh_mascots() -> None:
     for stage in list(_STAGES):
         stage.refresh_mode()
         stage.sync()
-
-
-def _alive(widget) -> bool:
-    return widget is not None and not sip.isdeleted(widget)
 
 
 class _Watch(QObject):
@@ -62,7 +58,7 @@ class _Watch(QObject):
         widget.destroyed.connect(self._forget)
 
     def _forget(self, widget=None) -> None:
-        self._events = {w: e for w, e in self._events.items() if not sip.isdeleted(w) and w is not widget}
+        self._events = {w: e for w, e in self._events.items() if not qt_deleted(w) and w is not widget}
 
     def eventFilter(self, watched, event):  # noqa: N802
         kind = event.type()
@@ -203,9 +199,9 @@ class MascotStage(QObject):
         self._clear.append(widget)
 
     def _forget_solid(self, *_args) -> None:
-        self._solid = {w: n for w, n in self._solid.items() if _alive(w)}
-        self._perches = {w: b for w, b in self._perches.items() if _alive(w)}
-        if not _alive(self._lit):
+        self._solid = {w: n for w, n in self._solid.items() if not qt_deleted(w)}
+        self._perches = {w: b for w, b in self._perches.items() if not qt_deleted(w)}
+        if qt_deleted(self._lit):
             self._lit = None
 
     def _under(self):
@@ -224,7 +220,7 @@ class MascotStage(QObject):
         old, self._lit = self._lit, widget
         app = QApplication.instance()
         for target, on in ((old, False), (widget, True)):
-            if not _alive(target):
+            if qt_deleted(target):
                 continue
             target.setAttribute(Qt.WidgetAttribute.WA_UnderMouse, on)
             app.sendEvent(target, QEvent(QEvent.Type.Enter if on else QEvent.Type.Leave))
@@ -260,7 +256,7 @@ class MascotStage(QObject):
 
         self.mascot.fire("drop.again" if again else self._named("drop.on", widget), widget)
         block = self._perches.get(widget)
-        if not _alive(block) or not block.isVisible():
+        if qt_deleted(block) or not block.isVisible():
             return None
         o = self._origin(block)
         size = scale_px_length(self.mascot.table()["sizes"].get(self._where or HOME, 24))
@@ -270,7 +266,7 @@ class MascotStage(QObject):
 
 
         for text in self._clear:
-            if not _alive(text) or not text.isVisible():
+            if qt_deleted(text) or not text.isVisible():
                 continue
             t = self._origin(text)
             if t.y() + text.height() <= o.y() - size or t.y() >= o.y():
@@ -373,7 +369,7 @@ class MascotStage(QObject):
 
     def card_shown(self, place: str, card, event: str) -> None:
 
-        self._waiting = [(p, c) for p, c in self._waiting if _alive(c) and c is not card] + [(place, card)]
+        self._waiting = [(p, c) for p, c in self._waiting if not qt_deleted(c) and c is not card] + [(place, card)]
         if place == QUESTION and self.mascot.table()["places"].get(QUESTION) and self.mascot.mode() != STILL \
                 and hasattr(card, "set_seat_inset"):
             width = scale_px_length(self.mascot.table()["sizes"][QUESTION]) * BOX_W / BOX_H
@@ -386,7 +382,7 @@ class MascotStage(QObject):
 
         before = len(self._waiting)
         self._waiting = [(p, c) for p, c in self._waiting
-                         if _alive(c) and (not callable(getattr(c, "is_open", None)) or c.is_open())]
+                         if not qt_deleted(c) and (not callable(getattr(c, "is_open", None)) or c.is_open())]
         if len(self._waiting) == before:
             return
         if self._waiting:
@@ -398,7 +394,7 @@ class MascotStage(QObject):
         self.sync()
 
     def _card_destroyed(self, *_args) -> None:
-        self._waiting = [(p, c) for p, c in self._waiting if _alive(c)]
+        self._waiting = [(p, c) for p, c in self._waiting if not qt_deleted(c)]
         self._later.start()
 
     def sync(self) -> None:
@@ -453,7 +449,7 @@ class MascotStage(QObject):
     def _card_geo(self, place: str, card):
 
         table = self.mascot.table()
-        if not table["places"].get(place) or not _alive(card) or not card.isVisible():
+        if not table["places"].get(place) or qt_deleted(card) or not card.isVisible():
             return None
         if callable(getattr(card, "is_open", None)) and not card.is_open():
             return None
@@ -475,7 +471,7 @@ class MascotStage(QObject):
             self._peeked = card
             return cx, bottom, size, top_edge + 1
         seat = card.seat() if hasattr(card, "seat") else None
-        if not _alive(seat) or not seat.isVisible():
+        if qt_deleted(seat) or not seat.isVisible():
             return None
         so = self._origin(seat)
         width = size * BOX_W / BOX_H
@@ -537,12 +533,12 @@ class MascotStage(QObject):
 
     def _place(self) -> None:
         mascot, host = self.mascot, self._host
-        if not _alive(host) or not _alive(self._panel):
+        if qt_deleted(host) or qt_deleted(self._panel):
             return
         try:
             where, geo = self._resolve()
         except RuntimeError:
-            self._waiting = [(p, c) for p, c in self._waiting if _alive(c)]
+            self._waiting = [(p, c) for p, c in self._waiting if not qt_deleted(c)]
             return
         header = self._panel.header
 
@@ -559,7 +555,7 @@ class MascotStage(QObject):
         if self._perched is not None:
 
             widget, was = self._perched
-            if where != self._where or not _alive(widget) or not widget.isVisible() \
+            if where != self._where or qt_deleted(widget) or not widget.isVisible() \
                     or (self._origin(widget).x(), self._origin(widget).y(), widget.width()) != was:
                 self._leave_perch()
         if where != self._where:
@@ -596,7 +592,7 @@ class MascotStage(QObject):
                 cx, bottom, size = self._from
                 alpha, size = 1.0 - e, size * (1.0 - 0.3 * e * e)
                 clip = self._origin(self._from_card).y() + 1 \
-                    if _alive(self._from_card) and self._from_card.isVisible() else None
+                    if not qt_deleted(self._from_card) and self._from_card.isVisible() else None
             elif elapsed < leave + arrive:
                 t = 0.5
                 header.set_mark_shown(where == HEAD)
@@ -611,7 +607,7 @@ class MascotStage(QObject):
                 e = self._ease.valueForProgress(t)
                 fx, fb, fs = self._from
                 cx, bottom, size = fx + (cx - fx) * e, fb + (bottom - fb) * e, max(4.0, fs + (size - fs) * e)
-                if clip is None and _alive(self._from_card) and self._from_card.isVisible():
+                if clip is None and not qt_deleted(self._from_card) and self._from_card.isVisible():
                     clip = self._origin(self._from_card).y() + 1
         if t >= 1.0:
             if self._from is not None:

@@ -21,6 +21,7 @@ from __future__ import annotations
 import json
 import os
 import shutil
+import signal
 import site
 import sys
 
@@ -47,6 +48,46 @@ def _tail(path: str, limit: int = 1_500) -> str:
             return " ".join(handle.read().decode("utf-8", "replace").split())[-limit:]
     except OSError:
         return ""
+
+
+
+
+_WINDOWS_EXITS = {
+    0xC0000005: "access violation",
+    0xC0000409: "fail-fast: abort() in native code, or a stack buffer overrun",
+    0xC0000374: "heap corruption",
+    0xC00000FD: "stack overflow",
+    0xC0000017: "out of memory",
+    0xC000001D: "illegal instruction",
+    0xC0000135: "a DLL was not found",
+    0xC0000139: "a DLL lacks a function another one needs",
+    0xC000007B: "a DLL built for another architecture",
+    0xC0000142: "a DLL failed to initialise",
+    0xC000013A: "stopped by Ctrl+C or a closed console",
+    0xC0000420: "assertion failure",
+    0xE06D7363: "uncaught C++ exception",
+}
+
+
+def exit_name(code) -> str:
+
+    if not isinstance(code, int) or 0 <= code < 0xC0000000:
+        return ""
+    if code < 0:
+        try:
+            return signal.Signals(-code).name
+        except ValueError:
+            return f"signal {-code}"
+    name = _WINDOWS_EXITS.get(code & 0xFFFFFFFF)
+    return f"0x{code & 0xFFFFFFFF:08X}" + (f" {name}" if name else "")
+
+
+def ended_without_result(code, log_path: str, limit: int) -> str:
+
+    name = exit_name(code)
+    tail = _tail(log_path, limit)
+    return ("The separate QGIS ended without a result" + (f" (exit code {name})" if name else "")
+            + (f": {tail}" if tail else "."))
 
 
 def usable_python(path: str) -> bool:

@@ -572,7 +572,10 @@ def _geometry_match(node):
 def _normalised_gl_style(value):
 
     if isinstance(value, dict):
-        return {key: _normalised_gl_style(item) for key, item in value.items()}
+
+
+        return {key: _normalised_gl_style(item) for key, item in value.items()
+                if not (key == "line-dasharray" and item == [])}
     if isinstance(value, list):
         if len(value) == 5 and value[0] == "match":
             value = _geometry_match(value)

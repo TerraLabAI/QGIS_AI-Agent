@@ -15,6 +15,7 @@ from qgis.core import (
 from qgis.PyQt.QtCore import QT_TRANSLATE_NOOP
 
 from ..core import layer_order
+from ..core.feature_requests import matching_ids
 from ..core.geometry_budget import VertexBudget
 from ..core.qt_compat import enum_member
 from ..core.serialization import size_budget
@@ -94,8 +95,11 @@ def register_feature_tools(registry: ToolRegistry):
                     "type": "array",
                     "items": {"type": "integer"},
                 },
+                "expression": {"type": "string"},
             },
-            "required": ["layer_name", "fids"],
+            "required": ["layer_name"],
+
+            "x-delete-expression": True,
         },
         handler=_delete_features,
     ))
@@ -505,7 +509,21 @@ def _delete_features(args: dict) -> dict:
     if error:
         return error
 
-    fids = args.get("fids", [])
+    fids = args.get("fids") or []
+    expression = args.get("expression")
+    if fids and expression:
+        return tool_error("'fids' and 'expression' both given: which one wins was never defined.",
+                          "INVALID_ARGS")
+    if expression:
+        if layer_order.is_remote_vector(layer):
+            return tool_error(f"{layer.name()!r} is read over the network: list the ids to delete with "
+                              "get_features first, then pass them as fids.", "INVALID_ARGS",
+                              hint="delete_expression_remote")
+        fids, problem = matching_ids(layer, str(expression), _MAX_FEATURE_BATCH)
+        if fids is None:
+            return tool_error(f"Invalid expression: {problem}", "INVALID_ARGS")
+        if not fids:
+            return {"deleted": 0, "matched": 0, "note": "the expression matches no feature; nothing was deleted"}
     if not fids:
         return tool_error("No feature IDs provided", "INVALID_ARGS", hint="feature_ids_not_found")
     if len(fids) > _MAX_FEATURE_BATCH:
@@ -519,8 +537,8 @@ def _delete_features(args: dict) -> dict:
     existing = {
         f.id()
         for f in layer.getFeatures(
-            QgsFeatureRequest().setFilterFids(fids).setSubsetOfAttributes([])
-            .setFlags(enum_member(QgsFeatureRequest, "Flag", "NoGeometry"))
+            QgsFeatureRequest().setFilterFids(fids).setFlags(enum_member(QgsFeatureRequest, "Flag", "NoGeometry"))
+            .setSubsetOfAttributes([])
         )
     }
 

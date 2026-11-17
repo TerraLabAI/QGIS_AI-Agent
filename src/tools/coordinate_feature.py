@@ -131,17 +131,14 @@ def _create_coordinate_feature(args: dict) -> dict:
         created = True
     else:
         layer = target_layer
-        kmz = vector_write.kmz_in_place_error(layer, "add features")
-        if kmz is not None:
-            return kmz
     feature = QgsFeature(layer.fields())
     feature.setGeometry(geometry)
     for name, value in (args.get("fields") or {}).items():
         if layer.fields().indexOf(str(name)) >= 0:
             feature.setAttribute(str(name), value)
-    started = False
-    if not layer.isEditable():
-        started = layer.startEditing()
+    started, refusal = vector_write.open_edit(layer, "add features")
+    if refusal:
+        return refusal
     if not layer.addFeature(feature):
         if started:
             layer.rollBack()

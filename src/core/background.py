@@ -484,6 +484,30 @@ def delete_here(obj) -> None:
         return
 
 
+def _no_op(*_args) -> None:
+    return None
+
+
+def prime(obj):
+
+
+
+
+
+
+
+
+
+
+
+    try:
+        obj.destroyed.connect(_no_op)
+        obj.destroyed.disconnect(_no_op)
+    except (AttributeError, RuntimeError, TypeError):
+        pass
+    return obj
+
+
 def _drop_handed(key: int) -> None:
 
     with _HANDED_LOCK:

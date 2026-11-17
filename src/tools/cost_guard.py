@@ -224,8 +224,6 @@ def show_outline(args: dict, costly: dict):
             log_warning("The zone of interest layer could not be written before the credits card.")
             _frame(geom.boundingBox())
             return None
-        from ..core.layer_order import keep_place
-        keep_place(layer)
         if zone_from_args(args) is not None:
 
 

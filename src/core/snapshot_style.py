@@ -14,6 +14,7 @@ import hashlib
 import uuid
 
 from qgis.core import QgsProject
+from qgis.PyQt import sip
 
 from .logger import log_warning
 
@@ -31,6 +32,12 @@ _STYLE_CACHE: dict[str, str | None] = {}
 
 
 _STYLE_WATCHED: dict[str, tuple] = {}
+
+_SILENT: dict[str, tuple] = {}
+
+
+
+_UNVERIFIED: set[str] = set()
 _STYLE_PROJECT_WATCHED = False
 
 
@@ -42,6 +49,7 @@ _SESSION = uuid.uuid4().hex[:12]
 
 def _forget_style(layer_id: str) -> None:
     _STYLE_CACHE.pop(layer_id, None)
+    _UNVERIFIED.discard(layer_id)
     if layer_id in _STYLE_WATCHED or layer_id in _STYLE_MOVES:
         _STYLE_MOVES[layer_id] = _STYLE_MOVES.get(layer_id, 0) + 1
 
@@ -63,6 +71,7 @@ def _drop_style(removed) -> None:
                 continue
         _forget_style(layer_id)
         _STYLE_WATCHED.pop(layer_id, None)
+        _SILENT.pop(layer_id, None)
 
 
 def _watch_project_layers() -> None:
@@ -91,17 +100,17 @@ def shutdown() -> None:
         except Exception as exc:  # noqa: BLE001
             log_warning(f"Style project watch not disconnected: {exc}")
         _STYLE_PROJECT_WATCHED = False
-    for layer_id, (layer, slot) in list(_STYLE_WATCHED.items()):
-        for name in ("styleChanged", "updatedFields"):
+    for layer_id, (layer, slots) in list(_STYLE_WATCHED.items()):
+        for name, slot in slots:
             try:
-                signal = getattr(layer, name, None)
-                if signal is not None and hasattr(signal, "disconnect"):
-                    signal.disconnect(slot)
+                getattr(layer, name).disconnect(slot)
             except Exception as exc:  # noqa: BLE001
                 log_warning(f"Style watch on layer {layer_id} not disconnected: {exc}")
     _STYLE_WATCHED.clear()
     _STYLE_CACHE.clear()
     _STYLE_MOVES.clear()
+    _SILENT.clear()
+    _UNVERIFIED.clear()
 
     _SESSION = uuid.uuid4().hex[:12]
 
@@ -112,7 +121,13 @@ def cached_style_digest(layer_id: str) -> str | None:
 
 
 
-    return _STYLE_CACHE.get(str(layer_id))
+
+    layer_id = str(layer_id)
+    if layer_id in _UNVERIFIED:
+        layer = QgsProject.instance().mapLayer(layer_id)
+        if layer is not None:
+            _verify(layer, layer_id)
+    return _STYLE_CACHE.get(layer_id)
 
 
 def _read_style_digest(layer) -> str | None:
@@ -131,6 +146,52 @@ def _read_style_digest(layer) -> str | None:
         return None
 
 
+def _silent_mark(layer) -> tuple:
+
+
+
+
+    try:
+        scale = (bool(layer.hasScaleBasedVisibility()), float(layer.minimumScale()), float(layer.maximumScale()))
+    except Exception:  # noqa: BLE001
+        scale = None
+    labels = None
+    if hasattr(layer, "labelsEnabled"):
+        try:
+            labeling = layer.labeling()
+            labels = (bool(layer.labelsEnabled()), sip.unwrapinstance(labeling) if labeling is not None else 0)
+        except Exception:  # noqa: BLE001
+            labels = None
+    return scale, labels
+
+
+def _repainted(layer_id: str) -> None:
+    layer = QgsProject.instance().mapLayer(layer_id)
+    if layer is None:
+        return
+    mark = _silent_mark(layer)
+    if _SILENT.get(layer_id, mark) != mark:
+        _forget_style(layer_id)
+    elif layer_id in _STYLE_CACHE:
+
+
+        _UNVERIFIED.add(layer_id)
+    _SILENT[layer_id] = mark
+
+
+def _verify(layer, layer_id: str) -> None:
+
+
+    if layer_id not in _UNVERIFIED:
+        return
+    _UNVERIFIED.discard(layer_id)
+    kept = _STYLE_CACHE.get(layer_id)
+    digest = _read_style_digest(layer)
+    if kept is not None and digest != kept:
+        _forget_style(layer_id)
+    _STYLE_CACHE[layer_id] = digest
+
+
 def _watch(layer, layer_id: str) -> bool:
 
     _watch_project_layers()
@@ -139,24 +200,34 @@ def _watch(layer, layer_id: str) -> bool:
     signal = getattr(layer, "styleChanged", None)
     if signal is None or not hasattr(signal, "connect"):
         return False
+    forget = lambda *_args, lid=layer_id: _forget_style(lid)  # noqa: E731
+
+
+
+
+
+
+
+    _SILENT[layer_id] = _silent_mark(layer)
+    wanted = (("styleChanged", forget), ("updatedFields", forget),
+              ("repaintRequested", lambda *_args, lid=layer_id: _repainted(lid)))
+    slots = []
     try:
-        slot = lambda *_args, lid=layer_id: _forget_style(lid)  # noqa: E731
-        signal.connect(slot)
-
-
-
-
-
-        fields_changed = getattr(layer, "updatedFields", None)
-        if fields_changed is not None and hasattr(fields_changed, "connect"):
-            fields_changed.connect(slot)
-        _STYLE_WATCHED[layer_id] = (layer, slot)
+        for name, slot in wanted:
+            found = getattr(layer, name, None)
+            if found is not None and hasattr(found, "connect"):
+                found.connect(slot)
+                slots.append((name, slot))
     except Exception:  # noqa: BLE001
+        for name, slot in slots:
+            getattr(layer, name).disconnect(slot)
         return False
+    _STYLE_WATCHED[layer_id] = (layer, tuple(slots))
     return True
 
 
 def style_mark(layer) -> list:
+
 
 
 
@@ -170,6 +241,7 @@ def style_mark(layer) -> list:
         return [None, _read_style_digest(layer)]
     if not _watch(layer, layer_id):
         return [None, _read_style_digest(layer)]
+    _verify(layer, layer_id)
     return [_STYLE_MOVES.get(layer_id, 0), _STYLE_CACHE.get(layer_id)]
 
 
@@ -184,6 +256,7 @@ def held_style(layer) -> str | None:
         return None
     if not _watch(layer, layer_id):
         return None
+    _verify(layer, layer_id)
     return f"{_SESSION}:{_STYLE_MOVES.get(layer_id, 0)}"
 
 
@@ -212,6 +285,7 @@ def _style_digest(layer) -> str | None:
         layer_id = layer.id()
     except Exception:  # nosec B110
         return _read_style_digest(layer)
+    _verify(layer, layer_id)
     if layer_id in _STYLE_WATCHED and layer_id in _STYLE_CACHE:
         return _STYLE_CACHE[layer_id]
     _watch(layer, layer_id)
@@ -219,5 +293,6 @@ def _style_digest(layer) -> str | None:
     if layer_id in _STYLE_WATCHED:
         if len(_STYLE_CACHE) > 2000:
             _STYLE_CACHE.clear()
+            _UNVERIFIED.clear()
         _STYLE_CACHE[layer_id] = digest
     return digest

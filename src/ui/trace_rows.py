@@ -25,7 +25,7 @@ from qgis.PyQt.QtCore import (
 from qgis.PyQt.QtGui import QCursor, QPainter, QPen
 from qgis.PyQt.QtWidgets import QGraphicsOpacityEffect, QHBoxLayout, QWidget
 
-from .cards_click import _ClickRow
+from .cards_click import _ClickRow, words_of
 from .font_scale import scale_qss_font_px
 from .icons import render_pixmap
 from .style import (
@@ -176,6 +176,14 @@ class HoverRow(_ClickRow):
         super().focusOutEvent(event)
 
     def paintEvent(self, event):  # noqa: N802
+
+
+        try:
+            words = words_of(self)
+            if words != self.accessibleName():
+                self.setAccessibleName(words)
+        except RuntimeError:
+            pass
         clickable = self.cursor().shape() == Qt.CursorShape.PointingHandCursor
         if clickable and (self._hot or self._down or self._ring):
             try:

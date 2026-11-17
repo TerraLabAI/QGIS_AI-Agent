@@ -9,6 +9,36 @@ is what the QGIS Plugin Manager renders.
 
 ## [Unreleased]
 
+## [2.0.2] - 2026-11-17
+
+### Added
+
+- Grey suggestions in the message box: Tab takes the whole suggestion, or word by word; they know
+  the chat and the map.
+- A pasted link, coordinate, geometry or long text becomes a card in the message box; drafts keep
+  their chips, cards and attachments, and the box shows the selection the AI agent sees.
+- An @ menu to pick layers and data sources, each source with its logo.
+- A layer clicked in the chat flashes on the map without moving the view; delete cards preview
+  what goes in red on the map.
+- After a crash, a card asks what you were doing, and the next report carries the details needed
+  to fix it.
+- "Did this do what you wanted?" can show beside the thumbs at the end of a run.
+- A folded line under the answer says which coordinate transformation QGIS used.
+
+### Changed
+
+- One "Help improve AI Agent" switch and a shorter first-run notice.
+- A large WCS area is downloaded in pieces; a WMS or ArcGIS layer the plugin could not reach is
+  tried again through QGIS's own network settings.
+- Esc twice stops a run; the chat, the header and Settings work with screen readers.
+
+### Fixed
+
+- Many crashes and freezes: layers whose file is gone, attribute tables open during a change,
+  layout pages drawn in a separate QGIS, 3D views on drivers that cannot run them, GDAL 3.6.
+- Changing the project CRS no longer opens the Select Transformation dialog.
+- A trial refused for a declined card says so, with one button to try another card.
+
 ## [2.0.1] - 2026-11-13
 
 ### Fixed

@@ -16,13 +16,13 @@
 
 
 
+
 from __future__ import annotations
 
-import html
 import os
 
-from qgis.PyQt.QtCore import QRectF, Qt
-from qgis.PyQt.QtGui import QColor, QPainter, QPen, QPixmap
+from qgis.PyQt.QtCore import Qt, pyqtSignal
+from qgis.PyQt.QtGui import QColor, QPixmap
 from qgis.PyQt.QtWidgets import (
     QDialog,
     QFrame,
@@ -34,24 +34,25 @@ from qgis.PyQt.QtWidgets import (
     QWidget,
 )
 
+from ..core import improve, telemetry
 from ..core.served_state import (
-    get_pricing_url,
+    get_privacy_notice_checks,
     get_privacy_notice_heading,
-    get_privacy_notice_rows,
+    get_privacy_notice_toggle,
     get_privacy_url,
     get_terms_url,
 )
 from . import style as S
 from .external_links import open_external_url
 from .font_scale import scale_px_length, scale_qss_font_px
-from .settings_pages import PRIMARY_BTN_QSS
+from .icons import pixmap_for
+from .settings_pages import PRIMARY_BTN_QSS, SettingGroup, SettingRow, Switch
 from .shared import ICONS_DIR, available_screen_rect, tr
 
 DIALOG_W = 500
 SIDE_PAD = 24
-MARK_PX = 52
-BADGE_PX = 34
-GLYPH_PX = 19
+MARK_PX = 44
+CHECK_PX = 16
 FOOTER_TEXT_W = 300
 
 
@@ -78,46 +79,14 @@ def _load_mark(widget, size: int) -> QPixmap | None:
     return None
 
 
-def _glyph(widget, kind: str, color: str) -> QPixmap:
-
-    ratio = widget.devicePixelRatioF() or 1.0
-    side = int(GLYPH_PX * ratio)
-    pixmap = QPixmap(side, side)
-    pixmap.fill(Qt.GlobalColor.transparent)
-    pixmap.setDevicePixelRatio(ratio)
-
-
-
-
-    painter = QPainter(pixmap)
-    painter.setRenderHint(QPainter.RenderHint.Antialiasing, True)
-    pen = QPen(QColor(color))
-    pen.setWidthF(1.6)
-    pen.setCapStyle(Qt.PenCapStyle.RoundCap)
-    pen.setJoinStyle(Qt.PenJoinStyle.RoundJoin)
-    painter.setPen(pen)
-    n = GLYPH_PX
-
-    if kind == "place":
-        painter.drawEllipse(QRectF(2.2, 2.2, n - 4.4, n - 4.4))
-        painter.drawLine(int(2.2), int(n / 2), int(n - 2.2), int(n / 2))
-        painter.drawEllipse(QRectF(n / 2 - 3.4, 2.2, 6.8, n - 4.4))
-    elif kind == "clock":
-        painter.drawEllipse(QRectF(2.2, 2.2, n - 4.4, n - 4.4))
-        painter.drawLine(int(n / 2), int(n / 2), int(n / 2), int(n / 2 - 4))
-        painter.drawLine(int(n / 2), int(n / 2), int(n / 2 + 3), int(n / 2 + 2))
-    else:
-        painter.drawLine(int(2.5), int(n / 2 - 3.5), int(n - 2.5), int(n / 2 - 3.5))
-        painter.drawLine(int(2.5), int(n / 2 + 3.5), int(n - 2.5), int(n / 2 + 3.5))
-        painter.setBrush(QColor(color))
-        painter.drawEllipse(QRectF(n - 8.6, n / 2 - 6.1, 5.2, 5.2))
-        painter.drawEllipse(QRectF(3.4, n / 2 + 0.9, 5.2, 5.2))
-    painter.end()
-    return pixmap
-
-
 class PrivacyNoticeDialog(QDialog):
 
+
+
+
+
+
+    chosen = pyqtSignal(bool)
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -134,7 +103,7 @@ class PrivacyNoticeDialog(QDialog):
         cap_w = (available.width() - 48) if available is not None else scale_px_length(DIALOG_W)
         cap_h = (available.height() - 48) if available is not None else 0
         self._width = max(320, min(scale_px_length(DIALOG_W), cap_w))
-        self._text_width = self._width - 2 * SIDE_PAD - BADGE_PX - 14
+        self._text_width = self._width - 2 * SIDE_PAD - CHECK_PX - 12
         self.setFixedWidth(self._width)
 
         layout = QVBoxLayout(self)
@@ -144,13 +113,14 @@ class PrivacyNoticeDialog(QDialog):
 
 
 
-
         rows = QWidget(self)
         body = QVBoxLayout(rows)
-        body.setContentsMargins(24, 4, 24, 16)
-        body.setSpacing(14)
-        for kind, lead, rest in self._rows():
-            body.addWidget(self._build_row(kind, lead, rest))
+        body.setContentsMargins(24, 4, 24, 18)
+        body.setSpacing(9)
+        for claim in self._checks():
+            body.addWidget(self._build_check(claim))
+        body.addSpacing(6)
+        self._improve = self._build_choice(body, rows)
         scroll = QScrollArea(self)
         scroll.setWidget(rows)
         scroll.setWidgetResizable(True)
@@ -181,7 +151,7 @@ class PrivacyNoticeDialog(QDialog):
 
 
         header = QHBoxLayout()
-        header.setContentsMargins(24, 22, 24, 6)
+        header.setContentsMargins(24, 22, 24, 12)
         header.setSpacing(14)
 
         mark = QLabel(self)
@@ -199,101 +169,59 @@ class PrivacyNoticeDialog(QDialog):
         header.addWidget(heading, 1, Qt.AlignmentFlag.AlignVCenter)
         return header
 
-    def _rows(self):
+    def _checks(self) -> tuple:
 
 
 
 
+        return get_privacy_notice_checks((
+            tr("Your chats are private"),
+            tr("Hosted in the EU"),
+            tr("Never used to train AI"),
+            tr("Deleted after 90 days at most"),
+        ))
 
-
-
-
-
-
-
-        return get_privacy_notice_rows(self._shipped_rows())
-
-    def _shipped_rows(self):
-        return (
-            (
-                "place",
-
-
-
-
-
-                tr("Runs in Europe, stored in France."),
-                tr("Your message and your layer names, never your files. No model "
-                   "is trained on them."),
-            ),
-            (
-                "clock",
-                tr("Your history stays on your computer."),
-
-
-
-
-
-
-
-
-
-
-
-
-                tr("The message you send is the part that reaches us: we keep it "
-                   "90 days to make AI Agent better. On {pro}, no copy at all."),
-            ),
-            (
-                "sliders",
-                tr("Usage stats are on."),
-                tr("They help us fix bugs. You can switch them off in Settings "
-                   "whenever you want."),
-            ),
-        )
-
-    def _build_row(self, kind: str, lead: str, rest: str) -> QFrame:
-        row = QFrame(self)
-        row.setObjectName("privacyNoticeRow")
+    def _build_check(self, claim: str) -> QWidget:
+        row = QWidget(self)
         line = QHBoxLayout(row)
         line.setContentsMargins(0, 0, 0, 0)
-        line.setSpacing(14)
-
-        badge = QLabel(row)
-        badge.setFixedSize(BADGE_PX, BADGE_PX)
-        badge.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        badge.setStyleSheet(
-            f"background: {S.T['accent_tint']};"
-            f"border-radius: {BADGE_PX // 2}px;"
-        )
-        badge.setPixmap(_glyph(self, kind, S.accent_ink()))
-        line.addWidget(badge, 0, Qt.AlignmentFlag.AlignTop)
-
-
-
-        text = QLabel(row)
+        line.setSpacing(12)
+        tick = QLabel(row)
+        tick.setFixedSize(CHECK_PX, CHECK_PX)
+        tick.setPixmap(pixmap_for(tick, "lu.check", CHECK_PX, QColor(S.accent_ink())))
+        line.addWidget(tick, 0, Qt.AlignmentFlag.AlignTop)
+        text = QLabel(claim, row)
         text.setWordWrap(True)
-        text.setTextFormat(Qt.TextFormat.RichText)
-        pro_link = (
-            f'<a style="color:{S.accent_ink()};" href="{get_pricing_url()}">'
-            f'{tr("Pro")}</a>'
-        )
-
-
-
-        safe_lead = html.escape(lead)
-        safe_rest = html.escape(rest).replace("{pro}", pro_link)
-        text.setText(
-            f'<span style="font-weight:600;color:{S.INK};">{safe_lead}</span> '
-            f'<span style="color:{S.INK_2};">{safe_rest}</span>'
-        )
-        text.setStyleSheet(scale_qss_font_px("font-size: 13px;"))
+        text.setTextFormat(Qt.TextFormat.PlainText)
+        text.setStyleSheet(scale_qss_font_px(f"font-size: 13px; font-weight: 600; color: {S.INK};"))
         text.setFixedWidth(self._text_width)
-        text.setTextInteractionFlags(Qt.TextInteractionFlag.LinksAccessibleByMouse)
-        text.setOpenExternalLinks(False)
-        text.linkActivated.connect(lambda url: open_external_url(url, parent=self))
         line.addWidget(text, 1)
         return row
+
+    def _build_choice(self, body: QVBoxLayout, parent: QWidget) -> Switch:
+
+        title, note = get_privacy_notice_toggle(
+            tr("Help improve AI Agent"),
+            tr("Your usage and chats help us fix bugs. Turn it off anytime."))
+        group = SettingGroup(parent)
+        group.setObjectName("privacyNoticeChoices")
+        group.setStyleSheet(
+            f"QFrame#privacyNoticeChoices {{ border: 1px solid {S.LINE}; border-radius: 10px;"
+            " background: transparent; }"
+            "QFrame#privacyNoticeChoices > QFrame#settingsRow { border: none; background: transparent; }")
+        on = telemetry.is_telemetry_enabled() and improve.is_improve_enabled()
+        switch = Switch(group, bool(on))
+        group.add_row(SettingRow(title, note, switch, group))
+        body.addWidget(group)
+        return switch
+
+    def choice(self) -> bool:
+
+        return bool(self._improve.isChecked())
+
+    def accept(self) -> None:
+        self.chosen.emit(self.choice())
+        super().accept()
 
     def _fill_footer(self, footer: QHBoxLayout) -> None:
 

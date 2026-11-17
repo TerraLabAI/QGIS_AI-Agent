@@ -55,7 +55,7 @@ import time
 from qgis.PyQt.QtCore import QCoreApplication
 
 from ..core import code_effects as ce
-from ..core import tuning
+from ..core import datum_choice, tuning
 from ..core.context import _made_here
 from ..core.layer_release import remove_layers
 from ..core.logger import log, log_warning
@@ -609,7 +609,8 @@ class _ExecutorCode:
 
 
 
-            outcome = put_back_in_place(snapshot) or snapshot.restore()
+            with datum_choice.held(choose=False):
+                outcome = put_back_in_place(snapshot) or snapshot.restore()
 
             if isinstance(outcome, dict) and outcome.get("ok") is False:
                 failed = str(outcome.get("message") or "the restore was refused")

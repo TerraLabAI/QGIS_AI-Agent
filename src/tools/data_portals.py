@@ -368,6 +368,76 @@ def _hub_declared_format(declared: str) -> str | None:
     return declared
 
 
+def _hub_link_format(url: str, parts, path: str, last: str, normalised, export_formats: dict,
+                     file_formats: dict) -> str | None:
+
+    export_name = ""
+    for pattern in (_HUB_EXPORT_PATH, _HUB_DOWNLOAD_PATH):
+        match = pattern.search(path)
+        if match:
+            export_name = match.group(1)
+            break
+    if export_name:
+
+
+        return export_formats.get(export_name, "") or None
+    ext = links.extension(url)
+    if ext in file_formats:
+        return file_formats[ext] or ""
+    if ext in (".jsonl", ".ndjson"):
+        return None
+    if ext in (".zip", ".json"):
+        if normalised is None:
+            return None
+        return normalised or ext[1:]
+    fmt = ""
+    for name, value in urllib.parse.parse_qsl(parts.query):
+        if name.lower() == "service" and value.lower() in ("wms", "wfs"):
+            fmt = value.lower()
+            break
+    if not fmt:
+        for name, value in urllib.parse.parse_qsl(parts.query):
+            if name.lower() in ("format", "f", "outputformat"):
+                query_format = _hub_declared_format(value.lower())
+                if query_format in export_formats.values():
+                    fmt = query_format
+                    break
+    file_drop = False
+    if not fmt:
+        for name, value in urllib.parse.parse_qsl(parts.query):
+            if name.lower() not in _HUB_FILE_NAME_PARAMS:
+                continue
+            file_ext = links.extension(value)
+            if file_ext in file_formats:
+                fmt = file_formats[file_ext]
+                break
+            if file_ext in (".jsonl", ".ndjson"):
+                file_drop = True
+                break
+            if file_ext in (".zip", ".json"):
+                if normalised is None:
+                    file_drop = True
+                else:
+                    fmt = normalised or file_ext[1:]
+                break
+    if not fmt:
+        for segment in path.split("/"):
+            token = next((t for t in re.split(r"[_.]", segment) if t in ("wms", "wfs")), "")
+            if not token and segment in ("wmsserver", "wfsserver"):
+                token = segment[:3]
+            if token:
+                fmt = token
+                break
+    if not fmt and normalised in ("wms", "wfs"):
+        capabilities = any(name.lower() == "request" and value.lower() == "getcapabilities"
+                           for name, value in urllib.parse.parse_qsl(parts.query))
+        if last == "ows" or capabilities:
+            fmt = normalised
+    if not fmt and file_drop:
+        return None
+    return fmt or ""
+
+
 def _hub_resources(distributions) -> list:
 
 
@@ -419,74 +489,9 @@ def _hub_resources(distributions) -> list:
         path = parts.path.lower().rstrip("/")
         last = posixpath.basename(path)
 
-        export_name = ""
-        for pattern in (_HUB_EXPORT_PATH, _HUB_DOWNLOAD_PATH):
-            match = pattern.search(path)
-            if match:
-                export_name = match.group(1)
-                break
-        fmt = ""
-        if export_name:
-
-
-            fmt = export_formats.get(export_name, "")
-            if not fmt:
-                continue
-        else:
-            ext = links.extension(url)
-            if ext in file_formats:
-                fmt = file_formats[ext]
-            elif ext in (".jsonl", ".ndjson"):
-                continue
-            elif ext in (".zip", ".json"):
-                if normalised is None:
-                    continue
-                fmt = normalised or ext[1:]
-            else:
-                for name, value in urllib.parse.parse_qsl(parts.query):
-                    if name.lower() == "service" and value.lower() in ("wms", "wfs"):
-                        fmt = value.lower()
-                        break
-                if not fmt:
-                    for name, value in urllib.parse.parse_qsl(parts.query):
-                        if name.lower() in ("format", "f", "outputformat"):
-                            query_format = _hub_declared_format(value.lower())
-                            if query_format in export_formats.values():
-                                fmt = query_format
-                                break
-                file_drop = False
-                if not fmt:
-                    for name, value in urllib.parse.parse_qsl(parts.query):
-                        if name.lower() not in _HUB_FILE_NAME_PARAMS:
-                            continue
-                        file_ext = links.extension(value)
-                        if file_ext in file_formats:
-                            fmt = file_formats[file_ext]
-                            break
-                        if file_ext in (".jsonl", ".ndjson"):
-                            file_drop = True
-                            break
-                        if file_ext in (".zip", ".json"):
-                            if normalised is None:
-                                file_drop = True
-                            else:
-                                fmt = normalised or file_ext[1:]
-                            break
-                if not fmt:
-                    for segment in path.split("/"):
-                        token = next((t for t in re.split(r"[_.]", segment) if t in ("wms", "wfs")), "")
-                        if not token and segment in ("wmsserver", "wfsserver"):
-                            token = segment[:3]
-                        if token:
-                            fmt = token
-                            break
-                if not fmt and normalised in ("wms", "wfs"):
-                    capabilities = any(name.lower() == "request" and value.lower() == "getcapabilities"
-                                       for name, value in urllib.parse.parse_qsl(parts.query))
-                    if last == "ows" or capabilities:
-                        fmt = normalised
-                if not fmt and file_drop:
-                    continue
+        fmt = _hub_link_format(url, parts, path, last, normalised, export_formats, file_formats)
+        if fmt is None:
+            continue
         if not fmt:
             if not from_download:
 
@@ -1004,10 +1009,9 @@ def _stream_capabilities(final_url: str, payload_text: str) -> dict | None:
             for event, element in parser.read_events():
                 tag = element.tag.split("}", 1)[-1]
                 if event == "start":
-                    if not root_name:
-                        root_name = tag.lower()
-                        if root_name not in ("wms_capabilities", "wmt_ms_capabilities", "wfs_capabilities"):
-                            return None
+                    root_name = root_name or tag.lower()
+                    if root_name not in ("wms_capabilities", "wmt_ms_capabilities", "wfs_capabilities"):
+                        return None
                     path.append(tag)
                     if tag in _STREAM_ITEMS:
                         open_items.append(["", ""])

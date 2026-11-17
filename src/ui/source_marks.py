@@ -60,12 +60,13 @@ from ..core.i18n import day_pattern, words_locale
 from ..core.licence import date_text
 from ..core.links import open_data_chip, open_data_label
 from ..core.served_state import get_connectors
+from .cards_click import PressSurface
 from .external_links import open_external_url
 from .font_scale import scale_point_size, scale_px_length, scale_qss_font_px, widget_pixel_ratio
 from .icons import pixmap_for, render_pixmap
 from .library.common import accent_of
 from .library.pictures import source_pixmap, store
-from .shared import event_pos, paint_styled_ground, round_popup_corners
+from .shared import paint_styled_ground, released_on, round_popup_corners
 from .style import (
     DARK,
     FONT_BODY,
@@ -479,33 +480,22 @@ def _clean(items) -> list:
     return out
 
 
-class SourcesButton(QWidget):
+class SourcesButton(PressSurface):
 
 
 
 
 
-
-    clicked = pyqtSignal()
 
     def __init__(self, parent=None):
-        super().__init__(parent)
+        super().__init__(parent, Qt.FocusPolicy.StrongFocus)
         self._items: list = []
         self._hover = False
         self._popover: SourcesPopover | None = None
         self.setCursor(Qt.CursorShape.PointingHandCursor)
         self.setFixedHeight(scale_px_length(24))
-
-
-        self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
+        self.clicked.connect(self.open_popover)
         self.hide()
-
-    def keyPressEvent(self, event):  # noqa: N802
-        if event.key() in (Qt.Key.Key_Return, Qt.Key.Key_Enter, Qt.Key.Key_Space):
-            self.clicked.emit()
-            event.accept()
-            return
-        super().keyPressEvent(event)
 
     def _on_logo_ready(self, url: str) -> None:
         if url in getattr(self, "_logo_urls", ()):
@@ -522,7 +512,7 @@ class SourcesButton(QWidget):
             self._popover = None
         self.setVisible(bool(self._items))
         self.setToolTip(self.tr("Sources of this answer"))
-        self.setAccessibleName(self.tr("Sources of this answer"))
+        self.setAccessibleName(self._label())
         self.updateGeometry()
         self.update()
 
@@ -559,9 +549,9 @@ class SourcesButton(QWidget):
         self.update()
 
     def mouseReleaseEvent(self, event):  # noqa: N802
-        if event.button() == Qt.MouseButton.LeftButton and self.rect().contains(event_pos(event)):
-            self.clicked.emit()
-            self.open_popover()
+        if released_on(self, event):
+            self.click()
+            return
         super().mouseReleaseEvent(event)
 
     def open_popover(self) -> None:
@@ -640,16 +630,13 @@ def credits_text(items) -> str:
     return "\n".join(lines)
 
 
-class _TextButton(QWidget):
+class _TextButton(PressSurface):
 
 
-
-    clicked = pyqtSignal()
 
     def __init__(self, text: str, glyph: str = "", parent=None):
-        super().__init__(parent)
+        super().__init__(parent, Qt.FocusPolicy.StrongFocus)
         self.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
         row = QHBoxLayout(self)
         row.setContentsMargins(0, 2, 0, 2)
         row.setSpacing(4)
@@ -668,6 +655,7 @@ class _TextButton(QWidget):
 
     def set_text(self, text: str) -> None:
         self._words.setText(text)
+        self.setAccessibleName(text)
 
     def set_glyph(self, glyph: str) -> None:
         self._glyph_name = glyph
@@ -698,19 +686,13 @@ class _TextButton(QWidget):
         super().focusOutEvent(event)
         self._paint(self.underMouse())
 
-    def keyPressEvent(self, event):  # noqa: N802
-        if event.key() in (Qt.Key.Key_Return, Qt.Key.Key_Enter, Qt.Key.Key_Space):
-            self.clicked.emit()
-            event.accept()
-            return
-        super().keyPressEvent(event)
-
     def mousePressEvent(self, event):  # noqa: N802
         event.accept()
 
     def mouseReleaseEvent(self, event):  # noqa: N802
-        if event.button() == Qt.MouseButton.LeftButton and self.rect().contains(event_pos(event)):
-            self.clicked.emit()
+        if released_on(self, event):
+            self.click()
+            return
         event.accept()
 
 
@@ -797,14 +779,14 @@ class _SourceDetails(QWidget):
         self.hide()
 
 
-class _SourceRow(QWidget):
+class _SourceRow(PressSurface):
 
 
 
 
 
-    clicked = pyqtSignal(str)
-    toggled = pyqtSignal(bool)
+    link_opened = pyqtSignal(str)
+    unfolded = pyqtSignal(bool)
 
     def __init__(self, item: dict, parent=None):
         super().__init__(parent)
@@ -861,6 +843,7 @@ class _SourceRow(QWidget):
         self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
         self.setAccessibleName(top)
         self.setAccessibleDescription(under)
+        self.clicked.connect(self._activate)
         self.setToolTip(item.get("address") or item["url"])
 
     def _under(self, open_: bool) -> str:
@@ -902,13 +885,13 @@ class _SourceRow(QWidget):
         under = self._under(self._open)
         self._under_label.setText(under)
         self._under_label.setVisible(bool(under))
-        self.toggled.emit(self._open)
+        self.unfolded.emit(self._open)
 
     def _activate(self) -> None:
         if self.expandable:
             self.set_open(not self._open)
         else:
-            self.clicked.emit(self._url)
+            self.link_opened.emit(self._url)
 
     def _paint_chevron(self) -> None:
         self._chevron.setPixmap(pixmap_for(self, "chevron_down" if self._open else "chevron_right",
@@ -937,13 +920,6 @@ class _SourceRow(QWidget):
         if not self.underMouse():
             self._set_hover(False)
 
-    def keyPressEvent(self, event):  # noqa: N802
-        if event.key() in (Qt.Key.Key_Return, Qt.Key.Key_Enter, Qt.Key.Key_Space):
-            self._activate()
-            event.accept()
-            return
-        super().keyPressEvent(event)
-
     def enterEvent(self, event):  # noqa: N802
         super().enterEvent(event)
         self._set_hover(True)
@@ -953,8 +929,9 @@ class _SourceRow(QWidget):
         self._set_hover(self.hasFocus())
 
     def mouseReleaseEvent(self, event):  # noqa: N802
-        if event.button() == Qt.MouseButton.LeftButton and self.rect().contains(event_pos(event)):
-            self._activate()
+        if released_on(self, event):
+            self.click()
+            return
         super().mouseReleaseEvent(event)
 
     def lit(self) -> bool:
@@ -1027,12 +1004,12 @@ class SourcesPopover(QFrame):
         for item in items:
             card = _SourceItem(item, self._list)
             row = card.row
-            row.clicked.connect(self._open)
+            row.link_opened.connect(self._open)
             rows_col.addWidget(card)
             self._rows.append(row)
             if card.details is not None:
                 card.details.open_url.connect(self._open)
-                row.toggled.connect(lambda on, d=card.details, c=card: self._fold(d, on, c))
+                row.unfolded.connect(lambda on, d=card.details, c=card: self._fold(d, on, c))
         rows_col.addStretch(1)
         self._scroll = QScrollArea(self)
         self._scroll.setWidgetResizable(True)

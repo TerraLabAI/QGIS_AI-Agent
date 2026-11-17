@@ -30,7 +30,7 @@ from ..core.qt_compat import enum_member, field_type
 from ..core.security import validate_path
 from ..core.tool_registry import Tool, ToolRegistry, tool_error
 from . import guards
-from ._layers import closest_layers, closest_names, layer_not_found, match_names, resolve_layer_note
+from ._layers import closest_layers, closest_names, layer_not_found, match_names, resolve_layer_note, source_gone_error
 from .persist_tools import agent_layers_made_durable, default_gpkg_path, scratch_layers_summary
 from .save_guard import temp_folder_ready
 
@@ -1201,6 +1201,9 @@ def _saves_over_user_file(args: dict) -> bool:
 def _save_project(args: dict) -> dict:
     from ..core.security import validate_path
     project = QgsProject.instance()
+    gone = layer_order.write_blocked_by(project)
+    if gone is not None:
+        return source_gone_error(gone, writing=True)
     path = args.get("path")
     chosen = ""
     temp_folder_ready("agent")

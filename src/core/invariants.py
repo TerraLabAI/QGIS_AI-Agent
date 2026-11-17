@@ -590,9 +590,11 @@ def clip_extent(algorithm_id: str, parameters: dict, output_layer, overlay_layer
     try:
         from qgis.core import QgsCoordinateTransform, QgsProject
 
-        out_extent = output_layer.extent()
-        clip = overlay_layer.extent()
-        if out_extent.isEmpty() or clip.isEmpty():
+        from .layer_order import extent_known
+
+        out_extent = extent_known(output_layer)
+        clip = extent_known(overlay_layer)
+        if out_extent is None or clip is None or out_extent.isEmpty() or clip.isEmpty():
             return None
         if overlay_layer.crs() != output_layer.crs() and overlay_layer.crs().isValid() and output_layer.crs().isValid():
             clip = QgsCoordinateTransform(overlay_layer.crs(), output_layer.crs(),

@@ -1907,6 +1907,82 @@ Die Löschung ist endgültig, sobald die Kulanzfrist abgelaufen ist. Bis dahin k
             <source>{words} · {done} of {total}</source>
             <translation>{words} · {done} von {total}</translation>
         </message>
+        <message>
+            <source>Allow chat review</source>
+            <translation>Chat-Prüfung erlauben</translation>
+        </message>
+        <message>
+            <source>Both switches stay in Settings, where you can change them whenever you want.</source>
+            <translation>Beide Schalter bleiben in den Einstellungen, wo Sie sie jederzeit ändern können.</translation>
+        </message>
+        <message>
+            <source>Counts and error codes, linked to your account. Never your text or your map.</source>
+            <translation>Zählwerte und Fehlercodes, verknüpft mit Ihrem Konto. Nie Ihr Text oder Ihre Karte.</translation>
+        </message>
+        <message>
+            <source>Each message sends your text, the map extent, your layer and field names, one sample row and, while it works, pictures of the map. Never your files unless you attach them. No model is trained on them.</source>
+            <translation>Jede Nachricht sendet Ihren Text, den Kartenausschnitt, die Namen Ihrer Layer und Felder, eine Beispielzeile und, während der KI-Agent arbeitet, Bilder der Karte. Nie Ihre Dateien, es sei denn, Sie hängen sie an. Kein Modell wird damit trainiert.</translation>
+        </message>
+        <message>
+            <source>Our team may read your chats to fix the AI agent.</source>
+            <translation>Unser Team darf Ihre Chats lesen, um den KI-Agenten zu verbessern.</translation>
+        </message>
+        <message>
+            <source>Runs on Microsoft Azure in Europe, stored in France.</source>
+            <translation>Läuft auf Microsoft Azure in Europa, gespeichert in Frankreich.</translation>
+        </message>
+        <message>
+            <source>Share usage statistics</source>
+            <translation>Nutzungsstatistiken teilen</translation>
+        </message>
+        <message>
+            <source>The message you send is the part that reaches us: we keep it 90 days, and with chat review on, our team may read it to fix the AI agent. On {pro}, 30 days, or none at 0 days of history.</source>
+            <translation>Die Nachricht, die Sie senden, ist der Teil, der uns erreicht: Wir bewahren sie 90 Tage auf, und bei aktiver Chat-Prüfung darf unser Team sie lesen, um den KI-Agenten zu verbessern. Mit {pro} sind es 30 Tage, oder keine bei 0 Tagen Verlauf.</translation>
+        </message>
+        <message>
+            <source>You choose below.</source>
+            <translation>Sie entscheiden unten.</translation>
+        </message>
+        <message>
+            <source>Close the open list</source>
+            <translation>Geöffnete Liste schließen</translation>
+        </message>
+        <message>
+            <source>Press it twice</source>
+            <translation>Zweimal drücken</translation>
+        </message>
+        <message>
+            <source>Deleted after 90 days at most</source>
+            <translation>Nach höchstens 90 Tagen gelöscht</translation>
+        </message>
+        <message>
+            <source>Help improve AI Agent</source>
+            <translation>AI Agent verbessern helfen</translation>
+        </message>
+        <message>
+            <source>Hosted in the EU</source>
+            <translation>In der EU gehostet</translation>
+        </message>
+        <message>
+            <source>Never used to train AI</source>
+            <translation>Nie zum Training von KI verwendet</translation>
+        </message>
+        <message>
+            <source>Your chats are private</source>
+            <translation>Ihre Chats sind privat</translation>
+        </message>
+        <message>
+            <source>Your usage and chats help us fix bugs. Turn it off anytime.</source>
+            <translation>Ihre Nutzung und Ihre Chats helfen uns, Fehler zu beheben. Sie können das jederzeit abschalten.</translation>
+        </message>
+        <message>
+            <source>included</source>
+            <translation>enthalten</translation>
+        </message>
+        <message>
+            <source>left out</source>
+            <translation>ausgelassen</translation>
+        </message>
     </context>
     <context>
         <name>AIAgentContext</name>
@@ -2071,6 +2147,10 @@ Die Löschung ist endgültig, sobald die Kulanzfrist abgelaufen ist. Bis dahin k
         <message>
             <source>The AI agent stopped before finishing.</source>
             <translation>Der Agent wurde gestoppt, bevor er fertig war.</translation>
+        </message>
+        <message>
+            <source>This layer's file can no longer be read, so the map cannot zoom to it.</source>
+            <translation>Die Datei dieses Layers kann nicht mehr gelesen werden, daher kann die Karte nicht darauf zoomen.</translation>
         </message>
     </context>
     <context>
@@ -2536,6 +2616,10 @@ Die Löschung ist endgültig, sobald die Kulanzfrist abgelaufen ist. Bis dahin k
             <source>{words} · {done} of {total}</source>
             <translation>{words} · {done} von {total}</translation>
         </message>
+        <message>
+            <source>Show on map</source>
+            <translation>Auf Karte zeigen</translation>
+        </message>
     </context>
     <context>
         <name>AgentBubble</name>
@@ -2583,6 +2667,18 @@ Die Löschung ist endgültig, sobald die Kulanzfrist abgelaufen ist. Bis dahin k
         <message>
             <source>Remove rating</source>
             <translation>Bewertung entfernen</translation>
+        </message>
+        <message>
+            <source>Did this do what you wanted?</source>
+            <translation>Hat das geklappt?</translation>
+        </message>
+        <message>
+            <source>No</source>
+            <translation>Nein</translation>
+        </message>
+        <message>
+            <source>Yes</source>
+            <translation>Ja</translation>
         </message>
     </context>
     <context>
@@ -3008,6 +3104,26 @@ Die Löschung ist endgültig, sobald die Kulanzfrist abgelaufen ist. Bis dahin k
             <source>Stopped: AI Agent was updated or turned off during this run.</source>
             <translation>Gestoppt: AI Agent wurde während dieses Laufs aktualisiert oder deaktiviert.</translation>
         </message>
+        <message>
+            <source>Not sent: TerraLab is not connected.</source>
+            <translation>Nicht gesendet: TerraLab ist nicht verbunden.</translation>
+        </message>
+        <message>
+            <source>Thanks. Your note went with the crash report.</source>
+            <translation>Danke. Ihre Notiz wurde mit dem Absturzbericht gesendet.</translation>
+        </message>
+        <message>
+            <source>{layer} lost its file, and QGIS closes when it saves a project that holds it, so nothing was restored. Remove {layer} from the project, or put its file back and turn its editing on and off once, then try again.</source>
+            <translation>Die Datei von {layer} ist verloren gegangen, und QGIS beendet sich beim Speichern eines Projekts, das diesen Layer enthält. Deshalb wurde nichts wiederhergestellt. Entfernen Sie {layer} aus dem Projekt, oder legen Sie die Datei zurück und schalten Sie den Bearbeitungsmodus einmal ein und wieder aus. Versuchen Sie es dann erneut.</translation>
+        </message>
+        <message>
+            <source>Your note could not be added to the crash report.</source>
+            <translation>Ihre Notiz konnte dem Absturzbericht nicht hinzugefügt werden.</translation>
+        </message>
+        <message>
+            <source>Your note was sent.</source>
+            <translation>Ihre Notiz wurde gesendet.</translation>
+        </message>
     </context>
     <context>
         <name>AgentSession</name>
@@ -3156,6 +3272,10 @@ Die Löschung ist endgültig, sobald die Kulanzfrist abgelaufen ist. Bis dahin k
     </context>
     <context>
         <name>ChatPanel</name>
+        <message>
+            <source>Try another card</source>
+            <translation>Andere Karte nutzen</translation>
+        </message>
         <message>
             <source>Changed {0} to {1}</source>
             <translation>{0} auf {1} geändert</translation>
@@ -3423,6 +3543,14 @@ Die Löschung ist endgültig, sobald die Kulanzfrist abgelaufen ist. Bis dahin k
         <message>
             <source>Reply</source>
             <translation>Antworten</translation>
+        </message>
+        <message>
+            <source>Esc again to stop</source>
+            <translation>Erneut Esc zum Stoppen</translation>
+        </message>
+        <message>
+            <source>Queue a message for after this run</source>
+            <translation>Nachricht für nach diesem Lauf vormerken</translation>
         </message>
     </context>
     <context>
@@ -3746,6 +3874,72 @@ Die Löschung ist endgültig, sobald die Kulanzfrist abgelaufen ist. Bis dahin k
             <source>Finish dictation</source>
             <translation>Diktat beenden</translation>
         </message>
+        <message>
+            <location filename="src/ui/composer.py" />
+            <source>{name} was removed from the project</source>
+            <translation>{name} wurde aus dem Projekt entfernt</translation>
+        </message>
+        <message>
+            <location filename="src/ui/composer.py" />
+            <source>{name} is now called {new}</source>
+            <translation>{name} heißt jetzt {new}</translation>
+        </message>
+        <message>
+            <location filename="src/ui/composer.py" />
+            <source>{names} were removed from the project</source>
+            <translation>{names} wurden aus dem Projekt entfernt</translation>
+        </message>
+        <message>
+            <location filename="src/ui/composer.py" />
+            <source>{n} layers named here were removed or renamed</source>
+            <translation>{n} hier genannte Layer wurden entfernt oder umbenannt</translation>
+        </message>
+        <message>
+            <location filename="src/ui/composer.py" />
+            <source>Sent as plain words: the AI agent gets no link to the layer.</source>
+            <translation>Wird als einfacher Text gesendet: Der KI-Agent erhält keine Verknüpfung zum Layer.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/composer.py" />
+            <source>removed from the project</source>
+            <translation>aus dem Projekt entfernt</translation>
+        </message>
+        <message>
+            <location filename="src/ui/composer.py" />
+            <source>renamed {new}</source>
+            <translation>umbenannt in {new}</translation>
+        </message>
+        <message>
+            <location filename="src/ui/composer.py" />
+            <source>Use</source>
+            <translation>Übernehmen</translation>
+        </message>
+        <message>
+            <location filename="src/ui/composer.py" />
+            <source>Write {new} in the message instead</source>
+            <translation>Stattdessen {new} in die Nachricht schreiben</translation>
+        </message>
+        <message>
+            <location filename="src/ui/composer.py" />
+            <source>and {n} more</source>
+            <translation>und {n} weitere</translation>
+        </message>
+        <message>
+            <source>1 layer</source>
+            <translation>1 Layer</translation>
+        </message>
+        <message>
+            <source>Edit as text</source>
+            <translation>Als Text bearbeiten</translation>
+        </message>
+        <message>
+            <source>Show on map</source>
+            <translation>Auf Karte zeigen</translation>
+        </message>
+        <message>
+            <source>{n} layers</source>
+            <translation>{n} Layer</translation>
+        </message>
     </context>
     <context>
         <name>ComposerInput</name>
@@ -3762,6 +3956,14 @@ Die Löschung ist endgültig, sobald die Kulanzfrist abgelaufen ist. Bis dahin k
         <message>
             <source>Data sources</source>
             <translation>Datenquellen</translation>
+        </message>
+        <message>
+            <source>Type to search layers, data sources and QGIS plugins</source>
+            <translation>Tippen, um Layer, Datenquellen und QGIS-Plugins zu suchen</translation>
+        </message>
+        <message>
+            <source>Message AI Agent</source>
+            <translation>Nachricht an AI Agent</translation>
         </message>
     </context>
     <context>
@@ -4305,6 +4507,18 @@ Die Löschung ist endgültig, sobald die Kulanzfrist abgelaufen ist. Bis dahin k
             <source>Your Pro ends on {date}. Keep it in one click.</source>
             <translation>Ihr Pro endet am {date}. Mit einem Klick behalten.</translation>
         </message>
+        <message>
+            <source>AI Agent settings</source>
+            <translation>Einstellungen für AI Agent</translation>
+        </message>
+        <message>
+            <source>Close AI Agent</source>
+            <translation>AI Agent schließen</translation>
+        </message>
+        <message>
+            <source>Dock or undock AI Agent</source>
+            <translation>AI Agent andocken oder abdocken</translation>
+        </message>
     </context>
     <context>
         <name>HistoryPopup</name>
@@ -4403,6 +4617,19 @@ Die Löschung ist endgültig, sobald die Kulanzfrist abgelaufen ist. Bis dahin k
         <message>
             <source>This deletes "{title}" and the project versions saved with it. It cannot be undone.</source>
             <translation>Dadurch werden "{title}" und die dazu gespeicherten Projektversionen gelöscht. Das kann nicht rückgängig gemacht werden.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/history_popup.py" />
+            <source>Draft</source>
+            <translation>Entwurf</translation>
+        </message>
+        <message>
+            <source>Delete chat: {title}</source>
+            <translation>Chat löschen: {title}</translation>
+        </message>
+        <message>
+            <source>Open</source>
+            <translation>Öffnen</translation>
         </message>
     </context>
     <context>
@@ -4744,10 +4971,6 @@ Klicken, um die zugehörige Seite zu öffnen.</translation>
             <translation>Nicht in diesem Projekt: {}</translation>
         </message>
         <message>
-            <source>Other effects the preview could not read: {}</source>
-            <translation>Weitere Auswirkungen, die die Vorschau nicht lesen konnte: {}</translation>
-        </message>
-        <message>
             <source>Reads: {}</source>
             <translation>Liest: {}</translation>
         </message>
@@ -4758,6 +4981,94 @@ Klicken, um die zugehörige Seite zu öffnen.</translation>
         <message>
             <source>Writes files: {}</source>
             <translation>Schreibt Dateien: {}</translation>
+        </message>
+        <message>
+            <source>Cancel</source>
+            <translation>Abbrechen</translation>
+        </message>
+        <message>
+            <source>Delete 1 feature from {layer}</source>
+            <translation>1 Objekt aus {layer} löschen</translation>
+        </message>
+        <message>
+            <source>Delete {n}</source>
+            <translation>{n} löschen</translation>
+        </message>
+        <message>
+            <source>Delete {n} features from {layer}</source>
+            <translation>{n} Objekte aus {layer} löschen</translation>
+        </message>
+        <message>
+            <source>Details</source>
+            <translation>Details</translation>
+        </message>
+        <message>
+            <source>Feature ids: {ids}</source>
+            <translation>Objekt-IDs: {ids}</translation>
+        </message>
+        <message>
+            <source>Feature ids: {ids} and {n} more</source>
+            <translation>Objekt-IDs: {ids} und {n} weitere</translation>
+        </message>
+        <message>
+            <source>Feature {fid}: {values}</source>
+            <translation>Objekt {fid}: {values}</translation>
+        </message>
+        <message>
+            <source>Hatched in red on the map. Its data source stays as it is; nothing is removed yet.</source>
+            <translation>Auf der Karte rot schraffiert. Die Datenquelle bleibt unverändert; es wird noch nichts entfernt.</translation>
+        </message>
+        <message>
+            <source>Hatched in red on the map. Nothing is deleted yet.</source>
+            <translation>Auf der Karte rot schraffiert. Es wird noch nichts gelöscht.</translation>
+        </message>
+        <message>
+            <source>Hatched in red on the map. Nothing is written yet.</source>
+            <translation>Auf der Karte rot schraffiert. Es wird noch nichts geschrieben.</translation>
+        </message>
+        <message>
+            <source>Hide details</source>
+            <translation>Details ausblenden</translation>
+        </message>
+        <message>
+            <source>Its features exist only in this project and go with it. Hatched in red on the map; nothing is removed yet.</source>
+            <translation>Seine Objekte existieren nur in diesem Projekt und gehen mit ihm verloren. Auf der Karte rot schraffiert; es wird noch nichts entfernt.</translation>
+        </message>
+        <message>
+            <source>Overwrite 1 feature of {layer}</source>
+            <translation>1 Objekt von {layer} überschreiben</translation>
+        </message>
+        <message>
+            <source>Overwrite {n}</source>
+            <translation>{n} überschreiben</translation>
+        </message>
+        <message>
+            <source>Overwrite {n} features of {layer}</source>
+            <translation>{n} Objekte von {layer} überschreiben</translation>
+        </message>
+        <message>
+            <source>Remove layer</source>
+            <translation>Layer entfernen</translation>
+        </message>
+        <message>
+            <source>Remove {layer} from the project</source>
+            <translation>{layer} aus dem Projekt entfernen</translation>
+        </message>
+        <message>
+            <source>Rule: {expression}</source>
+            <translation>Regel: {expression}</translation>
+        </message>
+        <message>
+            <source>Show on map</source>
+            <translation>Auf Karte zeigen</translation>
+        </message>
+        <message>
+            <source>{n} features in {layer}</source>
+            <translation>{n} Objekte in {layer}</translation>
+        </message>
+        <message>
+            <source>{n} of {total} features in {layer}</source>
+            <translation>{n} von {total} Objekten in {layer}</translation>
         </message>
     </context>
     <context>
@@ -4978,6 +5289,18 @@ Klicken, um die zugehörige Seite zu öffnen.</translation>
     </context>
     <context>
         <name>QuotaCard</name>
+        <message>
+            <source>Card declined</source>
+            <translation>Karte abgelehnt</translation>
+        </message>
+        <message>
+            <source>Your trial didn't start. Nothing was charged.</source>
+            <translation>Ihre Testphase hat nicht begonnen. Es wurde nichts abgebucht.</translation>
+        </message>
+        <message>
+            <source>Try another card</source>
+            <translation>Andere Karte nutzen</translation>
+        </message>
         <message>
             <location filename="src/ui/quota_card.py" />
             <source>Free for 7 days, nothing to pay today, then monthly at your local price. Cancel in one click.</source>
@@ -6116,6 +6439,22 @@ Vielen Dank</translation>
             <source>The AI agent's mark moves and follows the work. Off keeps it still.</source>
             <translation>Das Zeichen des KI-Agents bewegt sich und folgt der Arbeit. Ausgeschaltet bleibt es still.</translation>
         </message>
+        <message>
+            <source>Help improve AI Agent</source>
+            <translation>AI Agent verbessern helfen</translation>
+        </message>
+        <message>
+            <source>Usage stats: errors, versions and the features you use, never your prompts, layers or files. We may read a chat, or have a model score it, to fix bugs, never to train AI.</source>
+            <translation>Nutzungsstatistiken: Fehler, Versionen und die genutzten Funktionen, nie Ihre Prompts, Ebenen oder Dateien. Wir dürfen einen Chat lesen oder von einem Modell bewerten lassen, um Fehler zu beheben, nie zum Training von KI.</translation>
+        </message>
+        <message>
+            <source>Usage stats: only that you used the app and when. Chats are kept 30 days so a conversation survives an update; we may read one, or have a model score it, to fix bugs, never to train AI. 0 days of history stores nothing.</source>
+            <translation>Nutzungsstatistiken: nur, dass und wann Sie die App genutzt haben. Chats werden 30 Tage aufbewahrt, damit eine Unterhaltung ein Update übersteht. Wir dürfen einen lesen oder von einem Modell bewerten lassen, um Fehler zu beheben, nie zum Training von KI. Bei 0 Tagen Verlauf wird nichts gespeichert.</translation>
+        </message>
+        <message>
+            <source>Your usage and chats help us fix bugs. Turn it off anytime.</source>
+            <translation>Ihre Nutzung und Ihre Chats helfen uns, Fehler zu beheben. Sie können das jederzeit abschalten.</translation>
+        </message>
     </context>
     <context>
         <name>SourcesButton</name>
@@ -6533,6 +6872,10 @@ Vielen Dank</translation>
             <source>{area} m²</source>
             <translation>{area} m²</translation>
         </message>
+        <message>
+            <source>Always allowed</source>
+            <translation>Immer erlaubt</translation>
+        </message>
     </context>
     <context>
         <name>TraceSteps</name>
@@ -6827,6 +7170,10 @@ Vielen Dank</translation>
         <message>
             <source>Updating…</source>
             <translation>Wird aktualisiert…</translation>
+        </message>
+        <message>
+            <source>Update {product} to continue</source>
+            <translation>Aktualisieren Sie {product}, um fortzufahren</translation>
         </message>
     </context>
     <context>
@@ -7874,6 +8221,18 @@ Diese Datei liegt nicht mehr dort, wo die Ausführung sie abgelegt hat.</transla
             <source>Choose in Google Drive</source>
             <translation>In Google Drive auswählen</translation>
         </message>
+        <message>
+            <source>More ways to allow</source>
+            <translation>Weitere Möglichkeiten zum Erlauben</translation>
+        </message>
+        <message>
+            <source>Always allow {label}</source>
+            <translation>{label} immer erlauben</translation>
+        </message>
+        <message>
+            <source>Always allowed</source>
+            <translation>Immer erlaubt</translation>
+        </message>
     </context>
     <context>
         <name>ConnectedAccountsPage</name>
@@ -7980,6 +8339,18 @@ Diese Datei liegt nicht mehr dort, wo die Ausführung sie abgelegt hat.</transla
         <message>
             <source>{name} sign-in</source>
             <translation>{name}-Anmeldung</translation>
+        </message>
+        <message>
+            <source>Always allow</source>
+            <translation>Immer erlauben</translation>
+        </message>
+        <message>
+            <source>Always allow {label}</source>
+            <translation>{label} immer erlauben</translation>
+        </message>
+        <message>
+            <source>Used with no card each time. Off: the AI agent asks first.</source>
+            <translation>Wird jedes Mal ohne Karte verwendet. Aus: Der KI-Agent fragt zuerst.</translation>
         </message>
     </context>
     <context>
@@ -8127,6 +8498,14 @@ Diese Datei liegt nicht mehr dort, wo die Ausführung sie abgelegt hat.</transla
         <message>
             <source>Show the plugin's panel.</source>
             <translation>Zeigt das Panel des Plugins an.</translation>
+        </message>
+        <message>
+            <source>Install {plugin}</source>
+            <translation>{plugin} installieren</translation>
+        </message>
+        <message>
+            <source>Open {plugin}</source>
+            <translation>{plugin} öffnen</translation>
         </message>
     </context>
     <context>
@@ -8554,6 +8933,54 @@ Diese Datei liegt nicht mehr dort, wo die Ausführung sie abgelegt hat.</transla
             <source>QGIS will ask you to choose a master password. It locks every sign-in saved in QGIS and cannot be recovered, so keep it somewhere safe.</source>
             <translation>QGIS fordert Sie auf, ein Master-Passwort zu wählen. Es sperrt alle in QGIS gespeicherten Anmeldungen und kann nicht wiederhergestellt werden. Bewahren Sie es daher an einem sicheren Ort auf.</translation>
         </message>
+        <message>
+            <source>Cloud project ID</source>
+            <translation>Cloud-Projekt-ID</translation>
+        </message>
+        <message>
+            <source>Shown next to the project name at the top of console.cloud.google.com.</source>
+            <translation>Steht oben auf console.cloud.google.com neben dem Projektnamen.</translation>
+        </message>
+        <message>
+            <source>Type the ID of the Google Cloud project Earth Engine runs on.</source>
+            <translation>Gib die ID des Google Cloud Projekts ein, auf dem Earth Engine läuft.</translation>
+        </message>
+        <message>
+            <source>Open the Cloud console</source>
+            <translation>Cloud console öffnen</translation>
+        </message>
+        <message>
+            <source>You're signed in</source>
+            <translation>Du bist angemeldet</translation>
+        </message>
+        <message>
+            <source>You can close this tab and return to QGIS.</source>
+            <translation>Du kannst diesen Tab schließen und zu QGIS zurückkehren.</translation>
+        </message>
+        <message>
+            <source>In QGIS, pick the Cloud project Earth Engine runs on.</source>
+            <translation>Wähle in QGIS das Cloud-Projekt, auf dem Earth Engine läuft.</translation>
+        </message>
+        <message>
+            <source>Sign-in didn't finish</source>
+            <translation>Anmeldung nicht abgeschlossen</translation>
+        </message>
+        <message>
+            <source>Close this tab and try again from QGIS.</source>
+            <translation>Schließe diesen Tab und versuche es in QGIS erneut.</translation>
+        </message>
+        <message>
+            <source>Checking {project} with Earth Engine...</source>
+            <translation>{project} wird mit Earth Engine geprüft...</translation>
+        </message>
+        <message>
+            <source>Earth Engine refused the project {project} ({error}). Check the ID and your role on the project.</source>
+            <translation>Earth Engine hat das Projekt {project} abgelehnt ({error}). Prüfe die ID und deine Rolle im Projekt.</translation>
+        </message>
+        <message>
+            <source>Earth Engine could not be reached ({error}). Check your connection or the proxy in QGIS (Settings &gt; Options &gt; Network).</source>
+            <translation>Earth Engine ist nicht erreichbar ({error}). Prüfen Sie Ihre Verbindung oder den Proxy in QGIS (Einstellungen &gt; Optionen &gt; Netzwerk).</translation>
+        </message>
     </context>
     <context>
         <name>BrowserWait</name>
@@ -8926,6 +9353,22 @@ Diese Datei liegt nicht mehr dort, wo die Ausführung sie abgelegt hat.</transla
             <source>Your words are sent with this chat and recent logs.</source>
             <translation>Der Text wird mit diesem Chat und den letzten Logs gesendet.</translation>
         </message>
+        <message>
+            <source>Add a comment</source>
+            <translation>Kommentar hinzufügen</translation>
+        </message>
+        <message>
+            <source>Ask the AI agent instead</source>
+            <translation>Stattdessen den KI-Agenten fragen</translation>
+        </message>
+        <message>
+            <source>Message to the TerraLab team (optional)</source>
+            <translation>Nachricht an das TerraLab-Team (optional)</translation>
+        </message>
+        <message>
+            <source>Read by the TerraLab team, not by the AI agent. Sent with this chat and recent logs.</source>
+            <translation>Wird vom TerraLab-Team gelesen, nicht vom KI-Agenten. Wird mit diesem Chat und den letzten Protokollen gesendet.</translation>
+        </message>
     </context>
     <context>
         <name>NoteRow</name>
@@ -9141,6 +9584,295 @@ Diese Datei liegt nicht mehr dort, wo die Ausführung sie abgelegt hat.</transla
         <message>
             <source>Recording</source>
             <translation>Aufnahme</translation>
+        </message>
+    </context>
+    <context>
+        <name>TransformationRow</name>
+        <message>
+            <source>A more accurate one ({accuracy}) needs a grid file this QGIS does not have.</source>
+            <translation>Eine genauere ({accuracy}) braucht eine Gitterdatei, die dieses QGIS nicht hat.</translation>
+        </message>
+        <message>
+            <source>Change in Project Properties</source>
+            <translation>In den Projekteigenschaften ändern</translation>
+        </message>
+        <message>
+            <source>Coordinate transformation: {what}</source>
+            <translation>Koordinatentransformation: {what}</translation>
+        </message>
+        <message>
+            <source>Hide details</source>
+            <translation>Details ausblenden</translation>
+        </message>
+        <message>
+            <source>Show details</source>
+            <translation>Details anzeigen</translation>
+        </message>
+        <message>
+            <source>The other option is no more accurate.</source>
+            <translation>Die andere Option ist nicht genauer.</translation>
+        </message>
+        <message>
+            <source>The {count} other options are no more accurate.</source>
+            <translation>Die {count} anderen Optionen sind nicht genauer.</translation>
+        </message>
+        <message>
+            <source>Transformation</source>
+            <translation>Transformation</translation>
+        </message>
+        <message>
+            <source>{count} transformations</source>
+            <translation>{count} Transformationen</translation>
+        </message>
+        <message>
+            <source>{layer} goes from {source} to {target} through {operation}, accurate to about {accuracy}.</source>
+            <translation>{layer} wird über {operation} von {source} nach {target} umgerechnet, mit einer Genauigkeit von etwa {accuracy}.</translation>
+        </message>
+        <message>
+            <source>{layer} goes from {source} to {target} through {operation}, of unknown accuracy.</source>
+            <translation>{layer} wird über {operation} von {source} nach {target} umgerechnet, mit unbekannter Genauigkeit.</translation>
+        </message>
+    </context>
+    <context>
+        <name>SelectionLine</name>
+        <message>
+            <source>Leave the selection out of this message</source>
+            <translation>Auswahl aus dieser Nachricht ausnehmen</translation>
+        </message>
+        <message>
+            <source>The AI agent sees this selection with your message, along with the map view and the project's layers.</source>
+            <translation>Der AI Agent sieht diese Auswahl zusammen mit der Nachricht sowie die Kartenansicht und die Layer des Projekts.</translation>
+        </message>
+        <message>
+            <source>{layer} · 1 feature selected</source>
+            <translation>{layer} · 1 Objekt ausgewählt</translation>
+        </message>
+        <message>
+            <source>{layer} · {n} features selected</source>
+            <translation>{layer} · {n} Objekte ausgewählt</translation>
+        </message>
+    </context>
+    <context>
+        <name>_Row</name>
+        <message>
+            <location filename="src/ui/sidebar.py" />
+            <source>Draft</source>
+            <translation>Entwurf</translation>
+        </message>
+        <message>
+            <source>Open</source>
+            <translation>Öffnen</translation>
+        </message>
+    </context>
+    <context>
+        <name>GeoPaste</name>
+        <message>
+            <source>1 feature</source>
+            <translation>1 Objekt</translation>
+        </message>
+        <message>
+            <source>1 vertex</source>
+            <translation>1 Stützpunkt</translation>
+        </message>
+        <message>
+            <source>ArcGIS FeatureServer</source>
+            <translation>ArcGIS FeatureServer</translation>
+        </message>
+        <message>
+            <source>ArcGIS ImageServer</source>
+            <translation>ArcGIS ImageServer</translation>
+        </message>
+        <message>
+            <source>ArcGIS MapServer</source>
+            <translation>ArcGIS MapServer</translation>
+        </message>
+        <message>
+            <source>FlatGeobuf file</source>
+            <translation>FlatGeobuf-Datei</translation>
+        </message>
+        <message>
+            <source>GeoJSON file</source>
+            <translation>GeoJSON-Datei</translation>
+        </message>
+        <message>
+            <source>GeoPackage file</source>
+            <translation>GeoPackage-Datei</translation>
+        </message>
+        <message>
+            <source>GeoTIFF (COG)</source>
+            <translation>GeoTIFF (COG)</translation>
+        </message>
+        <message>
+            <source>Geometry</source>
+            <translation>Geometrie</translation>
+        </message>
+        <message>
+            <source>KML file</source>
+            <translation>KML-Datei</translation>
+        </message>
+        <message>
+            <source>Line</source>
+            <translation>Linie</translation>
+        </message>
+        <message>
+            <source>Multiline</source>
+            <translation>Multilinie</translation>
+        </message>
+        <message>
+            <source>Multipoint</source>
+            <translation>Multipunkt</translation>
+        </message>
+        <message>
+            <source>Multipolygon</source>
+            <translation>Multipolygon</translation>
+        </message>
+        <message>
+            <source>OGC API Features</source>
+            <translation>OGC API Features</translation>
+        </message>
+        <message>
+            <source>PMTiles</source>
+            <translation>PMTiles</translation>
+        </message>
+        <message>
+            <source>Parquet file</source>
+            <translation>Parquet-Datei</translation>
+        </message>
+        <message>
+            <source>Pasted text</source>
+            <translation>Eingefügter Text</translation>
+        </message>
+        <message>
+            <source>Point</source>
+            <translation>Punkt</translation>
+        </message>
+        <message>
+            <source>Point cloud</source>
+            <translation>Punktwolke</translation>
+        </message>
+        <message>
+            <source>Point · WGS 84</source>
+            <translation>Punkt · WGS 84</translation>
+        </message>
+        <message>
+            <source>Polygon</source>
+            <translation>Polygon</translation>
+        </message>
+        <message>
+            <source>STAC catalog</source>
+            <translation>STAC-Katalog</translation>
+        </message>
+        <message>
+            <source>Vector tiles</source>
+            <translation>Vektorkacheln</translation>
+        </message>
+        <message>
+            <source>WCS service</source>
+            <translation>WCS-Dienst</translation>
+        </message>
+        <message>
+            <source>WFS service</source>
+            <translation>WFS-Dienst</translation>
+        </message>
+        <message>
+            <source>WMS service</source>
+            <translation>WMS-Dienst</translation>
+        </message>
+        <message>
+            <source>WMTS service</source>
+            <translation>WMTS-Dienst</translation>
+        </message>
+        <message>
+            <source>XYZ tiles</source>
+            <translation>XYZ-Kacheln</translation>
+        </message>
+        <message>
+            <source>{n} characters</source>
+            <translation>{n} Zeichen</translation>
+        </message>
+        <message>
+            <source>{n} features</source>
+            <translation>{n} Objekte</translation>
+        </message>
+        <message>
+            <source>{n} lines</source>
+            <translation>{n} Zeilen</translation>
+        </message>
+        <message>
+            <source>{n} vertices</source>
+            <translation>{n} Stützpunkte</translation>
+        </message>
+        <message>
+            <source>{shape} GeoJSON</source>
+            <translation>{shape} (GeoJSON)</translation>
+        </message>
+        <message>
+            <source>{shape} WKT</source>
+            <translation>{shape} (WKT)</translation>
+        </message>
+    </context>
+    <context>
+        <name>CrashCommentBar</name>
+        <message>
+            <source>Dismiss</source>
+            <translation>Schließen</translation>
+        </message>
+        <message>
+            <source>Example: I had the attribute table open and pressed Save</source>
+            <translation>Beispiel: Ich hatte die Attributtabelle geöffnet und auf Speichern geklickt</translation>
+        </message>
+        <message>
+            <source>QGIS closed unexpectedly</source>
+            <translation>QGIS wurde unerwartet beendet</translation>
+        </message>
+        <message>
+            <source>Send</source>
+            <translation>Senden</translation>
+        </message>
+        <message>
+            <source>The crash report was sent. What were you doing just before?</source>
+            <translation>Der Absturzbericht wurde gesendet. Was haben Sie kurz davor gemacht?</translation>
+        </message>
+        <message>
+            <source>Not sent. Press Send to try again.</source>
+            <translation>Nicht gesendet. Drücken Sie auf Senden, um es erneut zu versuchen.</translation>
+        </message>
+    </context>
+    <context>
+        <name>_ModeRow</name>
+        <message>
+            <source>Locked: {tag}</source>
+            <translation>Gesperrt: {tag}</translation>
+        </message>
+        <message>
+            <source>Selected</source>
+            <translation>Ausgewählt</translation>
+        </message>
+    </context>
+    <context>
+        <name>_RowText</name>
+        <message>
+            <source>Edit this queued message</source>
+            <translation>Diese wartende Nachricht bearbeiten</translation>
+        </message>
+    </context>
+    <context>
+        <name>_StopNames</name>
+        <message>
+            <source>Effort: {level}</source>
+            <translation>Aufwand: {level}</translation>
+        </message>
+        <message>
+            <source>Locked until the end of the free trial</source>
+            <translation>Gesperrt bis zum Ende der kostenlosen Testphase</translation>
+        </message>
+        <message>
+            <source>Locked: {tag}</source>
+            <translation>Gesperrt: {tag}</translation>
+        </message>
+        <message>
+            <source>Selected</source>
+            <translation>Ausgewählt</translation>
         </message>
     </context>
 </TS>

@@ -89,7 +89,7 @@ class Carousel(QWidget):
         grid.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
         for index, case in enumerate(cases[:_SHELF_TILES]):
             tile = ExampleTile(case, holder)
-            tile.clicked.connect(lambda c=case: opener(c))
+            tile.clicked.connect(lambda _c=False, c=case: opener(c))
             grid.addWidget(tile, index // COLUMNS, index % COLUMNS)
             self.tiles.append(tile)
         col.addWidget(holder)
@@ -130,7 +130,7 @@ class FeaturedShelf(QWidget):
         self._row.setContentsMargins(C.px(C.EDGE), 0, C.px(C.EDGE), 0)
         self._row.setSpacing(C.px(C.TILE_GAP))
         self._lead = ExampleTile(cases[0], body)
-        self._lead.clicked.connect(lambda c=cases[0]: opener(c))
+        self._lead.clicked.connect(lambda _c=False, c=cases[0]: opener(c))
         self._row.addWidget(self._lead, 0, Qt.AlignmentFlag.AlignTop)
         self.tiles.append(self._lead)
         self._list = QWidget(body)
@@ -139,7 +139,7 @@ class FeaturedShelf(QWidget):
         rows.setSpacing(C.px(4))
         for case in cases[1:1 + _FEATURED_LIST]:
             item = ExampleRow(case, self._list)
-            item.clicked.connect(lambda c=case: opener(c))
+            item.clicked.connect(lambda _c=False, c=case: opener(c))
             rows.addWidget(item)
             self.tiles.append(item)
         rows.addStretch(1)
@@ -332,7 +332,7 @@ class ExamplesHome(QWidget):
         grid.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
         for index, case in enumerate(cases):
             tile = ExampleTile(case, host)
-            tile.clicked.connect(lambda c=case: self.case_opened.emit(c))
+            tile.clicked.connect(lambda _c=False, c=case: self.case_opened.emit(c))
             grid.addWidget(tile, index // self._columns, index % self._columns)
             self._grid_tiles.append(tile)
         col.addWidget(host)

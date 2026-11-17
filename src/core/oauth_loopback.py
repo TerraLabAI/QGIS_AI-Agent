@@ -14,6 +14,7 @@ import hashlib
 import html
 import http.server
 import json
+import os
 import secrets
 import string
 import threading
@@ -38,45 +39,59 @@ def authorization_url(auth_uri: str, client_id: str, redirect_uri: str, scopes, 
 
 
 
+
+
 _PAGE = string.Template("""<!doctype html>
 <html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>TerraLab \u00b7 QGIS</title>
+<title>AI Agent \u00b7 QGIS</title>
 <style>
-:root{--page:#f7f8fa;--card:#ffffff;--border:#e2e5ea;--ink:#1f2124;--muted:#5b5f66;--faint:#696d73;
---ok:#147a3d;--ok-tint:#e8f5ed;--warn:#b35200;--warn-tint:#fdf1e5;--brand:#43a047;color-scheme:light dark}
+:root{--page:#f7f8fa;--card:#ffffff;--border:#e2e5ea;--ink:#1f2124;--muted:#5b5f66;--faint:#8a8e95;
+color-scheme:light dark}
 @media (prefers-color-scheme:dark){:root{--page:#17181a;--card:#232427;--border:#2e3033;--ink:#f2f3f4;
---muted:#a5a8ad;--faint:#8f939a;--ok:#3cbb72;--ok-tint:rgba(60,187,114,.14);--warn:#f68f3c;
---warn-tint:rgba(246,143,60,.14)}}
-*{box-sizing:border-box}
-body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;
-background:var(--page);color:var(--ink);letter-spacing:-.01em;
+--muted:#a5a8ad;--faint:#7d8187}}
+*{box-sizing:border-box}html,body{height:100%}
+body{margin:0;display:flex;align-items:center;justify-content:center;padding:24px;background:var(--page);
+color:var(--ink);text-align:center;-webkit-font-smoothing:antialiased;
 font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif}
-main{width:100%;max-width:420px;background:var(--card);border:1px solid var(--border);border-radius:14px;
-padding:32px 28px 24px;box-shadow:0 1px 2px rgba(0,0,0,.04),0 8px 24px rgba(0,0,0,.06)}
-.icon{width:44px;height:44px;border-radius:10px;display:flex;align-items:center;justify-content:center;
-margin-bottom:18px;background:var(--$tone-tint);color:var(--$tone)}
-h1{font-size:18px;line-height:1.4;font-weight:600;margin:0}
-footer{display:flex;align-items:center;gap:8px;margin-top:24px;padding-top:16px;
-border-top:1px solid var(--border);color:var(--faint);font-size:12px}
-footer i{width:8px;height:8px;border-radius:2px;background:var(--brand)}
+main{width:100%;max-width:400px;background:var(--card);border:1px solid var(--border);border-radius:16px;
+padding:36px 32px 32px}
+.pair{display:flex;align-items:center;justify-content:center;gap:14px;height:64px;margin-bottom:22px}
+.pair img{height:44px;display:block}.pair .pear{height:50px}
+.plus{width:14px;height:14px;position:relative}
+.plus:before,.plus:after{content:"";position:absolute;background:var(--faint);border-radius:1px}
+.plus:before{left:6px;top:0;width:2px;height:14px}.plus:after{top:6px;left:0;width:14px;height:2px}
+h1{margin:0;font-size:22px;line-height:1.3;font-weight:650;letter-spacing:-.015em}
+p{margin:8px 0 0;color:var(--muted)}
+.note{margin-top:14px;font-size:13px;color:var(--faint)}
+.code{margin-top:14px;font:12px ui-monospace,Menlo,Consolas,monospace;color:var(--faint)}
 </style></head><body><main>
-<div class="icon">$icon</div>
-<h1>$text</h1>
-<footer><i></i>TerraLab AI Agent for QGIS</footer>
+<div class="pair">$logos</div>
+<h1>$title</h1><p>$line</p>$extra
 </main>$script</body></html>
 """)
-
-_CHECK = ('<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" '
-          'stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>')
-_WARN = ('<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" '
-         'stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7.5v5.5"/>'
-         '<path d="M12 16.5v.01"/></svg>')
+_PEAR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
+                     "icons", "mark@4x.png")
 
 
-def _page(text: str, ok: bool) -> str:
+def _image(path: str, css: str, alt: str) -> str:
+    try:
+        with open(path, "rb") as fh:
+            data = base64.b64encode(fh.read()).decode("ascii")
+    except OSError:
+        return ""
+    return f'<img class="{css}" src="data:image/png;base64,{data}" alt="{alt}">'
 
+
+def _page(texts: tuple, ok: bool, partner_logo: str = "", error: str = "") -> str:
+
+
+    title, line, note = (tuple(texts) + ("", ""))[:3]
+    pear, partner = _image(_PEAR, "pear", "AI Agent"), _image(partner_logo, "", "QGIS") if partner_logo else ""
+    extra = (f'<p class="note">{html.escape(note)}</p>' if note else "") + (
+        f'<p class="code">Error: {html.escape(error)}</p>' if error and not ok else "")
     return _PAGE.substitute(
-        tone="ok" if ok else "warn", icon=_CHECK if ok else _WARN, text=html.escape(text),
+        logos=pear + ('<span class="plus"></span>' + partner if pear and partner else partner),
+        title=html.escape(title), line=html.escape(line), extra=extra,
 
         script="<script>setTimeout(function(){window.close()},4000)</script>" if ok else "")
 
@@ -85,9 +100,11 @@ class Loopback:
 
 
 
-    def __init__(self, done_page: str, failed_page: str):
+    def __init__(self, done: tuple, failed: tuple, partner_logo: str = ""):
+
         self.state = secrets.token_urlsafe(24)
-        self._pages = (done_page, failed_page)
+        self._pages = (done, failed)
+        self._logo = partner_logo
         self._result: tuple[str, str] | None = None
         self.params: dict[str, str] = {}
         self._event = threading.Event()
@@ -108,7 +125,7 @@ class Loopback:
                 owner.params = {k: v[0] for k, v in query.items() if k not in ("code", "state") and v}
                 owner._finish(code, error or ("" if code else "no_code"))
                 page = owner._pages[0 if code else 1]
-                body = _page(page, bool(code)).encode("utf-8")
+                body = _page(page, bool(code), owner._logo, error or "").encode("utf-8")
                 self.send_response(200)
                 self.send_header("Content-Type", "text/html; charset=utf-8")
                 self.send_header("Content-Length", str(len(body)))
@@ -172,9 +189,10 @@ def post_form(url: str, fields: dict, opener=None, timeout: float = 20.0) -> tup
         "Content-Type": "application/x-www-form-urlencoded", "Accept": "application/json"}), opener, timeout)
 
 
-def get_json(url: str, token: str, opener=None, timeout: float = 20.0) -> tuple[int, dict]:
+def get_json(url: str, token: str, opener=None, timeout: float = 20.0, headers: dict | None = None) -> tuple[int, dict]:
     return _send(urllib.request.Request(url, headers={"Authorization": f"Bearer {token}",
-                                                      "Accept": "application/json"}), opener, timeout)
+                                                      "Accept": "application/json", **(headers or {})}),
+                 opener, timeout)
 
 
 def _json(raw: bytes) -> dict:

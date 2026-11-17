@@ -678,7 +678,7 @@ class ExamplesDialog(QDialog):
             if self._arrow(key):
                 return
         if key in (Qt.Key.Key_Return, Qt.Key.Key_Enter, Qt.Key.Key_Space) and ringed:
-            tiles[self._focus].clicked.emit()
+            tiles[self._focus].click()
             return
         text = event.text()
         field = self._search_field()

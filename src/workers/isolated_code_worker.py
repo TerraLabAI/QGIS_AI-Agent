@@ -31,6 +31,7 @@
 
 from __future__ import annotations
 
+import faulthandler
 import hashlib
 import importlib
 import json
@@ -93,7 +94,7 @@ class _WholeProject:
         return dict(self._layers)
 
 
-def _holding_back(lookup, project, held_back: list, layer_names: list, make_lookup):
+def _holding_back(lookup, project, held_back: list, layer_names: list, make_lookup, fold=str.casefold):
 
 
 
@@ -105,12 +106,12 @@ def _holding_back(lookup, project, held_back: list, layer_names: list, make_look
 
 
     ids = {str(entry.get("id") or "") for entry in held_back}
-    names = {str(entry.get("name") or "").casefold() for entry in held_back}
+    names = {fold(str(entry.get("name") or "")) for entry in held_back}
     whole = make_lookup(_WholeProject(layer_names))
 
     def layer(name_or_id):
         key = str(name_or_id or "")
-        if key in ids or key.casefold() in names:
+        if key in ids or fold(key) in names:
             _HELD.append(key)
             raise NeedsLayer(key)
         try:
@@ -538,7 +539,8 @@ def _run(job: dict, status_path: str) -> int:
         namespace["layer"] = helpers.layer_lookup(QgsProject.instance())
         if job.get("held_back"):
             namespace["layer"] = _holding_back(namespace["layer"], QgsProject.instance(), job["held_back"],
-                                               job.get("layer_names") or [], helpers.layer_lookup)
+                                               job.get("layer_names") or [], helpers.layer_lookup,
+                                               helpers.loose_name)
         namespace["layers"] = lambda: helpers.ordered_layers(QgsProject.instance())
     for alias, module in helpers.prelude(code_split.names_mentioned(str(job.get("code") or "")),
                                          namespace["__builtins__"]["__import__"]).items():
@@ -635,6 +637,9 @@ def _run(job: dict, status_path: str) -> int:
         if status["result_set"]:
 
             value, status["result_type"] = helpers.result_json(namespace["result"])
+            value, images = helpers.lift_images(value)
+            if images:
+                status["images"] = images
             text = json.dumps(value, default=repr, ensure_ascii=False)
             status["result"] = text[:int(job.get("max_result_chars") or 1_000_000)]
             status["result_chars"] = len(text)
@@ -732,6 +737,9 @@ def main(argv: list[str]) -> int:
 
 
 if __name__ == "__main__":
+
+
+    faulthandler.enable()
     code = main(sys.argv)
     sys.stdout.flush()
     sys.stderr.flush()

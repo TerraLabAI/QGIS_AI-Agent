@@ -51,6 +51,7 @@ from .layer_icons import follows_layers
 from .layer_links import LAYER_URL, follow_layer_links
 from .loader import GAP_PX, LINE_PX, DotsLoader, ShimmerLabel
 from .markdown_view import MarkdownView
+from .selection_line import sent_selection_row
 from .shared import AGENT_ACTION
 from .source_marks import SourcesButton
 from .style import (
@@ -142,7 +143,7 @@ class UserBubble(QWidget):
     layer_clicked = pyqtSignal(str)
     source_clicked = pyqtSignal(str)
 
-    def __init__(self, text: str, chips=None, attachments=None, parent=None):
+    def __init__(self, text: str, chips=None, attachments=None, parent=None, selection=None):
         super().__init__(parent)
         self._text = text or ""
         self.run_id = ""
@@ -151,6 +152,9 @@ class UserBubble(QWidget):
         outer = QVBoxLayout(self)
         outer.setContentsMargins(0, 0, 0, 0)
         outer.setSpacing(SPACE_TIGHT)
+        if isinstance(selection, dict) and selection.get("count"):
+
+            outer.addWidget(sent_selection_row(self, selection))
 
         pictures = [a for a in self._attachments if is_picture(a)]
         files = [a for a in self._attachments if a not in pictures]
@@ -173,7 +177,7 @@ class UserBubble(QWidget):
                                   clickable=clickable, tooltip=attachment_caption(item))
                 if clickable:
                     card.set_quiet_hover()
-                    card.clicked.connect(lambda item=item, host=self: open_file_preview(item, host))
+                    card.opened.connect(lambda item=item, host=self: open_file_preview(item, host))
                 self._tags_flow.addWidget(card)
             for picture in pictures:
                 pixmap = tile_pixmap(picture, self._tags_host, _IMAGE_THUMB_HEIGHT)
@@ -183,7 +187,7 @@ class UserBubble(QWidget):
                 thumb = ClickableThumb(self._tags_host)
                 thumb.setPixmap(pixmap)
                 thumb.setToolTip(self.tr("{name}. Click to open.").format(name=self._attachment_text(picture)))
-                thumb.clicked.connect(lambda item=picture, host=self: open_image_preview(item, host))
+                thumb.clicked.connect(lambda _checked=False, item=picture, host=self: open_image_preview(item, host))
                 self._tags_flow.addWidget(thumb)
             tags_row = QHBoxLayout()
             tags_row.setContentsMargins(0, 0, 0, 0)
@@ -382,6 +386,10 @@ class _Thumb(IconButton):
             self.set_icon(self._name, 14, QColor(INK_3))
         self.setToolTip(QCoreApplication.translate("AgentBubble", "Remove rating") if chosen else self._tooltip)
 
+    def set_tooltip(self, tooltip: str) -> None:
+        self._tooltip = tooltip
+        self.setToolTip(tooltip)
+
 
 
 _REASONS = (
@@ -406,7 +414,13 @@ _CARD = (
     f"QPushButton#ratingReason:hover {{ background: {HOVER}; color: {INK}; }}"
     f"QPushButton#ratingReason:checked {{ background: {HOVER_ON}; color: {INK};"
     f" border-color: {LINE_STRONG}; }}"
+    f"QPushButton#ratingLink {{ background: transparent; border: none; color: {INK_2};"
+    f" font-size: {FONT_BODY}px; padding: 2px 0px; text-align: left; }}"
+    f"QPushButton#ratingLink:hover {{ color: {INK}; text-decoration: underline; }}"
 )
+
+_CARD_FLAT = (_CARD.replace(f"border: 1px solid {LINE};", "border: none;", 1)
+              .replace(f"background: {SURFACE};", "background: transparent;", 1))
 
 
 class RatingCard(QFrame):
@@ -419,7 +433,15 @@ class RatingCard(QFrame):
 
 
 
+
+
+
+
+
+
     sent = pyqtSignal(str, str)
+    to_agent = pyqtSignal(str)
+    unfolded = pyqtSignal()
     dismissed = pyqtSignal()
     finished = pyqtSignal()
 
@@ -468,8 +490,7 @@ class RatingCard(QFrame):
             body.addWidget(self._chips)
 
         self._field = QPlainTextEdit(self._body)
-        self._field.setPlaceholderText(self.tr("Add details (optional)") if rating == "down"
-                                       else self.tr("Tell us more (optional)"))
+        self._field.setPlaceholderText(self.tr("Message to the TerraLab team (optional)"))
         placeholder_ink(self._field)
         self._field.setTabChangesFocus(True)
         self._field.setFixedHeight(58)
@@ -477,14 +498,23 @@ class RatingCard(QFrame):
         self._field.installEventFilter(self)
         body.addWidget(self._field)
 
+
+        self._note = QLabel(self.tr("Read by the TerraLab team, not by the AI agent. "
+                                    "Sent with this chat and recent logs."), self._body)
+        self._note.setObjectName("ratingNote")
+        self._note.setWordWrap(True)
+        body.addWidget(self._note)
         foot = QHBoxLayout()
         foot.setContentsMargins(0, 0, 0, 0)
         foot.setSpacing(SPACE_OUTER)
-
-        self._note = QLabel(self.tr("Your words are sent with this chat and recent logs."), self._body)
-        self._note.setObjectName("ratingNote")
-        self._note.setWordWrap(True)
-        foot.addWidget(self._note, 1, Qt.AlignmentFlag.AlignVCenter)
+        self._ask = QPushButton(self.tr("Ask the AI agent instead"), self._body)
+        self._ask.setObjectName("ratingLink")
+        self._ask.setCursor(Qt.CursorShape.PointingHandCursor)
+        self._ask.setProperty(AGENT_ACTION, "rating_to_agent")
+        self._ask.clicked.connect(self._on_ask)
+        self._ask.hide()
+        foot.addWidget(self._ask, 0, Qt.AlignmentFlag.AlignVCenter)
+        foot.addStretch(1)
         self._send = QPushButton(self.tr("Send"), self._body)
         self._send.setStyleSheet(_BTN_PRIMARY)
         keyboard_ring(self._send)
@@ -502,7 +532,34 @@ class RatingCard(QFrame):
         col.addWidget(self._thanks)
         self._busy = False
         self._fade = None
+        self._more = None
+        if rating == "up":
+            self._more = QPushButton(self.tr("Add a comment"), self)
+            self._more.setObjectName("ratingLink")
+            self._more.setCursor(Qt.CursorShape.PointingHandCursor)
+            self._more.setProperty(AGENT_ACTION, "rating_comment")
+            self._more.clicked.connect(self._unfold)
+            col.insertWidget(0, self._more, 0, Qt.AlignmentFlag.AlignLeft)
+            self._margins = col.contentsMargins()
+            for part in (question, self._close, self._body):
+                part.hide()
+            self.setStyleSheet(_CARD_FLAT)
+            col.setContentsMargins(0, 0, 0, 0)
         self._sync()
+
+    def _unfold(self) -> None:
+
+        self._more.hide()
+        self.setStyleSheet(_CARD)
+        self.layout().setContentsMargins(self._margins)
+        for part in (self._question, self._close, self._body):
+            part.show()
+        self._field.setFocus(Qt.FocusReason.OtherFocusReason)
+        self.unfolded.emit()
+
+    def _on_ask(self) -> None:
+        if not self._busy and self.text():
+            self.to_agent.emit(self.text())
 
     def resizeEvent(self, event):  # noqa: N802
         super().resizeEvent(event)
@@ -550,6 +607,7 @@ class RatingCard(QFrame):
         self._sync()
 
     def _sync(self) -> None:
+        self._ask.setVisible(bool(self.text()))
         self._send.setEnabled(not self._busy and bool(self.text() or self.reason_code()))
 
     def _on_send(self) -> None:
@@ -578,8 +636,7 @@ class RatingCard(QFrame):
             self._body.hide()
             self._close.hide()
             self._question.hide()
-            self.setStyleSheet(_CARD.replace(f"border: 1px solid {LINE};", "border: none;", 1)
-                               .replace(f"background: {SURFACE};", "background: transparent;", 1))
+            self.setStyleSheet(_CARD_FLAT)
             self.layout().setContentsMargins(0, SPACE_TIGHT, 0, 0)
             self._thanks.show()
             one_shot(self, self._fade_out, _THANKS_MS).start()
@@ -627,6 +684,8 @@ class AgentBubble(QWidget):
 
     rated = pyqtSignal(str)
     rating_words = pyqtSignal(str, str, str)
+    rating_to_agent = pyqtSignal(str)
+    ask_answered = pyqtSignal(str)
 
     report_clicked = pyqtSignal()
 
@@ -686,9 +745,20 @@ class AgentBubble(QWidget):
         self._restore.setFocusPolicy(Qt.FocusPolicy.TabFocus)
         self._restore.clicked.connect(self.restore_clicked.emit)
         self._restore.hide()
+        self._restore_mode = ""
+        self._restore_tip = ""
+        self._report_offered = False
         self._undone = False
         self._later = 0
         actions.addWidget(self._restore, 0, Qt.AlignmentFlag.AlignVCenter)
+
+        self._ask = QLabel(self.tr("Did this do what you wanted?"), self._actions)
+        self._ask.setStyleSheet(
+            f"background: {HOVER}; color: {INK}; font-size: {FONT_BODY}px;"
+            f" border-radius: {RADIUS_CONTROL}px; padding: 4px {SPACE_OUTER}px;")
+        self._ask.hide()
+        self._asking = False
+        actions.addWidget(self._ask, 0, Qt.AlignmentFlag.AlignVCenter)
 
 
         self._thumbs = {
@@ -702,6 +772,8 @@ class AgentBubble(QWidget):
             actions.addWidget(thumb, 0, Qt.AlignmentFlag.AlignVCenter)
         self._rating = ""
         self._words: RatingCard | None = None
+
+        self._actions.setMinimumWidth(1)
         self._actions.hide()
         follows_layers(self)
         self._col.addWidget(self._actions)
@@ -927,16 +999,17 @@ class AgentBubble(QWidget):
             self._restore.setIcon(icon_for(self._restore, glyph, 14, QColor(INK_2)))
             self._restore.setIconSize(QSize(14, 14))
             self._restore.setToolTip(tooltip)
+            self._restore_tip = tooltip
             self._restore.setAccessibleName(label)
             self._restore.setAccessibleDescription(tooltip)
-        self._restore.setVisible(bool(mode))
+        self._restore_mode = mode
         self._undone = mode == "redo"
         self._sync_actions()
 
     def set_report_offer(self, shown: bool) -> None:
-        if bool(shown) == (not self._report.isHidden()):
+        if bool(shown) == self._report_offered:
             return
-        self._report.setVisible(bool(shown))
+        self._report_offered = bool(shown)
         self._sync_actions()
 
     def _on_report(self) -> None:
@@ -944,9 +1017,7 @@ class AgentBubble(QWidget):
         self.report_clicked.emit()
 
     def restore_mode(self) -> str:
-        if self._restore.isHidden():
-            return ""
-        return "redo" if self._undone else "undo"
+        return self._restore_mode
 
     def set_changes(self, row: QWidget, animate: bool = True) -> None:
 
@@ -970,10 +1041,47 @@ class AgentBubble(QWidget):
         rateable = self._finished and bool(self._text.strip()) and bool(self.run_id)
         for thumb in self._thumbs.values():
             thumb.setVisible(rateable)
-        shown = has_sources or not self._restore.isHidden() or not self._report.isHidden() or rateable
+        shown = has_sources or bool(self._restore_mode) or self._report_offered or rateable
+        self._fit_actions()
         if shown != (not self._actions.isHidden()):
             self._actions.setVisible(shown)
             self._on_text_height(0)
+
+    def _fit_actions(self) -> None:
+
+
+
+        margins = self._col.contentsMargins()
+        room = self.width() - margins.left() - margins.right()
+        spacing = self._actions.layout().spacing()
+        wanted = [
+            (self._report, self._report_offered),
+            (self._sources, bool(self._sources.sources())),
+            (self._restore, bool(self._restore_mode)),
+        ]
+        restore_text = "" if not self._restore_mode else (
+            self.tr("Redo changes") if self._restore_mode == "redo" else self.tr("Undo changes"))
+        if self._restore.text() != restore_text:
+            self._restore.setText(restore_text)
+            self._restore.setToolTip(self._restore_tip)
+
+        def width(widgets) -> int:
+            parts = [w.sizeHint().width() for w in widgets]
+            return sum(parts) + spacing * max(0, len(parts) - 1)
+
+        kept = ([w for w, on in wanted if on] + ([self._ask] if self._asking else [])
+                + [t for t in self._thumbs.values() if not t.isHidden()])
+        for widget, on in wanted[:2]:
+            if on and width(kept) > room:
+                kept.remove(widget)
+        if self._restore in kept and width(kept) > room:
+            self._restore.setText("")
+            self._restore.setToolTip("\n".join(t for t in (restore_text, self._restore_tip) if t))
+        if self._ask in kept and width(kept) > room:
+            kept.remove(self._ask)
+        for widget, _on in wanted:
+            widget.setVisible(widget in kept)
+        self._ask.setVisible(self._ask in kept)
 
     def set_rating(self, rating: str) -> None:
 
@@ -983,10 +1091,41 @@ class AgentBubble(QWidget):
             thumb.show_chosen(name == rating)
         self._sync_actions()
 
+    def ask(self) -> str:
+
+
+
+        if self._rating:
+            return "rated"
+        if not (self._finished and self._text.strip() and self.run_id):
+            return "gone"
+        self._asking = True
+        self._sync_actions()
+        if self._ask.isHidden():
+            self._asking = False
+            return "narrow"
+        self._thumbs["up"].set_tooltip(self.tr("Yes"))
+        self._thumbs["down"].set_tooltip(self.tr("No"))
+        return ""
+
+    def end_ask(self) -> None:
+
+        if not self._asking:
+            return
+        self._asking = False
+        self._thumbs["up"].set_tooltip(self.tr("Good answer"))
+        self._thumbs["down"].set_tooltip(self.tr("Bad answer"))
+        self._fit_actions()
+
     def _on_thumb(self, rating: str) -> None:
 
 
+
         rating = "" if rating == self._rating else rating
+        if self._asking and rating:
+
+            self.end_ask()
+            self.ask_answered.emit("yes" if rating == "up" else "no")
         self.set_rating(rating)
         self.rated.emit(rating)
         self._close_words()
@@ -996,12 +1135,18 @@ class AgentBubble(QWidget):
         card.sent.connect(lambda code, text, r=rating: self.rating_words.emit(r, code, text))
         card.dismissed.connect(self._close_words)
         card.finished.connect(self._close_words)
+        card.unfolded.connect(lambda: self._on_text_height(0))
+        card.to_agent.connect(self._on_words_to_agent)
         self._words = card
         self._col.addWidget(card)
         card.show()
         self._fade_up(card)
 
         self._on_text_height(0)
+
+    def _on_words_to_agent(self, text: str) -> None:
+        self._close_words()
+        self.rating_to_agent.emit(text)
 
     def _close_words(self) -> None:
         card, self._words = self._words, None
@@ -1081,6 +1226,8 @@ class AgentBubble(QWidget):
         margins = self._col.contentsMargins()
         if margins.right() != 2 + extra:
             self._col.setContentsMargins(2, 2, 2 + extra, 2)
+        if not self._actions.isHidden():
+            self._fit_actions()
 
     def _on_text_height(self, _height: int) -> None:
 
@@ -1105,7 +1252,9 @@ class AgentBubble(QWidget):
             layout.activate()
 
 
-class StatusLine(QWidget):
+class StatusLine(QLabel):
+
+
 
 
 
@@ -1136,9 +1285,16 @@ class StatusLine(QWidget):
 
         text = (text or "").rstrip(". \u2026")
         self._label.setText(text or self.tr("Thinking"))
+        self.setAccessibleName(self._label.text())
 
     def text(self) -> str:
         return self._label.text()
+
+    def sizeHint(self) -> QSize:  # noqa: N802
+        return QWidget.sizeHint(self)
+
+    def minimumSizeHint(self) -> QSize:  # noqa: N802
+        return QWidget.minimumSizeHint(self)
 
     def start(self) -> None:
         motion = not (callable(self._reduced_motion) and self._reduced_motion())

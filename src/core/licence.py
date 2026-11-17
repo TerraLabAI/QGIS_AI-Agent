@@ -866,8 +866,10 @@ def write_reprojection(layer) -> None:
         if not (source.isValid() and target.isValid()) or source == target:
             return
         transform = QgsCoordinateTransform(source, target, project.transformContext())
-        extent = parent.extent()
-        if not extent.isEmpty():
+        from .layer_order import extent_known
+
+        extent = extent_known(parent)
+        if extent is not None and not extent.isEmpty():
             transform.transform(extent.center())
         operation = str(transform.coordinateOperation() or "")
         grids = []
@@ -963,6 +965,14 @@ def _loaded_date(holders: list) -> str:
     return loaded
 
 
+def _rename_in(holders: list, name: str, renamed: str) -> None:
+
+    for holder in holders:
+        for key in ("layer_name", "name", "layer"):
+            if holder.get(key) == name:
+                holder[key] = renamed
+
+
 def _sheet_and_name(layer, name: str, row, holders: list, credit: dict, tool: str, address: str,
                     derived: bool = False) -> str:
 
@@ -978,11 +988,7 @@ def _sheet_and_name(layer, name: str, row, holders: list, credit: dict, tool: st
             write_source_sheet(layer, facts, credit["licence"], credit.get("attribution", ""))
             renamed = dated_name(layer, facts["data_date"])
             if renamed:
-
-                for holder in holders:
-                    for key in ("layer_name", "name", "layer"):
-                        if holder.get(key) == name:
-                            holder[key] = renamed
+                _rename_in(holders, name, renamed)
             if holders:
                 holders[0].setdefault("data_date", facts["data_date"] or UNKNOWN)
         elif not known and not row and not derived and (address or _loads_source(tool)):

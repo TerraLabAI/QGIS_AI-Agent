@@ -98,10 +98,7 @@ def exec_dialog(dialog):
     return QDialog.exec(dialog)
 
 
-def exec_menu(menu, pos):
-
-
-
+def popup_menu(menu, pos) -> None:
 
 
 
@@ -111,7 +108,8 @@ def exec_menu(menu, pos):
 
 
     round_popup_corners(menu)
-    return QMenu.exec(menu, pos)
+    menu.aboutToHide.connect(menu.deleteLater)
+    menu.popup(pos)
 
 
 def round_popup_corners(popup) -> None:
@@ -318,6 +316,19 @@ def event_pos(event):
     return to_point() if to_point is not None else point
 
 
+def released_on(widget, event) -> bool:
+
+
+
+
+
+
+    if event.button() != Qt.MouseButton.LeftButton or not widget.rect().contains(event_pos(event)):
+        return False
+    event.accept()
+    return True
+
+
 def format_reset_date(period_end_iso: str) -> str:
 
 
@@ -354,6 +365,20 @@ def format_reset_date(period_end_iso: str) -> str:
 
 
 _SCREEN_EDGE_MARGIN_PX = 48
+
+
+def lightbox_window(anchor):
+
+
+    if anchor is None:
+        return None
+    try:
+        from qgis.utils import iface
+
+        main = iface.mainWindow() if iface is not None else None
+    except (ImportError, AttributeError, RuntimeError):
+        main = None
+    return main if main is not None else anchor.window()
 
 
 def available_screen_rect(widget):

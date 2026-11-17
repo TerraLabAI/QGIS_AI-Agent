@@ -71,7 +71,8 @@ _SIMPLE_ROLES = ("user", "tool", "plan", "permission", "error", "summary")
 
 def _replay_simple(panel, m: dict, role: str, run_id: str, resendable=None) -> None:
     if role == "user":
-        bubble = UserBubble(str(m.get("text") or ""), m.get("chips") or [], m.get("attachments") or [])
+        bubble = UserBubble(str(m.get("text") or ""), m.get("chips") or [], m.get("attachments") or [],
+                            selection=m.get("selection"))
         bubble.run_id = run_id
         panel._add_user(bubble)
     elif role == "tool":

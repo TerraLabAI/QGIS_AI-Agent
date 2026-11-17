@@ -53,15 +53,18 @@ from qgis.PyQt.QtWidgets import (
     QWidget,
 )
 
+from ..core import drafts
 from ..core.host_platform import prefers_reduced_motion
 from ..core.i18n import words_locale
 from ..core.numbers import as_float
 from ..core.qt_compat import one_shot
+from ..core.settings import account_tag
 from .card_base import on_screen
+from .cards_click import PressSurface
 from .confirm_dialog import ask_confirm
 from .font_scale import scale_qss_font_px
 from .icons import pixmap_for
-from .shared import event_pos, keep_on_screen, screen_area_at
+from .shared import keep_on_screen, released_on, screen_area_at
 from .style import (
     FONT_BASE,
     FONT_HINT,
@@ -293,11 +296,10 @@ def group_threads(items: list, current_project: str, now=None) -> list:
     return sections
 
 
-class _Row(QWidget):
+class _Row(PressSurface):
 
 
 
-    clicked = pyqtSignal()
     delete_clicked = pyqtSignal()
 
     def __init__(self, title: str, deletable: bool = False, parent=None, meta: str = ""):
@@ -312,6 +314,7 @@ class _Row(QWidget):
 
         self._current = False
         self._full_title = title
+        self.setAccessibleName(title)
         row = QHBoxLayout(self)
         row.setContentsMargins(_ROW_PAD_X, 0, _ROW_PAD_X - 4, 0)
         row.setSpacing(8)
@@ -321,6 +324,7 @@ class _Row(QWidget):
         self._title.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Preferred)
         row.addWidget(self._title, 1, Qt.AlignmentFlag.AlignVCenter)
         self._full_meta = meta
+        self.setAccessibleDescription(meta)
         self._meta = QLabel(self)
         self._meta.setObjectName("historyMeta")
         self._meta.setTextFormat(Qt.TextFormat.PlainText)
@@ -331,6 +335,7 @@ class _Row(QWidget):
 
 
             self._delete = IconButton(self, "trash", 14, tr("Delete chat"))
+            self._delete.setAccessibleName(tr("Delete chat: {title}").format(title=title))
             self._delete.setFixedSize(_BIN_PX, _BIN_PX)
             self._delete.clicked.connect(self.delete_clicked.emit)
             self._delete.hide()
@@ -344,6 +349,8 @@ class _Row(QWidget):
     def set_current(self, current: bool) -> None:
 
         self._current = bool(current)
+        self.setAccessibleDescription(", ".join(
+            w for w in ((tr("Open") if self._current else ""), self._full_meta) if w))
         font = self._title.font()
         font.setWeight(QFont.Weight.DemiBold if self._current else QFont.Weight.Normal)
         self._title.setFont(font)
@@ -403,8 +410,9 @@ class _Row(QWidget):
     def mouseReleaseEvent(self, event):  # noqa: N802
         self._down = False
         self.update()
-        if event.button() == Qt.MouseButton.LeftButton and self.rect().contains(event_pos(event)):
-            self.clicked.emit()
+        if released_on(self, event):
+            self.click()
+            return
         super().mouseReleaseEvent(event)
 
     def paintEvent(self, event):  # noqa: N802
@@ -444,6 +452,7 @@ class HistoryPopup(QWidget):
         self._current_thread = ""
         self._rows: list = []
         self._built_key = None
+        self._drafts: set = set()
         self._selected = -1
 
 
@@ -621,11 +630,12 @@ class HistoryPopup(QWidget):
 
 
 
+        self._drafts = drafts.chats_with_drafts(account_tag())
         key = (tuple((str(t.get("id")), str(t.get("title") or ""),
                      str(t.get("project_path") or ""),
                      str(t.get("updated_at") or t.get("updated_at_iso") or ""))
                      for t in self._threads),
-               self._current_project, self._current_thread, query, self._limit)
+               self._current_project, self._current_thread, query, self._limit, frozenset(self._drafts))
         if key == self._built_key and self._list.count():
             self._select(0 if query and self._rows else -1)
             return
@@ -709,11 +719,13 @@ class HistoryPopup(QWidget):
             meta = when if mine else project
         else:
             meta = row_time(str(item.get("updated_at") or item.get("updated_at_iso") or "")) if mine else project
+        if thread_id != self._current_thread and thread_id in self._drafts:
+            meta = self.tr("Draft") + (" · " + meta if meta else "")
         row = _Row(title, True, self._content, meta=meta)
 
         row.setToolTip("<br>".join(plain_tip(p) for p in (title, "  ·  ".join(q for q in (when, project) if q)) if p))
         row.set_current(thread_id == self._current_thread)
-        row.clicked.connect(lambda t=thread_id: self._on_pick(t))
+        row.clicked.connect(lambda _c=False, t=thread_id: self._on_pick(t))
         row.delete_clicked.connect(lambda t=thread_id: self._on_delete(t))
         return row
 
@@ -738,7 +750,7 @@ class HistoryPopup(QWidget):
 
     def _activate(self) -> None:
         if 0 <= self._selected < len(self._rows):
-            self._rows[self._selected].clicked.emit()
+            self._rows[self._selected].click()
 
     def eventFilter(self, watched, event):  # noqa: N802
         if watched is self._search and event.type() == QEvent.Type.KeyPress:

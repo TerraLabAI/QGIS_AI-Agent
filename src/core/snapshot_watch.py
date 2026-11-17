@@ -19,10 +19,10 @@ import copy
 import os
 import shutil
 
-from qgis.core import QgsMapLayer, QgsProject
-from qgis.PyQt import sip
+from qgis.core import QgsMapLayer, QgsProject, QgsVectorLayer
 
 from .logger import log_warning
+from .qt_compat import qt_deleted
 
 
 _PROJECT_SIGNALS = (
@@ -38,6 +38,7 @@ _TREE_SIGNALS = (
     "addedChildren", "removedChildren", "visibilityChanged", "nameChanged", "customPropertyChanged",
     "expandedChanged", "layerOrderChanged", "hasCustomLayerOrderChanged", "customLayerOrderChanged",
 )
+
 
 
 
@@ -80,6 +81,8 @@ _connected: list = []
 
 _last: tuple | None = None
 
+_repaint: tuple | None = None
+
 
 def _bump(*_args) -> None:
     global _count, _last
@@ -87,17 +90,47 @@ def _bump(*_args) -> None:
     _last = None
 
 
+def _repainted(key: int):
+    def slot(*_args) -> None:
+        global _repaint
+        before = (key, _count, _last)
+        _bump()
+        _repaint = before
+    return slot
+
+
+def _selected(key: int):
+
+
+
+
+
+    def slot(*_args) -> None:
+        global _count, _last, _repaint
+        if _repaint is not None and _repaint[0] == key and _repaint[1] + 1 == _count:
+            _, _count, _last = _repaint
+        _repaint = None
+    return slot
+
+
 def _connect(obj, names) -> None:
     key = id(obj)
     if key in _watched:
         return
     _watched[key] = obj
+    vector = isinstance(obj, QgsVectorLayer)
     for name in names:
 
         signal = getattr(obj, name, None)
         if signal is not None:
-            signal.connect(_bump)
-            _connected.append((obj, name))
+            slot = _repainted(key) if vector and name == "repaintRequested" else _bump
+            signal.connect(slot)
+            _connected.append((obj, name, slot))
+    selection = getattr(obj, "selectionChanged", None) if vector else None
+    if selection is not None:
+        slot = _selected(key)
+        selection.connect(slot)
+        _connected.append((obj, "selectionChanged", slot))
 
 
 def watch(project=None) -> None:
@@ -137,22 +170,22 @@ def _drop_gone(layers: dict) -> None:
     main_annotations = getattr(QgsProject.instance(), "mainAnnotationLayer", None)
     if main_annotations is not None:
         held.add(id(main_annotations()))
-    gone = set()
+    gone, released = set(), set()
     for key, obj in list(_watched.items()):
-        if sip.isdeleted(obj):
+        if qt_deleted(obj):
             gone.add(key)
         elif isinstance(obj, QgsMapLayer) and key not in held:
             gone.add(key)
-            for name in _LAYER_SIGNALS:
-                signal = getattr(obj, name, None)
-                if signal is not None:
-                    try:
-                        signal.disconnect(_bump)
-                    except TypeError:  # nosec B112
-                        continue
+            released.add(key)
+    for obj, name, slot in _connected:
+        if id(obj) in released:
+            try:
+                getattr(obj, name).disconnect(slot)
+            except TypeError:  # nosec B112
+                continue
     for key in gone:
         del _watched[key]
-    _connected[:] = [(obj, name) for obj, name in _connected if id(obj) in _watched]
+    _connected[:] = [entry for entry in _connected if id(entry[0]) in _watched]
 
 
 def remember(folder: str, quiet: bool, own_paths: str, layer_ids, project_state) -> None:
@@ -209,14 +242,15 @@ def copy_parts(source: str, target: str, parts) -> bool:
 
 def shutdown() -> None:
 
-    global _last
-    for obj, name in _connected:
-        if sip.isdeleted(obj):
+    global _last, _repaint
+    for obj, name, slot in _connected:
+        if qt_deleted(obj):
             continue
         try:
-            getattr(obj, name).disconnect(_bump)
+            getattr(obj, name).disconnect(slot)
         except Exception:  # nosec B112
             continue
     _connected.clear()
     _watched.clear()
     _last = None
+    _repaint = None

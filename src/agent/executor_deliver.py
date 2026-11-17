@@ -14,6 +14,7 @@ from qgis.core import QgsProject
 
 from ..core import (
     accounts,
+    datum_choice,
     layer_egress,
     licence,
     limits,
@@ -46,7 +47,14 @@ from ..core.snapshot_files import resolve_layers
 from ..core.tool_registry import main_budget, spec
 from ..tools import code_tripwire, guards
 from .executor_code import CODE_TOOL, tr
-from .run_report import MAX_CALL_WARNINGS, MAX_OUTPUT_FILES, call_warnings, result_files, written_paths
+from .run_report import (
+    MAX_CALL_WARNINGS,
+    MAX_OUTPUT_FILES,
+    MAX_TRANSFORMATIONS,
+    call_warnings,
+    result_files,
+    written_paths,
+)
 
 
 def _task_ids_started(name: str, result) -> set:
@@ -209,7 +217,7 @@ class _ExecutorDeliver:
 
 
 
-        looped, on_dialog, dialog_title, datum_pressed = self._dialog_waits.pop(tool_call_id, (0.0, 0.0, "", ()))
+        looped, on_dialog, dialog_title = self._dialog_waits.pop(tool_call_id, (0.0, 0.0, ""))
 
 
         started_task_ids = _task_ids_started(name, result)
@@ -236,11 +244,17 @@ class _ExecutorDeliver:
             self._note_slow_main_thread(run_id, name, duration - looped)
         if on_dialog >= 1.0 and isinstance(result, dict):
             result["waited_on_dialog"] = {"title": dialog_title, "seconds": round(on_dialog)}
-        if datum_pressed and isinstance(result, dict):
-            result["datum_transformation"] = (
-                "This call's CRS change opened QGIS's " + ", ".join(repr(t) for t in datum_pressed) + "; OK "
-                "was pressed on the transformation QGIS selected in it, now in the project's transform "
-                "context (Project Properties > Transformations).")
+
+
+        chosen = list(call.pop("datum_chosen", None) or ()) + datum_choice.take()
+        if chosen:
+            kept = self._transformations.setdefault(run_id, [])
+            kept.extend(chosen)
+            del kept[MAX_TRANSFORMATIONS:]
+            if isinstance(result, dict):
+                result["datum_transformations"] = [
+                    {key: entry[key] for key in ("layer", "from", "to", "operation", "accuracy_m", "candidates")}
+                    for entry in chosen[:MAX_TRANSFORMATIONS]]
 
 
 

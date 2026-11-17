@@ -3,17 +3,17 @@ name=AI Agent by TerraLab
 qgisMinimumVersion=3.28
 supportsQt6=True
 qgisMaximumVersion=4.99
-description=An AI agent for QGIS: describe the task in plain words and it finds the data, runs the analysis, styles the map and builds the layout in your open project. Free tier, 7-day Pro trial. 226 tools and 190 open data connectors, for QGIS 3.28 to 4 on Windows, macOS and Linux. Highest score of the AI agents we tested in QGIS on Google Research's geospatial benchmarks.
+description=An AI agent for QGIS: write a prompt and it finds the data, runs the analysis, styles the map and builds the layout in your open project. Free tier, 7-day Pro trial. 226 tools and 192 open data connectors, for QGIS 3.28 to 4 on Windows, macOS and Linux. Highest score of the AI agents we tested in QGIS on Google Research's geospatial benchmarks.
 about=
-    AI Agent by TerraLab is an AI agent for QGIS. Describe what you need in plain words: it loads the data, runs the analysis, styles the map and builds the layout, in the project you already have open, and shows each step as it goes.
+    AI Agent by TerraLab is an AI agent for QGIS. Describe what you need in a prompt: it loads the data, runs the analysis, styles the map and builds the layout, in the project you already have open, and shows each step as it goes.
 
     • Free tier with no card. Pro starts with a 7-day free trial. Plans and limits: https://terra-lab.ai/pricing
 
     • 226 tools: load and inspect data, style and label maps, run Processing algorithms, edit geometry, build print layouts
 
-    • 190 open data connectors: OpenStreetMap, Copernicus, NASA, USGS, IGN, Overture, Planetary Computer and 183 more
+    • 192 open data connectors: OpenStreetMap, Copernicus, NASA, USGS, IGN, Overture, Planetary Computer and 185 more
 
-    • A catalog of 9,865 ready datasets, from national sources in 194 countries and from EU-wide and global ones, each with its licence
+    • A catalog of 9,899 ready datasets, from national sources in 194 countries and from EU-wide and global ones, each with its licence
 
     • You stay in control: you see every step before it runs, changes wait for your approval, and one click undoes anything it changed
 
@@ -35,7 +35,7 @@ about=
 
     By TerraLab, terra-lab.ai
 
-version=2.0.1
+version=2.0.2
 author=TerraLab
 email=lilien.auger@terra-lab.ai
 homepage=https://terra-lab.ai/ai-agent?utm_source=plugins.qgis.org&utm_medium=referral
@@ -43,6 +43,12 @@ repository=https://github.com/TerraLabAI/QGIS_AI-Agent
 tracker=https://github.com/TerraLabAI/QGIS_AI-Agent/issues
 license=GPL-2.0-or-later
 changelog=
+    2.0.2
+    - Grey suggestions in the message box, taken with Tab; pasted links, points and shapes become cards
+    - An @ menu to pick layers and data sources, and a layer clicked in the chat flashes on the map
+    - Many fewer crashes and freezes: missing layer files, layouts, 3D views, WCS and WMS layers
+    - One "Help improve AI Agent" switch, and a crash card that asks what you were doing
+
     2.0.1
     - A sharp, full-size logo on the plugin page, the update card and the About card
     - A download that takes over 60 s keeps its licence and year
@@ -65,14 +71,8 @@ changelog=
     - "Use in chat" on a data source puts only its mention in the message box, ready for your task
     - Memory per project; pasted private links stay on your PC; after a crash the chat reopens
 
-    1.9.3
-    - Rate any answer with a thumb, or send feedback from the panel, Settings or an error card
-    - The map glides to where the AI agent works; a slow load hands back after 60 s and names its host
-    - Ctrl+S, Undo and large projects no longer freeze QGIS; saving works after the temp folder is gone
-    - Undo brings back deleted features and files Windows held; one HTML report file per title
 
-
-tags=ai,ai agent,artificial intelligence,agent,assistant,ai assistant,chatgpt,copilot,chat,llm,large language model,automation,natural language,geoai,ai gis,gis ai,ai for gis,agentic ai,geospatial,gis,spatial analysis,geoprocessing,processing,data loading,open data,styling,symbology,labeling,layout,print layout,map making,feature editing,attribute,vector,raster,basemap,openstreetmap,productivity,pyqgis,terralab,terra lab,ai edit,ai segmentation
+tags=ai,ai agent,artificial intelligence,agent,assistant,ai assistant,chatgpt,copilot,chat,llm,large language model,automation,prompt,geoai,ai gis,gis ai,ai for gis,agentic ai,geospatial,gis,spatial analysis,geoprocessing,processing,data loading,open data,styling,symbology,labeling,layout,print layout,map making,feature editing,attribute,vector,raster,basemap,openstreetmap,productivity,pyqgis,terralab,terra lab,ai edit,ai segmentation
 icon=icons/logo.png
 experimental=False
 deprecated=False

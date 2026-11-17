@@ -34,6 +34,10 @@
 
 
 
+
+
+
+
 from __future__ import annotations
 
 import hashlib
@@ -44,7 +48,7 @@ import tempfile
 import threading
 import time
 
-from . import freeze_stack
+from . import freeze_stack, native_crash
 from .host_platform import qgis_version, remove_quietly, retry_file_op
 from .log_scrub import strip_paths
 from .logger import log, log_warning
@@ -459,14 +463,24 @@ def take(plugin_version: str = "") -> dict | None:
         note["alive_at"] = float(os.path.getmtime(_alive_path(pid)))
     except OSError:
         pass
+
+
+    loaded = record.get("started_at")
+    if isinstance(loaded, (int, float)) and loaded > 0:
+        died = max(stack_mtime or 0.0, note.get("alive_at", 0.0), mtime)
+        note["session_s"] = round(max(0.0, died - float(loaded)), 1)
     if not stack:
 
 
-        note.update({key: str(record[key])[:64] for key in _END_FIELDS if record.get(key)})
+        note.update({key: str(record[key])[:limit] for key, limit in _END_FIELDS.items() if record.get(key)})
     window = _crash_window(pid, record)
     if window:
         note.setdefault("end_kind", "crash_window")
         note["end_thread"] = window
+    native, source = native_crash.for_pid(pid, float(record.get("started_at") or mtime),
+                                          _crash_info_at(pid) if window else 0.0)
+    if native:
+        note["native_stack"], note["native_source"] = native, source
     if stack:
         note["python_stack"] = stack
 
@@ -475,8 +489,16 @@ def take(plugin_version: str = "") -> dict | None:
     return note
 
 
-_END_FIELDS = ("end_kind", "end_code", "end_module")
+
+_END_FIELDS = {"end_kind": 16, "end_code": 16, "end_module": 64}
 CRASH_INFO_PREFIX = "qgis-crash-info-"
+
+
+def _crash_info_at(pid: int) -> float:
+    try:
+        return os.path.getmtime(os.path.join(_temp_dir(), f"{CRASH_INFO_PREFIX}{pid}"))
+    except OSError:
+        return 0.0
 
 
 def _crash_window(pid: int, record: dict) -> str:
@@ -634,9 +656,23 @@ def acknowledge() -> None:
     _pending.clear()
 
 
+
+
+_OWN_FOLDER = os.path.basename(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+_OWN_FRAME = re.compile(r'File "(?:[A-Za-z]:)?[\\/][^"]*?[\\/]' + re.escape(_OWN_FOLDER) + r'[\\/]([^"]+)"',
+                        re.IGNORECASE)
+
+
+def _own_frames(text: str) -> str:
+
+
+
+    return _OWN_FRAME.sub(lambda m: 'File "<ai_agent>/' + m.group(1).replace("\\", "/") + '"', text)
+
+
 def _scrub(text: str) -> str:
 
-    text = strip_paths(text)
+    text = strip_paths(_own_frames(text))
     try:
         import getpass
 

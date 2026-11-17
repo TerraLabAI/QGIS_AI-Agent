@@ -30,6 +30,8 @@ class FrameType:
 
     FEEDBACK = "feedback"
 
+    FEEDBACK_ASK = "feedback_ask"
+
 
     BUSY = "busy"
 
@@ -79,9 +81,6 @@ class FrameType:
     EFFORT = "effort"
 
 
-    FUNNEL = "funnel"
-
-
 
     PROJECT_STATE = "project_state"
 
@@ -100,10 +99,24 @@ class FrameType:
     TRANSCRIBE = "transcribe"
     TRANSCRIPT = "transcript"
 
+
+    SUGGEST = "suggest"
+    SUGGESTIONS = "suggestions"
+
+
+    NEXT_PROMPT = "next_prompt"
+
+
+    CRASH_COMMENT_ACK = "crash_comment_ack"
+
+
+    REPORT_OFFER = "report_offer"
+
     SERVER = frozenset(
         {SESSION, TOKEN, PLAN, PLAN_UPDATE, TOOL_CALL, RUN_END, ERROR, USAGE, PONG, THREAD_TITLE, STATUS_LINE,
          POLICY, MEMORY_NOTE, FOLLOWUPS, SOURCES, COUNTS, SERVER_TOOL, STEER_ACK, SEND_MANIFEST,
-         PROJECT_MEMORY, TASK_UPDATE, TASK_RESULT, TRANSCRIPT}
+         PROJECT_MEMORY, TASK_UPDATE, TASK_RESULT, TRANSCRIPT, SUGGESTIONS, NEXT_PROMPT, CRASH_COMMENT_ACK,
+         REPORT_OFFER}
     )
 
 
@@ -247,7 +260,6 @@ def hello(activation_key: str, device_hash: str, plugin_version: str, qgis_versi
 
 
 
-
         "improve": bool(improve),
 
 
@@ -260,7 +272,15 @@ def hello(activation_key: str, device_hash: str, plugin_version: str, qgis_versi
 
 
 
-        "renders": ["openui", "memory_silent", "ask_round", "link_handles", "mascot", "memory_open"]
+
+
+
+
+
+
+
+        "renders": ["openui", "memory_silent", "ask_round", "link_handles", "mascot", "memory_open", "next_prompt",
+                    "crash_comment", "crash_comment_ack", "feedback_ask", "report_offer"]
         + (["tasks"] if tasks_mode.on() else []),
     }
     if tool_manifest is not None:
@@ -370,7 +390,8 @@ def normalize_attachment(item: Any) -> dict | None:
 def user_message(run_id: str, thread_id: str, text: str, attachments: list | None,
                  context: dict, mode: str, approval: str, effort: str = Effort.LOW, example: str = "",
                  replaces_run_id: str = "", earlier_turns: list | None = None,
-                 analytics_session: str = "") -> dict:
+                 analytics_session: str = "", telemetry: bool | None = None,
+                 improve: bool | None = None) -> dict:
     clean = [a for a in (normalize_attachment(x) for x in (attachments or [])) if a]
     effort = effort if effort in Effort.ALL else Effort.LOW
 
@@ -411,6 +432,13 @@ def user_message(run_id: str, thread_id: str, text: str, attachments: list | Non
 
 
         frame["analytics_session"] = str(analytics_session)
+
+
+
+    if telemetry is not None:
+        frame["telemetry"] = bool(telemetry)
+    if improve is not None:
+        frame["improve"] = bool(improve)
     return frame
 
 
@@ -517,6 +545,29 @@ def task_stop(task_id: str) -> dict:
 
 
 
+FEEDBACK_ASK_REASONS = ("random", "doubt")
+FEEDBACK_ASK_STATES = ("shown", "skipped", "yes", "no", "dismissed")
+FEEDBACK_ASK_SKIPS = ("cap", "rated", "gone", "narrow", "queued")
+
+
+FEEDBACK_ASK_FORMAT = "c1"
+
+
+def feedback_ask(run_id: str, state: str, reason: str, doubt: bool = False, skip: str = "", cap: str = "") -> dict:
+
+
+
+    frame = {"type": FrameType.FEEDBACK_ASK, "run_id": run_id, "state": state, "reason": reason, "doubt": bool(doubt)}
+    if skip in FEEDBACK_ASK_SKIPS:
+        frame["skip"] = skip
+    if state in ("shown", "skipped"):
+        frame["format"] = FEEDBACK_ASK_FORMAT
+        if cap:
+            frame["cap"] = cap
+    return frame
+
+
+
 FEEDBACK_REASONS = ("wrong_result", "not_what_i_asked", "too_slow")
 
 
@@ -529,6 +580,11 @@ def feedback(run_id: str, up: bool, reason_code: str = "", reason: str = "") -> 
     if reason.strip():
         frame["reason"] = reason.strip()[:500]
     return frame
+
+
+def crash_comment(key: str, text: str) -> dict:
+
+    return {"type": "crash_comment", "key": key, "text": text[:500]}
 
 
 def unsteer(run_id: str, steer_id: str) -> dict:
@@ -546,12 +602,6 @@ def effort_switch(run_id: str, effort: str) -> dict:
 
 
     return {"type": FrameType.EFFORT, "run_id": run_id, "effort": effort}
-
-
-def funnel(snapshot: dict) -> dict:
-
-
-    return {"type": FrameType.FUNNEL, "snapshot": snapshot}
 
 
 def project_state(run_id: str, before: dict, after: dict) -> dict:
@@ -574,6 +624,13 @@ def upload(upload_id: str, name: str, seq: int, total: int, data_base64: str) ->
 
 def transcribe(request_id: str, audio_base64: str) -> dict:
     return {"type": FrameType.TRANSCRIBE, "id": request_id, "audio_base64": audio_base64}
+
+
+def suggest(request_id: str, text: str, facts: dict, thread_id: str = "") -> dict:
+    frame = {"type": FrameType.SUGGEST, "id": request_id, "text": text, "facts": facts}
+    if thread_id:
+        frame["thread_id"] = thread_id
+    return frame
 
 
 def busy(seconds: float, where: str, calls: str, ended: bool = False) -> dict:

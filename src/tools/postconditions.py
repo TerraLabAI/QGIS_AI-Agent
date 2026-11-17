@@ -44,7 +44,7 @@ from qgis.core import (
 from ..core import ground, invariants, tuning
 from ..core.feature_requests import feature_request
 from ..core.geometry_budget import VertexBudget
-from ..core.layer_order import is_remote_vector
+from ..core.layer_order import extent_known, is_remote_vector
 from ._layers import _source_key, loaded_feature_count, resolve_layer
 from .processing_crs_checks import _TERRAIN_BY_CELL, is_metric
 from .processing_guards import _INPUT_KEYS
@@ -403,9 +403,9 @@ def _extent_intersects(input_layer, overlay_layer) -> bool | None:
     if input_layer is None or overlay_layer is None:
         return None
     try:
-        first = input_layer.extent()
-        second = overlay_layer.extent()
-        if first.isEmpty() or second.isEmpty():
+        first = extent_known(input_layer)
+        second = extent_known(overlay_layer)
+        if first is None or second is None or first.isEmpty() or second.isEmpty():
             return None
         source_crs, target_crs = overlay_layer.crs(), input_layer.crs()
         if source_crs.isValid() and target_crs.isValid() and source_crs != target_crs:
@@ -430,8 +430,8 @@ def _mask_covered_pct(input_layer, mask_layer) -> float | None:
     if input_layer is None or mask_layer is None:
         return None
     try:
-        raster, mask = input_layer.extent(), mask_layer.extent()
-        if raster.isEmpty() or mask.isEmpty():
+        raster, mask = extent_known(input_layer), extent_known(mask_layer)
+        if raster is None or mask is None or raster.isEmpty() or mask.isEmpty():
             return None
         source_crs, target_crs = mask_layer.crs(), input_layer.crs()
         if source_crs.isValid() and target_crs.isValid() and source_crs != target_crs:

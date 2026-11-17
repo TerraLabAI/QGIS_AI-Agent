@@ -231,4 +231,4 @@ def _bridge_settings():
 def _open_in_browser(path: str) -> bool:
     from ..ui.external_links import open_local_path
 
-    return open_local_path(path)
+    return open_local_path(path, tell_user=False)

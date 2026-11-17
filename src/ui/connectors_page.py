@@ -640,7 +640,7 @@ class ConnectorsPage(QWidget):
         holder = self._holder()
         head = SectionHead(text, holder)
         head.setObjectName("sourcesSection")
-        head.clicked.connect(lambda k=key: self.section_opened.emit(k))
+        head.clicked.connect(lambda _c=False, k=key: self.section_opened.emit(k))
         holder.layout().addWidget(head)
         holder.layout().addWidget(self._grid(rows, holder))
 
@@ -668,7 +668,7 @@ class ConnectorsPage(QWidget):
     def _add_card(self, grid, host, row: dict, index: int, note=None, words: tuple = ()) -> None:
         key = str(row.get("id") or "")
         card = SourceCard(row, host, note, words)
-        card.clicked.connect(lambda k=key: self.connector_opened.emit(k))
+        card.clicked.connect(lambda _c=False, k=key: self.connector_opened.emit(k))
         grid.addWidget(card, index // self._cols, index % self._cols)
         self._cards.append(card)
 
@@ -706,7 +706,7 @@ class ConnectorsPage(QWidget):
         for index, row in enumerate(hits):
             family = by_id.get(str(row.get("family") or "")) or {}
             card = DatasetHit(row, family, C.accent_of(family.get("category")), host)
-            card.clicked.connect(lambda k=card.family: self.connector_opened.emit(k))
+            card.clicked.connect(lambda _c=False, k=card.family: self.connector_opened.emit(k))
             grid.addWidget(card, index // self._cols, index % self._cols)
             self._cards.append(card)
         self._grids.append((grid, [grid.itemAt(i).widget() for i in range(grid.count())]))

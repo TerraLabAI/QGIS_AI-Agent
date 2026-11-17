@@ -134,6 +134,8 @@ class ExampleTile(PictureHover, Pressable):
         self.case = case
         self._title_text = str(case.title or "")
         self._note_text = tile_line(case)
+        self.setAccessibleName(self._title_text)
+        self.setAccessibleDescription(self._note_text)
         self._pictured = has_picture(case)
         self.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Fixed)
         self.setMouseTracking(True)
@@ -213,6 +215,8 @@ class ExampleRow(PictureHover, Pressable):
         super().__init__(parent, radius=C.RADIUS_TILE, hover=lambda: None, press=lambda: None)
         self.case = case
         self._title_text = str(case.title or "")
+        self.setAccessibleName(self._title_text)
+        self.setAccessibleDescription(str(case.outcome or ""))
         self.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Fixed)
         self.setMouseTracking(True)
         row = QHBoxLayout(self)

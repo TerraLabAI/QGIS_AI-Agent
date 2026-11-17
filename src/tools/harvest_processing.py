@@ -42,13 +42,13 @@ from ..core.output_paths import file_stem
 from ..core.postcondition import _band_range
 from ..core.tool_registry import Tool, ToolRegistry, coded_fact, tool_error
 from ._compat import is_raster
-from ._layers import take_layer_name
+from ._layers import error_summary, take_layer_name
 from .data_common import worker_options
 from .harvest_analysis import _expand
 from .layer_lookup import _field_not_found_error, require_raster, require_vector
 from .postconditions import compute_checks
 from .processing_decisions import calculator_inputs_on_grid, nodata_sentinel
-from .processing_guards import fitting_pixel_size
+from .processing_guards import _gone_input_check, fitting_pixel_size
 from .processing_run import _ASYNC_PIXELS, _heavy_inputs, _start_async_processing, raster_file_problem
 from .project_tools import is_remote_raster
 
@@ -247,7 +247,9 @@ def _run_or_defer(alg_id: str, params: dict, output_name: str):
 
 
 
-
+    gone = _gone_input_check(params)
+    if gone:
+        return None, gone, None
     if _heavy_inputs(params):
         alg = QgsApplication.processingRegistry().algorithmById(alg_id)
         if alg is not None:
@@ -702,7 +704,7 @@ class _RasterGridCalculator(QgsProcessingAlgorithm):
                 layer = QgsRasterLayer(source, name, provider, options)
                 layers.append(layer)
                 if not layer.isValid():
-                    raise QgsProcessingException(f"Could not open raster input {name}: {layer.error().summary()}")
+                    raise QgsProcessingException(f"Could not open raster input {name}: {error_summary(layer)}")
                 if crs is not None and crs.isValid():
                     layer.setCrs(crs)
             crs = self.parameterAsCrs(parameters, "CRS", context)

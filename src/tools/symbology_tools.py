@@ -49,6 +49,7 @@ import re
 from qgis.core import QgsApplication, QgsRasterLayer, QgsVectorLayer
 from qgis.PyQt.QtCore import QT_TRANSLATE_NOOP
 
+from ..core.layer_order import extent_known
 from ..core.logger import log_warning
 from ..core.numbers import as_float
 from ..core.qt_compat import enum_member
@@ -1077,6 +1078,40 @@ def _resampler(name: str):
     return {"bilinear": QgsBilinearRasterResampler, "cubic": QgsCubicRasterResampler}.get(name, lambda: None)()
 
 
+def _zoomed_in_now(layer) -> str:
+
+    from qgis.core import Qgis, QgsRasterDataProvider
+
+    if layer.resamplingStage() == enum_member(Qgis, "RasterResamplingStage", "Provider", None):
+        method = layer.dataProvider().zoomedInResamplingMethod()
+        name = next((n for n in RESAMPLING
+                     if method == enum_member(QgsRasterDataProvider, "ResamplingMethod", n.capitalize(), None)), "")
+    else:
+        late = layer.resampleFilter().zoomedInResampler() if layer.resampleFilter() else None
+        name = late.type() if late is not None else "nearest"
+    return name if name in RESAMPLING else "nearest"
+
+
+def _resample(layer, zoomed_in, zoomed_out) -> dict:
+
+
+    from .elevation_style import resample_early
+
+    zoomed_in = zoomed_in or _zoomed_in_now(layer)
+    zoomed_out = zoomed_out or zoomed_in
+    if resample_early(layer, zoomed_in, zoomed_out):
+        return {"zoomed_in": zoomed_in, "zoomed_out": zoomed_out, "stage": "provider"}
+    resample = layer.resampleFilter()
+    resample.setZoomedInResampler(None)
+    resample.setZoomedOutResampler(_resampler(zoomed_out))
+    done = {"zoomed_in": "nearest", "zoomed_out": zoomed_out, "stage": "filter"}
+    if zoomed_in != "nearest":
+        done["zoomed_in_not_applied"] = (
+            f"This layer's provider cannot resample, and QGIS's own {zoomed_in} zoomed-in resampler runs out "
+            "of memory when the map is zoomed in close (qgis/QGIS#67705), so zoomed-in pixels stay nearest.")
+    return done
+
+
 _MIN_MAX_KEYS = ("min_max", "cumulative_cut", "std_dev_factor", "min_max_extent", "min_max_accuracy", "stretch")
 _RASTER_ONLY = ("resampling", "resampling_zoomed_out", "brightness", "contrast", "saturation", "gamma") + _MIN_MAX_KEYS
 _VECTOR_ONLY = ("renderer", "symbol_layers", "rules", "renderer_options", "effect", "feature_blend_mode")
@@ -1187,15 +1222,8 @@ def _set_layer_symbology(args: dict) -> dict:
 
 def _raster_rendering(layer, args: dict) -> dict:
     out = {}
-    if args.get("resampling"):
-        resample = layer.resampleFilter()
-        zoomed_out = args.get("resampling_zoomed_out") or args["resampling"]
-        resample.setZoomedInResampler(_resampler(args["resampling"]))
-        resample.setZoomedOutResampler(_resampler(zoomed_out))
-        out["resampling"] = {"zoomed_in": args["resampling"], "zoomed_out": zoomed_out}
-    elif args.get("resampling_zoomed_out"):
-        layer.resampleFilter().setZoomedOutResampler(_resampler(args["resampling_zoomed_out"]))
-        out["resampling"] = {"zoomed_out": args["resampling_zoomed_out"]}
+    if args.get("resampling") or args.get("resampling_zoomed_out"):
+        out["resampling"] = _resample(layer, args.get("resampling"), args.get("resampling_zoomed_out"))
     brightness = layer.brightnessFilter()
     for key, setter in (("brightness", "setBrightness"), ("contrast", "setContrast"), ("gamma", "setGamma")):
         if args.get(key) is not None and hasattr(brightness, setter):
@@ -1283,7 +1311,8 @@ def _canvas_extent(layer) -> tuple:
     if canvas is None:
         return None, "There is no map canvas here to read the range from. Nothing was changed."
     rect = canvas.mapSettings().outputExtentToLayerExtent(layer, canvas.extent())
-    if rect.isEmpty() or not rect.intersects(layer.extent()):
+    extent = extent_known(layer)
+    if rect.isEmpty() or (extent is not None and not rect.intersects(extent)):
         return None, f"The map canvas shows none of {layer.name()!r}. Nothing was changed."
     return rect, None
 

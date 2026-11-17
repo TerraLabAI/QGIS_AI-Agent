@@ -1806,6 +1806,82 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <source>{words} · {done} of {total}</source>
             <translation>{words} · {done} з {total}</translation>
         </message>
+        <message>
+            <source>Allow chat review</source>
+            <translation>Дозволити перегляд чату</translation>
+        </message>
+        <message>
+            <source>Both switches stay in Settings, where you can change them whenever you want.</source>
+            <translation>Обидва перемикачі залишаються в Налаштуваннях, де ви можете змінити їх будь-коли.</translation>
+        </message>
+        <message>
+            <source>Counts and error codes, linked to your account. Never your text or your map.</source>
+            <translation>Лічильники й коди помилок, пов'язані з вашим обліковим записом. Ніколи не ваш текст і не ваша карта.</translation>
+        </message>
+        <message>
+            <source>Each message sends your text, the map extent, your layer and field names, one sample row and, while it works, pictures of the map. Never your files unless you attach them. No model is trained on them.</source>
+            <translation>Кожне повідомлення надсилає ваш текст, охоплення карти, назви ваших шарів і полів, один зразок рядка та, поки AI-агент працює, зображення карти. Ніколи ваші файли, якщо ви їх не додали. Жодна модель не навчається на них.</translation>
+        </message>
+        <message>
+            <source>Our team may read your chats to fix the AI agent.</source>
+            <translation>Наша команда може читати ваші чати, щоб удосконалювати AI-агента.</translation>
+        </message>
+        <message>
+            <source>Runs on Microsoft Azure in Europe, stored in France.</source>
+            <translation>Працює на Microsoft Azure в Європі, зберігається у Франції.</translation>
+        </message>
+        <message>
+            <source>Share usage statistics</source>
+            <translation>Ділитися статистикою використання</translation>
+        </message>
+        <message>
+            <source>The message you send is the part that reaches us: we keep it 90 days, and with chat review on, our team may read it to fix the AI agent. On {pro}, 30 days, or none at 0 days of history.</source>
+            <translation>До нас доходить лише повідомлення, яке ви надсилаєте: ми зберігаємо його 90 днів, а якщо ввімкнено перегляд чату, наша команда може прочитати його, щоб удосконалювати AI-агента. На {pro} це 30 днів, або жодного дня, якщо історія встановлена на 0 днів.</translation>
+        </message>
+        <message>
+            <source>You choose below.</source>
+            <translation>Ви обираєте нижче.</translation>
+        </message>
+        <message>
+            <source>Close the open list</source>
+            <translation>Закрити відкритий список</translation>
+        </message>
+        <message>
+            <source>Press it twice</source>
+            <translation>Натисніть двічі</translation>
+        </message>
+        <message>
+            <source>Deleted after 90 days at most</source>
+            <translation>Видаляється не пізніше ніж через 90 днів</translation>
+        </message>
+        <message>
+            <source>Help improve AI Agent</source>
+            <translation>Допоможіть покращити AI Agent</translation>
+        </message>
+        <message>
+            <source>Hosted in the EU</source>
+            <translation>Розміщено в ЄС</translation>
+        </message>
+        <message>
+            <source>Never used to train AI</source>
+            <translation>Ніколи не використовується для навчання AI</translation>
+        </message>
+        <message>
+            <source>Your chats are private</source>
+            <translation>Ваші чати приватні</translation>
+        </message>
+        <message>
+            <source>Your usage and chats help us fix bugs. Turn it off anytime.</source>
+            <translation>Ваше використання та чати допомагають нам виправляти помилки. Вимкнути можна будь-коли.</translation>
+        </message>
+        <message>
+            <source>included</source>
+            <translation>включено</translation>
+        </message>
+        <message>
+            <source>left out</source>
+            <translation>не включено</translation>
+        </message>
     </context>
     <context>
         <name>AIAgentContext</name>
@@ -2042,6 +2118,10 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <source>Your AI agent inside QGIS</source>
             <translation>Ваш ШІ-помічник у QGIS</translation>
+        </message>
+        <message>
+            <source>This layer's file can no longer be read, so the map cannot zoom to it.</source>
+            <translation>Файл цього шару більше не вдається прочитати, тому карта не може наблизитися до нього.</translation>
         </message>
     </context>
     <context>
@@ -2393,6 +2473,10 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <source>{words} · {done} of {total}</source>
             <translation>{words} · {done} із {total}</translation>
         </message>
+        <message>
+            <source>Show on map</source>
+            <translation>Показати на карті</translation>
+        </message>
     </context>
     <context>
         <name>AgentBubble</name>
@@ -2427,6 +2511,18 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <source>Remove rating</source>
             <translation>Прибрати оцінку</translation>
+        </message>
+        <message>
+            <source>Did this do what you wanted?</source>
+            <translation>Це те, що ви хотіли?</translation>
+        </message>
+        <message>
+            <source>No</source>
+            <translation>Ні</translation>
+        </message>
+        <message>
+            <source>Yes</source>
+            <translation>Так</translation>
         </message>
     </context>
     <context>
@@ -2815,6 +2911,26 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <source>Stopped: AI Agent was updated or turned off during this run.</source>
             <translation>Зупинено: AI Agent оновили або вимкнули під час цього запуску.</translation>
         </message>
+        <message>
+            <source>Not sent: TerraLab is not connected.</source>
+            <translation>Не надіслано: TerraLab не підключено.</translation>
+        </message>
+        <message>
+            <source>Thanks. Your note went with the crash report.</source>
+            <translation>Дякуємо. Ваш коментар надіслано разом зі звітом про збій.</translation>
+        </message>
+        <message>
+            <source>{layer} lost its file, and QGIS closes when it saves a project that holds it, so nothing was restored. Remove {layer} from the project, or put its file back and turn its editing on and off once, then try again.</source>
+            <translation>{layer} втратив свій файл, а QGIS закривається, коли зберігає проєкт, у якому він є, тому нічого не було відновлено. Вилучіть {layer} із проєкту або поверніть його файл на місце, один раз увімкніть і вимкніть режим редагування цього шару та спробуйте ще раз.</translation>
+        </message>
+        <message>
+            <source>Your note could not be added to the crash report.</source>
+            <translation>Не вдалося додати Ваш коментар до звіту про збій.</translation>
+        </message>
+        <message>
+            <source>Your note was sent.</source>
+            <translation>Ваш коментар надіслано.</translation>
+        </message>
     </context>
     <context>
         <name>AgentSession</name>
@@ -2961,6 +3077,10 @@ The erasure is final once the grace period ends. Until then you can cancel it by
     </context>
     <context>
         <name>ChatPanel</name>
+        <message>
+            <source>Try another card</source>
+            <translation>Спробуйте іншу картку</translation>
+        </message>
         <message>
             <source>Add a few words: what should the AI agent do with it?</source>
             <translation>Додайте кілька слів: що асистент має з цим зробити?</translation>
@@ -3220,6 +3340,14 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <source>Reply</source>
             <translation>Відповісти</translation>
+        </message>
+        <message>
+            <source>Esc again to stop</source>
+            <translation>Esc ще раз, щоб зупинити</translation>
+        </message>
+        <message>
+            <source>Queue a message for after this run</source>
+            <translation>Поставте повідомлення в чергу після цього запуску</translation>
         </message>
     </context>
     <context>
@@ -3520,6 +3648,72 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <source>Finish dictation</source>
             <translation>Завершити диктування</translation>
         </message>
+        <message>
+            <location filename="src/ui/composer.py" />
+            <source>{name} was removed from the project</source>
+            <translation>Шар {name} видалено з проєкту</translation>
+        </message>
+        <message>
+            <location filename="src/ui/composer.py" />
+            <source>{name} is now called {new}</source>
+            <translation>Шар {name} тепер має назву {new}</translation>
+        </message>
+        <message>
+            <location filename="src/ui/composer.py" />
+            <source>{names} were removed from the project</source>
+            <translation>Шари {names} видалено з проєкту</translation>
+        </message>
+        <message>
+            <location filename="src/ui/composer.py" />
+            <source>{n} layers named here were removed or renamed</source>
+            <translation>Шарів, названих тут, видалено або перейменовано: {n}</translation>
+        </message>
+        <message>
+            <location filename="src/ui/composer.py" />
+            <source>Sent as plain words: the AI agent gets no link to the layer.</source>
+            <translation>Надіслано як звичайний текст: ШІ-агент не отримує посилання на шар.</translation>
+        </message>
+        <message>
+            <location filename="src/ui/composer.py" />
+            <source>removed from the project</source>
+            <translation>видалено з проєкту</translation>
+        </message>
+        <message>
+            <location filename="src/ui/composer.py" />
+            <source>renamed {new}</source>
+            <translation>перейменовано на {new}</translation>
+        </message>
+        <message>
+            <location filename="src/ui/composer.py" />
+            <source>Use</source>
+            <translation>Вставити</translation>
+        </message>
+        <message>
+            <location filename="src/ui/composer.py" />
+            <source>Write {new} in the message instead</source>
+            <translation>Вставити {new} у повідомлення замість цього</translation>
+        </message>
+        <message>
+            <location filename="src/ui/composer.py" />
+            <source>and {n} more</source>
+            <translation>і ще {n}</translation>
+        </message>
+        <message>
+            <source>1 layer</source>
+            <translation>1 шар</translation>
+        </message>
+        <message>
+            <source>Edit as text</source>
+            <translation>Редагувати як текст</translation>
+        </message>
+        <message>
+            <source>Show on map</source>
+            <translation>Показати на карті</translation>
+        </message>
+        <message>
+            <source>{n} layers</source>
+            <translation>Шарів: {n}</translation>
+        </message>
     </context>
     <context>
         <name>ComposerInput</name>
@@ -3534,6 +3728,14 @@ The erasure is final once the grace period ends. Until then you can cancel it by
         <message>
             <source>QGIS plugins</source>
             <translation>Плагіни QGIS</translation>
+        </message>
+        <message>
+            <source>Type to search layers, data sources and QGIS plugins</source>
+            <translation>Введіть, щоб шукати шари, джерела даних і плагіни QGIS</translation>
+        </message>
+        <message>
+            <source>Message AI Agent</source>
+            <translation>Повідомлення для AI Agent</translation>
         </message>
     </context>
     <context>
@@ -4051,6 +4253,18 @@ This file is no longer where the run wrote it.</source>
             <source>Your Pro ends on {date}. Keep it in one click.</source>
             <translation>Ваш Pro закінчується {date}. Залиште його одним кліком.</translation>
         </message>
+        <message>
+            <source>AI Agent settings</source>
+            <translation>Налаштування AI Agent</translation>
+        </message>
+        <message>
+            <source>Close AI Agent</source>
+            <translation>Закрити AI Agent</translation>
+        </message>
+        <message>
+            <source>Dock or undock AI Agent</source>
+            <translation>Закріпити або відкріпити AI Agent</translation>
+        </message>
     </context>
     <context>
         <name>HistoryPopup</name>
@@ -4133,6 +4347,19 @@ This file is no longer where the run wrote it.</source>
         <message>
             <source>{n} min ago</source>
             <translation>{n} хв тому</translation>
+        </message>
+        <message>
+            <location filename="src/ui/history_popup.py" />
+            <source>Draft</source>
+            <translation>Чернетка</translation>
+        </message>
+        <message>
+            <source>Delete chat: {title}</source>
+            <translation>Видалити чат: {title}</translation>
+        </message>
+        <message>
+            <source>Open</source>
+            <translation>Відкрити</translation>
         </message>
     </context>
     <context>
@@ -4534,10 +4761,6 @@ Click to show it in the Layers panel.</source>
             <translation>Немає в цьому проєкті: {}</translation>
         </message>
         <message>
-            <source>Other effects the preview could not read: {}</source>
-            <translation>Інші наслідки, яких попередній перегляд не зміг прочитати: {}</translation>
-        </message>
-        <message>
             <source>Reads: {}</source>
             <translation>Читає: {}</translation>
         </message>
@@ -4548,6 +4771,94 @@ Click to show it in the Layers panel.</source>
         <message>
             <source>Writes files: {}</source>
             <translation>Записує файли: {}</translation>
+        </message>
+        <message>
+            <source>Cancel</source>
+            <translation>Скасувати</translation>
+        </message>
+        <message>
+            <source>Delete 1 feature from {layer}</source>
+            <translation>Видалити 1 об'єкт із {layer}</translation>
+        </message>
+        <message>
+            <source>Delete {n}</source>
+            <translation>Видалити: {n}</translation>
+        </message>
+        <message>
+            <source>Delete {n} features from {layer}</source>
+            <translation>Видалити об'єкти ({n}) із {layer}</translation>
+        </message>
+        <message>
+            <source>Details</source>
+            <translation>Докладніше</translation>
+        </message>
+        <message>
+            <source>Feature ids: {ids}</source>
+            <translation>Ідентифікатори об'єктів: {ids}</translation>
+        </message>
+        <message>
+            <source>Feature ids: {ids} and {n} more</source>
+            <translation>Ідентифікатори об'єктів: {ids} і ще {n}</translation>
+        </message>
+        <message>
+            <source>Feature {fid}: {values}</source>
+            <translation>Об'єкт {fid}: {values}</translation>
+        </message>
+        <message>
+            <source>Hatched in red on the map. Its data source stays as it is; nothing is removed yet.</source>
+            <translation>Позначено червоним штрихуванням на карті. Джерело даних шару залишається без змін; поки що нічого не вилучено.</translation>
+        </message>
+        <message>
+            <source>Hatched in red on the map. Nothing is deleted yet.</source>
+            <translation>Позначено червоним штрихуванням на карті. Поки що нічого не видалено.</translation>
+        </message>
+        <message>
+            <source>Hatched in red on the map. Nothing is written yet.</source>
+            <translation>Позначено червоним штрихуванням на карті. Поки що нічого не записано.</translation>
+        </message>
+        <message>
+            <source>Hide details</source>
+            <translation>Сховати подробиці</translation>
+        </message>
+        <message>
+            <source>Its features exist only in this project and go with it. Hatched in red on the map; nothing is removed yet.</source>
+            <translation>Його об'єкти існують лише в цьому проєкті й зникнуть разом із ним. Позначено червоним штрихуванням на карті; поки що нічого не вилучено.</translation>
+        </message>
+        <message>
+            <source>Overwrite 1 feature of {layer}</source>
+            <translation>Перезаписати 1 об'єкт шару {layer}</translation>
+        </message>
+        <message>
+            <source>Overwrite {n}</source>
+            <translation>Перезаписати: {n}</translation>
+        </message>
+        <message>
+            <source>Overwrite {n} features of {layer}</source>
+            <translation>Перезаписати об'єкти ({n}) шару {layer}</translation>
+        </message>
+        <message>
+            <source>Remove layer</source>
+            <translation>Вилучити шар</translation>
+        </message>
+        <message>
+            <source>Remove {layer} from the project</source>
+            <translation>Вилучити {layer} із проєкту</translation>
+        </message>
+        <message>
+            <source>Rule: {expression}</source>
+            <translation>Правило: {expression}</translation>
+        </message>
+        <message>
+            <source>Show on map</source>
+            <translation>Показати на карті</translation>
+        </message>
+        <message>
+            <source>{n} features in {layer}</source>
+            <translation>Об'єктів у {layer}: {n}</translation>
+        </message>
+        <message>
+            <source>{n} of {total} features in {layer}</source>
+            <translation>Об'єктів у {layer}: {n} із {total}</translation>
         </message>
     </context>
     <context>
@@ -4755,6 +5066,18 @@ Click to show it in the Layers panel.</source>
     </context>
     <context>
         <name>QuotaCard</name>
+        <message>
+            <source>Card declined</source>
+            <translation>Картку відхилено</translation>
+        </message>
+        <message>
+            <source>Your trial didn't start. Nothing was charged.</source>
+            <translation>Пробний період не розпочався. Гроші не списано.</translation>
+        </message>
+        <message>
+            <source>Try another card</source>
+            <translation>Спробуйте іншу картку</translation>
+        </message>
         <message>
             <location filename="src/ui/quota_card.py" />
             <source>Free for 7 days, nothing to pay today, then monthly at your local price. Cancel in one click.</source>
@@ -5867,6 +6190,22 @@ Thank you</source>
             <source>The AI agent's mark moves and follows the work. Off keeps it still.</source>
             <translation>Знак ШІ-агента рухається й стежить за роботою. Коли вимкнено, він нерухомий.</translation>
         </message>
+        <message>
+            <source>Help improve AI Agent</source>
+            <translation>Допоможіть покращити AI Agent</translation>
+        </message>
+        <message>
+            <source>Usage stats: errors, versions and the features you use, never your prompts, layers or files. We may read a chat, or have a model score it, to fix bugs, never to train AI.</source>
+            <translation>Статистика використання: помилки, версії та функції, якими ви користуєтеся, але ніколи ваші запити, шари чи файли. Ми можемо прочитати чат або доручити моделі оцінити його, щоб виправити помилки, але ніколи для навчання AI.</translation>
+        </message>
+        <message>
+            <source>Usage stats: only that you used the app and when. Chats are kept 30 days so a conversation survives an update; we may read one, or have a model score it, to fix bugs, never to train AI. 0 days of history stores nothing.</source>
+            <translation>Статистика використання: лише те, що ви користувалися застосунком, і коли. Чати зберігаються 30 днів, щоб розмова пережила оновлення; ми можемо прочитати один із них або доручити моделі оцінити його, щоб виправити помилки, але ніколи для навчання AI. 0 днів історії означає, що нічого не зберігається.</translation>
+        </message>
+        <message>
+            <source>Your usage and chats help us fix bugs. Turn it off anytime.</source>
+            <translation>Ваше використання та чати допомагають нам виправляти помилки. Вимкнути можна будь-коли.</translation>
+        </message>
     </context>
     <context>
         <name>SiblingCard</name>
@@ -6266,6 +6605,10 @@ Thank you</source>
             <source>{area} m²</source>
             <translation>{area} m²</translation>
         </message>
+        <message>
+            <source>Always allowed</source>
+            <translation>Завжди дозволено</translation>
+        </message>
     </context>
     <context>
         <name>UpdateBanner</name>
@@ -6319,6 +6662,10 @@ Thank you</source>
         <message>
             <source>{product} {version} is out</source>
             <translation>Вийшла версія {product} {version}</translation>
+        </message>
+        <message>
+            <source>Update {product} to continue</source>
+            <translation>Оновіть {product}, щоб продовжити</translation>
         </message>
     </context>
     <context>
@@ -6930,6 +7277,18 @@ Thank you</source>
             <source>Choose in Google Drive</source>
             <translation>Вибрати в Google Drive</translation>
         </message>
+        <message>
+            <source>More ways to allow</source>
+            <translation>Інші способи дозволити</translation>
+        </message>
+        <message>
+            <source>Always allow {label}</source>
+            <translation>Завжди дозволяти {label}</translation>
+        </message>
+        <message>
+            <source>Always allowed</source>
+            <translation>Завжди дозволено</translation>
+        </message>
     </context>
     <context>
         <name>ConnectedAccountsPage</name>
@@ -7036,6 +7395,18 @@ Thank you</source>
         <message>
             <source>{name} sign-in</source>
             <translation>Вхід у {name}</translation>
+        </message>
+        <message>
+            <source>Always allow</source>
+            <translation>Завжди дозволяти</translation>
+        </message>
+        <message>
+            <source>Always allow {label}</source>
+            <translation>Завжди дозволяти {label}</translation>
+        </message>
+        <message>
+            <source>Used with no card each time. Off: the AI agent asks first.</source>
+            <translation>Використовується без картки щоразу. Вимкнено: ШІ-агент спершу запитує.</translation>
         </message>
     </context>
     <context>
@@ -7183,6 +7554,14 @@ Thank you</source>
         <message>
             <source>Show the plugin's panel.</source>
             <translation>Показати панель плагіна.</translation>
+        </message>
+        <message>
+            <source>Install {plugin}</source>
+            <translation>Встановити {plugin}</translation>
+        </message>
+        <message>
+            <source>Open {plugin}</source>
+            <translation>Відкрити {plugin}</translation>
         </message>
     </context>
     <context>
@@ -7610,6 +7989,54 @@ Thank you</source>
             <source>QGIS will ask you to choose a master password. It locks every sign-in saved in QGIS and cannot be recovered, so keep it somewhere safe.</source>
             <translation>QGIS попросить вас вибрати головний пароль. Він блокує всі збережені в QGIS входи, і його не можна відновити, тож зберігайте його в безпечному місці.</translation>
         </message>
+        <message>
+            <source>Cloud project ID</source>
+            <translation>ID проєкту Cloud</translation>
+        </message>
+        <message>
+            <source>Shown next to the project name at the top of console.cloud.google.com.</source>
+            <translation>Показано поруч із назвою проєкту вгорі console.cloud.google.com.</translation>
+        </message>
+        <message>
+            <source>Type the ID of the Google Cloud project Earth Engine runs on.</source>
+            <translation>Введіть ID проєкту Google Cloud, у якому працює Earth Engine.</translation>
+        </message>
+        <message>
+            <source>Open the Cloud console</source>
+            <translation>Відкрити Cloud console</translation>
+        </message>
+        <message>
+            <source>You're signed in</source>
+            <translation>Ви увійшли</translation>
+        </message>
+        <message>
+            <source>You can close this tab and return to QGIS.</source>
+            <translation>Можете закрити цю вкладку й повернутися до QGIS.</translation>
+        </message>
+        <message>
+            <source>In QGIS, pick the Cloud project Earth Engine runs on.</source>
+            <translation>У QGIS виберіть проєкт Cloud, у якому працює Earth Engine.</translation>
+        </message>
+        <message>
+            <source>Sign-in didn't finish</source>
+            <translation>Вхід не завершено</translation>
+        </message>
+        <message>
+            <source>Close this tab and try again from QGIS.</source>
+            <translation>Закрийте цю вкладку й спробуйте ще раз у QGIS.</translation>
+        </message>
+        <message>
+            <source>Checking {project} with Earth Engine...</source>
+            <translation>Перевіряємо {project} в Earth Engine...</translation>
+        </message>
+        <message>
+            <source>Earth Engine refused the project {project} ({error}). Check the ID and your role on the project.</source>
+            <translation>Earth Engine відхилив проєкт {project} ({error}). Перевірте ID і свою роль у проєкті.</translation>
+        </message>
+        <message>
+            <source>Earth Engine could not be reached ({error}). Check your connection or the proxy in QGIS (Settings &gt; Options &gt; Network).</source>
+            <translation>Не вдалося зв'язатися з Earth Engine ({error}). Перевірте підключення або проксі в QGIS (Налаштування &gt; Параметри &gt; Мережа).</translation>
+        </message>
     </context>
     <context>
         <name>BrowserWait</name>
@@ -7982,6 +8409,22 @@ Thank you</source>
             <source>Your words are sent with this chat and recent logs.</source>
             <translation>Ваші слова надсилаються разом із цим чатом і нещодавніми журналами.</translation>
         </message>
+        <message>
+            <source>Add a comment</source>
+            <translation>Додати коментар</translation>
+        </message>
+        <message>
+            <source>Ask the AI agent instead</source>
+            <translation>Натомість запитати ШІ-агента</translation>
+        </message>
+        <message>
+            <source>Message to the TerraLab team (optional)</source>
+            <translation>Повідомлення для команди TerraLab (необов'язково)</translation>
+        </message>
+        <message>
+            <source>Read by the TerraLab team, not by the AI agent. Sent with this chat and recent logs.</source>
+            <translation>Це читає команда TerraLab, а не ШІ-агент. Надсилається разом із цим чатом і нещодавніми журналами.</translation>
+        </message>
     </context>
     <context>
         <name>NoteRow</name>
@@ -8197,6 +8640,295 @@ Thank you</source>
         <message>
             <source>Recording</source>
             <translation>Запис</translation>
+        </message>
+    </context>
+    <context>
+        <name>TransformationRow</name>
+        <message>
+            <source>A more accurate one ({accuracy}) needs a grid file this QGIS does not have.</source>
+            <translation>Точніший варіант ({accuracy}) потребує файлу сітки, якого немає в цьому QGIS.</translation>
+        </message>
+        <message>
+            <source>Change in Project Properties</source>
+            <translation>Змінити у властивостях проєкту</translation>
+        </message>
+        <message>
+            <source>Coordinate transformation: {what}</source>
+            <translation>Перетворення координат: {what}</translation>
+        </message>
+        <message>
+            <source>Hide details</source>
+            <translation>Сховати деталі</translation>
+        </message>
+        <message>
+            <source>Show details</source>
+            <translation>Показати деталі</translation>
+        </message>
+        <message>
+            <source>The other option is no more accurate.</source>
+            <translation>Інший варіант не точніший.</translation>
+        </message>
+        <message>
+            <source>The {count} other options are no more accurate.</source>
+            <translation>Решта варіантів ({count}) не точніші.</translation>
+        </message>
+        <message>
+            <source>Transformation</source>
+            <translation>Трансформація</translation>
+        </message>
+        <message>
+            <source>{count} transformations</source>
+            <translation>Трансформації: {count}</translation>
+        </message>
+        <message>
+            <source>{layer} goes from {source} to {target} through {operation}, accurate to about {accuracy}.</source>
+            <translation>{layer} перетворюється з {source} у {target} через {operation} з точністю близько {accuracy}.</translation>
+        </message>
+        <message>
+            <source>{layer} goes from {source} to {target} through {operation}, of unknown accuracy.</source>
+            <translation>{layer} перетворюється з {source} у {target} через {operation} з невідомою точністю.</translation>
+        </message>
+    </context>
+    <context>
+        <name>SelectionLine</name>
+        <message>
+            <source>Leave the selection out of this message</source>
+            <translation>Не додавати вибір до цього повідомлення</translation>
+        </message>
+        <message>
+            <source>The AI agent sees this selection with your message, along with the map view and the project's layers.</source>
+            <translation>ШІ-агент бачить цей вибір разом із вашим повідомленням, а також вид карти та шари проєкту.</translation>
+        </message>
+        <message>
+            <source>{layer} · 1 feature selected</source>
+            <translation>{layer} · вибрано 1 об'єкт</translation>
+        </message>
+        <message>
+            <source>{layer} · {n} features selected</source>
+            <translation>{layer} · вибрано об'єктів: {n}</translation>
+        </message>
+    </context>
+    <context>
+        <name>_Row</name>
+        <message>
+            <location filename="src/ui/sidebar.py" />
+            <source>Draft</source>
+            <translation>Чернетка</translation>
+        </message>
+        <message>
+            <source>Open</source>
+            <translation>Відкрити</translation>
+        </message>
+    </context>
+    <context>
+        <name>GeoPaste</name>
+        <message>
+            <source>1 feature</source>
+            <translation>1 об'єкт</translation>
+        </message>
+        <message>
+            <source>1 vertex</source>
+            <translation>1 вершина</translation>
+        </message>
+        <message>
+            <source>ArcGIS FeatureServer</source>
+            <translation>ArcGIS FeatureServer</translation>
+        </message>
+        <message>
+            <source>ArcGIS ImageServer</source>
+            <translation>ArcGIS ImageServer</translation>
+        </message>
+        <message>
+            <source>ArcGIS MapServer</source>
+            <translation>ArcGIS MapServer</translation>
+        </message>
+        <message>
+            <source>FlatGeobuf file</source>
+            <translation>Файл FlatGeobuf</translation>
+        </message>
+        <message>
+            <source>GeoJSON file</source>
+            <translation>Файл GeoJSON</translation>
+        </message>
+        <message>
+            <source>GeoPackage file</source>
+            <translation>Файл GeoPackage</translation>
+        </message>
+        <message>
+            <source>GeoTIFF (COG)</source>
+            <translation>GeoTIFF (COG)</translation>
+        </message>
+        <message>
+            <source>Geometry</source>
+            <translation>Геометрія</translation>
+        </message>
+        <message>
+            <source>KML file</source>
+            <translation>Файл KML</translation>
+        </message>
+        <message>
+            <source>Line</source>
+            <translation>Лінія</translation>
+        </message>
+        <message>
+            <source>Multiline</source>
+            <translation>Мультилінія</translation>
+        </message>
+        <message>
+            <source>Multipoint</source>
+            <translation>Мультиточка</translation>
+        </message>
+        <message>
+            <source>Multipolygon</source>
+            <translation>Мультиполігон</translation>
+        </message>
+        <message>
+            <source>OGC API Features</source>
+            <translation>OGC API Features</translation>
+        </message>
+        <message>
+            <source>PMTiles</source>
+            <translation>PMTiles</translation>
+        </message>
+        <message>
+            <source>Parquet file</source>
+            <translation>Файл Parquet</translation>
+        </message>
+        <message>
+            <source>Pasted text</source>
+            <translation>Вставлений текст</translation>
+        </message>
+        <message>
+            <source>Point</source>
+            <translation>Точка</translation>
+        </message>
+        <message>
+            <source>Point cloud</source>
+            <translation>Хмара точок</translation>
+        </message>
+        <message>
+            <source>Point · WGS 84</source>
+            <translation>Точка · WGS 84</translation>
+        </message>
+        <message>
+            <source>Polygon</source>
+            <translation>Полігон</translation>
+        </message>
+        <message>
+            <source>STAC catalog</source>
+            <translation>Каталог STAC</translation>
+        </message>
+        <message>
+            <source>Vector tiles</source>
+            <translation>Векторні тайли</translation>
+        </message>
+        <message>
+            <source>WCS service</source>
+            <translation>Сервіс WCS</translation>
+        </message>
+        <message>
+            <source>WFS service</source>
+            <translation>Сервіс WFS</translation>
+        </message>
+        <message>
+            <source>WMS service</source>
+            <translation>Сервіс WMS</translation>
+        </message>
+        <message>
+            <source>WMTS service</source>
+            <translation>Сервіс WMTS</translation>
+        </message>
+        <message>
+            <source>XYZ tiles</source>
+            <translation>Тайли XYZ</translation>
+        </message>
+        <message>
+            <source>{n} characters</source>
+            <translation>Символів: {n}</translation>
+        </message>
+        <message>
+            <source>{n} features</source>
+            <translation>Об'єктів: {n}</translation>
+        </message>
+        <message>
+            <source>{n} lines</source>
+            <translation>Рядків: {n}</translation>
+        </message>
+        <message>
+            <source>{n} vertices</source>
+            <translation>Вершин: {n}</translation>
+        </message>
+        <message>
+            <source>{shape} GeoJSON</source>
+            <translation>{shape} GeoJSON</translation>
+        </message>
+        <message>
+            <source>{shape} WKT</source>
+            <translation>{shape} WKT</translation>
+        </message>
+    </context>
+    <context>
+        <name>CrashCommentBar</name>
+        <message>
+            <source>Dismiss</source>
+            <translation>Закрити</translation>
+        </message>
+        <message>
+            <source>Example: I had the attribute table open and pressed Save</source>
+            <translation>Приклад: у мене була відкрита таблиця атрибутів, і я натиснув Зберегти</translation>
+        </message>
+        <message>
+            <source>QGIS closed unexpectedly</source>
+            <translation>QGIS несподівано закрився</translation>
+        </message>
+        <message>
+            <source>Send</source>
+            <translation>Надіслати</translation>
+        </message>
+        <message>
+            <source>The crash report was sent. What were you doing just before?</source>
+            <translation>Звіт про збій надіслано. Що ви робили перед цим?</translation>
+        </message>
+        <message>
+            <source>Not sent. Press Send to try again.</source>
+            <translation>Не надіслано. Натисніть «Надіслати», щоб спробувати ще раз.</translation>
+        </message>
+    </context>
+    <context>
+        <name>_ModeRow</name>
+        <message>
+            <source>Locked: {tag}</source>
+            <translation>Заблоковано: {tag}</translation>
+        </message>
+        <message>
+            <source>Selected</source>
+            <translation>Вибрано</translation>
+        </message>
+    </context>
+    <context>
+        <name>_RowText</name>
+        <message>
+            <source>Edit this queued message</source>
+            <translation>Редагувати це повідомлення в черзі</translation>
+        </message>
+    </context>
+    <context>
+        <name>_StopNames</name>
+        <message>
+            <source>Effort: {level}</source>
+            <translation>Зусилля: {level}</translation>
+        </message>
+        <message>
+            <source>Locked until the end of the free trial</source>
+            <translation>Заблоковано до кінця безкоштовного пробного періоду</translation>
+        </message>
+        <message>
+            <source>Locked: {tag}</source>
+            <translation>Заблоковано: {tag}</translation>
+        </message>
+        <message>
+            <source>Selected</source>
+            <translation>Вибрано</translation>
         </message>
     </context>
 </TS>
