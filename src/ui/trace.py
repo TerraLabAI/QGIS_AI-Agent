@@ -43,6 +43,7 @@ from qgis.PyQt.QtCore import (
     QAbstractAnimation,
     QEasingCurve,
     QEvent,
+    QPoint,
     QSize,
     Qt,
     QTimer,
@@ -56,7 +57,7 @@ from . import card_base
 from .cards_tool import ToolCard
 from .font_scale import scale_qss_font_px
 from .icons import pixmap_for
-from .loader import DotsLoader, ElapsedClock, ShimmerLabel
+from .loader import DotsLoader, ElapsedClock, ShimmerLabel, quiet_label
 from .style import (
     FONT_BASE,
     FONT_BODY,
@@ -240,6 +241,8 @@ class RunTrace(QWidget):
         self._head.clicked.connect(self._on_head_clicked)
         self._head.hovered.connect(self._chevron.set_hot)
         col.addWidget(self._head)
+        self._quiet = quiet_label(self)
+        col.addWidget(self._quiet)
 
         self._body = _Body(self)
         self._rows = self._body.rows
@@ -436,6 +439,17 @@ class RunTrace(QWidget):
             self._note = text
             self._sync_head()
 
+    def set_quiet(self, text: str) -> None:
+
+
+        text = text if self.status == "running" else ""
+        if text == self._quiet.text() and self._quiet.isVisibleTo(self) == bool(text):
+            return
+        self._quiet.setIndent(self._live_text.mapTo(self, QPoint(0, 0)).x())
+        self._quiet.setText(text)
+        self._quiet.setVisible(bool(text))
+        self.updateGeometry()
+
     def running_title(self) -> str:
 
 
@@ -488,6 +502,8 @@ class RunTrace(QWidget):
         self._title_outcome.setVisible(bool(said))
         self._live_text.setVisible(live)
         self._title.setVisible(not live)
+        if not live:
+            self._quiet.hide()
 
     def head_line(self) -> str:
 

@@ -20,7 +20,7 @@ from ..core.logger import log_warning
 from . import map_preview
 from .card_controls import _ASK_LABEL_QSS, _BTN_GHOST_PILL, _BTN_QUIET_LINK, AnswerFooter, _pill, ask_head
 from .font_scale import scale_qss_font_px
-from .style import FONT_BODY, RADIUS_CONTROL, RED, SPACE_CARD, SPACE_OUTER, WEIGHT_MEDIUM
+from .style import FONT_BODY, INK, RADIUS_CONTROL, RED, SPACE_CARD, SPACE_OUTER, WEIGHT_MEDIUM, _focus_ring
 from .tool_describe import group_number
 from .widgets import ChatLabel
 
@@ -30,6 +30,8 @@ _BTN_DELETE_PILL = scale_qss_font_px(
     f" font-weight: {WEIGHT_MEDIUM}; }}"
     "QPushButton:hover { background: #b02e33; }"
     "QPushButton:pressed { background: #962629; }"
+
+    + _focus_ring(INK, "0 12px")
 )
 _NOTE_QSS = _ASK_LABEL_QSS
 

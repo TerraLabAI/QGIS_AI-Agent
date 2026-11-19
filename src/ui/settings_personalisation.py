@@ -25,21 +25,17 @@ from qgis.PyQt.QtWidgets import (
     QWidget,
 )
 
-from ..core import telemetry
+from ..core import notify_sound, telemetry
+from ..core.i18n import UI_LANGUAGES
 from ..core.memory_store import memory_dir
 from ..core.profile import (
     MEMORY_NOTE_MAX_CHARS,
     PROFILE_LINE_MAX_CHARS,
     PROFILE_MAX_CHARS,
-    REPLY_LANGUAGES,
     add_memory_note,
     clear_memory_notes,
     load_memory_notes,
-    normalize_expertise,
-    normalize_question_policy,
-    normalize_reply_language,
     normalize_reply_style,
-    normalize_units,
     project_key,
     remove_memory_note,
     save_memory_notes,
@@ -47,35 +43,28 @@ from ..core.profile import (
 from ..core.qt_compat import qt_deleted
 from .cards_click import press_combo_rows
 from .font_scale import apply_font_scale_to_tree, scale_px_length
-from .mascot_stage import refresh_mascots
 from .memory_mascot import ADD_HOVER, ADDED, CLEARED, DELETED, EDITED, EMPTY, OFF, ON, REST, Companion, HoverWatch
-from .quota_card import trial_cta
 from .settings_pages import (
     GHOST_BTN_QSS,
     INPUT_QSS,
     MUTED,
     PRIMARY_BTN_QSS,
     ROW_NOTE_QSS,
-    TEXTAREA_QSS,
     NoteRow,
     Page,
-    ProNote,
     SectionCard,
     Segmented,
     SettingGroup,
     SettingRow,
     Switch,
     combo_qss,
-    set_section_locked,
 )
 from .style import WEIGHT_MEDIUM
 from .styles import PANEL_TEXT
-from .widgets import placeholder_ink
+from .widgets import IconButton, placeholder_ink
 
-_TEXTAREA_H = 64
 
 _COUNT_SHOWN_FROM = PROFILE_MAX_CHARS - 200
-_FIELD_LABEL_QSS = f"font-size: 12px; color: {MUTED}; background: transparent;"
 
 
 _MEMORY_MARK_PX = 26
@@ -98,93 +87,51 @@ class _NoteField(QLineEdit):
 class PersonalisationPageMixin:
 
 
-    def _build_answers(self, page: Page) -> SettingGroup:
+    def _build_answers(self, page: Page) -> dict:
+
 
 
 
         group = SettingGroup(page)
+        rows = []
 
         self._language_combo = QComboBox(group)
         self._language_combo.setStyleSheet(combo_qss(self))
         self._language_combo.setCursor(Qt.CursorShape.PointingHandCursor)
         self._language_combo.addItem(self.tr("Same as QGIS"), "")
-        for code, native in REPLY_LANGUAGES:
+        for code, native in UI_LANGUAGES:
             self._language_combo.addItem(native, code)
         self._language_combo.setMinimumWidth(scale_px_length(180))
         self._language_rows = press_combo_rows(self._language_combo)
         self._language_combo.currentIndexChanged.connect(self._on_language_changed)
-        group.add_row(SettingRow(self.tr("Response language"),
-                                 "",
-                                 self._language_combo, group))
+
+        language = SettingRow(self.tr("Language"), self.tr("Applies after restarting QGIS."),
+                              self._language_combo, group)
+        language.setProperty("keepNote", True)
+        rows.append(("language", language))
 
         self._style_segments = Segmented(
             [("concise", self.tr("Concise")), ("balanced", self.tr("Balanced")),
              ("detailed", self.tr("Detailed"))], self._store.reply_style, group)
         self._style_segments.changed.connect(self._on_style_changed)
-        group.add_row(SettingRow(self.tr("Response style"),
-                                 "",
-                                 self._style_segments, group))
+        rows.append(("style", SettingRow(self.tr("Response style"), "", self._style_segments, group)))
 
-
-
-        self._units_segments = Segmented(
-            [("metric", self.tr("Metric")), ("imperial", self.tr("Imperial"))], self._store.units, group)
-        self._units_segments.changed.connect(self._on_units_changed)
-        group.add_row(SettingRow(self.tr("Units"),
-                                 "",
-                                 self._units_segments, group))
-
-
-
-        self._questions_segments = Segmented(
-            [("minimal", self.tr("Rarely")), ("balanced", self.tr("When needed")),
-             ("confirm", self.tr("Often"))], self._store.question_policy, group)
-        self._questions_segments.changed.connect(self._on_questions_changed)
-        group.add_row(SettingRow(self.tr("Questions"),
-                                 self.tr("How often the AI asks before acting."),
-                                 self._questions_segments, group))
-
-        self._expertise_segments = Segmented(
-            [("", self.tr("Auto")), ("beginner", self.tr("Beginner")),
-             ("intermediate", self.tr("Regular")), ("expert", self.tr("Expert"))],
-            self._store.expertise, group)
-        self._expertise_segments.changed.connect(self._on_expertise_changed)
-        group.add_row(SettingRow(self.tr("GIS experience"),
-                                 self.tr("How much the AI explains."),
-                                 self._expertise_segments, group))
-
-
-
-
-        self._follow_switch = Switch(group, self._store.follow_edits)
-        self._follow_switch.toggled.connect(self._on_follow_toggled)
-        group.add_row(SettingRow(
-            self.tr("Move the map to what it changes"),
-            self.tr("The view goes to each edit as it happens. Off keeps your view where you put it."),
-            self._follow_switch, group))
-        self._mascot_switch = Switch(group, self._store.mascot_animated)
-        self._mascot_switch.toggled.connect(self._on_mascot_toggled)
-        group.add_row(SettingRow(
-            self.tr("Animate the mascot"),
-            self.tr("The AI agent's mark moves and follows the work. Off keeps it still."),
-            self._mascot_switch, group))
-        return group
+        group.hide()
+        return dict(rows)
 
     def _sync_language_combo(self) -> None:
-        code = normalize_reply_language(self._store.reply_language)
-        index = max(0, self._language_combo.findData(code))
+        index = max(0, self._language_combo.findData(self._store.ui_language))
         self._language_combo.blockSignals(True)
         self._language_combo.setCurrentIndex(index)
         self._language_combo.blockSignals(False)
 
     def _on_language_changed(self, index: int) -> None:
         code = str(self._language_combo.itemData(index) or "")
-        if code == self._store.reply_language:
+        if code == self._store.ui_language:
             return
-        self._store.reply_language = code
-        telemetry.track_setting("reply_language", code)
+        self._store.ui_language = code
+        telemetry.track_setting("ui_language", code)
         self._show_saved()
-        self._emit_profile()
 
     def _on_style_changed(self, value: str) -> None:
         value = normalize_reply_style(value)
@@ -195,91 +142,61 @@ class PersonalisationPageMixin:
         self._show_saved()
         self._emit_profile()
 
-    def _on_questions_changed(self, value: str) -> None:
-        value = normalize_question_policy(value)
-        if value == self._store.question_policy:
-            return
-        self._store.question_policy = value
-        telemetry.track_setting("question_policy", value)
-        self._show_saved()
-        self._emit_profile()
+    def _sound_names(self) -> dict:
+        return {"chime": self.tr("Chime"), "marimba": self.tr("Marimba"),
+                "bell": self.tr("Bell"), "train": self.tr("Little train")}
 
-    def _on_follow_toggled(self, on: bool) -> None:
-        self._store.follow_edits = bool(on)
-        telemetry.track_setting("follow_edits", bool(on))
-        self._show_saved()
-        self._emit_profile()
+    def _sound_picker(self, host: QWidget, key: str) -> QWidget:
 
-    def _on_mascot_toggled(self, on: bool) -> None:
-        self._store.mascot_animated = bool(on)
-        telemetry.track_setting("mascot_animated", bool(on))
-        refresh_mascots()
-        for companion in self._memory_companions():
-            companion.refresh_mode()
-        self._show_saved()
-
-    def _build_personalisation(self) -> Page:
-
-        page = Page(self.tr("Personalisation"),
-                    self.tr("Read by the AI agent at the start of every conversation."), self)
-
-
-
-        you = SectionCard(page)
-        fields = QWidget(you)
-        line = QHBoxLayout(fields)
+        names = self._sound_names()
+        picker = QWidget(host)
+        line = QHBoxLayout(picker)
         line.setContentsMargins(0, 0, 0, 0)
-        line.setSpacing(12)
-        self._name_edit = self._field(fields, line, self.tr("Name"), self._store.profile_name,
-                                      self.tr("Your first name"))
-        self._name_edit.editingFinished.connect(self._on_name_changed)
-        self._role_edit = self._field(fields, line, self.tr("Job"), self._store.profile_role,
-                                      self.tr("Urban planner"))
-        self._role_edit.editingFinished.connect(self._on_role_changed)
-        you.add(fields)
-        page.add(you)
+        line.setSpacing(4)
+        combo = QComboBox(picker)
+        combo.setStyleSheet(combo_qss(self))
+        combo.setCursor(Qt.CursorShape.PointingHandCursor)
+        for sound in notify_sound.SOUNDS:
+            combo.addItem(names.get(sound, sound), sound)
+        combo.setCurrentIndex(max(0, combo.findData(getattr(self._store, key))))
+        combo.setMinimumWidth(scale_px_length(130))
+        picker.combo_rows = press_combo_rows(combo)
+        combo.currentIndexChanged.connect(lambda _i, k=key, c=combo: self._on_sound_picked(k, c))
+        line.addWidget(combo)
+        play = IconButton(picker, "lu.play", 14, self.tr("Play"))
+        play.clicked.connect(lambda _=False, c=combo: self._preview_sound(str(c.currentData())))
+        line.addWidget(play)
+        self._sound_rows.append(picker)
+        return picker
 
+    def _preview_sound(self, sound: str) -> None:
+        notify_sound.play(sound, force=True)
 
+    def _on_sound_picked(self, key: str, combo: QComboBox) -> None:
+        sound = str(combo.currentData())
+        setattr(self._store, key, sound)
+        telemetry.track_setting(key, sound)
+        self._preview_sound(sound)
+        self._sync_sounds_summary()
+        self._show_saved()
 
-        locked = self._memory_locked()
-        card = you
-        self._about_edit, self._about_count = self._text_block(
-            card, self.tr("About you"),
-            self.tr("Urban planner at the city of Lyon, cadastre and PLU layers in EPSG:2154"),
-            self._store.profile_about, "about")
-        self._instructions_edit, self._instructions_count = self._text_block(
-            card, self.tr("Instructions"),
-            self.tr("Always answer in French, never delete a layer without asking"),
-            self._store.profile_instructions, "instructions")
-        note = self._pro_note(card, self.tr("Pro reads both before every run."), "personalisation")
-        boxes = (self._about_edit, self._about_count, self._instructions_edit, self._instructions_count)
-        self._plan_sections.append((note, boxes))
-        note.setVisible(locked)
-        set_section_locked(*boxes, locked=locked)
+    def _on_suggest_switch(self, on: bool) -> None:
+        self._store.suggestions_enabled = bool(on)
+        telemetry.track_setting("suggestions_enabled", bool(on))
+        self._show_saved()
 
-        page.add_group_title(self.tr("Answers"))
-        page.add(self._build_answers(page))
-        self._sync_language_combo()
-        return page
+    def _on_notify_mode_changed(self, value: str) -> None:
+        if value == self._store.notify_mode:
+            return
+        self._store.notify_mode = value
+        telemetry.track_setting("notify_mode", value)
+        self._sync_notify_rows()
+        self._show_saved()
 
-    def _field(self, host: QWidget, line: QHBoxLayout, label: str, text: str,
-               placeholder: str) -> QLineEdit:
-
-        col = QVBoxLayout()
-        col.setContentsMargins(0, 0, 0, 0)
-        col.setSpacing(4)
-        title = QLabel(label, host)
-        title.setStyleSheet(_FIELD_LABEL_QSS)
-        title.setContentsMargins(2, 0, 0, 0)
-        col.addWidget(title)
-        edit = QLineEdit(text, host)
-        edit.setStyleSheet(INPUT_QSS)
-        edit.setPlaceholderText(placeholder)
-        placeholder_ink(edit)
-        edit.setMaxLength(PROFILE_LINE_MAX_CHARS)
-        col.addWidget(edit)
-        line.addLayout(col, 1)
-        return edit
+    def _sync_notify_rows(self) -> None:
+        on = self._store.notify_mode == "sound"
+        for widget in self._sound_rows:
+            widget.setEnabled(on)
 
     def _on_name_changed(self) -> None:
         value = " ".join(self._name_edit.text().split())[:PROFILE_LINE_MAX_CHARS]
@@ -300,70 +217,6 @@ class PersonalisationPageMixin:
         self._store.profile_role = value
         self._show_saved()
         self._emit_profile()
-
-    def _on_expertise_changed(self, value: str) -> None:
-        value = normalize_expertise(value)
-        if value == self._store.expertise:
-            return
-        self._store.expertise = value
-        telemetry.track_setting("expertise", value)
-        self._show_saved()
-        self._emit_profile()
-
-    def _on_units_changed(self, value: str) -> None:
-        value = normalize_units(value)
-        if value == self._store.units:
-            return
-        self._store.units = value
-        telemetry.track_setting("units", value)
-        self._show_saved()
-        self._emit_profile()
-
-    def _pro_note(self, host: SectionCard, reason: str, surface: str) -> ProNote:
-
-        note = ProNote(reason)
-        note.upgrade_requested.connect(lambda: self._on_upgrade(surface))
-        host.add(note)
-        self._pro_notes.append(note)
-        self._sync_pro_notes()
-        return note
-
-    def _sync_pro_notes(self) -> None:
-
-        label = trial_cta() if getattr(self, "trial_offered", False) else ""
-        for note in list(getattr(self, "_pro_notes", ())):
-            try:
-                note.set_trial(label)
-            except RuntimeError:
-                continue
-
-    def _text_block(self, card: SectionCard, title: str, placeholder: str, text: str, key: str):
-
-        box = QWidget(card)
-        col = QVBoxLayout(box)
-        col.setContentsMargins(0, 0, 0, 0)
-        col.setSpacing(4)
-        label = QLabel(title, box)
-        label.setStyleSheet(_FIELD_LABEL_QSS)
-        label.setContentsMargins(2, 0, 0, 0)
-        col.addWidget(label)
-        edit = QPlainTextEdit(box)
-        edit.setStyleSheet(TEXTAREA_QSS)
-        edit.setPlaceholderText(placeholder)
-        placeholder_ink(edit)
-        edit.setPlainText(text or "")
-        edit.setFixedHeight(scale_px_length(_TEXTAREA_H))
-        edit.setTabChangesFocus(True)
-        col.addWidget(edit)
-        count = QLabel(box)
-        count.setStyleSheet(ROW_NOTE_QSS)
-        count.setAlignment(Qt.AlignmentFlag.AlignRight)
-        count.setContentsMargins(0, 0, 4, 0)
-        col.addWidget(count)
-        self._update_count(edit, count)
-        edit.textChanged.connect(lambda: self._on_profile_text_changed(edit, count, key))
-        card.add(box)
-        return edit, count
 
     def _update_count(self, edit: QPlainTextEdit, count: QLabel) -> None:
         used = len(edit.toPlainText())
@@ -689,30 +542,3 @@ class PersonalisationPageMixin:
         self._memory_moment(ON if on else "")
         self._show_saved()
         self._emit_profile()
-
-    def _sync_from_store(self) -> None:
-
-        self._sync_language_combo()
-        self._style_segments.set_value(self._store.reply_style)
-        self._questions_segments.set_value(self._store.question_policy)
-        self._expertise_segments.set_value(self._store.expertise)
-        self._units_segments.set_value(self._store.units)
-        self._values["send_shortcut"] = self._store.send_shortcut
-        for edit, value in ((self._name_edit, self._store.profile_name),
-                            (self._role_edit, self._store.profile_role)):
-            edit.blockSignals(True)
-            edit.setText(value)
-            edit.blockSignals(False)
-        for switch, value in ((self._follow_switch, self._store.follow_edits),
-                              (self._memory_switch, self._store.memory_enabled)):
-            switch.blockSignals(True)
-            switch.setChecked(value)
-            switch.blockSignals(False)
-        for edit, text in ((self._about_edit, self._store.profile_about),
-                           (self._instructions_edit, self._store.profile_instructions)):
-            edit.blockSignals(True)
-            edit.setPlainText(text)
-            edit.blockSignals(False)
-        self._update_count(self._about_edit, self._about_count)
-        self._update_count(self._instructions_edit, self._instructions_count)
-        self._fill_notes()

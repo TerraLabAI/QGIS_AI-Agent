@@ -21,6 +21,7 @@ from qgis.core import (
     QgsProject,
     QgsProperty,
     QgsTask,
+    QgsTaskManager,
 )
 
 from . import background
@@ -47,7 +48,9 @@ def sweep_consumed_tasks():
         PROCESSING_TASKS.pop(tid, None)
 
 
-def register_task(task, label: str, connect=None) -> tuple:
+def register_task(task, label: str, connect=None, after=None) -> tuple:
+
+
 
 
 
@@ -80,7 +83,10 @@ def register_task(task, label: str, connect=None) -> tuple:
         pass
     if connect is not None:
         connect(task_id, entry)
-    QgsApplication.taskManager().addTask(task)
+    if after is not None:
+        QgsApplication.taskManager().addTask(QgsTaskManager.TaskDefinition(task, [after]))
+    else:
+        QgsApplication.taskManager().addTask(task)
     return task_id, entry
 
 
@@ -315,6 +321,13 @@ def remove_layers(layers) -> list:
         gone.append(name)
     if taken:
         _canvas_follows_tree()
+    if gone:
+        from .scratch import drop_emptied_group
+
+        try:
+            drop_emptied_group()
+        except Exception as exc:  # noqa: BLE001
+            log_warning(f"The emptied Working layers group stayed: {exc}")
     return gone
 
 

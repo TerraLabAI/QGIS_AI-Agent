@@ -9,7 +9,17 @@ from __future__ import annotations
 
 import time
 
-from ..core import background, layer_egress, licence, limits, machine, snapshot_watch, stalls, view3d_windows
+from ..core import (
+    background,
+    crash_recovery,
+    layer_egress,
+    licence,
+    limits,
+    machine,
+    snapshot_watch,
+    stalls,
+    view3d_windows,
+)
 from ..core.checkpoints import KIND_AFTER
 from ..core.context import stamp_thread
 from ..core.layer_release import adopt_running_call
@@ -142,8 +152,8 @@ class _ExecutorRuns:
 
 
 
-        if not self._run_mode:
-            return
+
+
         try:
             calls = self._inflight_description()
         except Exception:  # noqa: BLE001
@@ -155,8 +165,6 @@ class _ExecutorRuns:
     def _on_main_thread_thawed(self, seconds: float) -> None:
 
 
-        if not self._run_mode:
-            return
         send = getattr(self._session, "send_busy", None)
         if send is not None:
             send(seconds, "", "", True)
@@ -323,10 +331,11 @@ class _ExecutorRuns:
         layer_egress.begin_run(run_id)
         view3d_windows.begin_run(run_id)
         self._budgets[run_id] = guards.RunBudget()
-        self.follower.enabled = bool(getattr(self._settings, "follow_edits", True))
+        self.follower.enabled = True
         self.follower.begin()
         self.scratch.begin()
         self.stacker.begin()
+        crash_recovery.note_change(run_id, thread_id or "")
 
     def cancel_run(self, run_id: str, halt: bool = True) -> None:
 
@@ -492,6 +501,7 @@ class _ExecutorRuns:
         self._blocked.pop(run_id, None)
         written = self._written.pop(run_id, None)
         self._own_files.pop(run_id, None)
+        self._own_save_done.pop(run_id, None)
         warnings = self._call_warnings.pop(run_id, None)
         outputs = self._output_files.pop(run_id, None)
         objects = self._objects.pop(run_id, None)

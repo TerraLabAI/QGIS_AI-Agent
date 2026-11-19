@@ -23,7 +23,7 @@ from ..core.dictation import Dictation
 from ..core.host_platform import os_label, plugin_version, qgis_version
 from ..core.logger import log, log_warning
 from ..core.machine import desk_classes
-from ..core.plan import autopilot_allowed, effort_allowed, efforts_stated
+from ..core.plan import autopilot_open, effort_allowed, efforts_stated
 from ..core.project_identity import open_project_file
 from ..core.protocol import CANCEL_QGIS_CLOSED, Approval, Effort, RunStatus
 from ..core.qt_compat import one_shot, qt_deleted
@@ -62,13 +62,14 @@ class AgentController(_ControllerRuns, _ControllerFrames, _ControllerProjects, _
                       _ControllerAccount, PanelActionsMixin, QObject):
     layer_action_requested = pyqtSignal(str, str)
     settings_requested = pyqtSignal()
+    settings_page_requested = pyqtSignal(str)
     notice = pyqtSignal(str, str)
 
 
     approval_waiting = pyqtSignal(bool)
 
 
-    run_finished = pyqtSignal(str)
+    run_finished = pyqtSignal(str, str)
 
     def __init__(self, iface, panel, registry, settings: Settings | None = None,
                  account: Account | None = None, parent=None, *, session=None, executor=None, store=None):
@@ -161,7 +162,8 @@ class AgentController(_ControllerRuns, _ControllerFrames, _ControllerProjects, _
         self._wire_executor()
         self._wire_account()
         self._dictation = Dictation(self._session, self) if hasattr(self._session, "transcript") else None
-        self._suggester = (Suggester(self._session, getattr(iface, "activeLayer", None), self)
+        self._suggester = (Suggester(self._session, getattr(iface, "activeLayer", None), self,
+                                     enabled=lambda: self._settings.suggestions_enabled)
                            if hasattr(self._session, "suggestions") else None)
 
 
@@ -429,6 +431,8 @@ class AgentController(_ControllerRuns, _ControllerFrames, _ControllerProjects, _
         self._connect("queue_send_requested", self._on_queue_send)
         self._connect("undo_retry_requested", self._on_undo_retry)
         self._connect("permission_decided", self._on_permission_decided)
+        self._connect("folder_decided", self._on_folder_decided)
+        self._connect("folder_removed", self._on_folder_removed)
         self._connect("question_answered", self._on_question_answered)
         self._connect("question_reply", self._on_question_answered)
         self._connect("retry_requested", self._on_retry)
@@ -446,7 +450,6 @@ class AgentController(_ControllerRuns, _ControllerFrames, _ControllerProjects, _
         self._connect("chip_removed", lambda kind, value: log(f"chip removed: {kind}"))
         self._connect("files_dropped", self._on_files_dropped)
         self._connect("sign_out_requested", self._on_sign_out)
-        self._connect("context_add_requested", self._on_context_add)
         self._connect("mode_changed", self._on_mode_changed)
         self._connect("effort_changed", self._on_effort_changed)
         self._connect("pairing_reopen_requested", self._account.reopen_pairing_page)
@@ -475,6 +478,8 @@ class AgentController(_ControllerRuns, _ControllerFrames, _ControllerProjects, _
 
 
         self._connect("open_settings_requested", self._sync_permission_mode)
+        self._connect("open_settings_page_requested", self.settings_page_requested)
+        self._connect("open_settings_page_requested", lambda _page: self._sync_permission_mode())
         self._connect("sign_in_requested", self._on_sign_in)
 
         self._connect("recommendation_decided", self._on_recommendation_decided)
@@ -560,7 +565,9 @@ class AgentController(_ControllerRuns, _ControllerFrames, _ControllerProjects, _
     def _approval(self, approval: str = "") -> str:
 
         approval = approval if approval in Approval.ALL else self._settings.approval
-        return Approval.ASK if (approval == Approval.AUTO and not autopilot_allowed()) else approval
+        if approval == Approval.AUTO and not autopilot_open(self._settings.last_paid):
+            return Approval.ASK
+        return approval
 
     def _effort(self) -> str:
 

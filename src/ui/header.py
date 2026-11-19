@@ -50,6 +50,7 @@
 
 
 
+
 from __future__ import annotations
 
 from qgis.PyQt.QtCore import QEasingCurve, QEvent, QSize, Qt, QVariantAnimation, pyqtSignal
@@ -208,8 +209,8 @@ class Header(QWidget):
 
         self._pro_pill.setFocusPolicy(Qt.FocusPolicy.TabFocus)
         self._pro_pill.setAutoDefault(False)
-        self._pro_pill.setToolTip(self.tr("See what Pro unlocks"))
-        self._pro_pill.setAccessibleName(self.tr("See what Pro unlocks"))
+        self._pro_pill.setToolTip(self.tr("See what's in Pro"))
+        self._pro_pill.setAccessibleName(self.tr("See what's in Pro"))
         self._pro_pill.setProperty("compact", False)
         self._pro_pill.clicked.connect(self.pro_pill_clicked.emit)
         self._pro_pill.hide()
@@ -233,6 +234,15 @@ class Header(QWidget):
         self._restore_btn.hide()
         row.addWidget(self._restore_btn, 0, Qt.AlignmentFlag.AlignVCenter)
 
+
+
+        self._new_btn = IconButton(self, "new_chat", 18, self.tr("New chat"))
+        self._new_btn.setObjectName("agentNewChat")
+        self._new_btn.setProperty(AGENT_ACTION, "new_chat")
+        self._new_btn.setFixedSize(26, 26)
+        self._new_btn.clicked.connect(self.new_thread_requested.emit)
+        row.addWidget(self._new_btn, 0, Qt.AlignmentFlag.AlignVCenter)
+
         self._history_btn = IconButton(self, "clock", 18, self.tr("Chat history"))
         self._history_btn.setFixedSize(26, 26)
         self._history_popup = HistoryPopup(self)
@@ -242,13 +252,6 @@ class Header(QWidget):
         self._history_popup.installEventFilter(self)
         self._history_btn.clicked.connect(self._open_history)
         row.addWidget(self._history_btn, 0, Qt.AlignmentFlag.AlignVCenter)
-
-        self._new_btn = IconButton(self, "new_chat", 18, self.tr("New chat"))
-        self._new_btn.setObjectName("agentNewChat")
-        self._new_btn.setProperty(AGENT_ACTION, "new_chat")
-        self._new_btn.setFixedSize(26, 26)
-        self._new_btn.clicked.connect(self.new_thread_requested.emit)
-        row.addWidget(self._new_btn, 0, Qt.AlignmentFlag.AlignVCenter)
 
 
         self._feedback_btn = IconButton(self, "lu.bug", 18, self.tr("Send feedback"))
@@ -364,12 +367,12 @@ class Header(QWidget):
         if keep:
             label = offer_text("keep.button", self.tr("Keep Pro"))
             if keep[1]:
-                tip = offer_text("keep.tip", self.tr("Your Pro ends on {date}. Keep it in one click."), date=keep[1])
+                tip = offer_text("keep.tip", self.tr("Pro ends on {date}. Keep it in one click."), date=keep[1])
             else:
-                tip = offer_text("keep.tip.nodate", self.tr("Your Pro is set to end. Keep it in one click."))
+                tip = offer_text("keep.tip.nodate", self.tr("Pro is set to end. Keep it in one click."))
         else:
             label = trial_cta() if promise else get_pro_label()
-            tip = promise or offer_text("header.tip", self.tr("See what Pro unlocks"))
+            tip = promise or offer_text("header.tip", self.tr("See what's in Pro"))
         if self._pill_label == label and self._pro_pill.toolTip() == tip:
             return
         self._pill_label = label

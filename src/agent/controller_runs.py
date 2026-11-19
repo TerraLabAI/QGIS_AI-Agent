@@ -21,7 +21,14 @@ from ..core.logger import log_warning
 from ..core.profile import driven_session, profile_context
 from ..core.project_identity import open_project_file
 from ..core.protocol import CANCEL_SERVER_SILENT, CANCEL_STOP, FEEDBACK_ASK_REASONS, Approval, Mode, RunStatus
-from ..core.security import allow_attached_paths, remember_user_text, vouched_for_thread
+from ..core.security import (
+    allow_attached_paths,
+    grant_folder,
+    pending_folders,
+    remember_user_text,
+    revoke_folder,
+    vouched_for_thread,
+)
 from ..core.telemetry_errors import report_exception, track_plugin_error
 from ..core.threads import user_message_record
 from ..tools import code_runtime
@@ -101,6 +108,9 @@ class _ControllerRuns:
                                 "your message is kept, and Retry sends it once the connection is back."),
                              True, "", key)
             return
+        if self._folder_card_first(text, (text, mode, approval, chips, attachments, selection,
+                                          reuse_layers, replaces)):
+            return
         mode = mode if mode in (Mode.ASK, Mode.AGENT) else self._settings.mode
         approval = approval if approval in Approval.ALL else self._settings.approval
 
@@ -134,8 +144,10 @@ class _ControllerRuns:
 
 
         thread_id = self._thread_id
-        vouched_for_thread(thread_id, self._store.layer_roots(thread_id),
-                           lambda roots: self._store.set_layer_roots(thread_id, roots))
+        project = open_project_file()
+        vouched_for_thread(thread_id, self._store.layer_roots(thread_id, project),
+                           lambda roots: self._store.set_layer_roots(thread_id, roots, project),
+                           project)
         run_id = uuid.uuid4().hex
 
 
@@ -487,14 +499,131 @@ class _ControllerRuns:
             self._panel_call("steer_refused", steer_id)
             return
         remember_user_text(text)
+        self._folder_card_first(text, None)
         thread_id = str(run.get("thread_id") or self._thread_id or "")
         self._steers.setdefault(run_id, {})[steer_id] = (text, thread_id)
+        if getattr(self, "_held_steers", None) or self._folder_card_open_for(text):
+
+
+
+            self._held_steers = [*getattr(self, "_held_steers", []), (run_id, steer_id)]
+            return
+        self._send_steer(run_id, steer_id, text)
+
+    def _folder_card_open_for(self, text: str, offered: bool = False) -> bool:
+
+        denied = getattr(self, "_folders_denied", set())
+        return any(f not in denied for f in pending_folders(text, offered=offered))
+
+    def _send_steer(self, run_id: str, steer_id: str, text: str) -> None:
         if not self._session.send_steer(run_id, steer_id, text):
             log_warning(f"Steer for run {run_id} did not leave; it waits in the queue for the run's end")
+
+    def _release_steers(self, folded: bool = False) -> None:
+
+
+
+
+        if getattr(self, "_folder_ask", None) is not None and not folded:
+            return
+
+
+        answers, self._held_answers = getattr(self, "_held_answers", []), []
+        for answer in answers:
+            self._send_answer(*answer)
+        held, self._held_steers = getattr(self, "_held_steers", []), []
+        run = self._run
+        for run_id, steer_id in held:
+            steer = (self._steers.get(run_id) or {}).get(steer_id)
+            if steer is None:
+                continue
+            if folded or run is None or run.get("run_id") != run_id or not self._session.steer_available:
+                self._steers[run_id].pop(steer_id, None)
+                self._panel_call("steer_refused", steer_id)
+                continue
+            self._send_steer(run_id, steer_id, steer[0])
+
+    def _folder_card_first(self, text: str, send, offered: bool = False) -> bool:
+
+
+
+
+
+
+
+
+        ask = getattr(self, "_folder_ask", None)
+        if send is not None and ask is not None and ask["send"] is not None:
+            self._drop_folder_ask()
+            ask = None
+        if send is not None and ask is None and not getattr(self, "_folder_resending", False):
+            self._folders_denied = set()
+        denied = getattr(self, "_folders_denied", set())
+        waiting = [f for f in pending_folders(text, offered=offered) if f not in denied]
+        if not waiting:
+            return False
+        if ask is not None:
+            if send is None:
+                self._folder_later = [*getattr(self, "_folder_later", []), text]
+                return False
+            self._drop_folder_ask()
+        self._folder_ask = {"folder": waiting[0], "text": text, "send": send}
+        self._panel_call("ask_folder", waiting[0])
+        return send is not None
+
+    def _drop_folder_ask(self) -> None:
+
+
+        had = getattr(self, "_folder_ask", None) is not None
+        self._folder_ask, self._folder_later, self._folders_denied = None, [], set()
+        if had:
+            self._panel_call("close_folder_card")
+        self._release_steers(folded=True)
+
+    def _on_folder_decided(self, folder: str, choice: str) -> None:
+        ask, self._folder_ask = getattr(self, "_folder_ask", None), None
+        if not ask or ask["folder"] != folder:
+            return
+        if choice in ("read", "write"):
+            grant_folder(folder, choice == "write")
+        else:
+            self._folders_denied = getattr(self, "_folders_denied", set()) | {folder}
+        send = ask["send"]
+        if send is None:
+            if self._folder_card_first(ask["text"], None) or getattr(self, "_folder_ask", None) is not None:
+                return
+            later, self._folder_later = getattr(self, "_folder_later", []), []
+            for text in later:
+                self._folder_card_first(text, None)
+            self._release_steers()
+            return
+
+
+        self._folder_resending = True
+        try:
+            self._on_send(*send)
+        finally:
+            self._folder_resending = False
+        run = self._run
+        if run is not None and run.get("text") == send[0]:
+            self._panel_call("composer_sent", send[0])
+        if getattr(self, "_folder_ask", None) is None:
+            later, self._folder_later = getattr(self, "_folder_later", []), []
+            for text in later:
+                self._folder_card_first(text, None)
+        self._release_steers()
+
+    def _on_folder_removed(self, folder: str) -> None:
+        revoke_folder(folder)
 
     def _on_unsteer(self, run_id: str, steer_id: str) -> None:
 
 
+        held = getattr(self, "_held_steers", [])
+        if (run_id, steer_id) in held:
+            held.remove((run_id, steer_id))
+            (self._steers.get(run_id) or {}).pop(steer_id, None)
+            return
         if (self._steers.get(run_id) or {}).get(steer_id) is not None:
 
 

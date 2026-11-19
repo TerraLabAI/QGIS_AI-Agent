@@ -30,7 +30,6 @@ from qgis.core import (
     QgsFeatureRequest,
     QgsFeedback,
     QgsGeometry,
-    QgsSpatialIndex,
     QgsVectorLayerFeatureSource,
 )
 from qgis.PyQt.QtCore import QLocale, QVariant
@@ -674,27 +673,36 @@ class Touching(_Job):
             return False
         feature = row.feature
         geometry = feature.geometry()
+        if geometry.isEmpty():
+            return True
         if self.budget.oversize(geometry) is not None or self.budget.exhausted():
             self.features = None
             return False
+        box = geometry.boundingBox()
         self.classes[feature.id()] = str(row.value(self.key))
-        self.features[feature.id()] = QgsGeometry(geometry)
+        self.features[feature.id()] = (QgsGeometry(geometry),
+                                       (box.xMinimum(), box.yMinimum(), box.xMaximum(), box.yMaximum()))
         return True
 
     def result(self):
+
+
+
         if self.features is None:
             return None
-        index = QgsSpatialIndex()
-        for fid, geometry in self.features.items():
-            index.addFeature(fid, geometry.boundingBox())
+        boxes = sorted(self.features.items(), key=lambda item: item[1][1][0])
         pairs = set()
-        for fid, geometry in self.features.items():
-            for other in index.intersects(geometry.boundingBox()):
-                a, b = self.classes[fid], self.classes.get(other)
-                if other <= fid or a == b or b is None:
+        for i, (fid, (geometry, (_x0, y0, x1, y1))) in enumerate(boxes):
+            for other, (other_geometry, (ox0, oy0, _ox1, oy1)) in boxes[i + 1:]:
+                if ox0 > x1:
+                    break
+                if oy0 > y1 or oy1 < y0:
+                    continue
+                a, b = self.classes[fid], self.classes[other]
+                if a == b:
                     continue
                 if self.budget.exhausted() == "time":
                     return None
-                if geometry.intersects(self.features[other]):
-                    pairs.add((a, b))
+                if geometry.intersects(other_geometry):
+                    pairs.add((a, b) if fid < other else (b, a))
         return pairs

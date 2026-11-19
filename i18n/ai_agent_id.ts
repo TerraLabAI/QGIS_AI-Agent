@@ -1983,13 +1983,77 @@ Setelah masa tenggang berakhir, penghapusan tidak dapat dibatalkan. Sebelum itu,
             <source>left out</source>
             <translation>tidak disertakan</translation>
         </message>
-    </context>
-    <context>
-        <name>AIAgentContext</name>
         <message>
-            <location filename="src/core/context.py" />
-            <source>Raster</source>
-            <translation>Raster</translation>
+            <source>The AI agent has been thinking for {time}</source>
+            <translation>Agen AI sudah berpikir selama {time}</translation>
+        </message>
+        <message>
+            <source>Code running in QGIS for {time}</source>
+            <translation>Kode berjalan di QGIS selama {time}</translation>
+        </message>
+        <message>
+            <source>Running in QGIS for {time}</source>
+            <translation>Berjalan di QGIS selama {time}</translation>
+        </message>
+        <message>
+            <source>Bugs</source>
+            <translation>Bug</translation>
+        </message>
+        <message>
+            <source>For a team, a call is quickest.</source>
+            <translation>Untuk tim, telepon adalah cara tercepat.</translation>
+        </message>
+        <message>
+            <source>Ideas</source>
+            <translation>Ide</translation>
+        </message>
+        <message>
+            <source>Licences, quotes and invoices for your team, too.</source>
+            <translation>Lisensi, penawaran, dan faktur untuk tim Anda juga.</translation>
+        </message>
+        <message>
+            <source>Questions</source>
+            <translation>Pertanyaan</translation>
+        </message>
+        <message>
+            <source>Team needs</source>
+            <translation>Kebutuhan tim</translation>
+        </message>
+        <message>
+            <source>Map history</source>
+            <translation>Riwayat peta</translation>
+        </message>
+        <message>
+            <source>Open earlier project versions</source>
+            <translation>Buka versi proyek sebelumnya</translation>
+        </message>
+        <message>
+            <source>Recall your last message</source>
+            <translation>Panggil kembali pesan terakhir Anda</translation>
+        </message>
+        <message>
+            <source>Redo it</source>
+            <translation>Ulangi</translation>
+        </message>
+        <message>
+            <source>Sent with this conversation and the plugin's recent log.</source>
+            <translation>Dikirim bersama percakapan ini dan log terbaru plugin.</translation>
+        </message>
+        <message>
+            <source>Undo the last request</source>
+            <translation>Urungkan permintaan terakhir</translation>
+        </message>
+        <message>
+            <source>We read every message and use it to improve AI Agent.</source>
+            <translation>Kami membaca setiap pesan dan menggunakannya untuk meningkatkan AI Agent.</translation>
+        </message>
+        <message>
+            <source>What happened, and what did you expect? For example: the buffer came out in degrees instead of metres.</source>
+            <translation>Apa yang terjadi, dan apa yang Anda harapkan? Misalnya: buffer keluar dalam derajat, bukan meter.</translation>
+        </message>
+        <message>
+            <source>Kept until you delete it</source>
+            <translation>Disimpan sampai Anda menghapusnya</translation>
         </message>
         <message>
             <location filename="src/core/context.py" />
@@ -4519,6 +4583,18 @@ Setelah masa tenggang berakhir, penghapusan tidak dapat dibatalkan. Sebelum itu,
             <source>Dock or undock AI Agent</source>
             <translation>Sematkan atau lepas AI Agent</translation>
         </message>
+        <message>
+            <source>Pro ends on {date}. Keep it in one click.</source>
+            <translation>Pro berakhir pada {date}. Pertahankan dengan satu klik.</translation>
+        </message>
+        <message>
+            <source>Pro is set to end. Keep it in one click.</source>
+            <translation>Pro akan berakhir. Pertahankan dengan satu klik.</translation>
+        </message>
+        <message>
+            <source>See what's in Pro</source>
+            <translation>Lihat isi Pro</translation>
+        </message>
     </context>
     <context>
         <name>HistoryPopup</name>
@@ -5069,6 +5145,10 @@ Klik untuk membuka halamannya.</translation>
         <message>
             <source>{n} of {total} features in {layer}</source>
             <translation>{n} dari {total} feature di {layer}</translation>
+        </message>
+        <message>
+            <source>Allow lets AI Agent read and write in {folder} for this project.</source>
+            <translation>Izinkan berarti AI Agent boleh membaca dan menulis di {folder} untuk proyek ini.</translation>
         </message>
     </context>
     <context>
@@ -5650,6 +5730,138 @@ Terima kasih</translation>
         <message>
             <source>{n} tasks a month, cancel anytime</source>
             <translation>{n} tugas per bulan, batalkan kapan saja</translation>
+        </message>
+        <message>
+            <source>1 task left this month</source>
+            <translation>Sisa 1 tugas bulan ini</translation>
+        </message>
+        <message>
+            <source>All {n} tasks used. They reset on {date}.</source>
+            <translation>Semua {n} tugas terpakai. Kuota diatur ulang pada {date}.</translation>
+        </message>
+        <message>
+            <source>Back to Pro</source>
+            <translation>Kembali ke Pro</translation>
+        </message>
+        <message>
+            <source>Come back to Pro for {n} tasks a month.</source>
+            <translation>Kembali ke Pro untuk {n} tugas per bulan.</translation>
+        </message>
+        <message>
+            <source>Contact us</source>
+            <translation>Hubungi kami</translation>
+        </message>
+        <message>
+            <source>Contact us for more tasks</source>
+            <translation>Hubungi kami untuk tugas tambahan</translation>
+        </message>
+        <message>
+            <source>Get Pro for {n} tasks a month.</source>
+            <translation>Dapatkan Pro untuk {n} tugas per bulan.</translation>
+        </message>
+        <message>
+            <source>Need Pro for work?</source>
+            <translation>Butuh Pro untuk pekerjaan?</translation>
+        </message>
+        <message>
+            <source>No card? Contact us to pay by invoice.</source>
+            <translation>Tanpa kartu? Hubungi kami untuk membayar dengan faktur.</translation>
+        </message>
+        <message>
+            <source>No card? Contact us to start your free trial.</source>
+            <translation>Tanpa kartu? Hubungi kami untuk memulai uji coba gratis.</translation>
+        </message>
+        <message>
+            <source>Pay nothing today</source>
+            <translation>Tidak perlu bayar hari ini</translation>
+        </message>
+        <message>
+            <source>Pay nothing today, then your local price each month. Cancel anytime.</source>
+            <translation>Tidak perlu bayar hari ini, lalu harga lokal Anda setiap bulan. Batalkan kapan saja.</translation>
+        </message>
+        <message>
+            <source>Pay nothing today, then your student price each month. Cancel anytime.</source>
+            <translation>Tidak perlu bayar hari ini, lalu harga pelajar Anda setiap bulan. Batalkan kapan saja.</translation>
+        </message>
+        <message>
+            <source>Pay nothing today, then {price}/month excl. VAT. Cancel anytime.</source>
+            <translation>Tidak perlu bayar hari ini, lalu {price}/bulan belum termasuk PPN. Batalkan kapan saja.</translation>
+        </message>
+        <message>
+            <source>Pay nothing today, then {price}/month. Cancel anytime.</source>
+            <translation>Tidak perlu bayar hari ini, lalu {price}/bulan. Batalkan kapan saja.</translation>
+        </message>
+        <message>
+            <source>Payment of {amount} failed</source>
+            <translation>Pembayaran {amount} gagal</translation>
+        </message>
+        <message>
+            <source>Pro is paused until payment goes through.</source>
+            <translation>Pro dijeda sampai pembayaran berhasil.</translation>
+        </message>
+        <message>
+            <source>Start Pro now</source>
+            <translation>Mulai Pro sekarang</translation>
+        </message>
+        <message>
+            <source>Start free trial</source>
+            <translation>Mulai uji coba gratis</translation>
+        </message>
+        <message>
+            <source>Try Pro free for a week to get more tasks.</source>
+            <translation>Coba Pro gratis selama seminggu untuk mendapatkan lebih banyak tugas.</translation>
+        </message>
+        <message>
+            <source>Welcome to Pro</source>
+            <translation>Selamat datang di Pro</translation>
+        </message>
+        <message>
+            <source>You now have {n} tasks a month.</source>
+            <translation>Sekarang Anda punya {n} tugas per bulan.</translation>
+        </message>
+        <message>
+            <source>You used all your tasks this month</source>
+            <translation>Anda sudah memakai semua tugas bulan ini</translation>
+        </message>
+        <message>
+            <source>You used your last task</source>
+            <translation>Anda memakai tugas terakhir</translation>
+        </message>
+        <message>
+            <source>Your free trial runs until {date}.</source>
+            <translation>Uji coba gratis Anda berlaku sampai {date}.</translation>
+        </message>
+        <message>
+            <source>Your tasks reset next month.</source>
+            <translation>Tugas Anda diatur ulang bulan depan.</translation>
+        </message>
+        <message>
+            <source>Your tasks reset on {date}.</source>
+            <translation>Tugas Anda diatur ulang pada {date}.</translation>
+        </message>
+        <message>
+            <source>Your trial did not start. You were not charged.</source>
+            <translation>Uji coba Anda tidak dimulai. Anda tidak dikenai biaya.</translation>
+        </message>
+        <message>
+            <source>{n} tasks a month. Cancel anytime.</source>
+            <translation>{n} tugas per bulan. Batalkan kapan saja.</translation>
+        </message>
+        <message>
+            <source>{n} tasks left this month</source>
+            <translation>Sisa {n} tugas bulan ini</translation>
+        </message>
+        <message>
+            <source>{price} excl. VAT</source>
+            <translation>{price} belum termasuk PPN</translation>
+        </message>
+        <message>
+            <source>{price}/month. Cancel anytime.</source>
+            <translation>{price}/bulan. Batalkan kapan saja.</translation>
+        </message>
+        <message>
+            <source>{price}/month excl. VAT. Cancel anytime.</source>
+            <translation>{price}/bulan belum termasuk PPN. Batalkan kapan saja.</translation>
         </message>
     </context>
     <context>
@@ -6455,6 +6667,478 @@ Terima kasih</translation>
             <source>Your usage and chats help us fix bugs. Turn it off anytime.</source>
             <translation>Penggunaan dan chat Anda membantu kami memperbaiki bug. Matikan kapan saja.</translation>
         </message>
+        <message>
+            <source>Bell</source>
+            <translation>Lonceng</translation>
+        </message>
+        <message>
+            <source>Chime</source>
+            <translation>Denting</translation>
+        </message>
+        <message>
+            <source>Icon and sound</source>
+            <translation>Ikon dan suara</translation>
+        </message>
+        <message>
+            <source>Icon only</source>
+            <translation>Hanya ikon</translation>
+        </message>
+        <message>
+            <source>Little train</source>
+            <translation>Kereta kecil</translation>
+        </message>
+        <message>
+            <source>Marimba</source>
+            <translation>Marimba</translation>
+        </message>
+        <message>
+            <source>Needs your answer</source>
+            <translation>Perlu jawaban Anda</translation>
+        </message>
+        <message>
+            <source>Notifications</source>
+            <translation>Notifikasi</translation>
+        </message>
+        <message>
+            <source>Notify me</source>
+            <translation>Beri tahu saya</translation>
+        </message>
+        <message>
+            <source>Off</source>
+            <translation>Mati</translation>
+        </message>
+        <message>
+            <source>Only while QGIS is in the background or the panel is hidden.</source>
+            <translation>Hanya saat QGIS berada di latar belakang atau panel disembunyikan.</translation>
+        </message>
+        <message>
+            <source>Play</source>
+            <translation>Putar</translation>
+        </message>
+        <message>
+            <source>Questions and approvals.</source>
+            <translation>Pertanyaan dan persetujuan.</translation>
+        </message>
+        <message>
+            <source>Run finished</source>
+            <translation>Proses selesai</translation>
+        </message>
+        <message>
+            <source>Volume</source>
+            <translation>Volume</translation>
+        </message>
+        <message>
+            <source>1 task left</source>
+            <translation>Sisa 1 tugas</translation>
+        </message>
+        <message>
+            <source>A badge on the QGIS icon and a sound, only while QGIS is in the background or the panel is hidden.</source>
+            <translation>Lencana pada ikon QGIS dan sebuah suara, hanya saat QGIS berjalan di latar belakang atau panel disembunyikan.</translation>
+        </message>
+        <message>
+            <source>About you and Instructions</source>
+            <translation>Tentang Anda dan Instruksi</translation>
+        </message>
+        <message>
+            <source>Back in {n} days</source>
+            <translation>Kembali dalam {n} hari</translation>
+        </message>
+        <message>
+            <source>Back tomorrow</source>
+            <translation>Kembali besok</translation>
+        </message>
+        <message>
+            <source>Call me back while I work elsewhere</source>
+            <translation>Beri tahu saya saat saya bekerja di tempat lain</translation>
+        </message>
+        <message>
+            <source>Change</source>
+            <translation>Ubah</translation>
+        </message>
+        <message>
+            <source>Commercial use included</source>
+            <translation>Termasuk penggunaan komersial</translation>
+        </message>
+        <message>
+            <source>Context for every task</source>
+            <translation>Konteks untuk setiap tugas</translation>
+        </message>
+        <message>
+            <source>Could not load your usage</source>
+            <translation>Tidak dapat memuat penggunaan Anda</translation>
+        </message>
+        <message>
+            <source>Detect and outline objects on imagery: buildings, trees, water or fields become polygons you can edit.</source>
+            <translation>Deteksi dan gambar kontur objek pada citra: bangunan, pohon, air, atau lahan menjadi poligon yang dapat Anda edit.</translation>
+        </message>
+        <message>
+            <source>Edit your imagery with one sentence, the way you would ask a colleague.</source>
+            <translation>Edit citra Anda dengan satu kalimat, seperti meminta bantuan rekan kerja.</translation>
+        </message>
+        <message>
+            <source>Every task, day by day, on terra-lab.ai</source>
+            <translation>Setiap tugas, hari demi hari, di terra-lab.ai</translation>
+        </message>
+        <message>
+            <source>Everything else here works without an account.</source>
+            <translation>Semua yang lain di sini berfungsi tanpa akun.</translation>
+        </message>
+        <message>
+            <source>From your TerraLab account.</source>
+            <translation>Dari akun TerraLab Anda.</translation>
+        </message>
+        <message>
+            <source>General</source>
+            <translation>Umum</translation>
+        </message>
+        <message>
+            <source>How the AI agent answers.</source>
+            <translation>Cara agen AI menjawab.</translation>
+        </message>
+        <message>
+            <source>How the AI agent calls you back.</source>
+            <translation>Cara agen AI memberi tahu Anda.</translation>
+        </message>
+        <message>
+            <source>Install</source>
+            <translation>Instal</translation>
+        </message>
+        <message>
+            <source>Install {plugin}</source>
+            <translation>Instal {plugin}</translation>
+        </message>
+        <message>
+            <source>Loading your plan...</source>
+            <translation>Memuat paket Anda...</translation>
+        </message>
+        <message>
+            <source>Loading your tasks...</source>
+            <translation>Memuat tugas Anda...</translation>
+        </message>
+        <message>
+            <source>Monthly tasks</source>
+            <translation>Tugas bulanan</translation>
+        </message>
+        <message>
+            <source>More from TerraLab</source>
+            <translation>Lainnya dari TerraLab</translation>
+        </message>
+        <message>
+            <source>Needs your answer: {a} · Run finished: {b}</source>
+            <translation>Perlu jawaban Anda: {a} · Proses selesai: {b}</translation>
+        </message>
+        <message>
+            <source>One TerraLab account signs you in to all three plugins.</source>
+            <translation>Satu akun TerraLab memasukkan Anda ke ketiga plugin.</translation>
+        </message>
+        <message>
+            <source>One task is one message you send, however many steps the AI agent takes. Tasks that fail on our side are given back.</source>
+            <translation>Satu tugas adalah satu pesan yang Anda kirim, berapa pun langkah yang diambil agen AI. Tugas yang gagal di pihak kami dikembalikan.</translation>
+        </message>
+        <message>
+            <source>Open {plugin}</source>
+            <translation>Buka {plugin}</translation>
+        </message>
+        <message>
+            <source>Opens the QGIS plugin manager on this plugin. Free to install.</source>
+            <translation>Membuka manajer plugin QGIS pada plugin ini. Gratis untuk diinstal.</translation>
+        </message>
+        <message>
+            <source>Personal, non-commercial use</source>
+            <translation>Penggunaan pribadi, non-komersial</translation>
+        </message>
+        <message>
+            <source>Plan</source>
+            <translation>Paket</translation>
+        </message>
+        <message>
+            <source>Profile</source>
+            <translation>Profil</translation>
+        </message>
+        <message>
+            <source>Resets in {n} days</source>
+            <translation>Direset dalam {n} hari</translation>
+        </message>
+        <message>
+            <source>Resets tomorrow</source>
+            <translation>Direset besok</translation>
+        </message>
+        <message>
+            <source>Rules the AI agent always follows.</source>
+            <translation>Aturan yang selalu diikuti agen AI.</translation>
+        </message>
+        <message>
+            <source>Saved on this computer.</source>
+            <translation>Disimpan di komputer ini.</translation>
+        </message>
+        <message>
+            <source>Search settings</source>
+            <translation>Cari pengaturan</translation>
+        </message>
+        <message>
+            <source>Show its panel.</source>
+            <translation>Tampilkan panelnya.</translation>
+        </message>
+        <message>
+            <source>Sign in to see your plan and tasks</source>
+            <translation>Masuk untuk melihat paket dan tugas Anda</translation>
+        </message>
+        <message>
+            <source>Sounds</source>
+            <translation>Suara</translation>
+        </message>
+        <message>
+            <source>Tell the AI agent who you are and the rules it always follows. Included in Pro.</source>
+            <translation>Beri tahu agen AI siapa Anda dan aturan yang selalu diikutinya. Termasuk dalam Pro.</translation>
+        </message>
+        <message>
+            <source>Two more AI plugins for QGIS, from the makers of AI Agent.</source>
+            <translation>Dua plugin AI lagi untuk QGIS, dari pembuat AI Agent.</translation>
+        </message>
+        <message>
+            <source>Upgrade plan</source>
+            <translation>Tingkatkan paket</translation>
+        </message>
+        <message>
+            <source>Upgrade to Pro</source>
+            <translation>Tingkatkan ke Pro</translation>
+        </message>
+        <message>
+            <source>Usage</source>
+            <translation>Penggunaan</translation>
+        </message>
+        <message>
+            <source>What counts as a task</source>
+            <translation>Apa yang dihitung sebagai tugas</translation>
+        </message>
+        <message>
+            <source>What leaves this computer, and for how long.</source>
+            <translation>Apa yang keluar dari komputer ini, dan berapa lama.</translation>
+        </message>
+        <message>
+            <source>What you work on, your data, your area.</source>
+            <translation>Apa yang Anda kerjakan, data Anda, wilayah Anda.</translation>
+        </message>
+        <message>
+            <source>Your plan and the tasks you used this month.</source>
+            <translation>Paket Anda dan tugas yang Anda gunakan bulan ini.</translation>
+        </message>
+        <message>
+            <source>Your plan, payment method and invoices, on terra-lab.ai.</source>
+            <translation>Paket, metode pembayaran, dan faktur Anda, di terra-lab.ai.</translation>
+        </message>
+        <message>
+            <source>Your tasks are counted on our side; nothing is lost.</source>
+            <translation>Tugas Anda dihitung di pihak kami; tidak ada yang hilang.</translation>
+        </message>
+        <message>
+            <source>of {limit} this month</source>
+            <translation>dari {limit} bulan ini</translation>
+        </message>
+        <message>
+            <source>{n} tasks left</source>
+            <translation>Sisa {n} tugas</translation>
+        </message>
+        <message>
+            <source>{p}% left</source>
+            <translation>Sisa {p}%</translation>
+        </message>
+        <message>
+            <source>1 task left this month</source>
+            <translation>Sisa 1 tugas bulan ini</translation>
+        </message>
+        <message>
+            <source>Cancel anytime before it ends.</source>
+            <translation>Batalkan kapan saja sebelum berakhir.</translation>
+        </message>
+        <message>
+            <source>Card declined</source>
+            <translation>Kartu ditolak</translation>
+        </message>
+        <message>
+            <source>Come back to Pro</source>
+            <translation>Kembali ke Pro</translation>
+        </message>
+        <message>
+            <source>Ends {date}</source>
+            <translation>Berakhir {date}</translation>
+        </message>
+        <message>
+            <source>Payment failed</source>
+            <translation>Pembayaran gagal</translation>
+        </message>
+        <message>
+            <source>Pro is off until it's paid.</source>
+            <translation>Pro nonaktif sampai dibayar.</translation>
+        </message>
+        <message>
+            <source>Pro trial</source>
+            <translation>Uji coba Pro</translation>
+        </message>
+        <message>
+            <source>Pro trial, 1 day left</source>
+            <translation>Uji coba Pro, sisa 1 hari</translation>
+        </message>
+        <message>
+            <source>Pro trial, ends {date}</source>
+            <translation>Uji coba Pro, berakhir {date}</translation>
+        </message>
+        <message>
+            <source>Pro trial, {n} days left</source>
+            <translation>Uji coba Pro, sisa {n} hari</translation>
+        </message>
+        <message>
+            <source>Then {price}/month. Cancel anytime.</source>
+            <translation>Lalu {price}/bulan. Batalkan kapan saja.</translation>
+        </message>
+        <message>
+            <source>Try Pro free for {n} days</source>
+            <translation>Coba Pro gratis selama {n} hari</translation>
+        </message>
+        <message>
+            <source>Try another card</source>
+            <translation>Coba kartu lain</translation>
+        </message>
+        <message>
+            <source>Update card</source>
+            <translation>Perbarui kartu</translation>
+        </message>
+        <message>
+            <source>You're out of tasks this month</source>
+            <translation>Tugas Anda habis bulan ini</translation>
+        </message>
+        <message>
+            <source>You're out until {date}</source>
+            <translation>Tugas Anda habis sampai {date}</translation>
+        </message>
+        <message>
+            <source>Your trial didn't start. Nothing was charged.</source>
+            <translation>Uji coba Anda tidak dimulai. Tidak ada biaya yang ditagihkan.</translation>
+        </message>
+        <message>
+            <source>{amount} due.</source>
+            <translation>{amount} jatuh tempo.</translation>
+        </message>
+        <message>
+            <source>{n} tasks left this month</source>
+            <translation>Sisa {n} tugas bulan ini</translation>
+        </message>
+        <message>
+            <source>{plan}, renews {date}</source>
+            <translation>{plan}, diperpanjang {date}</translation>
+        </message>
+        <message>
+            <source>{price} excl. VAT</source>
+            <translation>{price} belum termasuk PPN</translation>
+        </message>
+        <message>
+            <source>{price}/month. Cancel anytime.</source>
+            <translation>{price}/bulan. Batalkan kapan saja.</translation>
+        </message>
+        <message>
+            <source>{used} of {limit} used</source>
+            <translation>{used} dari {limit} terpakai</translation>
+        </message>
+        <message>
+            <source>Clear search</source>
+            <translation>Hapus pencarian</translation>
+        </message>
+        <message>
+            <source>Try Pro free</source>
+            <translation>Coba Pro gratis</translation>
+        </message>
+        <message>
+            <source>Delete account</source>
+            <translation>Hapus akun</translation>
+        </message>
+        <message>
+            <source>Report a problem</source>
+            <translation>Laporkan masalah</translation>
+        </message>
+        <message>
+            <source>Ends on {date}</source>
+            <translation>Berakhir pada {date}</translation>
+        </message>
+        <message>
+            <source>Monthly limit reached, resets {date}</source>
+            <translation>Batas bulanan tercapai, diatur ulang {date}</translation>
+        </message>
+        <message>
+            <source>Pro is paused until payment goes through.</source>
+            <translation>Pro dijeda sampai pembayaran berhasil.</translation>
+        </message>
+        <message>
+            <source>Pro trial: 1 day left</source>
+            <translation>Uji coba Pro: sisa 1 hari</translation>
+        </message>
+        <message>
+            <source>Pro trial: {n} days left</source>
+            <translation>Uji coba Pro: sisa {n} hari</translation>
+        </message>
+        <message>
+            <source>Your trial did not start. You were not charged.</source>
+            <translation>Uji coba Anda tidak dimulai. Anda tidak dikenai biaya.</translation>
+        </message>
+        <message>
+            <source>Then {price}/month excl. VAT. Cancel anytime.</source>
+            <translation>Lalu {price}/bulan belum termasuk PPN. Batalkan kapan saja.</translation>
+        </message>
+        <message>
+            <source>{price}/month excl. VAT. Cancel anytime.</source>
+            <translation>{price}/bulan belum termasuk PPN. Batalkan kapan saja.</translation>
+        </message>
+        <message>
+            <source>Desktop notifications</source>
+            <translation>Notifikasi desktop</translation>
+        </message>
+        <message>
+            <source>When QGIS is in the background and a run finishes or needs you.</source>
+            <translation>Saat QGIS berjalan di latar belakang dan sebuah proses selesai atau membutuhkan Anda.</translation>
+        </message>
+        <message>
+            <source>Resets today</source>
+            <translation>Diatur ulang hari ini</translation>
+        </message>
+        <message>
+            <source>Try Pro free for 1 day</source>
+            <translation>Coba Pro gratis selama 1 hari</translation>
+        </message>
+        <message>
+            <source>More AI plugins</source>
+            <translation>Plugin AI lainnya</translation>
+        </message>
+        <message>
+            <source>Applies after restarting QGIS.</source>
+            <translation>Berlaku setelah QGIS dimulai ulang.</translation>
+        </message>
+        <message>
+            <source>How AI Agent looks, what it knows about you, and how it calls you back.</source>
+            <translation>Tampilan AI Agent, hal yang diketahuinya tentang Anda, dan cara AI Agent menghubungi Anda kembali.</translation>
+        </message>
+        <message>
+            <source>Language</source>
+            <translation>Bahasa</translation>
+        </message>
+        <message>
+            <source>Usage stats: only that you used the app and when. Chats are kept as your History retention says, so a conversation survives an update; we may read one, or have a model score it, to fix bugs, never to train AI. 0 days of history stores nothing.</source>
+            <translation>Statistik penggunaan: hanya bahwa Anda memakai aplikasi dan kapan. Chat disimpan sesuai Retensi riwayat Anda agar percakapan tetap ada setelah pembaruan; kami dapat membaca satu chat, atau meminta model menilainya, untuk memperbaiki bug, tidak pernah untuk melatih AI. Riwayat 0 hari tidak menyimpan apa pun.</translation>
+        </message>
+        <message>
+            <source>Grey text in the message box. Tab takes it.</source>
+            <translation>Teks abu-abu di kotak pesan. Tab menerimanya.</translation>
+        </message>
+        <message>
+            <source>Typing suggestions</source>
+            <translation>Saran saat mengetik</translation>
+        </message>
+        <message>
+            <source>Language, response style, suggestions and notifications go back to their defaults.</source>
+            <translation>Bahasa, gaya jawaban, saran, dan notifikasi kembali ke nilai default.</translation>
+        </message>
+        <message>
+            <source>Reset settings</source>
+            <translation>Reset pengaturan</translation>
+        </message>
     </context>
     <context>
         <name>SourcesButton</name>
@@ -6876,6 +7560,10 @@ Terima kasih</translation>
             <source>Always allowed</source>
             <translation>Selalu diizinkan</translation>
         </message>
+        <message>
+            <source>Allow AI Agent to write in {folder}?</source>
+            <translation>Izinkan AI Agent menulis di {folder}?</translation>
+        </message>
     </context>
     <context>
         <name>TraceSteps</name>
@@ -7284,10 +7972,6 @@ Terima kasih</translation>
             <translation>alat: {tool}</translation>
         </message>
         <message>
-            <source>{day} UTC, added by AI Agent by TerraLab</source>
-            <translation>{day} UTC, ditambahkan oleh AI Agent by TerraLab</translation>
-        </message>
-        <message>
             <source>Accessed {day} via {host}</source>
             <translation>Diakses {day} melalui {host}</translation>
         </message>
@@ -7336,8 +8020,12 @@ Terima kasih</translation>
             <translation>layer proyek yang disebut kode: {names}</translation>
         </message>
         <message>
-            <source>{day} UTC, AI Agent run {run}: added {layers}</source>
-            <translation>{day} UTC, proses AI Agent {run}: menambahkan {layers}</translation>
+            <source>{day} UTC, run {run}: added {layers}</source>
+            <translation>{day} UTC, proses {run}: menambahkan {layers}</translation>
+        </message>
+        <message>
+            <source>Data source</source>
+            <translation>Sumber data</translation>
         </message>
     </context>
     <context>
@@ -7463,6 +8151,22 @@ File ini tidak lagi berada di tempat proses menuliskannya.</translation>
         <message>
             <source>Get more tasks with Pro</source>
             <translation>Dapatkan lebih banyak tugas dengan Pro</translation>
+        </message>
+        <message>
+            <source>1 task left</source>
+            <translation>Sisa 1 tugas</translation>
+        </message>
+        <message>
+            <source>Get more with Pro</source>
+            <translation>Dapatkan lebih banyak dengan Pro</translation>
+        </message>
+        <message>
+            <source>Pro: {n} tasks a month, higher effort levels and Autopilot.</source>
+            <translation>Pro: {n} tugas per bulan, level usaha lebih tinggi, dan Autopilot.</translation>
+        </message>
+        <message>
+            <source>{n} tasks left</source>
+            <translation>Sisa {n} tugas</translation>
         </message>
     </context>
     <context>
@@ -7790,6 +8494,10 @@ File ini tidak lagi berada di tempat proses menuliskannya.</translation>
         <message>
             <source>Stopping...</source>
             <translation>Menghentikan...</translation>
+        </message>
+        <message>
+            <source>the map render</source>
+            <translation>render peta</translation>
         </message>
     </context>
     <context>
@@ -9873,6 +10581,120 @@ File ini tidak lagi berada di tempat proses menuliskannya.</translation>
         <message>
             <source>Selected</source>
             <translation>Dipilih</translation>
+        </message>
+    </context>
+    <context>
+        <name>FolderCard</name>
+        <message>
+            <source>A folder on another computer of your network.</source>
+            <translation>Folder di komputer lain dalam jaringan Anda.</translation>
+        </message>
+        <message>
+            <source>Denied</source>
+            <translation>Ditolak</translation>
+        </message>
+        <message>
+            <source>Deny</source>
+            <translation>Tolak</translation>
+        </message>
+        <message>
+            <source>Let AI Agent open this folder?</source>
+            <translation>Izinkan AI Agent membuka folder ini?</translation>
+        </message>
+        <message>
+            <source>Read and write</source>
+            <translation>Baca dan tulis</translation>
+        </message>
+        <message>
+            <source>Read only</source>
+            <translation>Hanya baca</translation>
+        </message>
+        <message>
+            <source>What AI Agent reads there is sent to the AI model. Kept for this project.</source>
+            <translation>Apa yang dibaca AI Agent di sana dikirim ke model AI. Disimpan untuk proyek ini.</translation>
+        </message>
+    </context>
+    <context>
+        <name>FolderChip</name>
+        <message>
+            <source>1 folder</source>
+            <translation>1 folder</translation>
+        </message>
+        <message>
+            <source>Folders</source>
+            <translation>Folder</translation>
+        </message>
+        <message>
+            <source>Folders AI Agent can open in this project</source>
+            <translation>Folder yang dapat dibuka AI Agent di proyek ini</translation>
+        </message>
+        <message>
+            <source>{n} folders</source>
+            <translation>{n} folder</translation>
+        </message>
+    </context>
+    <context>
+        <name>FolderPopover</name>
+        <message>
+            <source>Folders AI Agent can open in this project</source>
+            <translation>Folder yang dapat dibuka AI Agent di proyek ini</translation>
+        </message>
+        <message>
+            <source>The project folder and its layers' folders are always open for reading.</source>
+            <translation>Folder proyek dan folder layer-nya selalu terbuka untuk dibaca.</translation>
+        </message>
+    </context>
+    <context>
+        <name>_FolderRow</name>
+        <message>
+            <source>Read and write</source>
+            <translation>Baca dan tulis</translation>
+        </message>
+        <message>
+            <source>Read only</source>
+            <translation>Hanya baca</translation>
+        </message>
+        <message>
+            <source>Remove</source>
+            <translation>Hapus</translation>
+        </message>
+    </context>
+    <context>
+        <name>AIAgentContext</name>
+        <message>
+            <source>QGIS is not running</source>
+            <translation>QGIS tidak berjalan</translation>
+        </message>
+        <message>
+            <source>Raster</source>
+            <translation>Raster</translation>
+        </message>
+        <message>
+            <source>Show in QGIS</source>
+            <translation>Tampilkan di QGIS</translation>
+        </message>
+        <message>
+            <source>Shown in QGIS</source>
+            <translation>Ditampilkan di QGIS</translation>
+        </message>
+        <message>
+            <source>Table</source>
+            <translation>Tabel</translation>
+        </message>
+    </context>
+    <context>
+        <name>AIAgentRecovery</name>
+        <message>
+            <source>QGIS closed during a run. {n} layer(s) of unsaved work came back in the group "{group}". Save them to keep them.</source>
+            <translation>QGIS tertutup saat proses berjalan. {n} layer pekerjaan yang belum disimpan dipulihkan di grup "{group}". Simpan agar tidak hilang.</translation>
+        </message>
+        <message>
+            <source>Some unsaved work could not be put back. Its copy is kept in {folder}.</source>
+            <translation>Sebagian pekerjaan yang belum disimpan tidak dapat dikembalikan. Salinannya disimpan di {folder}.</translation>
+        </message>
+        <message>
+            <source>{name} (unsaved edits kept)</source>
+            <translation>{name} (suntingan yang belum disimpan dipertahankan)</translation>
         </message>
     </context>
 </TS>

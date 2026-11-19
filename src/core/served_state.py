@@ -52,7 +52,7 @@ TERRALAB_MORE_URL = build_utm_url("", "menu_more")
 
 
 SITE_HOME_URL = build_utm_url("", "settings_site")
-SUPPORT_EMAIL = "yvann.barbot@terra-lab.ai"
+SUPPORT_EMAIL = "gregoire.bruneau@terra-lab.ai"
 
 
 BOOK_A_CALL_URL = ""
@@ -533,10 +533,6 @@ def get_pricing_url() -> str:
 
 
     return _served_url("plans_url", _served_url("pricing_url", PRICING_URL))
-
-
-def get_tutorial_url() -> str:
-    return _served_url("tutorial_url", TUTORIAL_URL)
 
 
 def get_served_learn_items() -> list:

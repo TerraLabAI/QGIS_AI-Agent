@@ -117,7 +117,10 @@ def staging_path(path: str) -> str:
     finish_interrupted(directory)
     stem, ext = os.path.splitext(os.path.basename(path))
     tag = uuid.uuid4().hex[:8]
-    staging = os.path.join(directory, f".{stem}.ai-agent-{tag}.partial{ext}")
+
+
+
+    staging = os.path.join(directory, f".ai-agent-{tag}-{stem}.partial{ext}")
 
 
 
@@ -173,9 +176,10 @@ def publish_staged_write(staging: str, path: str) -> str:
 
 
 
-    produced = _staged_files(staging)
     if not os.path.isfile(staging):
         return f"the writer produced no file at {os.path.basename(staging)}"
+
+    produced = _staged_files(staging) or [staging]
     target_stem = os.path.splitext(path)[0]
     moves = [(part, f"{target_stem}{os.path.splitext(part)[1]}") for part in produced]
     written = {os.path.normcase(final) for _part, final in moves}
@@ -199,6 +203,9 @@ def swap_in(moves: list, stale: list = ()) -> str:
 
 
 
+
+    if not moves:
+        return "the writer left no file to put in place"
     try:
         if len(moves) == 1 and not stale:
 

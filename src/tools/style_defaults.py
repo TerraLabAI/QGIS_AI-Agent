@@ -247,12 +247,13 @@ def raster_codes(layer, band: int = 1, strict: bool = True) -> list:
             return [] if strict else _whole_float_codes(layer, band)
         if strict and names_elevation(layer.name(), layer.source()):
             return []
-        found = band_range(layer, band)
+
+        found = band_range(layer, band, flat=not strict)
         if found is None:
             return []
         low, high = int(round(found[0])), int(round(found[1]))
         bins = high - low + 1
-        if bins < 2 or bins > 4096:
+        if bins < (2 if strict else 1) or bins > 4096:
             return []
         provider = layer.dataProvider()
 

@@ -532,3 +532,15 @@ def group(layer_ids, title: str) -> int:
         holder.setExpanded(False)
         holder.setItemVisibilityChecked(False)
     return moved
+
+
+def drop_emptied_group() -> None:
+
+
+
+
+
+    root = QgsProject.instance().layerTreeRoot()
+    for child in list(root.children()):
+        if QgsLayerTree.isGroup(child) and child.customProperty(GROUP_PROPERTY) and not child.findLayers():
+            root.removeChildNode(child)

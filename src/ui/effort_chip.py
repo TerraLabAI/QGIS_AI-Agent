@@ -93,6 +93,7 @@ from .style import (
     MOTION_POP_MS,
     OFFER_FILL,
     OFFER_FILL_HOVER,
+    OFFER_FILL_PRESSED,
     ON_OFFER,
     RADIUS_CARD,
     SURFACE,
@@ -155,7 +156,7 @@ _POPOVER_QSS = scale_qss_font_px(
     f"QPushButton#effortCta {{ background: {OFFER_FILL}; color: {ON_OFFER}; border: none;"
     f" border-radius: 12px; padding: 0 10px; font-size: {FONT_MICRO + 1}px; font-weight: 600; }}"
     f"QPushButton#effortCta:hover {{ background: {OFFER_FILL_HOVER}; }}"
-    f"QPushButton#effortCta:pressed {{ background: {OFFER_FILL_HOVER}; }}"
+    f"QPushButton#effortCta:pressed {{ background: {OFFER_FILL_PRESSED}; }}"
 
 
     f"QLabel#effortHead {{ font-size: {FONT_HINT}px; font-weight: {WEIGHT_MEDIUM};"
@@ -336,6 +337,8 @@ class EffortSlider(QWidget):
         self._preview = self._value
         self._locked_from = len(EFFORTS)
         self._dragging = False
+
+        self.keyed = False
         self._hover = False
         self._scale = 1.0
         self._phase = 0.0
@@ -580,6 +583,7 @@ class EffortSlider(QWidget):
             super().mousePressEvent(event)
             return
         self._dragging = True
+        self.keyed = False
         self._anim.stop()
         self._swell_to(self._rest_scale())
         self._pos = self._caught(self._pos_at(event_pos(event).x()))
@@ -628,10 +632,12 @@ class EffortSlider(QWidget):
 
 
 
+
         changed = target != self._value
         if target >= self._locked_from:
             self.locked_reached.emit(EFFORTS[target])
         self._value = target
+        self.keyed = not glide
         self._set_preview(target)
         if glide and not prefers_reduced_motion():
             self._glide_to(target)
@@ -639,9 +645,19 @@ class EffortSlider(QWidget):
             self._anim.stop()
             self._pos = float(target)
             self.update()
-        self._pulse(target)
+        if glide:
+            self._pulse(target)
+        else:
+            self._heat_anim.stop()
+            self._heat = 1.0 if target == len(EFFORTS) - 1 else 0.0
+
+            self._ambient.stop()
+            ambient_ms = _LEVEL_MOTION[target][4]
+            if ambient_ms:
+                self._ambient.start(int(ambient_ms))
         if changed:
             self.changed.emit(EFFORTS[target])
+        self.keyed = False
 
     def paintEvent(self, event):  # noqa: N802
         painter = QPainter(self)
@@ -880,6 +896,9 @@ class EffortPopover(QFrame):
         words.setSpacing(_CARD_SPACING)
         self._fade = QGraphicsOpacityEffect(self._words)
         self._fade.setOpacity(1.0)
+
+
+        self._fade.setEnabled(False)
         self._words.setGraphicsEffect(self._fade)
         self._dip = QVariantAnimation(self)
         self._dip.setDuration(220)
@@ -1007,11 +1026,19 @@ class EffortPopover(QFrame):
     def _show(self, effort: str) -> None:
         self._sync_run_note(effort)
         name, note = self._texts.get(normalize_effort(effort), ("", ""))
-        if self.isVisible() and (name != self._name or note != self._note.text()):
+        keyed = self.slider.keyed
+        self.slider.keyed = False
+        if keyed:
+            self._dip.stop()
+            self._pending = None
+            self._fade.setOpacity(1.0)
+            self._fade.setEnabled(False)
+        elif self.isVisible() and (name != self._name or note != self._note.text()):
             self._pending = (name, note, effort)
             if self._dip.state() != QVariantAnimation.State.Running:
                 self._dip.setStartValue(0.0)
                 self._dip.setEndValue(1.0)
+                self._fade.setEnabled(True)
                 self._dip.start()
             return
         self._set_words(name, note, effort, self.isVisible())
@@ -1050,6 +1077,8 @@ class EffortPopover(QFrame):
             self._set_words(name, note, effort, True)
 
         self._fade.setOpacity(0.25 + 0.75 * abs(2 * t - 1))
+        if t >= 1.0:
+            self._fade.setEnabled(False)
 
     def _on_changed(self, effort: str) -> None:
         self._show(effort)
@@ -1078,6 +1107,7 @@ class EffortPopover(QFrame):
         self._dip.stop()
         self._pending = None
         self._fade.setOpacity(1.0)
+        self._fade.setEnabled(False)
         super().hideEvent(event)
 
 

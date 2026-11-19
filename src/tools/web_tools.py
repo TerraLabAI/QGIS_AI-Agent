@@ -11,6 +11,8 @@
 
 from __future__ import annotations
 
+import base64
+import binascii
 import json
 import posixpath
 import re
@@ -433,7 +435,25 @@ def _pdf_array_parts(array: bytes) -> list[str]:
     return parts
 
 
+def _ascii_decoded(before: bytes, stream: bytes) -> bytes:
+
+
+
+    dictionary = before.rsplit(b"obj", 1)[-1]
+    try:
+        if b"/ASCII85Decode" in dictionary or b"/A85" in dictionary:
+            body = b"".join(stream.split()).split(b"~>", 1)[0]
+            return base64.a85decode(body[2:] if body.startswith(b"<~") else body)
+        if b"/ASCIIHexDecode" in dictionary or b"/AHx" in dictionary:
+            body = b"".join(stream.split()).split(b">", 1)[0]
+            return binascii.unhexlify(body + b"0" * (len(body) % 2))
+    except (ValueError, binascii.Error):
+        return stream
+    return stream
+
+
 def _pdf_text(raw: bytes) -> tuple[str, str]:
+
 
 
 
@@ -448,7 +468,7 @@ def _pdf_text(raw: bytes) -> tuple[str, str]:
     for index, found in enumerate(_PDF_STREAM_RE.finditer(raw)):
         if index >= _PDF_MAX_STREAMS or inflate_left <= 0 or chars_left <= 0:
             break
-        stream = found.group(1)
+        stream = _ascii_decoded(raw[max(0, found.start() - 512):found.start()], found.group(1))
         try:
             data = zlib.decompressobj().decompress(stream, inflate_left)
         except zlib.error:

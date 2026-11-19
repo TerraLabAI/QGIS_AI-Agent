@@ -136,6 +136,9 @@ class NoticeBar(QWidget):
         self._text.setTextInteractionFlags(
             Qt.TextInteractionFlag.TextSelectableByMouse | Qt.TextInteractionFlag.LinksAccessibleByMouse)
         self._text.setStyleSheet(scale_qss_font_px(_TEXT_QSS))
+
+
+        self._text.ensurePolished()
         self._text.setMaximumHeight(self._text.fontMetrics().lineSpacing() * _MAX_NOTICE_LINES)
         self._text.linkActivated.connect(self._on_link)
         row.addWidget(self._text, 1, Qt.AlignmentFlag.AlignVCenter)

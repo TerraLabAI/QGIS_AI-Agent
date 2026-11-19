@@ -395,6 +395,29 @@ def file_class(path, creating: bool = True, own=(), folder: bool = False) -> tup
     return ce.FW, f"writes {full}"
 
 
+def delete_class(path, own=()) -> tuple[str, str]:
+
+
+
+    try:
+        full = os.path.abspath(os.path.expanduser(os.fsdecode(path)))
+    except (TypeError, ValueError):
+        return ce.D, "deletes a file"
+    shown = os.path.basename(full) or full
+    spellings = _spellings(full)
+    if any(security.path_is_under(spelling, root) for root in security.temp_roots() for spelling in spellings):
+        return ce.P, ""
+    if is_own(full, own) or full in CREATED:
+        return ce.FP, f"deletes the file {shown} this conversation wrote"
+    return ce.D, f"deletes {shown}"
+
+
+def own_now() -> frozenset:
+
+    arm = _current()
+    return arm.own if arm is not None else frozenset()
+
+
 
 
 CREATED: list[str] = []
@@ -499,7 +522,9 @@ def _outside_scope(source, provider: str = "") -> str:
     path = _source_file(source, provider)
     if not path or not _names_file(path):
         return ""
-    return security.validate_read(path) or ""
+    from ..core import vsi
+
+    return security.validate_read(path) or vsi.dataset_scope_refusal(path) or ""
 
 
 def _existing_folder(args) -> bool:
@@ -651,7 +676,9 @@ class _Arm:
                 return
             self.judge_file(text)
         elif event in _DELETE_EVENTS:
-            if _from_snippet(3):
+            if _from_snippet(3) and event == "os.remove" and args:
+                self.need(*delete_class(args[0], self.own))
+            elif _from_snippet(3):
                 self.need(ce.D, f"deletes {os.path.basename(str(args[0])) if args else 'a file'}")
         elif event in _COPY_EVENTS:
             if _from_snippet(3):
@@ -796,7 +823,10 @@ def _wrap(arm: _Arm, original, judge, static: bool):
             if replaced is not None:
                 args, kwargs = replaced
             if instead is not None:
-                done = instead(*args, **kwargs)
+
+
+                done = (instead(lambda *a, **k: call(a, k), *args, **kwargs)
+                        if getattr(instead, "takes_original", False) else instead(*args, **kwargs))
                 if done is not AS_WRITTEN:
                     return done
             if around is not None:
@@ -980,14 +1010,45 @@ def _remove_all(arm, project, *args, **kwargs):
 
 
 def _project_write(arm, project, *args, **kwargs):
-    path = args[0] if args and isinstance(args[0], str) else project.fileName()
+    path = _written_path(args, kwargs) or project.fileName()
     if not path:
         arm.need(ce.FW, "saves the project")
     arm.judge_file(path)
 
 
+def _written_path(args, kwargs) -> str:
+    path = args[0] if args else kwargs.get("filename")
+    return path if isinstance(path, str) else ""
+
+
+def _project_copied(original, project, *args, **kwargs):
+
+
+
+
+
+
+
+
+    path, current = _written_path(args, kwargs), project.fileName()
+    if not path or not current or not _open_project(project):
+        return AS_WRITTEN
+    def key(value):
+        return os.path.normcase(os.path.normpath(os.path.abspath(value)))
+    if key(path) == key(current):
+        return AS_WRITTEN
+    from ..core.snapshot_project import name_kept
+
+    with name_kept(project):
+        return original(project, *args, **kwargs)
+
+
+_project_copied.takes_original = True
+_project_write.instead = _project_copied
+
+
 def _project_read(arm, project, *args, **kwargs):
-    path = args[0] if args and isinstance(args[0], str) else project.fileName()
+    path = _written_path(args, kwargs) or project.fileName()
     arm.no_share(path, "reads a project on")
     if not _open_project(project):
 
@@ -1382,6 +1443,8 @@ def _traps():
         (get("QgsProject"), "write", _project_write, False),
         (get("QgsProject"), "read", _project_read, False),
 
+        (get("QgsProject"), "setInstance", lambda arm, *a, **k: arm.need(ce.D, "replaces the open project"), True),
+
         (get("QgsProject"), "setFileName",
          lambda arm, project, name="", *a, **k: arm.no_share(name, "names a project on"), False),
         (get("QgsProject"), "addMapLayer", _add_layers, False),
@@ -1393,6 +1456,8 @@ def _traps():
         (get("QgsLayoutExporter"), "exportToPdf", _page_drawn_apart("exportToPdf"), False),
         (get("QgsLayoutExporter"), "exportToSvg", _page_export, False),
         (get("QgsLayout"), "removeLayoutItem", _page_removal, False),
+
+        (get("QgsMapRendererJob"), "waitForFinished", _render_wait, False),
         (get("QgsCoordinateReferenceSystem"), "saveAsUserCrs", _refuses(_SETTING), False),
         (get("QgsExpressionContextUtils"), "setGlobalVariable", _refuses(_SETTING), True),
         (get("QgsExpressionContextUtils"), "setGlobalVariables", _refuses(_SETTING), True),
@@ -1493,6 +1558,19 @@ def _stack_index(arm, stack, index=None, *args, **kwargs):
     if not 0 <= position < size:
         raise IndexError(f"{type(stack).__name__} index {index} out of range: it holds {size}")
     return (stack, position), {}
+
+
+def _render_wait(arm, job, *args, **kwargs):
+    return None
+
+
+def _render_waited(job, *args, **kwargs):
+    from . import code_processing
+
+    return code_processing.render_waited(job)
+
+
+_render_wait.instead = _render_waited
 
 
 def _crash_traps() -> list:

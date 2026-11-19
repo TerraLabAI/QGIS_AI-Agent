@@ -425,10 +425,6 @@ def write_zone(geometry: QgsGeometry, crs: QgsCoordinateReferenceSystem,
         layer.setCustomProperty(ZONE_PROPERTY + "/approximate", "1")
     else:
         layer.removeCustomProperty(ZONE_PROPERTY + "/approximate")
-
-    from .layer_order import keep_place
-
-    keep_place(layer)
     if fresh:
         proj.addMapLayer(layer)
     try:

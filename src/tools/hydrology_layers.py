@@ -41,6 +41,11 @@ def _dem_facts(dem_name: str) -> dict:
         return tool_error(f"{layer.name()} is not a raster layer.", "INVALID_ARGS",
                           hint="hydrology_dem_not_raster", layer=layer.name())
     crs = layer.crs()
+    if not crs.isValid():
+
+
+        return tool_error(f"{layer.name()} has no valid CRS.", "INVALID_ARGS",
+                          hint="hydrology_dem_no_crs", layer=layer.name())
     renderer = layer.renderer()
     return {
         "name": layer.name(),

@@ -1983,13 +1983,77 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <source>left out</source>
             <translation>除外</translation>
         </message>
-    </context>
-    <context>
-        <name>AIAgentContext</name>
         <message>
-            <location filename="src/core/context.py" />
-            <source>Raster</source>
-            <translation>ラスタ</translation>
+            <source>The AI agent has been thinking for {time}</source>
+            <translation>AIエージェントは{time}考え中です</translation>
+        </message>
+        <message>
+            <source>Code running in QGIS for {time}</source>
+            <translation>QGISでコードを{time}実行中</translation>
+        </message>
+        <message>
+            <source>Running in QGIS for {time}</source>
+            <translation>QGISで{time}実行中</translation>
+        </message>
+        <message>
+            <source>Bugs</source>
+            <translation>バグ</translation>
+        </message>
+        <message>
+            <source>For a team, a call is quickest.</source>
+            <translation>チームでのご利用なら、通話が最短です。</translation>
+        </message>
+        <message>
+            <source>Ideas</source>
+            <translation>アイデア</translation>
+        </message>
+        <message>
+            <source>Licences, quotes and invoices for your team, too.</source>
+            <translation>チーム向けのライセンス、見積書、請求書にも対応します。</translation>
+        </message>
+        <message>
+            <source>Questions</source>
+            <translation>ご質問</translation>
+        </message>
+        <message>
+            <source>Team needs</source>
+            <translation>チームでのご利用</translation>
+        </message>
+        <message>
+            <source>Map history</source>
+            <translation>マップ履歴</translation>
+        </message>
+        <message>
+            <source>Open earlier project versions</source>
+            <translation>以前のプロジェクトのバージョンを開く</translation>
+        </message>
+        <message>
+            <source>Recall your last message</source>
+            <translation>直前のメッセージを呼び出す</translation>
+        </message>
+        <message>
+            <source>Redo it</source>
+            <translation>やり直す</translation>
+        </message>
+        <message>
+            <source>Sent with this conversation and the plugin's recent log.</source>
+            <translation>この会話とプラグインの最近のログが一緒に送信されます。</translation>
+        </message>
+        <message>
+            <source>Undo the last request</source>
+            <translation>直前の依頼を元に戻す</translation>
+        </message>
+        <message>
+            <source>We read every message and use it to improve AI Agent.</source>
+            <translation>すべてのメッセージに目を通し、AI Agentの改善に役立てます。</translation>
+        </message>
+        <message>
+            <source>What happened, and what did you expect? For example: the buffer came out in degrees instead of metres.</source>
+            <translation>何が起きましたか。どうなるはずでしたか。例：バッファがメートルではなく度で出力された。</translation>
+        </message>
+        <message>
+            <source>Kept until you delete it</source>
+            <translation>削除するまで保存されます</translation>
         </message>
         <message>
             <location filename="src/core/context.py" />
@@ -4519,6 +4583,18 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <source>Dock or undock AI Agent</source>
             <translation>AI Agent をドッキングまたは解除</translation>
         </message>
+        <message>
+            <source>Pro ends on {date}. Keep it in one click.</source>
+            <translation>Proは{date}に終了します。ワンクリックで継続できます。</translation>
+        </message>
+        <message>
+            <source>Pro is set to end. Keep it in one click.</source>
+            <translation>Proは終了する設定になっています。ワンクリックで継続できます。</translation>
+        </message>
+        <message>
+            <source>See what's in Pro</source>
+            <translation>Proの内容を見る</translation>
+        </message>
     </context>
     <context>
         <name>HistoryPopup</name>
@@ -5069,6 +5145,10 @@ Click to open its page.</source>
         <message>
             <source>{n} of {total} features in {layer}</source>
             <translation>{layer}の{total}地物のうち{n}地物</translation>
+        </message>
+        <message>
+            <source>Allow lets AI Agent read and write in {folder} for this project.</source>
+            <translation>許可すると、AI Agent はこのプロジェクトで {folder} の読み取りと書き込みができます。</translation>
         </message>
     </context>
     <context>
@@ -5650,6 +5730,138 @@ Thank you</source>
         <message>
             <source>{n} tasks a month, cancel anytime</source>
             <translation>月{n}タスク、いつでも解約可能</translation>
+        </message>
+        <message>
+            <source>1 task left this month</source>
+            <translation>今月の残りは1タスク</translation>
+        </message>
+        <message>
+            <source>All {n} tasks used. They reset on {date}.</source>
+            <translation>{n}タスクをすべて使いました。{date}にリセットされます。</translation>
+        </message>
+        <message>
+            <source>Back to Pro</source>
+            <translation>Proに戻る</translation>
+        </message>
+        <message>
+            <source>Come back to Pro for {n} tasks a month.</source>
+            <translation>Proに戻ると毎月{n}タスクを利用できます。</translation>
+        </message>
+        <message>
+            <source>Contact us</source>
+            <translation>お問い合わせ</translation>
+        </message>
+        <message>
+            <source>Contact us for more tasks</source>
+            <translation>タスクを増やすにはお問い合わせください</translation>
+        </message>
+        <message>
+            <source>Get Pro for {n} tasks a month.</source>
+            <translation>Proなら毎月{n}タスクを利用できます。</translation>
+        </message>
+        <message>
+            <source>Need Pro for work?</source>
+            <translation>仕事でProが必要ですか？</translation>
+        </message>
+        <message>
+            <source>No card? Contact us to pay by invoice.</source>
+            <translation>カードをお持ちでない場合は、お問い合わせのうえ請求書でお支払いください。</translation>
+        </message>
+        <message>
+            <source>No card? Contact us to start your free trial.</source>
+            <translation>カードをお持ちでない場合は、お問い合わせのうえ無料トライアルを開始してください。</translation>
+        </message>
+        <message>
+            <source>Pay nothing today</source>
+            <translation>今日のお支払いはありません</translation>
+        </message>
+        <message>
+            <source>Pay nothing today, then your local price each month. Cancel anytime.</source>
+            <translation>今日のお支払いはありません。その後は毎月、お住まいの地域の価格で請求されます。いつでも解約できます。</translation>
+        </message>
+        <message>
+            <source>Pay nothing today, then your student price each month. Cancel anytime.</source>
+            <translation>今日のお支払いはありません。その後は毎月、学生価格で請求されます。いつでも解約できます。</translation>
+        </message>
+        <message>
+            <source>Pay nothing today, then {price}/month excl. VAT. Cancel anytime.</source>
+            <translation>今日のお支払いはありません。その後は{price}/月（税抜）です。いつでも解約できます。</translation>
+        </message>
+        <message>
+            <source>Pay nothing today, then {price}/month. Cancel anytime.</source>
+            <translation>今日のお支払いはありません。その後は{price}/月です。いつでも解約できます。</translation>
+        </message>
+        <message>
+            <source>Payment of {amount} failed</source>
+            <translation>{amount}のお支払いに失敗しました</translation>
+        </message>
+        <message>
+            <source>Pro is paused until payment goes through.</source>
+            <translation>お支払いが完了するまでProは一時停止されます。</translation>
+        </message>
+        <message>
+            <source>Start Pro now</source>
+            <translation>Proを今すぐ開始</translation>
+        </message>
+        <message>
+            <source>Start free trial</source>
+            <translation>無料トライアルを開始</translation>
+        </message>
+        <message>
+            <source>Try Pro free for a week to get more tasks.</source>
+            <translation>Proを1週間無料で試して、より多くのタスクを利用しましょう。</translation>
+        </message>
+        <message>
+            <source>Welcome to Pro</source>
+            <translation>Proへようこそ</translation>
+        </message>
+        <message>
+            <source>You now have {n} tasks a month.</source>
+            <translation>毎月{n}タスクを利用できるようになりました。</translation>
+        </message>
+        <message>
+            <source>You used all your tasks this month</source>
+            <translation>今月のタスクをすべて使いました</translation>
+        </message>
+        <message>
+            <source>You used your last task</source>
+            <translation>最後のタスクを使いました</translation>
+        </message>
+        <message>
+            <source>Your free trial runs until {date}.</source>
+            <translation>無料トライアルは{date}までです。</translation>
+        </message>
+        <message>
+            <source>Your tasks reset next month.</source>
+            <translation>タスクは来月リセットされます。</translation>
+        </message>
+        <message>
+            <source>Your tasks reset on {date}.</source>
+            <translation>タスクは{date}にリセットされます。</translation>
+        </message>
+        <message>
+            <source>Your trial did not start. You were not charged.</source>
+            <translation>トライアルは開始されませんでした。請求は発生していません。</translation>
+        </message>
+        <message>
+            <source>{n} tasks a month. Cancel anytime.</source>
+            <translation>毎月{n}タスク。いつでも解約できます。</translation>
+        </message>
+        <message>
+            <source>{n} tasks left this month</source>
+            <translation>今月の残りは{n}タスク</translation>
+        </message>
+        <message>
+            <source>{price} excl. VAT</source>
+            <translation>{price}（税別）</translation>
+        </message>
+        <message>
+            <source>{price}/month. Cancel anytime.</source>
+            <translation>{price}/月。いつでも解約できます。</translation>
+        </message>
+        <message>
+            <source>{price}/month excl. VAT. Cancel anytime.</source>
+            <translation>{price}/月（税抜）。いつでも解約できます。</translation>
         </message>
     </context>
     <context>
@@ -6455,6 +6667,478 @@ Thank you</source>
             <source>Your usage and chats help us fix bugs. Turn it off anytime.</source>
             <translation>利用状況とチャットは、バグの修正に役立ちます。いつでもオフにできます。</translation>
         </message>
+        <message>
+            <source>Bell</source>
+            <translation>ベル</translation>
+        </message>
+        <message>
+            <source>Chime</source>
+            <translation>チャイム</translation>
+        </message>
+        <message>
+            <source>Icon and sound</source>
+            <translation>アイコンと音</translation>
+        </message>
+        <message>
+            <source>Icon only</source>
+            <translation>アイコンのみ</translation>
+        </message>
+        <message>
+            <source>Little train</source>
+            <translation>小さな電車</translation>
+        </message>
+        <message>
+            <source>Marimba</source>
+            <translation>マリンバ</translation>
+        </message>
+        <message>
+            <source>Needs your answer</source>
+            <translation>回答が必要なとき</translation>
+        </message>
+        <message>
+            <source>Notifications</source>
+            <translation>通知</translation>
+        </message>
+        <message>
+            <source>Notify me</source>
+            <translation>通知方法</translation>
+        </message>
+        <message>
+            <source>Off</source>
+            <translation>オフ</translation>
+        </message>
+        <message>
+            <source>Only while QGIS is in the background or the panel is hidden.</source>
+            <translation>QGIS がバックグラウンドにあるか、パネルが非表示のときだけ通知します。</translation>
+        </message>
+        <message>
+            <source>Play</source>
+            <translation>再生</translation>
+        </message>
+        <message>
+            <source>Questions and approvals.</source>
+            <translation>質問と承認。</translation>
+        </message>
+        <message>
+            <source>Run finished</source>
+            <translation>実行が完了したとき</translation>
+        </message>
+        <message>
+            <source>Volume</source>
+            <translation>音量</translation>
+        </message>
+        <message>
+            <source>1 task left</source>
+            <translation>残り 1 タスク</translation>
+        </message>
+        <message>
+            <source>A badge on the QGIS icon and a sound, only while QGIS is in the background or the panel is hidden.</source>
+            <translation>QGIS がバックグラウンドにあるときやパネルが非表示のときだけ、QGIS アイコンのバッジと音でお知らせします。</translation>
+        </message>
+        <message>
+            <source>About you and Instructions</source>
+            <translation>プロフィールと指示</translation>
+        </message>
+        <message>
+            <source>Back in {n} days</source>
+            <translation>{n} 日後に回復</translation>
+        </message>
+        <message>
+            <source>Back tomorrow</source>
+            <translation>明日回復</translation>
+        </message>
+        <message>
+            <source>Call me back while I work elsewhere</source>
+            <translation>別の作業中でも呼び戻す</translation>
+        </message>
+        <message>
+            <source>Change</source>
+            <translation>変更</translation>
+        </message>
+        <message>
+            <source>Commercial use included</source>
+            <translation>商用利用を含む</translation>
+        </message>
+        <message>
+            <source>Context for every task</source>
+            <translation>すべてのタスクの前提情報</translation>
+        </message>
+        <message>
+            <source>Could not load your usage</source>
+            <translation>使用状況を読み込めませんでした</translation>
+        </message>
+        <message>
+            <source>Detect and outline objects on imagery: buildings, trees, water or fields become polygons you can edit.</source>
+            <translation>画像上の物体を検出して輪郭を描きます。建物、樹木、水域、農地を編集可能なポリゴンにします。</translation>
+        </message>
+        <message>
+            <source>Edit your imagery with one sentence, the way you would ask a colleague.</source>
+            <translation>同僚に頼むように、一文で画像を編集できます。</translation>
+        </message>
+        <message>
+            <source>Every task, day by day, on terra-lab.ai</source>
+            <translation>すべてのタスクを日ごとに terra-lab.ai で確認</translation>
+        </message>
+        <message>
+            <source>Everything else here works without an account.</source>
+            <translation>ここにあるその他の機能は、アカウントなしで使えます。</translation>
+        </message>
+        <message>
+            <source>From your TerraLab account.</source>
+            <translation>TerraLab アカウントから取得しています。</translation>
+        </message>
+        <message>
+            <source>General</source>
+            <translation>一般</translation>
+        </message>
+        <message>
+            <source>How the AI agent answers.</source>
+            <translation>AI エージェントの回答のしかたです。</translation>
+        </message>
+        <message>
+            <source>How the AI agent calls you back.</source>
+            <translation>AI エージェントが呼び戻す方法です。</translation>
+        </message>
+        <message>
+            <source>Install</source>
+            <translation>インストール</translation>
+        </message>
+        <message>
+            <source>Install {plugin}</source>
+            <translation>{plugin} をインストール</translation>
+        </message>
+        <message>
+            <source>Loading your plan...</source>
+            <translation>プランを読み込み中...</translation>
+        </message>
+        <message>
+            <source>Loading your tasks...</source>
+            <translation>タスクを読み込み中...</translation>
+        </message>
+        <message>
+            <source>Monthly tasks</source>
+            <translation>月間タスク</translation>
+        </message>
+        <message>
+            <source>More from TerraLab</source>
+            <translation>TerraLab のその他のプラグイン</translation>
+        </message>
+        <message>
+            <source>Needs your answer: {a} · Run finished: {b}</source>
+            <translation>回答待ち: {a} · 実行完了: {b}</translation>
+        </message>
+        <message>
+            <source>One TerraLab account signs you in to all three plugins.</source>
+            <translation>1 つの TerraLab アカウントで、3 つのプラグインすべてにサインインできます。</translation>
+        </message>
+        <message>
+            <source>One task is one message you send, however many steps the AI agent takes. Tasks that fail on our side are given back.</source>
+            <translation>1 タスクは、AI エージェントが何ステップ実行しても、あなたが送る 1 件のメッセージです。当社側で失敗したタスクは返却されます。</translation>
+        </message>
+        <message>
+            <source>Open {plugin}</source>
+            <translation>{plugin} を開く</translation>
+        </message>
+        <message>
+            <source>Opens the QGIS plugin manager on this plugin. Free to install.</source>
+            <translation>QGIS のプラグインマネージャでこのプラグインを開きます。インストールは無料です。</translation>
+        </message>
+        <message>
+            <source>Personal, non-commercial use</source>
+            <translation>個人利用(非商用)</translation>
+        </message>
+        <message>
+            <source>Plan</source>
+            <translation>プラン</translation>
+        </message>
+        <message>
+            <source>Profile</source>
+            <translation>プロフィール</translation>
+        </message>
+        <message>
+            <source>Resets in {n} days</source>
+            <translation>{n} 日後にリセット</translation>
+        </message>
+        <message>
+            <source>Resets tomorrow</source>
+            <translation>明日リセット</translation>
+        </message>
+        <message>
+            <source>Rules the AI agent always follows.</source>
+            <translation>AI エージェントが常に守るルールです。</translation>
+        </message>
+        <message>
+            <source>Saved on this computer.</source>
+            <translation>このコンピュータに保存されます。</translation>
+        </message>
+        <message>
+            <source>Search settings</source>
+            <translation>設定を検索</translation>
+        </message>
+        <message>
+            <source>Show its panel.</source>
+            <translation>パネルを表示します。</translation>
+        </message>
+        <message>
+            <source>Sign in to see your plan and tasks</source>
+            <translation>サインインしてプランとタスクを確認</translation>
+        </message>
+        <message>
+            <source>Sounds</source>
+            <translation>サウンド</translation>
+        </message>
+        <message>
+            <source>Tell the AI agent who you are and the rules it always follows. Included in Pro.</source>
+            <translation>あなたの情報と、常に守ってほしいルールを AI エージェントに伝えます。Pro に含まれます。</translation>
+        </message>
+        <message>
+            <source>Two more AI plugins for QGIS, from the makers of AI Agent.</source>
+            <translation>AI Agent の開発元による、QGIS 向けの AI プラグインがあと 2 つあります。</translation>
+        </message>
+        <message>
+            <source>Upgrade plan</source>
+            <translation>プランをアップグレード</translation>
+        </message>
+        <message>
+            <source>Upgrade to Pro</source>
+            <translation>Pro にアップグレード</translation>
+        </message>
+        <message>
+            <source>Usage</source>
+            <translation>使用状況</translation>
+        </message>
+        <message>
+            <source>What counts as a task</source>
+            <translation>タスクの数え方</translation>
+        </message>
+        <message>
+            <source>What leaves this computer, and for how long.</source>
+            <translation>このコンピュータから外に出る情報と、その保持期間です。</translation>
+        </message>
+        <message>
+            <source>What you work on, your data, your area.</source>
+            <translation>作業内容、データ、対象地域です。</translation>
+        </message>
+        <message>
+            <source>Your plan and the tasks you used this month.</source>
+            <translation>プランと、今月使ったタスクです。</translation>
+        </message>
+        <message>
+            <source>Your plan, payment method and invoices, on terra-lab.ai.</source>
+            <translation>プラン、支払い方法、請求書は terra-lab.ai で管理できます。</translation>
+        </message>
+        <message>
+            <source>Your tasks are counted on our side; nothing is lost.</source>
+            <translation>タスクは当社側で集計されるので、失われることはありません。</translation>
+        </message>
+        <message>
+            <source>of {limit} this month</source>
+            <translation>今月の上限 {limit} 件中</translation>
+        </message>
+        <message>
+            <source>{n} tasks left</source>
+            <translation>残り {n} タスク</translation>
+        </message>
+        <message>
+            <source>{p}% left</source>
+            <translation>残り {p}%</translation>
+        </message>
+        <message>
+            <source>1 task left this month</source>
+            <translation>今月の残りタスクは1件</translation>
+        </message>
+        <message>
+            <source>Cancel anytime before it ends.</source>
+            <translation>終了前ならいつでもキャンセルできます。</translation>
+        </message>
+        <message>
+            <source>Card declined</source>
+            <translation>カードが拒否されました</translation>
+        </message>
+        <message>
+            <source>Come back to Pro</source>
+            <translation>Proに戻る</translation>
+        </message>
+        <message>
+            <source>Ends {date}</source>
+            <translation>{date}に終了</translation>
+        </message>
+        <message>
+            <source>Payment failed</source>
+            <translation>お支払いに失敗しました</translation>
+        </message>
+        <message>
+            <source>Pro is off until it's paid.</source>
+            <translation>お支払いが完了するまでProは無効です。</translation>
+        </message>
+        <message>
+            <source>Pro trial</source>
+            <translation>Proトライアル</translation>
+        </message>
+        <message>
+            <source>Pro trial, 1 day left</source>
+            <translation>Proトライアル、残り1日</translation>
+        </message>
+        <message>
+            <source>Pro trial, ends {date}</source>
+            <translation>Proトライアル、{date}に終了</translation>
+        </message>
+        <message>
+            <source>Pro trial, {n} days left</source>
+            <translation>Proトライアル、残り{n}日</translation>
+        </message>
+        <message>
+            <source>Then {price}/month. Cancel anytime.</source>
+            <translation>その後は月額{price}。いつでもキャンセルできます。</translation>
+        </message>
+        <message>
+            <source>Try Pro free for {n} days</source>
+            <translation>Proを{n}日間無料で試す</translation>
+        </message>
+        <message>
+            <source>Try another card</source>
+            <translation>別のカードを試す</translation>
+        </message>
+        <message>
+            <source>Update card</source>
+            <translation>カードを更新</translation>
+        </message>
+        <message>
+            <source>You're out of tasks this month</source>
+            <translation>今月のタスクを使い切りました</translation>
+        </message>
+        <message>
+            <source>You're out until {date}</source>
+            <translation>{date}まで利用できません</translation>
+        </message>
+        <message>
+            <source>Your trial didn't start. Nothing was charged.</source>
+            <translation>トライアルを開始できませんでした。請求はありません。</translation>
+        </message>
+        <message>
+            <source>{amount} due.</source>
+            <translation>{amount}のお支払いが必要です。</translation>
+        </message>
+        <message>
+            <source>{n} tasks left this month</source>
+            <translation>今月の残りタスクは{n}件</translation>
+        </message>
+        <message>
+            <source>{plan}, renews {date}</source>
+            <translation>{plan}、{date}に更新</translation>
+        </message>
+        <message>
+            <source>{price} excl. VAT</source>
+            <translation>{price}（税別）</translation>
+        </message>
+        <message>
+            <source>{price}/month. Cancel anytime.</source>
+            <translation>月額{price}。いつでもキャンセルできます。</translation>
+        </message>
+        <message>
+            <source>{used} of {limit} used</source>
+            <translation>{limit}件中{used}件を使用</translation>
+        </message>
+        <message>
+            <source>Clear search</source>
+            <translation>検索をクリア</translation>
+        </message>
+        <message>
+            <source>Try Pro free</source>
+            <translation>Proを無料で試す</translation>
+        </message>
+        <message>
+            <source>Delete account</source>
+            <translation>アカウントを削除</translation>
+        </message>
+        <message>
+            <source>Report a problem</source>
+            <translation>問題を報告</translation>
+        </message>
+        <message>
+            <source>Ends on {date}</source>
+            <translation>{date}に終了</translation>
+        </message>
+        <message>
+            <source>Monthly limit reached, resets {date}</source>
+            <translation>月間の上限に達しました。{date}にリセットされます</translation>
+        </message>
+        <message>
+            <source>Pro is paused until payment goes through.</source>
+            <translation>お支払いが完了するまでProは一時停止されます。</translation>
+        </message>
+        <message>
+            <source>Pro trial: 1 day left</source>
+            <translation>Proトライアル：残り1日</translation>
+        </message>
+        <message>
+            <source>Pro trial: {n} days left</source>
+            <translation>Proトライアル：残り{n}日</translation>
+        </message>
+        <message>
+            <source>Your trial did not start. You were not charged.</source>
+            <translation>トライアルは開始されませんでした。請求は発生していません。</translation>
+        </message>
+        <message>
+            <source>Then {price}/month excl. VAT. Cancel anytime.</source>
+            <translation>その後は{price}/月（税抜）です。いつでも解約できます。</translation>
+        </message>
+        <message>
+            <source>{price}/month excl. VAT. Cancel anytime.</source>
+            <translation>{price}/月（税抜）。いつでも解約できます。</translation>
+        </message>
+        <message>
+            <source>Desktop notifications</source>
+            <translation>デスクトップ通知</translation>
+        </message>
+        <message>
+            <source>When QGIS is in the background and a run finishes or needs you.</source>
+            <translation>QGISがバックグラウンドにあるときに、実行が完了したか、確認が必要になった場合に通知します。</translation>
+        </message>
+        <message>
+            <source>Resets today</source>
+            <translation>本日リセット</translation>
+        </message>
+        <message>
+            <source>Try Pro free for 1 day</source>
+            <translation>Proを1日無料で試す</translation>
+        </message>
+        <message>
+            <source>More AI plugins</source>
+            <translation>その他のAIプラグイン</translation>
+        </message>
+        <message>
+            <source>Applies after restarting QGIS.</source>
+            <translation>QGISを再起動すると反映されます。</translation>
+        </message>
+        <message>
+            <source>How AI Agent looks, what it knows about you, and how it calls you back.</source>
+            <translation>AI Agentの見た目、あなたについて把握している内容、通知の方法を設定します。</translation>
+        </message>
+        <message>
+            <source>Language</source>
+            <translation>言語</translation>
+        </message>
+        <message>
+            <source>Usage stats: only that you used the app and when. Chats are kept as your History retention says, so a conversation survives an update; we may read one, or have a model score it, to fix bugs, never to train AI. 0 days of history stores nothing.</source>
+            <translation>利用統計：アプリを使ったことと、その日時のみ。チャットは、履歴の保存期間の設定に従って保管されるため、更新後も会話が残ります。バグの修正のためにチャットを読んだり、モデルに評価させたりすることがありますが、AIの学習には使いません。履歴を0日にすると何も保存されません。</translation>
+        </message>
+        <message>
+            <source>Grey text in the message box. Tab takes it.</source>
+            <translation>メッセージ欄にグレーの文字で表示されます。Tabキーで確定します。</translation>
+        </message>
+        <message>
+            <source>Typing suggestions</source>
+            <translation>入力候補</translation>
+        </message>
+        <message>
+            <source>Language, response style, suggestions and notifications go back to their defaults.</source>
+            <translation>言語、回答スタイル、入力候補、通知がデフォルトに戻ります。</translation>
+        </message>
+        <message>
+            <source>Reset settings</source>
+            <translation>設定をリセット</translation>
+        </message>
     </context>
     <context>
         <name>SourcesButton</name>
@@ -6876,6 +7560,10 @@ Thank you</source>
             <source>Always allowed</source>
             <translation>常に許可済み</translation>
         </message>
+        <message>
+            <source>Allow AI Agent to write in {folder}?</source>
+            <translation>AI Agent が {folder} に書き込むことを許可しますか?</translation>
+        </message>
     </context>
     <context>
         <name>TraceSteps</name>
@@ -7284,10 +7972,6 @@ Thank you</source>
             <translation>ツール：{tool}</translation>
         </message>
         <message>
-            <source>{day} UTC, added by AI Agent by TerraLab</source>
-            <translation>{day} UTC、AI Agent by TerraLabが追加</translation>
-        </message>
-        <message>
             <source>Accessed {day} via {host}</source>
             <translation>{day} に {host} 経由でアクセス</translation>
         </message>
@@ -7336,8 +8020,12 @@ Thank you</source>
             <translation>コードが指定するプロジェクトのレイヤ: {names}</translation>
         </message>
         <message>
-            <source>{day} UTC, AI Agent run {run}: added {layers}</source>
-            <translation>{day} UTC、AI Agent の実行 {run}: {layers} を追加</translation>
+            <source>{day} UTC, run {run}: added {layers}</source>
+            <translation>{day} UTC、実行 {run}: {layers} を追加</translation>
+        </message>
+        <message>
+            <source>Data source</source>
+            <translation>データソース</translation>
         </message>
     </context>
     <context>
@@ -7463,6 +8151,22 @@ This file is no longer where the run wrote it.</source>
         <message>
             <source>Get more tasks with Pro</source>
             <translation>Proでタスク回数を増やす</translation>
+        </message>
+        <message>
+            <source>1 task left</source>
+            <translation>残り1タスク</translation>
+        </message>
+        <message>
+            <source>Get more with Pro</source>
+            <translation>Proでもっと使う</translation>
+        </message>
+        <message>
+            <source>Pro: {n} tasks a month, higher effort levels and Autopilot.</source>
+            <translation>Pro：毎月{n}タスク、より高い推論レベル、オートパイロット。</translation>
+        </message>
+        <message>
+            <source>{n} tasks left</source>
+            <translation>残り{n}タスク</translation>
         </message>
     </context>
     <context>
@@ -7790,6 +8494,10 @@ This file is no longer where the run wrote it.</source>
         <message>
             <source>Stopping...</source>
             <translation>停止しています...</translation>
+        </message>
+        <message>
+            <source>the map render</source>
+            <translation>マップの描画</translation>
         </message>
     </context>
     <context>
@@ -9873,6 +10581,120 @@ This file is no longer where the run wrote it.</source>
         <message>
             <source>Selected</source>
             <translation>選択中</translation>
+        </message>
+    </context>
+    <context>
+        <name>FolderCard</name>
+        <message>
+            <source>A folder on another computer of your network.</source>
+            <translation>ネットワーク上の別のコンピュータにあるフォルダです。</translation>
+        </message>
+        <message>
+            <source>Denied</source>
+            <translation>拒否済み</translation>
+        </message>
+        <message>
+            <source>Deny</source>
+            <translation>拒否</translation>
+        </message>
+        <message>
+            <source>Let AI Agent open this folder?</source>
+            <translation>AI Agent にこのフォルダを開くことを許可しますか?</translation>
+        </message>
+        <message>
+            <source>Read and write</source>
+            <translation>読み取りと書き込み</translation>
+        </message>
+        <message>
+            <source>Read only</source>
+            <translation>読み取り専用</translation>
+        </message>
+        <message>
+            <source>What AI Agent reads there is sent to the AI model. Kept for this project.</source>
+            <translation>AI Agent がそこで読み取った内容は AI モデルに送信されます。このプロジェクトでは保持されます。</translation>
+        </message>
+    </context>
+    <context>
+        <name>FolderChip</name>
+        <message>
+            <source>1 folder</source>
+            <translation>1 個のフォルダ</translation>
+        </message>
+        <message>
+            <source>Folders</source>
+            <translation>フォルダ</translation>
+        </message>
+        <message>
+            <source>Folders AI Agent can open in this project</source>
+            <translation>このプロジェクトで AI Agent が開けるフォルダ</translation>
+        </message>
+        <message>
+            <source>{n} folders</source>
+            <translation>{n} 個のフォルダ</translation>
+        </message>
+    </context>
+    <context>
+        <name>FolderPopover</name>
+        <message>
+            <source>Folders AI Agent can open in this project</source>
+            <translation>このプロジェクトで AI Agent が開けるフォルダ</translation>
+        </message>
+        <message>
+            <source>The project folder and its layers' folders are always open for reading.</source>
+            <translation>プロジェクトのフォルダとそのレイヤのフォルダは、常に読み取り用に開かれています。</translation>
+        </message>
+    </context>
+    <context>
+        <name>_FolderRow</name>
+        <message>
+            <source>Read and write</source>
+            <translation>読み取りと書き込み</translation>
+        </message>
+        <message>
+            <source>Read only</source>
+            <translation>読み取り専用</translation>
+        </message>
+        <message>
+            <source>Remove</source>
+            <translation>削除</translation>
+        </message>
+    </context>
+    <context>
+        <name>AIAgentContext</name>
+        <message>
+            <source>QGIS is not running</source>
+            <translation>QGISが起動していません</translation>
+        </message>
+        <message>
+            <source>Raster</source>
+            <translation>ラスタ</translation>
+        </message>
+        <message>
+            <source>Show in QGIS</source>
+            <translation>QGISで表示</translation>
+        </message>
+        <message>
+            <source>Shown in QGIS</source>
+            <translation>QGISで表示済み</translation>
+        </message>
+        <message>
+            <source>Table</source>
+            <translation>テーブル</translation>
+        </message>
+    </context>
+    <context>
+        <name>AIAgentRecovery</name>
+        <message>
+            <source>QGIS closed during a run. {n} layer(s) of unsaved work came back in the group "{group}". Save them to keep them.</source>
+            <translation>実行中にQGISが終了しました。未保存の作業のレイヤ{n}件がグループ「{group}」に復元されました。保存すると残せます。</translation>
+        </message>
+        <message>
+            <source>Some unsaved work could not be put back. Its copy is kept in {folder}.</source>
+            <translation>未保存の作業の一部を元に戻せませんでした。コピーは{folder}に保存されています。</translation>
+        </message>
+        <message>
+            <source>{name} (unsaved edits kept)</source>
+            <translation>{name}（未保存の編集を保持）</translation>
         </message>
     </context>
 </TS>

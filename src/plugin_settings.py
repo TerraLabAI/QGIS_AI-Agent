@@ -31,7 +31,7 @@ def tr(text: str) -> str:
     return QCoreApplication.translate("AIAgentPlugin", text)
 
 
-def open_settings_dialog(plugin):
+def open_settings_dialog(plugin, page: str = ""):
 
 
 
@@ -108,6 +108,8 @@ def open_settings_dialog(plugin):
         dialog.delete_account_requested.connect(account.delete_account_async)
         if account.has_activation_key:
             account.fetch_account_async()
+    if page:
+        dialog.open_on(page)
     try:
         exec_dialog(dialog)
     finally:

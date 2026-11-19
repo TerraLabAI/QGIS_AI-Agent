@@ -188,6 +188,20 @@ def _overture_tile_url(theme: str, x: int, y: int) -> str:
     return f"{_tiles_base(theme)}/{theme}/{_tile_zoom()}/{x}/{y}.fgb"
 
 
+def _overture_twin_url(theme: str, x: int, y: int) -> str:
+
+
+
+
+    if theme not in tuning.service_list("overture_twin_themes", ()):
+        return ""
+    from osgeo import gdal
+
+    if gdal.GetDriverByName("Parquet") is None:
+        return ""
+    return f"{_tiles_base(theme)}/twin/{theme}/{_tile_zoom()}/{x}/{y}.parquet"
+
+
 
 
 
@@ -1210,6 +1224,7 @@ __all__ = [
     "_overture_themes",
     "_overture_tile",
     "_overture_tile_url",
+    "_overture_twin_url",
     "_overture_tiles",
     "_rings_of",
     "_clip_grid",

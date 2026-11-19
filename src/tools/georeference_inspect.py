@@ -961,6 +961,7 @@ def _from_pdf(gdal, osr, found: dict, page: int, cancelled) -> dict:
     facts["rasterized_to"] = target
     if os.path.isfile(target) and os.path.getmtime(target) >= os.path.getmtime(path):
         facts["reused"] = True
+        security.note_own_paths([target])
         return {"image": target, "pdf": facts}
     part = os.path.join(os.path.dirname(target), f".{uuid.uuid4().hex[:12]}.part.png")
     try:
@@ -990,6 +991,9 @@ def _from_pdf(gdal, osr, found: dict, page: int, cancelled) -> dict:
         dataset = None
         if part:
             remove_quietly(part)
+
+
+    security.note_own_paths([target])
     return {"image": target, "pdf": facts}
 
 

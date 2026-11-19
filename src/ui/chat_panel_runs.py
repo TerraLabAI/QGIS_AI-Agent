@@ -11,7 +11,7 @@ import time
 
 from qgis.PyQt.QtCore import QTimer, QUrl
 
-from ..core import openui, telemetry
+from ..core import openui, telemetry, tuning
 from ..core import telemetry_events as ev
 from ..core.qt_compat import one_shot, qt_deleted
 from ..core.snapshot_report import run_change_items
@@ -31,7 +31,7 @@ from .file_links import (
     reveal_target,
 )
 from .layer_links import RunChangesRow, layer_id_from_url, layer_of_file, linkify_files, linkify_layers
-from .loader import user_waiting, waited_between
+from .loader import quiet_words, user_is_waiting, user_waiting, waited_between
 from .mascot import step_event
 from .plan_card import PlanCard
 from .shared import TURN_DIVIDER_OBJECT
@@ -57,6 +57,11 @@ def _worth_a_report(run: _Run) -> bool:
         rows += item and any(ch.isdigit() for ch in line.lstrip("0123456789.) "))
     return rows >= 3
 
+
+
+
+
+QUIET_LINE_S = 30.0
 
 
 REPORT_DECISION_WAIT_MS = 4000
@@ -90,7 +95,11 @@ class _ChatPanelRuns:
         run_id = str(run_id or "")
         if not run_id or run_id != self._current_run:
             return None
-        return self._runs.get(run_id)
+        run = self._runs.get(run_id)
+        if run is not None and run.trace is not None and qt_deleted(run.trace):
+
+            run.trace = None
+        return run
 
     def _bubble_for(self, run_id: str) -> AgentBubble:
 
@@ -219,6 +228,13 @@ class _ChatPanelRuns:
         self._run_changes = None
         self._drop_status()
         self._show_status(self._run(run_id), self.tr("Thinking"))
+        self._quiet_said = None
+        self._news(run_id)
+        if self.__dict__.get("_quiet_timer") is None:
+            self._quiet_timer = QTimer(self)
+            self._quiet_timer.setInterval(1000)
+            self._quiet_timer.timeout.connect(self._quiet_tick)
+        self._quiet_timer.start()
         self.composer.set_running(True)
         self.mascot_stage.run_began()
         self._watch_canvas()
@@ -233,6 +249,43 @@ class _ChatPanelRuns:
         self._sync_answer_restores()
         self._show_thread_surface()
         self._sync_queue()
+
+    def _news(self, run_id: str) -> None:
+
+        if run_id and run_id == self._current_run:
+            self._quiet_since = time.monotonic()
+            self._show_quiet("")
+
+    def _quiet_tick(self) -> None:
+
+
+        run = self._live_run(self._current_run)
+        timer = self.__dict__.get("_quiet_timer")
+        if run is None:
+            if timer is not None:
+                timer.stop()
+            return
+        now = time.monotonic()
+        since = self.__dict__.get("_quiet_since") or now
+        quiet = now - since - waited_between(since, now)
+        text = ""
+        if quiet >= tuning.threshold("quiet_line_s", QUIET_LINE_S, 10.0, 600.0) \
+                and not user_is_waiting() and not getattr(self, "_link_prev", None):
+
+            running = next((c for c in reversed(run.tools) if c.ok is None and not c.ended), None)
+            text = quiet_words(quiet, running.name if running is not None else None)
+        self._show_quiet(text)
+
+    def _show_quiet(self, text: str) -> None:
+
+
+        run = self._live_run(self._current_run)
+        status = self._status_alive()
+        if status:
+            self._status.set_quiet(text)
+        block = run.trace if run is not None else None
+        if block is not None and not qt_deleted(block):
+            block.set_quiet("" if status else text)
 
     def _watch_canvas(self) -> None:
 
@@ -261,6 +314,7 @@ class _ChatPanelRuns:
             return
         block.set_note(self.tr("Drawing the map"))
         self._drawing_block = block
+        self._news(self._current_run)
 
     def _on_draw_done(self) -> None:
         self._draw_timer.stop()
@@ -340,6 +394,7 @@ class _ChatPanelRuns:
         run = self._live_run(run_id)
         if run is None:
             return
+        self._news(run_id)
         if not text.strip() and (run.bubble is None or self.message_list.last_widget(
                 ignore=self._status) is not run.bubble):
 
@@ -366,6 +421,11 @@ class _ChatPanelRuns:
         run = self._live_run(run_id)
         if run is None:
             return
+        said = (text.rstrip(". \u2026"), repr(progress or {}))
+        if said != self.__dict__.get("_quiet_said"):
+
+            self._quiet_said = said
+            self._news(run_id)
         block = run.trace if run is not None else None
         if block is not None and block.is_live() and self._block_is_tail(block):
             block.set_activity(text, progress)
@@ -412,11 +472,13 @@ class _ChatPanelRuns:
     def set_plan(self, run_id: str, steps) -> None:
         if self._live_run(run_id) is None:
             return
+        self._news(run_id)
         self._plan_card_for(run_id).set_steps(steps or [])
 
     def update_plan_step(self, run_id: str, step_id: str, state: str) -> None:
         run = self._live_run(run_id)
         if run is not None and run.plan is not None:
+            self._news(run_id)
             run.plan.update_step(step_id, state)
 
     def add_tool_call(self, tool_call_id: str, run_id: str, name: str, args,
@@ -425,6 +487,7 @@ class _ChatPanelRuns:
         if run is None:
             return
         run.segment_break = True
+        self._news(run_id)
         args = dict(args) if isinstance(args, dict) else {}
         self.mascot_stage.fire(step_event(str(name or ""), args))
         tool_call_id = str(tool_call_id or "")[:256]
@@ -451,6 +514,7 @@ class _ChatPanelRuns:
         card = self.message_list.tool_card(str(tool_call_id or ""))
         if card is None:
             return
+        self._news(self._current_run)
         for run in self._runs.values():
             for block in self.message_list.traces_of(run.run_id):
                 for row in block.rows():
@@ -470,6 +534,7 @@ class _ChatPanelRuns:
         card = self.message_list.tool_card(str(tool_call_id or ""))
         if self._current_run:
             self.mascot_stage.fire("run.think")
+            self._news(self._current_run)
         running = isinstance(result, dict) and result.get("status") == "running"
         if card is not None and running and result.get("task_id"):
 
@@ -488,6 +553,9 @@ class _ChatPanelRuns:
 
     def end_run(self, run_id: str, status: str, summary: str, usage, verification) -> None:
         self.composer.set_reply_placeholder("")
+        if self.__dict__.get("_quiet_timer") is not None and run_id == self._current_run:
+            self._quiet_timer.stop()
+            self._show_quiet("")
         if getattr(self, "_draw_timer", None) is not None:
             self._on_draw_done()
         run = self._live_run(run_id)

@@ -1398,10 +1398,14 @@ def check_warning(summary) -> str:
 def group_number(value) -> str:
 
 
+
     try:
-        return f"{int(value):,}".replace(",", "\u202f")
+        number = int(value)
     except (TypeError, ValueError):
         return str(value)
+    from qgis.PyQt.QtCore import QLocale
+
+    return QLocale(QLocale().name()).toString(number)
 
 
 

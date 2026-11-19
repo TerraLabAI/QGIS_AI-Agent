@@ -19,6 +19,7 @@
 from __future__ import annotations
 
 import math
+import ntpath
 import os
 import re as _re
 import sqlite3
@@ -600,6 +601,33 @@ def _current_project_file() -> str:
         return ""
 
 
+def _same_path(a: str, b: str) -> bool:
+    return bool(a and b) and os.path.normcase(os.path.realpath(a)) == os.path.normcase(os.path.realpath(b))
+
+
+def saved_over_open_project(name: str, args: dict | None) -> str:
+
+
+
+
+
+    declared = spec(name)
+    if declared is None or not declared.saves_open_project:
+        return ""
+    try:
+        from qgis.core import QgsProject
+
+        open_file = QgsProject.instance().fileName() or ""
+    except Exception:
+        return ""
+    if not open_file or not os.path.isfile(open_file):
+        return ""
+    target = str((args or {}).get("path") or "").strip() if isinstance(args, dict) else ""
+    if target and not _same_path(security.expand_path(target), open_file):
+        return ""
+    return open_file
+
+
 
 
 
@@ -744,8 +772,13 @@ def _check_paths(name: str, args: dict, own_files: frozenset = frozenset()) -> d
         expanded = security.expand_path(target)
         error = security.validate_path(expanded, write=True)
         if error:
-            return _refusal(error, "Allowed: the project folder, your home folder or the temp folder.",
-                            "PERMISSION_DENIED")
+            refused = _refusal(error, "", "PERMISSION_DENIED")
+            folder = (ntpath if security._is_remote_share(expanded) else os.path).dirname(expanded)
+            if getattr(error, "hint", "") == "write_scope" and folder and not security.too_wide(folder):
+
+
+                refused["write_folder"] = folder
+            return refused
         if not os.path.exists(expanded):
             creates.append(os.path.realpath(expanded))
             continue
@@ -774,7 +807,7 @@ def _check_paths(name: str, args: dict, own_files: frozenset = frozenset()) -> d
                     )
                 overwrites.append(os.path.realpath(expanded))
                 continue
-            if declared is not None and declared.saves_open_project and os.path.realpath(expanded) == project_file:
+            if declared is not None and declared.saves_open_project and _same_path(expanded, project_file):
                 continue
             if own:
                 args["overwrite"] = True
@@ -791,6 +824,10 @@ def _check_paths(name: str, args: dict, own_files: frozenset = frozenset()) -> d
     written = {os.path.normcase(security.expand_path(target)) for target in writes}
     inside = _source_on_disk(args)
     remote = _source_is_remote(args)
+    if remote:
+
+
+        skip.add("section")
     for value in _leaves_outside(args, skip):
         value = _subdataset_file(value)
         if not (looks_like_disk_path(value) or value.startswith("~") or os.path.isabs(value)
@@ -832,10 +869,9 @@ def _check_paths(name: str, args: dict, own_files: frozenset = frozenset()) -> d
         if error:
             return _refusal(error, "", "PERMISSION_DENIED")
 
-        for source in vsi.local_dataset_sources(security.expand_path(part)):
-            error = security.validate_read(source)
-            if error:
-                return _refusal(error, "", "PERMISSION_DENIED")
+        error = vsi.dataset_scope_refusal(part)
+        if error:
+            return _refusal(error, "", "PERMISSION_DENIED")
     return {"overwrites": overwrites, "destructive": bool(overwrites), "creates": creates,
             "own_replaced": own_replaced}
 
@@ -843,6 +879,10 @@ def _check_paths(name: str, args: dict, own_files: frozenset = frozenset()) -> d
 def _subdataset_file(value: str) -> str:
 
 
+
+
+    if value[:8].lower().startswith(("http://", "https://", "ftp://")):
+        return value
     found = _SUBDATASET_RE.match(value)
     if found and _opens_a_file(found.group(1)):
         return found.group(1)

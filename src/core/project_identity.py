@@ -30,8 +30,20 @@ def key_of_address(address: str) -> str:
     return hashlib.sha256(bare.encode("utf-8")).hexdigest()[:16]
 
 
+
+
+_kept_name: list[str] = []
+
+
+def writing_copy() -> bool:
+
+    return bool(_kept_name)
+
+
 def project_key() -> str:
 
+    if _kept_name:
+        return key_of(_kept_name[-1]) if "://" not in _kept_name[-1] else key_of_address(_kept_name[-1])
     try:
         from qgis.core import QgsProject
         project = QgsProject.instance()
@@ -42,6 +54,8 @@ def project_key() -> str:
 
 def open_project_file() -> str:
 
+    if _kept_name:
+        return _kept_name[-1]
     try:
         from qgis.core import QgsProject
         return QgsProject.instance().fileName() or ""

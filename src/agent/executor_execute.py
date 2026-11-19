@@ -117,6 +117,12 @@ class _ExecutorExecute:
                 self._fail(call, Err.EXECUTION_FAILED, f"The backup failed; the operation was not started. {exc}",
                            "", details=error_details(coded_fact(hint="backup_failed")))
                 return
+            if call.get("needs_undo_copy") and not self._undo_copy_made(run_id, name, args, snapshot):
+
+
+                self._fail(call, Err.EXECUTION_FAILED, "The copy Undo needs could not be made, so this was not "
+                           "done. Nothing changed.", "", details=error_details(coded_fact(hint="backup_failed")))
+                return
             if name == CODE_TOOL and not self._code_restore_point(call, fresh):
                 self._code_no_point(call)
                 return
@@ -323,7 +329,6 @@ class _ExecutorExecute:
 
 
 
-
         crash_note.write(run_id, tool_call_id, getattr(self._session, "session_id", "") or "", name, args)
         early: list = []
 
@@ -413,8 +418,10 @@ class _ExecutorExecute:
                 heard["at"] = now
                 self.call_progress.emit(tool_call_id, done, total, "")
 
+        hands_back = bool(getattr(self._registry.get_tool(name), "hands_back", False))
+
         def work():
-            with context, background.calling(tool_call_id):
+            with context, background.calling(tool_call_id, hands_back):
                 self._share_clock(call)
                 net.set_progress_sink(progress)
                 try:
@@ -425,6 +432,7 @@ class _ExecutorExecute:
         def done(result, error_text: str):
             self._background.pop(tool_call_id, None)
             background.forget_commit(tool_call_id)
+            crash_note.forget_off_thread(tool_call_id)
             self._heard.pop(tool_call_id, None)
             task_id = self._handed_back.pop(tool_call_id, None)
             if task_id is not None:
@@ -450,6 +458,7 @@ class _ExecutorExecute:
         if task is None:
             return False
         self._background[tool_call_id] = (str(call.get("run_id") or ""), task, call)
+        crash_note.note_off_thread(call.get("run_id"), tool_call_id, name, args)
 
 
         self._inflight[tool_call_id] = (str(call.get("run_id") or ""), name, started, True)

@@ -62,7 +62,7 @@ from ._layers import resolve_layer
 from .crs_at_load import normalise_crs
 from .data_common import built_here, worker_options
 from .layer_files import release_layers_at_path, same_file
-from .postconditions import joined_input_fields, read_ahead_memory, report_checks
+from .postconditions import calculator_inputs, joined_input_fields, read_ahead_memory, read_raster_ahead, report_checks
 from .postconditions import read_ahead as read_checks_ahead
 from .processing_crs_checks import (
     _flow_in_degrees_check,
@@ -92,6 +92,7 @@ from .processing_destinations import (
     _release_table_layers,
     _temporary_suffix,
     destination_report,
+    fid_keyed_destinations,
     modified_destination_layers,
     output_evidence_problem,
 )
@@ -170,20 +171,17 @@ def _inject_gdal_crs(alg, params: dict) -> None:
     if already_set == crs_param_names:
         return
 
+
+
     collected_authid = None
     project = QgsProject.instance()
-    for definition in alg.parameterDefinitions():
-        if getattr(definition, "isDestination", lambda: False)():
-            continue
-        val = params.get(definition.name())
-        if not isinstance(val, str) or not val:
-            continue
+    val = params.get("INPUT")
+    if isinstance(val, str) and val:
         layer = project.mapLayer(val) or project.mapLayersByName(val)
         if isinstance(layer, list):
             layer = layer[0] if layer else None
         if layer and hasattr(layer, "crs") and layer.crs().isValid():
             collected_authid = layer.crs().authid()
-            break
 
 
     if collected_authid:
@@ -833,6 +831,10 @@ def _run_processing(args: dict, algorithm=None) -> dict:
 
     threaded = _threadable(alg)
     child_job = None if threaded else processing_child.plan(alg, algorithm_id, run_parameters, context)
+    if child_job is None:
+        if run_parameters is sanitized_parameters:
+            run_parameters = dict(sanitized_parameters)
+        repairs += fid_keyed_destinations(alg, plans, run_parameters, input_ids)
     if child_job is not None or threaded:
         started = _start_async_processing(
             alg,
@@ -1869,15 +1871,16 @@ def _outputs_built_off_main(task_id: str, entry: dict, results, context) -> bool
         return False
     try:
         joined_from = joined_input_fields(entry.get("algorithm"), entry.get("parameters") or {})
+        calc_from = calculator_inputs(entry.get("algorithm"), entry.get("parameters") or {})
     except Exception:  # noqa: BLE001
-        joined_from = None
+        joined_from = calc_from = None
     transform_context = context.transformContext()
 
 
     entry["provenance"] = provenance = _provenance_of(entry, context)
     task = background.run_off_thread(
         f"Loading the outputs of {entry.get('algorithm') or 'a Processing run'}",
-        lambda: _build_outputs(builds, transform_context, entry, reads, joined_from, provenance),
+        lambda: _build_outputs(builds, transform_context, entry, reads, joined_from, provenance, calc_from),
         lambda built, error: _outputs_built(task_id, results, context, built, error))
     if task is None:
         return False
@@ -1937,7 +1940,8 @@ def _output_reads(result_map: dict, context) -> dict:
 
 
 def _build_outputs(builds: dict, transform_context, entry: dict, reads: dict | None = None,
-                   joined_from: list | None = None, provenance: dict | None = None) -> dict:
+                   joined_from: list | None = None, provenance: dict | None = None,
+                   calc_from: list | None = None) -> dict:
 
 
 
@@ -1982,6 +1986,8 @@ def _build_outputs(builds: dict, transform_context, entry: dict, reads: dict | N
                     found["problem"] = raster_file_problem(value)
                     _declare_raster_crs(layer)
                     read_ahead(layer)
+                    if calc_from:
+                        read_raster_ahead(value, calc_from)
             if not layer.isValid():
                 background.delete_here(layer)
                 return None

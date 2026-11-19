@@ -36,6 +36,7 @@
 
 
 
+
 from __future__ import annotations
 
 from qgis.PyQt.QtCore import QT_TRANSLATE_NOOP
@@ -70,6 +71,9 @@ def register_hydrology_tools(registry: ToolRegistry):
         check_shape="arrives",
         input_schema={
             "type": "object",
+
+
+            "x-snap-nearest": True,
             "properties": {
                 "dem": {"type": "string"},
                 "outlet": {
@@ -100,6 +104,9 @@ def register_hydrology_tools(registry: ToolRegistry):
         check_shape="arrives",
         input_schema={
             "type": "object",
+
+
+            "x-snap-nearest": True,
             "properties": {
                 "dem": {"type": "string"},
                 "outlet": {
@@ -140,6 +147,7 @@ def register_hydrology_tools(registry: ToolRegistry):
 
 
             "x-watershed-streams": True,
+            "x-snap-nearest": True,
             "properties": {
                 "dem": {"type": "string"},
                 "area": {"type": "string"},

@@ -107,6 +107,13 @@ def autopilot_allowed() -> bool:
     return bool(_features.get("yolo", True))
 
 
+def autopilot_open(paid: bool) -> bool:
+
+
+
+    return autopilot_allowed() if stated("yolo") else bool(paid)
+
+
 def memory_allowed() -> bool:
     return bool(_features.get("memory", True))
 

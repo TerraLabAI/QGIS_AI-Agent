@@ -9,6 +9,34 @@ is what the QGIS Plugin Manager renders.
 
 ## [Unreleased]
 
+## [2.0.3] - 2026-11-19
+
+### Added
+
+- A new Settings window: one General page with the interface language, Learn tutorials, a More AI
+  plugins page, a keyboard shortcuts page and a plan card that fits your account.
+- A Typing suggestions switch on the General page turns the grey suggestions in the message box off.
+- Reset settings on the General page puts language, response style, suggestions and notifications back
+  to their defaults.
+- Word reports with headings, text, pictures and tables.
+- Print layouts in every QGIS paper size (ANSI, Arch, Legal, B).
+- Unsaved edits and memory layers come back after QGIS closes during a run.
+- A sound and a badge when a run finishes, asks a question or waits for an approval, set in Settings.
+- A quiet line says what is running after 30 s with nothing new.
+
+### Changed
+
+- The permission mode you pick is kept across a QGIS restart and a new chat.
+- Folders open only through a card, and writes stay in the folders you gave.
+- Removing a layer this chat added, or saving over the open project's own file, asks no card.
+- Files of an unsaved project go to QGIS's default output folder.
+
+### Fixed
+
+- Many fixes in Processing, renders of large rasters and PDFs, DXF and GeoPackage exports,
+  layouts, hydrology and CSV loading.
+- A spent quota hides the message box instead of greying it.
+
 ## [2.0.2] - 2026-11-17
 
 ### Added

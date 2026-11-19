@@ -48,6 +48,7 @@ from qgis.core import (
     QgsField,
     QgsPointXY,
     QgsProject,
+    QgsVectorFileWriter,
     QgsVectorLayer,
     QgsVectorLayerFeatureSource,
 )
@@ -60,9 +61,35 @@ from ..core.qt_compat import enum_member
 from ..core.tool_registry import Tool, ToolRegistry, tool_error
 from ._layers import layer_not_found, resolve_layer
 from .layer_lookup import _field_not_found_error, _is_qgis_null
-from .persist_tools import _write_vector
+from .persist_tools import _stored_fields
 from .processing_run import _process_outputs
 from .symbology_tools import _set_layer_symbology
+
+
+def _write_vector(layer, gpkg: str, table: str) -> str:
+
+    def write(layer_options: list[str]) -> tuple:
+        options = QgsVectorFileWriter.SaveVectorOptions()
+        options.driverName = "GPKG"
+        options.layerName = table
+        options.fileEncoding = "UTF-8"
+        options.attributes = _stored_fields(layer)
+        options.layerOptions = layer_options
+        if os.path.exists(gpkg):
+            options.actionOnExistingFile = enum_member(
+                QgsVectorFileWriter, "ActionOnExistingFile", "CreateOrOverwriteLayer")
+        return QgsVectorFileWriter.writeAsVectorFormatV3(
+            layer, gpkg, QgsProject.instance().transformContext(), options)
+
+    no_error = enum_member(QgsVectorFileWriter, "WriterError", "NoError")
+    result = write([])
+    if result[0] != no_error and any(f.name().casefold() == "fid" for f in layer.fields()):
+
+        result = write(["FID=gpkg_fid"])
+    if result[0] != no_error:
+        return str(result[1] if len(result) > 1 and result[1] else result[0])
+    return ""
+
 
 SHAPES = ("straight", "curved", "geodesic")
 

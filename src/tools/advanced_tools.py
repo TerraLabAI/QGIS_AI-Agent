@@ -23,7 +23,7 @@ def _code_only_reads(args: dict) -> bool:
 
 
 
-    return code_effects.classify(args.get("code")).cls == code_effects.R
+    return code_effects.classify(args.get("code"), kept_names=None).cls == code_effects.R
 
 
 def _export_layout_label(args: dict) -> str:

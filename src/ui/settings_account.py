@@ -9,74 +9,50 @@
 
 
 
-
-
-
-
-
-
-
-
-
 from __future__ import annotations
 
 from typing import NamedTuple
 
-from qgis.PyQt.QtCore import QLocale, Qt
+from qgis.PyQt.QtCore import Qt
 from qgis.PyQt.QtWidgets import (
     QFrame,
     QHBoxLayout,
     QLabel,
-    QProgressBar,
     QPushButton,
     QSizePolicy,
     QVBoxLayout,
     QWidget,
 )
 
-from ..core.logger import log_warning
 from ..core.numbers import as_int
-from ..core.profile import clear_memory_notes
+from ..core.profile import PROFILE_LINE_MAX_CHARS
 from ..core.qt_compat import disconnect_quietly
 from ..core.served_state import (
     PRODUCT_ID,
-    get_dashboard_url,
+    build_utm_url,
     get_plan_name,
     get_pricing_url,
-    get_pro_runs_per_month,
-    get_served_pro_points,
     get_student_offer,
-    get_support_email,
-    offer_text,
 )
 from .account_avatar import AccountAvatarLoader, cached_avatar_pixmap
 from .confirm_dialog import ask_confirm
 from .delete_account_dialog import ask_delete_account
 from .external_links import open_external_url
-from .font_scale import apply_font_scale_to_tree, scale_px_length, scale_qss_font_px
-from .quota_card import get_pro_label, note_student_offer_shown, open_student_offer, trial_cta
+from .font_scale import scale_qss_font_px
+from .quota_card import note_student_offer_shown, open_student_offer
 from .settings_pages import (
     DANGER_GHOST_BTN_QSS,
-    GET_PRO_BTN_QSS,
     GHOST_BTN_QSS,
     PRIMARY_BTN_QSS,
-    PROGRESS_QSS,
     ROW_NOTE_QSS,
     USAGE_KEYS,
     Page,
     SettingGroup,
     SettingRow,
     SkeletonRow,
-    Switch,
 )
-from .settings_retention import RetentionRow
-from .shared import format_reset_date
 from .style import ACCENT_INK, FONT_HINT, WEIGHT_MEDIUM
-from .styles import PANEL_TEXT
 from .thumbnail_cache import is_picture_url_usable
-from .widgets import ElidedLabel
-
-_AVATAR_D = 36
 
 
 _ACCOUNT_OFFLINE_CODES = frozenset({
@@ -84,7 +60,9 @@ _ACCOUNT_OFFLINE_CODES = frozenset({
     "TIMEOUT", "SSL_ERROR",
 })
 
-_STUDENT_QSS = f"font-size: {FONT_HINT}px; color: {ACCENT_INK}; font-weight: {WEIGHT_MEDIUM};"
+_STUDENT_QSS = (f"QPushButton {{ font-size: {FONT_HINT}px; color: {ACCENT_INK}; font-weight: {WEIGHT_MEDIUM};"
+                " border: none; background: transparent; padding: 0; text-align: left; }"
+                " QPushButton:hover { text-decoration: underline; }")
 
 
 class _PlanRuns(NamedTuple):
@@ -98,6 +76,8 @@ class _PlanRuns(NamedTuple):
 
     trial_ends_on: str | None = None
     trial_interval: str | None = None
+
+    ends_on: str | None = None
 
 
 def _resolve_plan_runs(usage: dict, sub: dict) -> _PlanRuns:
@@ -120,16 +100,13 @@ def _resolve_plan_runs(usage: dict, sub: dict) -> _PlanRuns:
              or sub.get("current_period_end"))
     trial_end = usage.get("plan_trial_ends_on")
     interval = usage.get("plan_trial_interval")
+    ends_on = usage.get("keep_ends_on")
     return _PlanRuns(is_subscriber, used, limit, str(reset) if reset else None,
                      str(trial_end) if trial_end and is_subscriber else None,
-                     interval if interval in ("month", "year") else None)
+                     interval if interval in ("month", "year") else None,
+                     str(ends_on) if ends_on and is_subscriber else None)
 
 
-def _format_count(value) -> str:
-    try:
-        return QLocale().toString(int(value or 0))
-    except (TypeError, ValueError):
-        return "0"
 _SETTINGS_UPSELL_SEEN = [False]
 
 
@@ -154,9 +131,6 @@ class AccountPageMixin:
 
     def _build_account(self) -> Page:
 
-
-
-
         page = Page(self.tr("Account"), self.tr("Your sign-in, your plan and your privacy."), self)
         self._account_box = QWidget(page)
         self._account_col = QVBoxLayout(self._account_box)
@@ -166,7 +140,7 @@ class AccountPageMixin:
 
 
         page.add(self._account_box)
-        self._add_advanced(page)
+        self._add_danger_zone(page)
         return page
 
     def set_account_info(self, info: dict) -> None:
@@ -179,9 +153,6 @@ class AccountPageMixin:
         self._sync_improve_plan(info)
         self._sync_trial_offer(info)
         self._clear_account()
-        rail = getattr(self, "set_rail_plan", None)
-        if rail is not None:
-            rail("", "", None, None)
 
 
         self._account_email = ""
@@ -207,19 +178,29 @@ class AccountPageMixin:
                     usage[key] = info[key]
             self._show_account(info, usage)
         self._sync_delete_account()
-        apply_font_scale_to_tree(self._account_box)
+        self._shell_after_account()
+        self._dress()
 
     def _sync_trial_offer(self, info: dict) -> None:
 
         failed = bool(info.get("loading") or info.get("error") or info.get("error_code"))
         self.trial_offered = not failed and self._trial_offered(info)
-        self._sync_pro_notes()
+        if failed:
+            self.offer_kind = "none"
 
     def _trial_offered(self, info: dict) -> bool:
 
-        days = dict(info.get("usage") or {}).get("trial_days_available", info.get("trial_days_available"))
-        return (isinstance(days, int) and not isinstance(days, bool) and 0 < days <= 31
-                and not self._is_subscriber(info))
+        from ..core.plan_moment import offer_kind
+
+        usage = dict(info.get("usage") or {})
+        for key in ("trial_days_available", "offer_kind"):
+            if key in info and key not in usage:
+                usage[key] = info[key]
+        from ..core.plan_moment import trial_days
+
+        self.offer_kind = offer_kind(usage, self._is_subscriber(info))
+        self.trial_days = trial_days(usage.get("trial_days_available")) or 7
+        return self.offer_kind == "trial"
 
     def _is_subscriber(self, info: dict) -> bool:
 
@@ -303,145 +284,40 @@ class AccountPageMixin:
 
         email = str(account.get("email") or "-")
         self._account_email = "" if email == "-" else email
-        group = SettingGroup(self._account_box)
-
         sub = self._find_subscription(account)
         plan = _resolve_plan_runs(usage, sub or {})
         plan_name = (get_plan_name("pro", self.tr("Pro plan")) if plan.is_subscriber
                      else get_plan_name("free", self.tr("Free plan")))
-
-        chip = QFrame(group)
-        chip.setObjectName("settingsRow")
-        chip_row = QHBoxLayout(chip)
-        chip_row.setContentsMargins(14, 12, 14, 12)
-        chip_row.setSpacing(12)
-        diameter = scale_px_length(_AVATAR_D)
-        avatar = QLabel(email[:1].upper() if email and email != "-" else "?", chip)
-        avatar.setFixedSize(diameter, diameter)
-        avatar.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        avatar.setStyleSheet(
-            "background: rgba(128,128,128,0.2); color: " + PANEL_TEXT + ";"
-            f" border-radius: {diameter // 2}px; font-size: 15px; font-weight: 700;")
-        chip_row.addWidget(avatar, 0, Qt.AlignmentFlag.AlignVCenter)
-        self._avatar_label = avatar
-        self._show_account_picture(account.get("avatar_url"), diameter)
-        id_col = QVBoxLayout()
-        id_col.setContentsMargins(0, 0, 0, 0)
-        id_col.setSpacing(1)
-        email_lbl = ElidedLabel(email, chip, Qt.TextElideMode.ElideMiddle)
-        email_lbl.setStyleSheet(f"font-size: 13px; font-weight: 600; color: {PANEL_TEXT}; background: transparent;")
-        id_col.addWidget(email_lbl)
-        chip_row.addLayout(id_col, 1)
-        out = self._button(self.tr("Sign out"), GHOST_BTN_QSS)
-        out.clicked.connect(self._on_sign_out)
-        chip_row.addWidget(out, 0, Qt.AlignmentFlag.AlignVCenter)
-        group.add_row(chip)
-
-        group.add_row(self._plan_row(plan, plan_name, group))
-        student = self._student_row(group)
-        if student is not None:
-            group.add_row(student)
-        self._account_col.addWidget(group)
-
+        self._prefill_profile(account)
+        self._shell_account(account, email, plan_name, plan)
+        self._fill_usage(plan, plan_name)
         if not plan.is_subscriber:
             _note_settings_upsell()
 
-    def _plan_row(self, plan, plan_name: str, parent: QWidget) -> QFrame:
+    def _prefill_profile(self, account: dict) -> None:
 
 
 
-        if plan.limit is not None and plan.used is not None:
-            left = max(0, int(plan.limit) - int(plan.used))
-            runs = self.tr("{left} of {limit} tasks left").format(
-                left=_format_count(left), limit=_format_count(plan.limit))
-        elif plan.used is not None:
-            runs = self.tr("{used} tasks this month").format(used=_format_count(plan.used))
-        else:
-            runs = ""
-        reset_str = format_reset_date(plan.reset_iso or "")
-        reset = self.tr("Resets {date}").format(date=reset_str) if reset_str else ""
-        title = plan_name if plan.is_subscriber else self.tr(
-            "{plan} · Personal, non-commercial use").format(plan=plan_name)
-
-
-        trial_end = format_reset_date(getattr(plan, "trial_ends_on", None) or "")
-        if trial_end:
-            title = self.tr("{plan} · Free trial").format(plan=plan_name)
-            then = {"month": self.tr("Then billed monthly"),
-                    "year": self.tr("Then billed yearly")}.get(getattr(plan, "trial_interval", None) or "", "")
-            reset = " · ".join(part for part in (
-                self.tr("Free trial ends {date}").format(date=trial_end), then) if part)
-        row = QFrame(parent)
-        row.setObjectName("settingsRow")
-        row.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Maximum)
-        col = QVBoxLayout(row)
-        col.setContentsMargins(14, 10, 14, 12)
-        col.setSpacing(8)
-        line = QHBoxLayout()
-        line.setContentsMargins(0, 0, 0, 0)
-        line.setSpacing(12)
-        words = QVBoxLayout()
-        words.setContentsMargins(0, 0, 0, 0)
-        words.setSpacing(2)
-
-
-        title_lbl = QLabel(title, row)
-        title_lbl.setStyleSheet(ROW_NOTE_QSS)
-        title_lbl.setWordWrap(True)
-        words.addWidget(title_lbl)
-        if runs:
-            runs_lbl = QLabel(runs, row)
-            runs_lbl.setStyleSheet(scale_qss_font_px(
-                "font-size: 20px; font-weight: 600; color: " + PANEL_TEXT + "; background: transparent;"))
-            runs_lbl.setWordWrap(True)
-            words.addWidget(runs_lbl)
-        line.addLayout(words, 1)
-        if plan.is_subscriber:
-            manage = self._button(self.tr("Manage plan"), GHOST_BTN_QSS)
-            manage.setToolTip(self.tr("Your plan, payment method and invoices, on the TerraLab "
-                                      "website. Payment never happens inside QGIS."))
-            manage.clicked.connect(lambda: self._open_dashboard("account_card"))
-        else:
-
-
-            manage = self._button(trial_cta() if getattr(self, "trial_offered", False)
-                                  else get_pro_label(), GET_PRO_BTN_QSS)
-            manage.clicked.connect(lambda: self._on_upgrade("account"))
-        line.addWidget(manage, 0, Qt.AlignmentFlag.AlignVCenter)
-        col.addLayout(line)
-        if plan.is_subscriber:
-            row.setToolTip(self.tr("Need more than {n} tasks a month? Write to {email}.").format(
-                n=get_pro_runs_per_month(), email=get_support_email()))
-        rail = getattr(self, "set_rail_plan", None)
-        if rail is not None:
-            left_n = max(0, int(plan.limit) - int(plan.used)) if (
-                plan.limit is not None and plan.used is not None) else None
-            rail(plan_name, runs, left_n, plan.limit)
-        if plan.limit is not None and plan.used is not None:
-            bar = QProgressBar(row)
-            bar.setRange(0, max(int(plan.limit), 1))
-            bar.setValue(max(0, min(int(plan.limit - plan.used), int(plan.limit))))
-            bar.setTextVisible(False)
-            bar.setFixedHeight(4)
-            bar.setStyleSheet(PROGRESS_QSS)
-            bar.setAccessibleName(runs)
-            col.addWidget(bar)
-        if reset:
-            reset_lbl = QLabel(reset, row)
-            reset_lbl.setStyleSheet(ROW_NOTE_QSS)
-            reset_lbl.setWordWrap(True)
-            col.addWidget(reset_lbl)
-        if not plan.is_subscriber:
-
-            points = get_served_pro_points()
-            adds = QLabel(offer_text("account.adds", self.tr("What Pro adds: {points}"), points=", ".join(
-                points) if points else offer_text("account.adds.shipped", self.tr(
-                    "commercial use, more tasks, your instructions and higher effort"))), row)
-            adds.setTextFormat(Qt.TextFormat.PlainText)
-            adds.setStyleSheet(ROW_NOTE_QSS)
-            adds.setWordWrap(True)
-            col.addWidget(adds)
-        return row
+        first = " ".join(str(account.get("first_name") or "").split())[:PROFILE_LINE_MAX_CHARS]
+        job = " ".join(str(account.get("job_title") or "").split())
+        company = " ".join(str(account.get("company") or "").split())
+        role = (f"{job}, {company}" if job and company else job)[:PROFILE_LINE_MAX_CHARS]
+        done = set(filter(None, self._store.profile_prefilled.split(",")))
+        changed = False
+        for value, attr, edit in ((first, "profile_name", self._name_edit),
+                                  (role, "profile_role", self._role_edit)):
+            if not value or attr in done:
+                continue
+            done.add(attr)
+            if not getattr(self._store, attr) and not edit.text().strip():
+                setattr(self._store, attr, value)
+                edit.blockSignals(True)
+                edit.setText(value)
+                edit.blockSignals(False)
+                changed = True
+        self._store.profile_prefilled = ",".join(sorted(done))
+        if changed:
+            self._emit_profile()
 
     def _student_row(self, parent: QWidget) -> QFrame | None:
 
@@ -451,7 +327,7 @@ class AccountPageMixin:
         row = QFrame(parent)
         row.setObjectName("settingsRow")
         line = QHBoxLayout(row)
-        line.setContentsMargins(10, 4, 14, 8)
+        line.setContentsMargins(14, 4, 14, 8)
         if offer["state"] == "offer":
             link = QPushButton(offer["label"].replace("&", "&&"), row)
             link.setStyleSheet(scale_qss_font_px(_STUDENT_QSS))
@@ -521,8 +397,9 @@ class AccountPageMixin:
             pass
 
     def _open_dashboard(self, source: str = "account_card") -> None:
+
         self.dashboard_opened.emit(source)
-        open_external_url(get_dashboard_url(), parent=self)
+        open_external_url(build_utm_url("/dashboard/settings", "settings_manage_plan", "plan"), parent=self)
 
     def _on_upgrade(self, surface: str = "account") -> None:
 
@@ -558,48 +435,6 @@ class AccountPageMixin:
         self.sign_out_requested.emit()
         self.accept()
 
-    def _add_advanced(self, page: Page) -> None:
-
-
-
-
-
-
-
-        page.add_group_title(self.tr("Privacy"))
-
-        group = SettingGroup(page)
-
-
-
-
-
-        self._improve_switch = Switch(group, self._help_improve_on())
-        self._improve_switch.toggled.connect(self._on_help_improve_toggled)
-        self._improve_row = SettingRow(self.tr("Help improve AI Agent"),
-                                       self.tr("Your usage and chats help us fix bugs. Turn it off anytime."),
-                                       self._improve_switch, group)
-        self._improve_row.setToolTip(self._improve_tip(False))
-        group.add_row(self._improve_row)
-
-        self._retention = RetentionRow(self, group)
-        group.add_row(self._retention.row)
-        divider = group.layout().itemAt(group.layout().count() - 2)
-        self._retention.divider = divider.widget() if divider is not None else None
-        self._retention.load()
-
-        reset = QPushButton(self.tr("Reset"), group)
-        reset.setStyleSheet(GHOST_BTN_QSS)
-        reset.setCursor(Qt.CursorShape.PointingHandCursor)
-        reset.setAutoDefault(False)
-        reset.clicked.connect(self._on_reset)
-        reset_row = SettingRow(self.tr("Reset all settings"), "", reset, group)
-        reset_row.setToolTip(self.tr("Language, style, permissions, your profile and your memory "
-                                     "notes go back to their defaults."))
-        group.add_row(reset_row)
-        page.add(group)
-        self._add_danger_zone(page)
-
     def _add_danger_zone(self, page: Page) -> None:
 
         page.body.insertSpacing(page.body.count() - 1, 20)
@@ -612,7 +447,7 @@ class AccountPageMixin:
         self._delete_account_btn = button
 
 
-        self._delete_account_row = SettingRow(self.tr("Delete my account"), "", button, group)
+        self._delete_account_row = SettingRow(self.tr("Delete account"), "", button, group)
         group.add_row(self._delete_account_row)
         page.add(group)
         self._sync_delete_account()
@@ -654,9 +489,9 @@ class AccountPageMixin:
     def _improve_tip(self, subscriber: bool) -> str:
 
         if subscriber:
-            return self.tr("Usage stats: only that you used the app and when. Chats are kept 30 days so a "
-                           "conversation survives an update; we may read one, or have a model score it, to fix "
-                           "bugs, never to train AI. 0 days of history stores nothing.")
+            return self.tr("Usage stats: only that you used the app and when. Chats are kept as your History "
+                           "retention says, so a conversation survives an update; we may read one, or have a "
+                           "model score it, to fix bugs, never to train AI. 0 days of history stores nothing.")
         return self.tr("Usage stats: errors, versions and the features you use, never your prompts, layers or "
                        "files. We may read a chat, or have a model score it, to fix bugs, never to train AI.")
 
@@ -698,27 +533,3 @@ class AccountPageMixin:
         if bool(on) != self._improve_enabled:
             self._improve_enabled = bool(on)
             self.improve_toggled.emit(self._improve_enabled)
-
-    def _on_reset(self) -> None:
-        if not ask_confirm(self, title=self.tr("Reset all settings?"),
-                           note=self.tr("Language, style, permissions, your profile and your "
-                                        "memory notes go back to their defaults. You stay "
-                                        "signed in."),
-                           confirm_text=self.tr("Reset"), glyph="warning",
-                           object_name="resetConfirm"):
-            return
-        for timer in self._pending.values():
-            timer.stop()
-        self._store.reset_preferences()
-
-
-
-        try:
-            clear_memory_notes(self._store)
-        except Exception as exc:  # noqa: BLE001
-            log_warning(f"Memory folder not emptied on reset: {exc}")
-        self._values["mode"], self._values["approval"] = self._store.mode, self._store.approval
-        self._sync_from_store()
-        self._show_saved()
-        self.values_changed.emit(self.values())
-        self._emit_profile()

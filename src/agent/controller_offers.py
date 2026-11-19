@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from ..core import telemetry
 from ..core.logger import log, log_warning
-from ..core.profile import REPLY_LANGUAGES, add_memory_note, load_memory_notes, record_forgotten, remove_memory_note
+from ..core.profile import add_memory_note, load_memory_notes, record_forgotten, remove_memory_note
 from ..core.protocol import ClientErrorCode, Decision, RunStatus
 from ..core.scratch import MIN_TO_OFFER
 from ..core.scratch import group as group_scratch
@@ -24,19 +24,14 @@ _DIFF_TABLE = "show_diff_table"
 
 def _setting_label(setting: str) -> str:
 
-    return {"reply_language": tr("reply language"), "reply_style": tr("response style"),
-            "question_policy": tr("questions"), "expertise": tr("GIS experience"),
-            "units": tr("units"), "layer_naming": tr("layer names")}.get(setting, "")
+    return {"reply_style": tr("response style"),
+            "layer_naming": tr("layer names")}.get(setting, "")
 
 
 def _value_label(setting: str, value: str) -> str:
 
-    if setting == "reply_language":
-        return next((name for code, name in REPLY_LANGUAGES if code == value), value)
     return {"concise": tr("Concise"), "balanced": tr("Balanced"), "detailed": tr("Detailed"),
-            "minimal": tr("Rarely"), "confirm": tr("Before changes"), "beginner": tr("Beginner"),
-            "intermediate": tr("Intermediate"), "expert": tr("Expert"), "metric": tr("Metric"),
-            "imperial": tr("Imperial"), "human": tr("Readable"), "snake_case": tr("snake_case")}.get(value, value)
+            "human": tr("Readable"), "snake_case": tr("snake_case")}.get(value, value)
 
 
 def _has_change(rows) -> bool:

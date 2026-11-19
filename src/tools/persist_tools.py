@@ -38,8 +38,9 @@ from qgis.PyQt.QtCore import QT_TRANSLATE_NOOP
 from ..core import layer_order, output_paths, policy, security
 from ..core.attribute_tables import tables_closed
 from ..core.background import main_thread_invoker, run_on_main_thread, start_kept_thread
+from ..core.background import still_awaited as background_still_awaited
 from ..core.context import THREAD_PROPERTY
-from ..core.host_platform import remove_tree
+from ..core.host_platform import remove_quietly, remove_tree
 from ..core.logger import log, log_warning
 from ..core.qt_compat import enum_member
 from ..core.snapshot_files import sqlite_read_only_uri
@@ -73,6 +74,7 @@ def register_persist_tools(registry: ToolRegistry):
             "required": [],
         },
         handler=_make_layers_permanent,
+        background=True,
     ))
 
 
@@ -164,34 +166,6 @@ def _target(args: dict, project) -> tuple[str, dict | None]:
     return path, None
 
 
-def _write_vector(layer, gpkg: str, table: str) -> str:
-
-    project = QgsProject.instance()
-
-    def write(layer_options: list[str]) -> tuple:
-        options = QgsVectorFileWriter.SaveVectorOptions()
-        options.driverName = "GPKG"
-        options.layerName = table
-        options.fileEncoding = "UTF-8"
-        options.attributes = _stored_fields(layer)
-        options.layerOptions = layer_options
-        options.saveMetadata = True
-        options.layerMetadata = layer.metadata()
-        if os.path.exists(gpkg):
-            options.actionOnExistingFile = enum_member(
-                QgsVectorFileWriter, "ActionOnExistingFile", "CreateOrOverwriteLayer")
-        return QgsVectorFileWriter.writeAsVectorFormatV3(layer, gpkg, project.transformContext(), options)
-
-    no_error = enum_member(QgsVectorFileWriter, "WriterError", "NoError")
-    result = write([])
-    if result[0] != no_error and any(f.name().casefold() == "fid" for f in layer.fields()):
-
-        result = write(["FID=gpkg_fid"])
-    if result[0] != no_error:
-        return str(result[1] if len(result) > 1 and result[1] else result[0])
-    return ""
-
-
 def _save_style_inside(layer) -> bool:
 
 
@@ -219,55 +193,6 @@ def _repoint(layer, uri: str, provider: str) -> None:
     layer.triggerRepaint()
 
 
-def _vector(layer, was: str, gpkg: str, taken: set[str]) -> dict:
-    name = layer.name()
-    if layer.isEditable():
-        return {"name": name, "skipped": "it is being edited: save or discard the edits first"}
-
-
-
-    subset = layer.subsetString() or ""
-    if subset and not layer.setSubsetString(""):
-        return {"name": name, "skipped": "its filter could not be lifted to copy every feature, so the layer "
-                                         "was left as it was"}
-    try:
-        expected = layer.featureCount()
-        table = _unique(output_paths.safe_file_name(name, "layer").replace(" ", "_"), taken)
-        error = _write_vector(layer, gpkg, table)
-    finally:
-        if subset:
-            layer.setSubsetString(subset)
-    if error:
-        return {"name": name, "skipped": f"the GeoPackage write failed: {error[:200]}"}
-    uri = f"{gpkg}|layername={table}"
-    probe = QgsVectorLayer(uri, table, "ogr")
-    written = probe.featureCount() if probe.isValid() else -1
-    probe = None
-    if expected >= 0 and written != expected:
-
-        return {"name": name, "skipped": f"the copy holds {max(written, 0)} of {expected} features, so the layer "
-                                         "was left as it was"}
-    _repoint(layer, uri, "ogr")
-    if not layer.isValid():
-        return {"name": name, "error": f"the layer does not open from {uri} after the move"}
-    entry = {"name": name, "was": was, "table": table, "features": expected}
-    if subset:
-
-
-
-        shown = layer.featureCount() if layer.setSubsetString(subset) else -1
-        if shown >= 0:
-            entry["filter"] = subset
-            entry["features_shown"] = shown
-        else:
-            layer.setSubsetString("")
-            entry["filter_not_restored"] = subset
-            entry["note"] = "Every feature was kept, but the filter does not read on the GeoPackage."
-            entry["note_hint"] = "persist_filter_not_restored"
-    entry["style_in_gpkg"] = _save_style_inside(layer)
-    return entry
-
-
 def _free_tif(folder: str, stem: str, taken: set[str]) -> str:
 
     while True:
@@ -276,21 +201,33 @@ def _free_tif(folder: str, stem: str, taken: set[str]) -> str:
             return target
 
 
-def _raster(layer, gpkg: str, taken: set[str]) -> dict:
-    name = layer.name()
+def _raster_target(layer, gpkg: str, taken: set[str]) -> tuple[str, str, str]:
+
     if layer.providerType() != "gdal":
-        return {"name": name, "skipped": f"a {layer.providerType()} raster is not a file to copy"}
+        return "", "", f"a {layer.providerType()} raster is not a file to copy"
     source = str(layer.source() or "").split("|", 1)[0]
     if not os.path.isfile(source):
-        return {"name": name, "skipped": "its scratch file is gone"}
+        return "", "", "its scratch file is gone"
     folder = os.path.dirname(gpkg)
-    stem = output_paths.safe_file_name(f"{os.path.splitext(os.path.basename(gpkg))[0]}_{name}", "raster")
+
+    taken |= {os.path.splitext(os.path.basename(path))[0].casefold() for path, _ in list(WRITING.values())
+              if path.lower().endswith(".tif")}
+    stem = output_paths.safe_file_name(f"{os.path.splitext(os.path.basename(gpkg))[0]}_{layer.name()}", "raster")
     target = _free_tif(folder, stem, taken)
     if not security.fits_path(target, len(".aux.xml")):
 
         target = _free_tif(folder, "raster", taken)
         if not security.fits_path(target, len(".aux.xml")):
-            return {"name": name, "skipped": f"{folder} is too deep for a file name Windows opens"}
+            return "", "", f"{folder} is too deep for a file name Windows opens"
+    return source, target, ""
+
+
+def _copy_raster(source: str, target: str) -> str:
+
+
+    from osgeo import gdal
+
+    gdal.UseExceptions()
     try:
         if os.path.splitext(source)[1].lower() in (".tif", ".tiff"):
             shutil.copyfile(source, target)
@@ -298,24 +235,44 @@ def _raster(layer, gpkg: str, taken: set[str]) -> dict:
                 if os.path.isfile(source + sidecar):
                     shutil.copyfile(source + sidecar, target + sidecar)
         else:
-            from osgeo import gdal
-
-            gdal.UseExceptions()
             gdal.Translate(target, source, format="GTiff", creationOptions=_RASTER_CREATION)
+        opened = gdal.Open(target)
+        if opened is None or opened.RasterCount < 1:
+            raise RuntimeError("the copy does not open")
+        opened = None
+        return ""
     except (OSError, RuntimeError) as exc:
-        return {"name": name, "skipped": f"the copy failed: {str(exc)[:200]}"}
-    probe = QgsRasterLayer(target, name, "gdal")
-    valid = probe.isValid()
-    probe = None
-    if not valid:
-        return {"name": name, "skipped": f"the copy at {target} does not open"}
-    _repoint(layer, target, "gdal")
-    if not layer.isValid():
-        return {"name": name, "error": f"the layer does not open from {target} after the move"}
-    return {"name": name, "was": "scratch", "file": target}
+        for extra in ("",) + _RASTER_SIDECARS:
+            if os.path.exists(target + extra):
+                remove_quietly(target + extra)
+        return f"the copy failed: {str(exc)[:200]}"
 
 
 def _make_layers_permanent(args: dict) -> dict:
+
+
+
+    plan = run_on_main_thread(_permanent_plan, args, timeout=60)
+    if "out" in plan:
+        return plan["out"]
+    failed: dict[str, str] = {}
+    try:
+        failed = _write_items(plan["items"], plan["gpkg"], plan["context"])
+        try:
+            return run_on_main_thread(_permanent_finish, plan, failed, args.get("save", True) is not False,
+                                      timeout=120)
+        except InterruptedError:
+
+            _drop_written(plan, failed)
+            raise
+    finally:
+        _release(plan["items"])
+
+
+def _permanent_plan(args: dict) -> dict:
+
+
+    from qgis.core import QgsVectorLayerFeatureSource
 
     project = QgsProject.instance()
     memory, temporary = scratch_layers(project)
@@ -342,11 +299,11 @@ def _make_layers_permanent(args: dict) -> dict:
                                                 "a lasting file."}
         if skipped:
             out["skipped"] = skipped
-        return out
+        return {"out": out}
 
     gpkg, refused = _target(args, project)
     if refused:
-        return refused
+        return {"out": refused}
     os.makedirs(os.path.dirname(gpkg), exist_ok=True)
     taken = _gpkg_tables(gpkg)
     moved_from = ""
@@ -355,38 +312,148 @@ def _make_layers_permanent(args: dict) -> dict:
 
         fresh = _fresh_gpkg(gpkg)
         if not fresh:
-            return tool_error(f"The tables of {gpkg} cannot be read, so nothing was written into it.",
-                              "INVALID_ARGS", hint="persist_gpkg_unreadable", path=gpkg)
+            return {"out": tool_error(f"The tables of {gpkg} cannot be read, so nothing was written into it.",
+                                      "INVALID_ARGS", hint="persist_gpkg_unreadable", path=gpkg)}
         moved_from, gpkg, taken = gpkg, fresh, set()
     taken |= _reserved_tables(gpkg)
     files_taken: set[str] = set()
-    moved: list[dict] = []
+    items: list[dict] = []
     for layer in chosen:
+        name = layer.name()
+        if isinstance(layer, QgsRasterLayer):
+            source, target, why = _raster_target(layer, gpkg, files_taken)
+            if why:
+                skipped.append({"name": name, "skipped": why})
+                continue
+            items.append({"id": layer.id(), "name": name, "raster": True, "source": source, "target": target,
+                          "provider": "gdal", "uri": layer.source(), "was": "scratch",
+                          "table": os.path.splitext(os.path.basename(target))[0]})
+            continue
+        if not isinstance(layer, QgsVectorLayer):
+            skipped.append({"name": name, "skipped": "only vector and raster layers are moved"})
+            continue
+        if layer.isEditable():
+            skipped.append({"name": name, "skipped": "it is being edited: save or discard the edits first"})
+            continue
+
+
+        subset = layer.subsetString() or ""
+        if subset and not layer.setSubsetString(""):
+            skipped.append({"name": name, "skipped": "its filter could not be lifted to copy every feature, so "
+                                                     "the layer was left as it was"})
+            continue
         try:
-            if isinstance(layer, QgsVectorLayer):
-                entry = _vector(layer, kinds[layer.id()], gpkg, taken)
-            elif isinstance(layer, QgsRasterLayer):
-                entry = _raster(layer, gpkg, files_taken)
-            else:
-                entry = {"name": layer.name(), "skipped": "only vector and raster layers are moved"}
+            source = QgsVectorLayerFeatureSource(layer)
+            count = layer.featureCount()
+        finally:
+            if subset:
+                layer.setSubsetString(subset)
+        indexes = _stored_fields(layer)
+        fields = QgsFields()
+        for index in indexes:
+            fields.append(layer.fields().at(index))
+        items.append({"id": layer.id(), "name": name, "source": source, "count": count,
+                      "shown": layer.featureCount(), "subset": subset, "fields": fields, "indexes": indexes,
+                      "wkb": layer.wkbType(), "crs": layer.crs(), "provider": layer.providerType(),
+                      "uri": layer.source(), "was": kinds[layer.id()],
+                      "table": _unique(output_paths.safe_file_name(name, "layer").replace(" ", "_"), taken)})
+    if not items:
+        return {"out": {"gpkg_path": gpkg, "made_permanent": [], "skipped": skipped}}
+    if not background_still_awaited(changes_project=False):
+
+        return {"out": {}}
+    for item in items:
+        WRITING[item["id"]] = (item.get("target") or gpkg, item["table"])
+    return {"items": items, "gpkg": gpkg, "skipped": skipped, "moved_from": moved_from,
+            "context": project.transformContext()}
+
+
+def _write_items(items: list, gpkg: str, context) -> dict[str, str]:
+
+    from osgeo import gdal
+
+    from ..core import net
+
+    cancelled = net.current_cancel_check()
+    failed: dict[str, str] = {}
+    gdal.UseExceptions()
+    folder = policy.create_managed_temp_dir("runsave")
+    try:
+        for item in items:
+            if cancelled is not None and cancelled():
+                failed[item["id"]] = "the call was stopped before it was written"
+                continue
+            try:
+                why = _write_one(item, gpkg, folder, context)
+            except Exception as exc:  # noqa: BLE001
+                why = f"the GeoPackage write failed: {str(exc)[:200]}"
+            if why:
+                failed[item["id"]] = why
+    finally:
+        for item in items:
+            item["source"] = None
+        remove_tree(folder)
+    return failed
+
+
+def _drop_written(plan: dict, failed: dict) -> None:
+
+    for item in plan["items"]:
+        if item["id"] in failed:
+            continue
+        if item.get("raster"):
+            for extra in ("",) + _RASTER_SIDECARS:
+                if os.path.exists(item["target"] + extra):
+                    remove_quietly(item["target"] + extra)
+        else:
+            _drop_table(plan["gpkg"], item["table"])
+
+
+def _permanent_finish(plan: dict, failed: dict, save: bool) -> dict:
+
+    project = QgsProject.instance()
+    gpkg = plan["gpkg"]
+    if not background_still_awaited():
+
+        _drop_written(plan, failed)
+        return {}
+    moved: list[dict] = []
+    skipped = list(plan["skipped"])
+    for item in plan["items"]:
+        name = item["name"]
+        if item["id"] in failed:
+            skipped.append({"name": name, "skipped": failed[item["id"]]})
+            continue
+        layer = project.mapLayer(item["id"])
+        try:
+            entry = _repointed(layer, item, gpkg)
         except Exception as exc:  # noqa: BLE001
-            log_warning(f"make_layers_permanent: {layer.name()}: {exc}")
-            entry = {"name": layer.name(), "error": str(exc)[:200]}
+            log_warning(f"make_layers_permanent: {name}: {exc}")
+            entry = {"name": name, "error": str(exc)[:200]}
+        if "skipped" in entry and not item.get("raster"):
+            _drop_table(gpkg, item["table"])
         (moved if "was" in entry else skipped).append(entry)
 
     out: dict = {"gpkg_path": gpkg, "made_permanent": moved}
-    if moved_from:
+    if plan["moved_from"]:
+        moved_from = plan["moved_from"]
         out["gpkg_note"] = (f"The tables of {moved_from} could not be read (another program may hold it), so the "
                             f"layers went to a new file and nothing in {os.path.basename(moved_from)} was touched.")
     if skipped:
         out["skipped"] = skipped
-    if moved and args.get("save", True) is not False:
+    if moved and save:
         refusal = layer_order.write_refusal(project)
         if refusal:
             out["project_note"] = f"The layers read the new files; the project is not written: {refusal}."
         elif project.fileName():
             temp_folder_ready("agent")
+            from ..core.snapshot import keep_ours_across
+
+
+            moved_stamp = keep_ours_across(project.fileName())
             if project.write():
+                if moved_stamp is not None:
+                    moved_stamp()
                 out["project_saved"] = project.fileName()
             else:
                 out["project_note"] = ("The layers read the new files; the project needs a write. "
@@ -395,6 +462,44 @@ def _make_layers_permanent(args: dict) -> dict:
             out["project_note"] = ("The project has never been saved; the layers read the new files, and "
                                    "save_project writes the project.")
     return out
+
+
+def _repointed(layer, item: dict, gpkg: str) -> dict:
+
+    name = item["name"]
+    if item.get("raster"):
+        if not (isinstance(layer, QgsRasterLayer) and layer.providerType() == "gdal"
+                and layer.source() == item["uri"]):
+            return {"name": name, "skipped": "it changed while it was copied, so it was left as it was"}
+        _repoint(layer, item["target"], "gdal")
+        if not layer.isValid():
+            return {"name": name, "error": f"the layer does not open from {item['target']} after the move"}
+        return {"name": name, "was": "scratch", "file": item["target"]}
+
+    if (not isinstance(layer, QgsVectorLayer) or layer.providerType() != item["provider"]
+            or layer.source() != item["uri"] or layer.isEditable() or layer.featureCount() != item["shown"]):
+        return {"name": name, "skipped": "it changed while it was written, so it was left as it was"}
+    uri = f"{gpkg}|layername={item['table']}"
+    _repoint(layer, uri, "ogr")
+    if not layer.isValid():
+        return {"name": name, "error": f"the layer does not open from {uri} after the move"}
+    entry = {"name": name, "was": item["was"], "table": item["table"], "features": item["count"]}
+    subset = item["subset"]
+    if subset:
+
+
+
+        shown = layer.featureCount() if layer.setSubsetString(subset) else -1
+        if shown >= 0:
+            entry["filter"] = subset
+            entry["features_shown"] = shown
+        else:
+            layer.setSubsetString("")
+            entry["filter_not_restored"] = subset
+            entry["note"] = "Every feature was kept, but the filter does not read on the GeoPackage."
+            entry["note_hint"] = "persist_filter_not_restored"
+    entry["style_in_gpkg"] = _save_style_inside(layer)
+    return entry
 
 
 
@@ -456,8 +561,8 @@ def store_in_background(layers, busy=None, save: bool = True, then=None, before_
     from qgis.core import QgsVectorLayerFeatureSource
 
     project = QgsProject.instance()
-    layers = [layer for layer in layers if isinstance(layer, QgsVectorLayer) and layer.isValid()
-              and not layer.isEditable() and layer.id() not in WRITING]
+    layers = [layer for layer in layers if isinstance(layer, (QgsVectorLayer, QgsRasterLayer)) and layer.isValid()
+              and not (isinstance(layer, QgsVectorLayer) and layer.isEditable()) and layer.id() not in WRITING]
     if not layers:
         return {}
     gpkg, refused = _target({}, project)
@@ -471,7 +576,19 @@ def store_in_background(layers, busy=None, save: bool = True, then=None, before_
             return {}
     taken |= _reserved_tables(gpkg)
     plan = []
+    files_taken: set[str] = set()
     for layer in layers:
+        if isinstance(layer, QgsRasterLayer):
+
+
+            source, target, why = _raster_target(layer, gpkg, files_taken)
+            if why:
+                log_warning(f"Raster {layer.name()} not saved: {why}")
+                continue
+            plan.append({"id": layer.id(), "name": layer.name(), "raster": True, "source": source,
+                         "target": target, "provider": "gdal", "uri": layer.source(),
+                         "table": os.path.splitext(os.path.basename(target))[0]})
+            continue
         subset = layer.subsetString() or ""
         if subset and not layer.setSubsetString(""):
             continue
@@ -494,7 +611,7 @@ def store_in_background(layers, busy=None, save: bool = True, then=None, before_
     if not plan:
         return {}
     for item in plan:
-        WRITING[item["id"]] = (gpkg, item["table"])
+        WRITING[item["id"]] = (item.get("target") or gpkg, item["table"])
     try:
         start_kept_thread(_write_run_layers, plan, gpkg, project.transformContext(), busy or _run_open, save,
                           then, before_save, name="ai-agent-layer-save")
@@ -569,20 +686,27 @@ def _drop_table(gpkg: str, table: str) -> None:
         log_warning(f"The partial table {table} stays in {gpkg}: {exc}")
 
 
-def _write_one(item: dict, gpkg: str, folder: str, context) -> bool:
+def _write_one(item: dict, gpkg: str, folder: str, context) -> str:
+
 
     from osgeo import gdal
+
+    if item.get("raster"):
+        why = _copy_raster(item["source"], item["target"])
+        if why:
+            log_warning(f"Raster {item['name']} not saved: {why}")
+        return why
 
     stage = os.path.join(folder, f"{item['table'][:40]}.gpkg")
     why = _staged(item, stage, context)
     item["source"] = None
     if why:
         log_warning(f"Layer {item['name']} not saved: {why}")
-        return False
+        return f"the GeoPackage write failed: {why[:200]}"
     if _written_count(gpkg, item["table"]) >= 0:
 
         log_warning(f"Layer {item['name']} not saved: {gpkg} already holds a table {item['table']}")
-        return False
+        return f"{os.path.basename(gpkg)} already holds a table {item['table']}"
     try:
         options = gdal.VectorTranslateOptions(
             accessMode="update" if os.path.exists(gpkg) else None, layers=[item["table"]],
@@ -594,12 +718,14 @@ def _write_one(item: dict, gpkg: str, folder: str, context) -> bool:
     except RuntimeError as exc:
         log_warning(f"Layer {item['name']} not saved in {gpkg}: {exc}")
         _drop_table(gpkg, item["table"])
-        return False
-    if _written_count(gpkg, item["table"]) != item["count"]:
+        return f"the GeoPackage write failed: {str(exc)[:200]}"
+    written = _written_count(gpkg, item["table"])
+    if written != item["count"]:
+
         log_warning(f"Layer {item['name']}: {gpkg} holds another count than the layer; it stays as it was")
         _drop_table(gpkg, item["table"])
-        return False
-    return True
+        return f"the copy holds {max(written, 0)} of {item['count']} features, so the layer was left as it was"
+    return ""
 
 
 def _write_run_layers(plan: list, gpkg: str, context, busy, save: bool = True, then=None,
@@ -614,7 +740,7 @@ def _write_run_layers(plan: list, gpkg: str, context, busy, save: bool = True, t
         os.makedirs(os.path.dirname(gpkg), exist_ok=True)
         folder = policy.create_managed_temp_dir("runsave")
         try:
-            done = [item for item in plan if _write_one(item, gpkg, folder, context)]
+            done = [item for item in plan if not _write_one(item, gpkg, folder, context)]
         finally:
             remove_tree(folder)
     except Exception as exc:  # noqa: BLE001
@@ -665,6 +791,15 @@ def _repoint_now(done: list, gpkg: str, busy, save: bool, before_save=None) -> N
     try:
         for item in done:
             layer = project.mapLayer(item["id"])
+            if item.get("raster"):
+                if (isinstance(layer, QgsRasterLayer) and layer.providerType() == "gdal"
+                        and layer.source() == item["uri"]):
+                    _repoint(layer, item["target"], "gdal")
+                    if layer.isValid():
+                        moved.append(item["name"])
+                    else:
+                        log_warning(f"Raster {item['name']} does not open from {item['target']}")
+                continue
 
             if (not isinstance(layer, QgsVectorLayer) or layer.providerType() != item["provider"]
                     or layer.source() != item["uri"] or layer.isEditable()
@@ -691,11 +826,15 @@ def _repoint_now(done: list, gpkg: str, busy, save: bool, before_save=None) -> N
         temp_folder_ready("agent")
 
         written = None
-        if before_save is not None:
-            try:
+        try:
+            if before_save is not None:
                 written = before_save(project.fileName())
-            except Exception as exc:  # noqa: BLE001
-                log_warning(f"Project file not copied before its save: {exc}")
+            else:
+                from ..core.snapshot import keep_ours_across
+
+                written = keep_ours_across(project.fileName())
+        except Exception as exc:  # noqa: BLE001
+            log_warning(f"Project file not copied before its save: {exc}")
         saved = project.write()
         if saved and written is not None:
             try:
@@ -710,6 +849,7 @@ __all__ = ["register_persist_tools", "save_run_layers", "store_in_background"]
 
 
 def default_gpkg_path(layer_name: str = "") -> str | None:
+
 
 
 
@@ -784,19 +924,11 @@ def agent_layers_made_durable(project, save: bool = True, busy=None) -> dict:
     ours = [layer for layer in memory + temporary if layer.customProperty(THREAD_PROPERTY, "")]
     if not ours:
         return {}
-    out: dict = {}
-    rasters = [layer.id() for layer in ours if not isinstance(layer, QgsVectorLayer)]
     try:
-        moved = _make_layers_permanent({"layers": rasters, "save": save}) if rasters else {}
-        if isinstance(moved, dict) and moved.get("made_permanent"):
-            out = {"gpkg_path": moved.get("gpkg_path", ""),
-                   "layers": [entry.get("name") for entry in moved["made_permanent"]]}
-        sent = store_in_background([layer for layer in ours if isinstance(layer, QgsVectorLayer)], busy, save)
+        sent = store_in_background(ours, busy, save)
     except Exception as exc:  # noqa: BLE001
         log_warning(f"Agent layers not stored beside the project: {exc}")
-        return out
-    if sent:
-        out["gpkg_path"] = sent["gpkg_path"]
-        out["layers"] = out.get("layers", []) + sent["layers"]
-        out["writing"] = sent["layers"]
-    return out
+        return {}
+    if not sent:
+        return {}
+    return {"gpkg_path": sent["gpkg_path"], "layers": sent["layers"], "writing": sent["layers"]}

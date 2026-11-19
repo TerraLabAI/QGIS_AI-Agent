@@ -104,9 +104,10 @@ class Suggester(QObject):
     ready = pyqtSignal(object, str)
     predicted = pyqtSignal(str, str, str)
 
-    def __init__(self, session, active_layer=None, parent=None):
+    def __init__(self, session, active_layer=None, parent=None, enabled=None):
         super().__init__(parent)
         self._session = session
+        self._enabled = enabled or (lambda: True)
         self._active_layer = active_layer or (lambda: None)
         self._request = ""
         self._prepared = ""
@@ -122,8 +123,13 @@ class Suggester(QObject):
         session.next_prompt.connect(self._on_next_prompt)
 
     @property
+    def enabled(self) -> bool:
+
+        return bool(self._enabled())
+
+    @property
     def available(self) -> bool:
-        return self._session.suggest_terms is not None
+        return self._session.suggest_terms is not None and self.enabled
 
     def _term(self, name: str, default: int) -> int:
         value = (self._session.suggest_terms or {}).get(name)

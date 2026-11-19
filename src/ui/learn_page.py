@@ -29,6 +29,7 @@ from qgis.PyQt.QtCore import QCoreApplication, QObject, QRectF, QSize, Qt, QUrl,
 from qgis.PyQt.QtGui import QColor, QImage, QPainter, QPainterPath, QPixmap
 from qgis.PyQt.QtNetwork import QNetworkRequest
 from qgis.PyQt.QtWidgets import (
+    QBoxLayout,
     QFrame,
     QHBoxLayout,
     QLabel,
@@ -268,7 +269,9 @@ class LearnCard(PressSurface):
         self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
         self.setStyleSheet(_CARD_QSS)
         self.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+
+
+        self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
         kind = str(item.get("kind") or "article")
         accent = _KIND_ACCENTS.get(kind, _DEFAULT_ACCENT)
         self._url = str(item.get("url") or "")
@@ -425,6 +428,27 @@ class SiblingsSection(QWidget):
         self.refresh()
 
 
+class _CardRow(QWidget):
+
+
+
+
+
+
+    _STACK_BELOW_PX = 560
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.row = QBoxLayout(QBoxLayout.Direction.LeftToRight, self)
+
+    def resizeEvent(self, event):  # noqa: N802
+        stacked = event.size().width() < scale_px_length(self._STACK_BELOW_PX)
+        direction = QBoxLayout.Direction.TopToBottom if stacked else QBoxLayout.Direction.LeftToRight
+        if self.row.direction() != direction:
+            self.row.setDirection(direction)
+        super().resizeEvent(event)
+
+
 class LearnPage(Page):
 
 
@@ -447,8 +471,8 @@ class LearnPage(Page):
             self.add(empty)
             self.add(self.siblings)
             return
-        row_host = QWidget(self)
-        row = QHBoxLayout(row_host)
+        row_host = _CardRow(self)
+        row = row_host.row
 
         row.setContentsMargins(4, 0, 4, 0)
         row.setSpacing(12)
@@ -456,7 +480,6 @@ class LearnPage(Page):
             card = LearnCard(item, row_host)
             kind, url = card.kind, card.url()
             card.clicked.connect(lambda _c=False, k=kind, u=url: self.opened.emit(k, u))
-            card.setMinimumWidth(scale_px_length(_CARD_W // 2))
 
             row.addWidget(card, 3 if index == 0 else 2)
         self.add(row_host)

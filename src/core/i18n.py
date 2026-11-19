@@ -145,15 +145,51 @@ def qgis_locale_names() -> tuple[str, str]:
 
 
 
+
+UI_LANGUAGES = (
+    ("en", "English"),
+    ("ar", "العربية"),
+    ("de", "Deutsch"),
+    ("es", "Español"),
+    ("fr", "Français"),
+    ("id", "Bahasa Indonesia"),
+    ("it", "Italiano"),
+    ("ja", "日本語"),
+    ("ko", "한국어"),
+    ("nl", "Nederlands"),
+    ("pl", "Polski"),
+    ("pt_BR", "Português (Brasil)"),
+    ("ru", "Русский"),
+    ("tr", "Türkçe"),
+    ("uk", "Українська"),
+    ("vi", "Tiếng Việt"),
+    ("zh_CN", "简体中文"),
+    ("zh_TW", "繁體中文"),
+)
+
+
+UI_LANGUAGE_KEY = "TerraLab/AIAgent/ui_language"
+
+
 _user_locale: str | None = None
+
+
+def chosen_ui_language() -> str:
+
+    try:
+        value = str(QgsSettings().value(UI_LANGUAGE_KEY, "", type=str) or "")
+    except Exception:  # noqa: BLE001
+        return ""
+    return value if any(code == value for code, _name in UI_LANGUAGES) else ""
 
 
 def current_locale() -> str:
 
+
     global _user_locale
     if _user_locale is None:
         override, system = qgis_locale_names()
-        _user_locale = plugin_locale(override or system or "en")
+        _user_locale = chosen_ui_language() or plugin_locale(override or system or "en")
     return _user_locale
 
 

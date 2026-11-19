@@ -45,6 +45,8 @@
 
 
 
+
+
 from __future__ import annotations
 
 import json
@@ -636,17 +638,23 @@ class ThreadStore:
         turns.reverse()
         return turns
 
-    def layer_roots(self, thread_id: str) -> list:
+    def layer_roots(self, thread_id: str, project: str) -> list:
+
 
         thread = self.load(thread_id) if thread_id else None
         roots = thread.get("layer_roots") if thread else None
-        return list(roots) if isinstance(roots, list) else []
+        if not isinstance(roots, list):
+            return []
+        kept_for = thread.get("layer_roots_project", thread.get("project_path") or "")
+        return list(roots) if _same_project(kept_for, project) else []
 
-    def set_layer_roots(self, thread_id: str, roots: list) -> None:
+    def set_layer_roots(self, thread_id: str, roots: list, project: str) -> None:
         thread = self.load(thread_id)
-        if thread is None or thread.get("layer_roots") == roots:
+        if thread is None or (thread.get("layer_roots") == roots
+                              and thread.get("layer_roots_project") == project):
             return
         thread["layer_roots"] = list(roots)
+        thread["layer_roots_project"] = project or ""
         self._save(thread)
 
     def set_title(self, thread_id: str, title: str) -> None:
@@ -723,3 +731,6 @@ def user_message_record(run_id: str, text: str, chips: list, attachments: list,
     return record
 
 
+def _same_project(a, b) -> bool:
+    a, b = str(a or ""), str(b or "")
+    return a == b or bool(a and b and os.path.normcase(os.path.normpath(a)) == os.path.normcase(os.path.normpath(b)))

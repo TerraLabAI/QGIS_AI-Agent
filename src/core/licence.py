@@ -27,7 +27,6 @@ from .source_text import plain_source
 from .tool_registry import LAYER_LIST_KEYS, PINNED_LAYER_KEYS, spec
 
 UNKNOWN = "unknown"
-_ABSTRACT_MARK = "Licence:"
 _SEP = " \u00b7 "
 
 
@@ -81,7 +80,6 @@ def credit_layer(layer, licence="", attribution="") -> dict:
 
 
 
-
     def _texts(value, limit: int) -> list:
         items = value if isinstance(value, (list, tuple)) else [value]
         out = []
@@ -113,18 +111,6 @@ def credit_layer(layer, licence="", attribution="") -> dict:
         changed = True
     licence = "; ".join(wanted)
     attribution = "; ".join(credits)[:500]
-    bits = []
-
-    if licence:
-        bits.append(f"{_ABSTRACT_MARK} {licence.rstrip('.')}.")
-    if attribution:
-        bits.append(f"Attribution: {attribution.rstrip('.')}.")
-    if bits:
-        line = " ".join(bits)
-        abstract = str(metadata.abstract() or "")
-        if line not in abstract:
-            metadata.setAbstract(f"{abstract.rstrip()}\n\n{line}" if abstract.strip() else line)
-            changed = True
     if changed:
         layer.setMetadata(metadata)
     if attribution and not current:
@@ -270,7 +256,6 @@ def write_unverified(layer, address: str) -> None:
     _tooltip_on_older_qgis(layer, head)
 
 
-PROCESSOR = "TerraLab AI Agent"
 
 
 _MODIFIED = (("Copernicus Sentinel data", "Contains modified Copernicus Sentinel data"),)
@@ -341,7 +326,7 @@ def _add_link(metadata, name: str, url: str) -> bool:
     return True
 
 
-def write_record(layer, data_date_value: str, address: str, derived: bool) -> None:
+def write_record(layer, data_date_value: str, address: str) -> None:
 
 
 
@@ -364,8 +349,6 @@ def write_record(layer, data_date_value: str, address: str, derived: bool) -> No
     host = where_from(address) if web else ""
     if host:
         changed = _add_contact(metadata, host, "distributor") or changed
-    if derived:
-        changed = _add_contact(metadata, PROCESSOR, "processor") or changed
     parsed = data_date.parse(data_date_value)
     if parsed is not None and parsed[0] not in (data_date.LIVE, data_date.SINCE):
         changed = _set_date(metadata, "Published", parsed[1]) or changed
@@ -441,7 +424,6 @@ def write_derived(layer, parents: list) -> None:
             extent.setTemporalExtents([QgsDateTimeRange(QDateTime.fromString(dated[0] + "T00:00:00", stamp),
                                                         QDateTime.fromString(dated[1] + "T23:59:59", stamp))])
             metadata.setExtent(extent)
-        _add_contact(metadata, PROCESSOR, "processor")
         layer.setMetadata(metadata)
     except Exception as exc:  # noqa: BLE001
         log_warning(f"Lineage not written on a layer: {exc}")
@@ -807,7 +789,7 @@ def credit_added(layers, result, tool: str = "", args=None, facts=None) -> None:
             address = _address_of(holders, url)
             derived = bool(parents) or stamped
             dated = _sheet_and_name(layer, name, row, own, credit, tool, address, derived)
-            write_record(layer, dated, address, derived)
+            write_record(layer, dated, address)
             write_derived(layer, parents)
             if isinstance(args, dict) and args.get("code") and credit["licence"] == UNKNOWN \
                     and not credit.get("attribution") and not derived:
@@ -891,7 +873,6 @@ def write_reprojection(layer) -> None:
         log_warning(f"Reprojection not written on a layer: {exc}")
 
 
-_PROJECT_MARK = "Data sources (AI Agent by TerraLab):"
 _RUN_LAYERS: list = []
 
 
@@ -913,17 +894,13 @@ def note_project_source(layer) -> None:
         _RUN_LAYERS.append(str(layer.name() or ""))
         project = QgsProject.instance()
         metadata = project.metadata()
-        abstract = str(metadata.abstract() or "")
-        own, mark, block = abstract.partition(_PROJECT_MARK)
-        lines = [row[2:] for row in block.strip().splitlines() if row.startswith("- ")] if mark else []
-        if text in lines:
+        entry = f"{tr('Data source')}: {text}"
+        if entry in list(metadata.history() or []):
             return
-        lines.append(text)
-        summary = _PROJECT_MARK + "\n" + "\n".join(f"- {row}" for row in lines)
-        metadata.setAbstract(f"{own.rstrip()}\n\n{summary}" if own.strip() else summary)
+        metadata.addHistoryItem(entry)
         project.setMetadata(metadata)
     except Exception as exc:  # noqa: BLE001
-        log_warning(f"Project sources summary not written: {exc}")
+        log_warning(f"Project source not written: {exc}")
 
 
 def note_project_run(run_id: str) -> None:
@@ -939,7 +916,7 @@ def note_project_run(run_id: str) -> None:
         _RUN_LAYERS.clear()
         project = QgsProject.instance()
         metadata = project.metadata()
-        metadata.addHistoryItem(tr("{day} UTC, AI Agent run {run}: added {layers}").format(
+        metadata.addHistoryItem(tr("{day} UTC, run {run}: added {layers}").format(
             day=datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M"), run=str(run_id)[:8],
             layers=", ".join(names[:20]) + (" ..." if len(names) > 20 else "")))
         project.setMetadata(metadata)
@@ -1078,8 +1055,7 @@ def write_origin(layer, tool: str = "", args=None) -> None:
         names = {lid: str(other.name()) for lid, other in QgsProject.instance().mapLayers().items() if lid != own_id}
 
         clean = _origin_value(link_vault.hide(dict(args or {})), names)
-        parts = [tr("{day} UTC, added by AI Agent by TerraLab").format(
-            day=datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M"))]
+        parts = [datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")]
         if tool:
             parts.append(tr("tool: {tool}").format(tool=tool))
         if clean:

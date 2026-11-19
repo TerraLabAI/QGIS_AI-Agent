@@ -24,7 +24,7 @@ from qgis.PyQt.QtWidgets import QDialog, QDockWidget, QMenu
 from ..core.host_platform import prefers_reduced_motion
 from ..core.i18n import day_pattern, words_locale
 from ..core.policy import PLUGIN_CACHE_DIR
-from ..core.served_state import SITE_URL, TUTORIAL_URL, build_utm_url, get_served_learn_items
+from ..core.served_state import SITE_URL, TUTORIAL_URL, get_served_learn_items
 
 PRODUCT_NAME = "AI Agent"
 
@@ -213,8 +213,6 @@ def drop_legacy_cache_dir() -> bool:
 
 
 
-
-
 LEARN_ITEMS = (
     {
         "kind": "video",
@@ -230,14 +228,6 @@ LEARN_ITEMS = (
         "note": QT_TRANSLATE_NOOP("AIAgent", "The panel from the first prompt to the finished map."),
         "url": TUTORIAL_URL,
         "thumbnail_url": f"{SITE_URL}/blog/ai-agent-complete-guide/og.jpg",
-        "translate": ("title", "note"),
-    },
-    {
-        "kind": "article",
-        "title": QT_TRANSLATE_NOOP("AIAgent", "More on the blog"),
-        "note": QT_TRANSLATE_NOOP("AIAgent", "What it can do, what it asks before doing, and how to undo a run."),
-        "url": build_utm_url("/blog", "settings_learn"),
-        "thumbnail_url": "",
         "translate": ("title", "note"),
     },
 )

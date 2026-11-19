@@ -1882,6 +1882,78 @@ Việc xóa là không thể hoàn tác khi thời gian chờ kết thúc. Cho �
             <source>left out</source>
             <translation>đã loại ra</translation>
         </message>
+        <message>
+            <source>The AI agent has been thinking for {time}</source>
+            <translation>AI agent đã suy nghĩ được {time}</translation>
+        </message>
+        <message>
+            <source>Code running in QGIS for {time}</source>
+            <translation>Mã đang chạy trong QGIS được {time}</translation>
+        </message>
+        <message>
+            <source>Running in QGIS for {time}</source>
+            <translation>Đang chạy trong QGIS được {time}</translation>
+        </message>
+        <message>
+            <source>Bugs</source>
+            <translation>Lỗi</translation>
+        </message>
+        <message>
+            <source>For a team, a call is quickest.</source>
+            <translation>Với một nhóm, gọi điện là nhanh nhất.</translation>
+        </message>
+        <message>
+            <source>Ideas</source>
+            <translation>Ý tưởng</translation>
+        </message>
+        <message>
+            <source>Licences, quotes and invoices for your team, too.</source>
+            <translation>Giấy phép, báo giá và hóa đơn cho nhóm của bạn cũng có.</translation>
+        </message>
+        <message>
+            <source>Questions</source>
+            <translation>Câu hỏi</translation>
+        </message>
+        <message>
+            <source>Team needs</source>
+            <translation>Nhu cầu của nhóm</translation>
+        </message>
+        <message>
+            <source>Map history</source>
+            <translation>Lịch sử bản đồ</translation>
+        </message>
+        <message>
+            <source>Open earlier project versions</source>
+            <translation>Mở các phiên bản dự án trước đó</translation>
+        </message>
+        <message>
+            <source>Recall your last message</source>
+            <translation>Gọi lại tin nhắn gần nhất của bạn</translation>
+        </message>
+        <message>
+            <source>Redo it</source>
+            <translation>Làm lại</translation>
+        </message>
+        <message>
+            <source>Sent with this conversation and the plugin's recent log.</source>
+            <translation>Được gửi kèm cuộc trò chuyện này và nhật ký gần đây của plugin.</translation>
+        </message>
+        <message>
+            <source>Undo the last request</source>
+            <translation>Hoàn tác yêu cầu gần nhất</translation>
+        </message>
+        <message>
+            <source>We read every message and use it to improve AI Agent.</source>
+            <translation>Chúng tôi đọc mọi tin nhắn và dùng chúng để cải thiện AI Agent.</translation>
+        </message>
+        <message>
+            <source>What happened, and what did you expect? For example: the buffer came out in degrees instead of metres.</source>
+            <translation>Chuyện gì đã xảy ra, và bạn mong đợi điều gì? Ví dụ: vùng đệm ra theo độ thay vì mét.</translation>
+        </message>
+        <message>
+            <source>Kept until you delete it</source>
+            <translation>Được giữ cho đến khi bạn xóa</translation>
+        </message>
     </context>
     <context>
         <name>AIAgentContext</name>
@@ -2015,12 +2087,12 @@ Việc xóa là không thể hoàn tác khi thời gian chờ kết thúc. Cho �
             <translation>công cụ: {tool}</translation>
         </message>
         <message>
-            <source>{day} UTC, AI Agent run {run}: added {layers}</source>
-            <translation>{day} UTC, lần chạy AI Agent {run}: đã thêm {layers}</translation>
+            <source>{day} UTC, run {run}: added {layers}</source>
+            <translation>{day} UTC, lần chạy {run}: đã thêm {layers}</translation>
         </message>
         <message>
-            <source>{day} UTC, added by AI Agent by TerraLab</source>
-            <translation>{day} UTC, được AI Agent của TerraLab thêm vào</translation>
+            <source>Data source</source>
+            <translation>Nguồn dữ liệu</translation>
         </message>
     </context>
     <context>
@@ -3477,6 +3549,10 @@ Việc xóa là không thể hoàn tác khi thời gian chờ kết thúc. Cho �
             <source>Stopping...</source>
             <translation>Đang dừng...</translation>
         </message>
+        <message>
+            <source>the map render</source>
+            <translation>bản kết xuất bản đồ</translation>
+        </message>
     </context>
     <context>
         <name>Composer</name>
@@ -4265,6 +4341,18 @@ Tập tin này không còn ở nơi lần chạy đã ghi.</translation>
             <source>Dock or undock AI Agent</source>
             <translation>Gắn hoặc tách AI Agent</translation>
         </message>
+        <message>
+            <source>Pro ends on {date}. Keep it in one click.</source>
+            <translation>Pro kết thúc vào {date}. Giữ lại chỉ với một cú nhấp.</translation>
+        </message>
+        <message>
+            <source>Pro is set to end. Keep it in one click.</source>
+            <translation>Pro sắp kết thúc. Giữ lại chỉ với một cú nhấp.</translation>
+        </message>
+        <message>
+            <source>See what's in Pro</source>
+            <translation>Xem Pro có gì</translation>
+        </message>
     </context>
     <context>
         <name>HistoryPopup</name>
@@ -4860,6 +4948,10 @@ Nhấn để hiện trong bảng Lớp.</translation>
             <source>{n} of {total} features in {layer}</source>
             <translation>{n} trong {total} đối tượng của {layer}</translation>
         </message>
+        <message>
+            <source>Allow lets AI Agent read and write in {folder} for this project.</source>
+            <translation>Cho phép sẽ để AI Agent đọc và ghi trong {folder} cho dự án này.</translation>
+        </message>
     </context>
     <context>
         <name>PermissionChip</name>
@@ -5404,6 +5496,138 @@ Cảm ơn</translation>
             <source>{n} tasks a month, cancel anytime</source>
             <translation>{n} tác vụ mỗi tháng, hủy bất cứ lúc nào</translation>
         </message>
+        <message>
+            <source>1 task left this month</source>
+            <translation>Còn 1 tác vụ trong tháng này</translation>
+        </message>
+        <message>
+            <source>All {n} tasks used. They reset on {date}.</source>
+            <translation>Đã dùng hết {n} tác vụ. Chúng được đặt lại vào {date}.</translation>
+        </message>
+        <message>
+            <source>Back to Pro</source>
+            <translation>Quay lại Pro</translation>
+        </message>
+        <message>
+            <source>Come back to Pro for {n} tasks a month.</source>
+            <translation>Quay lại Pro để có {n} tác vụ mỗi tháng.</translation>
+        </message>
+        <message>
+            <source>Contact us</source>
+            <translation>Liên hệ chúng tôi</translation>
+        </message>
+        <message>
+            <source>Contact us for more tasks</source>
+            <translation>Liên hệ chúng tôi để có thêm tác vụ</translation>
+        </message>
+        <message>
+            <source>Get Pro for {n} tasks a month.</source>
+            <translation>Dùng Pro để có {n} tác vụ mỗi tháng.</translation>
+        </message>
+        <message>
+            <source>Need Pro for work?</source>
+            <translation>Cần Pro cho công việc?</translation>
+        </message>
+        <message>
+            <source>No card? Contact us to pay by invoice.</source>
+            <translation>Không có thẻ? Liên hệ chúng tôi để thanh toán bằng hóa đơn.</translation>
+        </message>
+        <message>
+            <source>No card? Contact us to start your free trial.</source>
+            <translation>Không có thẻ? Liên hệ chúng tôi để bắt đầu dùng thử miễn phí.</translation>
+        </message>
+        <message>
+            <source>Pay nothing today</source>
+            <translation>Hôm nay bạn không phải trả gì</translation>
+        </message>
+        <message>
+            <source>Pay nothing today, then your local price each month. Cancel anytime.</source>
+            <translation>Hôm nay bạn không phải trả gì, sau đó trả giá theo khu vực của bạn mỗi tháng. Hủy bất cứ lúc nào.</translation>
+        </message>
+        <message>
+            <source>Pay nothing today, then your student price each month. Cancel anytime.</source>
+            <translation>Hôm nay bạn không phải trả gì, sau đó trả giá sinh viên mỗi tháng. Hủy bất cứ lúc nào.</translation>
+        </message>
+        <message>
+            <source>Pay nothing today, then {price}/month excl. VAT. Cancel anytime.</source>
+            <translation>Hôm nay bạn không phải trả gì, sau đó {price}/tháng chưa gồm VAT. Hủy bất cứ lúc nào.</translation>
+        </message>
+        <message>
+            <source>Pay nothing today, then {price}/month. Cancel anytime.</source>
+            <translation>Hôm nay bạn không phải trả gì, sau đó {price}/tháng. Hủy bất cứ lúc nào.</translation>
+        </message>
+        <message>
+            <source>Payment of {amount} failed</source>
+            <translation>Thanh toán {amount} không thành công</translation>
+        </message>
+        <message>
+            <source>Pro is paused until payment goes through.</source>
+            <translation>Pro tạm dừng cho đến khi thanh toán thành công.</translation>
+        </message>
+        <message>
+            <source>Start Pro now</source>
+            <translation>Bắt đầu dùng Pro ngay</translation>
+        </message>
+        <message>
+            <source>Start free trial</source>
+            <translation>Bắt đầu dùng thử miễn phí</translation>
+        </message>
+        <message>
+            <source>Try Pro free for a week to get more tasks.</source>
+            <translation>Dùng thử Pro miễn phí một tuần để có thêm tác vụ.</translation>
+        </message>
+        <message>
+            <source>Welcome to Pro</source>
+            <translation>Chào mừng đến với Pro</translation>
+        </message>
+        <message>
+            <source>You now have {n} tasks a month.</source>
+            <translation>Bây giờ bạn có {n} tác vụ mỗi tháng.</translation>
+        </message>
+        <message>
+            <source>You used all your tasks this month</source>
+            <translation>Bạn đã dùng hết tác vụ trong tháng này</translation>
+        </message>
+        <message>
+            <source>You used your last task</source>
+            <translation>Bạn đã dùng tác vụ cuối cùng</translation>
+        </message>
+        <message>
+            <source>Your free trial runs until {date}.</source>
+            <translation>Bản dùng thử miễn phí của bạn kéo dài đến {date}.</translation>
+        </message>
+        <message>
+            <source>Your tasks reset next month.</source>
+            <translation>Tác vụ của bạn được đặt lại vào tháng sau.</translation>
+        </message>
+        <message>
+            <source>Your tasks reset on {date}.</source>
+            <translation>Tác vụ của bạn được đặt lại vào {date}.</translation>
+        </message>
+        <message>
+            <source>Your trial did not start. You were not charged.</source>
+            <translation>Bản dùng thử của bạn chưa bắt đầu. Bạn không bị tính phí.</translation>
+        </message>
+        <message>
+            <source>{n} tasks a month. Cancel anytime.</source>
+            <translation>{n} tác vụ mỗi tháng. Hủy bất cứ lúc nào.</translation>
+        </message>
+        <message>
+            <source>{n} tasks left this month</source>
+            <translation>Còn {n} tác vụ trong tháng này</translation>
+        </message>
+        <message>
+            <source>{price} excl. VAT</source>
+            <translation>{price} chưa gồm VAT</translation>
+        </message>
+        <message>
+            <source>{price}/month. Cancel anytime.</source>
+            <translation>{price}/tháng. Hủy bất cứ lúc nào.</translation>
+        </message>
+        <message>
+            <source>{price}/month excl. VAT. Cancel anytime.</source>
+            <translation>{price}/tháng chưa gồm VAT. Hủy bất cứ lúc nào.</translation>
+        </message>
     </context>
     <context>
         <name>QuotaPauseCard</name>
@@ -5645,6 +5869,22 @@ Cảm ơn</translation>
         <message>
             <source>{n} free tasks left</source>
             <translation>Còn {n} tác vụ miễn phí</translation>
+        </message>
+        <message>
+            <source>1 task left</source>
+            <translation>Còn 1 tác vụ</translation>
+        </message>
+        <message>
+            <source>Get more with Pro</source>
+            <translation>Nhận thêm với Pro</translation>
+        </message>
+        <message>
+            <source>Pro: {n} tasks a month, higher effort levels and Autopilot.</source>
+            <translation>Pro: {n} tác vụ mỗi tháng, các mức nỗ lực cao hơn và Autopilot.</translation>
+        </message>
+        <message>
+            <source>{n} tasks left</source>
+            <translation>Còn {n} tác vụ</translation>
         </message>
     </context>
     <context>
@@ -6206,6 +6446,478 @@ Cảm ơn</translation>
             <source>Your usage and chats help us fix bugs. Turn it off anytime.</source>
             <translation>Cách bạn dùng và các cuộc trò chuyện giúp chúng tôi sửa lỗi. Bạn có thể tắt bất cứ lúc nào.</translation>
         </message>
+        <message>
+            <source>Bell</source>
+            <translation>Chuông</translation>
+        </message>
+        <message>
+            <source>Chime</source>
+            <translation>Chuông gió</translation>
+        </message>
+        <message>
+            <source>Icon and sound</source>
+            <translation>Biểu tượng và âm thanh</translation>
+        </message>
+        <message>
+            <source>Icon only</source>
+            <translation>Chỉ biểu tượng</translation>
+        </message>
+        <message>
+            <source>Little train</source>
+            <translation>Tàu nhỏ</translation>
+        </message>
+        <message>
+            <source>Marimba</source>
+            <translation>Marimba</translation>
+        </message>
+        <message>
+            <source>Needs your answer</source>
+            <translation>Cần câu trả lời của bạn</translation>
+        </message>
+        <message>
+            <source>Notifications</source>
+            <translation>Thông báo</translation>
+        </message>
+        <message>
+            <source>Notify me</source>
+            <translation>Thông báo cho tôi</translation>
+        </message>
+        <message>
+            <source>Off</source>
+            <translation>Tắt</translation>
+        </message>
+        <message>
+            <source>Only while QGIS is in the background or the panel is hidden.</source>
+            <translation>Chỉ khi QGIS chạy nền hoặc bảng điều khiển bị ẩn.</translation>
+        </message>
+        <message>
+            <source>Play</source>
+            <translation>Phát</translation>
+        </message>
+        <message>
+            <source>Questions and approvals.</source>
+            <translation>Câu hỏi và phê duyệt.</translation>
+        </message>
+        <message>
+            <source>Run finished</source>
+            <translation>Chạy xong</translation>
+        </message>
+        <message>
+            <source>Volume</source>
+            <translation>Âm lượng</translation>
+        </message>
+        <message>
+            <source>1 task left</source>
+            <translation>Còn 1 tác vụ</translation>
+        </message>
+        <message>
+            <source>A badge on the QGIS icon and a sound, only while QGIS is in the background or the panel is hidden.</source>
+            <translation>Một huy hiệu trên biểu tượng QGIS và một âm thanh, chỉ khi QGIS chạy nền hoặc bảng điều khiển bị ẩn.</translation>
+        </message>
+        <message>
+            <source>About you and Instructions</source>
+            <translation>Về bạn và Hướng dẫn</translation>
+        </message>
+        <message>
+            <source>Back in {n} days</source>
+            <translation>Có lại sau {n} ngày</translation>
+        </message>
+        <message>
+            <source>Back tomorrow</source>
+            <translation>Có lại vào ngày mai</translation>
+        </message>
+        <message>
+            <source>Call me back while I work elsewhere</source>
+            <translation>Gọi tôi quay lại khi tôi đang làm việc ở nơi khác</translation>
+        </message>
+        <message>
+            <source>Change</source>
+            <translation>Thay đổi</translation>
+        </message>
+        <message>
+            <source>Commercial use included</source>
+            <translation>Gồm sử dụng thương mại</translation>
+        </message>
+        <message>
+            <source>Context for every task</source>
+            <translation>Ngữ cảnh cho mọi tác vụ</translation>
+        </message>
+        <message>
+            <source>Could not load your usage</source>
+            <translation>Không thể tải mức sử dụng của bạn</translation>
+        </message>
+        <message>
+            <source>Detect and outline objects on imagery: buildings, trees, water or fields become polygons you can edit.</source>
+            <translation>Phát hiện và khoanh vùng đối tượng trên ảnh: nhà, cây, nước hoặc ruộng trở thành đa giác bạn có thể chỉnh sửa.</translation>
+        </message>
+        <message>
+            <source>Edit your imagery with one sentence, the way you would ask a colleague.</source>
+            <translation>Chỉnh sửa ảnh của bạn bằng một câu, như khi bạn nhờ một đồng nghiệp.</translation>
+        </message>
+        <message>
+            <source>Every task, day by day, on terra-lab.ai</source>
+            <translation>Mọi tác vụ, từng ngày, trên terra-lab.ai</translation>
+        </message>
+        <message>
+            <source>Everything else here works without an account.</source>
+            <translation>Mọi thứ khác ở đây hoạt động mà không cần tài khoản.</translation>
+        </message>
+        <message>
+            <source>From your TerraLab account.</source>
+            <translation>Từ tài khoản TerraLab của bạn.</translation>
+        </message>
+        <message>
+            <source>General</source>
+            <translation>Chung</translation>
+        </message>
+        <message>
+            <source>How the AI agent answers.</source>
+            <translation>Cách tác nhân AI trả lời.</translation>
+        </message>
+        <message>
+            <source>How the AI agent calls you back.</source>
+            <translation>Cách tác nhân AI gọi bạn quay lại.</translation>
+        </message>
+        <message>
+            <source>Install</source>
+            <translation>Cài đặt</translation>
+        </message>
+        <message>
+            <source>Install {plugin}</source>
+            <translation>Cài đặt {plugin}</translation>
+        </message>
+        <message>
+            <source>Loading your plan...</source>
+            <translation>Đang tải gói của bạn...</translation>
+        </message>
+        <message>
+            <source>Loading your tasks...</source>
+            <translation>Đang tải các tác vụ của bạn...</translation>
+        </message>
+        <message>
+            <source>Monthly tasks</source>
+            <translation>Tác vụ hàng tháng</translation>
+        </message>
+        <message>
+            <source>More from TerraLab</source>
+            <translation>Thêm từ TerraLab</translation>
+        </message>
+        <message>
+            <source>Needs your answer: {a} · Run finished: {b}</source>
+            <translation>Cần bạn trả lời: {a} · Đã chạy xong: {b}</translation>
+        </message>
+        <message>
+            <source>One TerraLab account signs you in to all three plugins.</source>
+            <translation>Một tài khoản TerraLab đăng nhập cho cả ba plugin.</translation>
+        </message>
+        <message>
+            <source>One task is one message you send, however many steps the AI agent takes. Tasks that fail on our side are given back.</source>
+            <translation>Một tác vụ là một tin nhắn bạn gửi, dù tác nhân AI thực hiện bao nhiêu bước. Các tác vụ thất bại từ phía chúng tôi sẽ được hoàn lại.</translation>
+        </message>
+        <message>
+            <source>Open {plugin}</source>
+            <translation>Mở {plugin}</translation>
+        </message>
+        <message>
+            <source>Opens the QGIS plugin manager on this plugin. Free to install.</source>
+            <translation>Mở trình quản lý plugin của QGIS tại plugin này. Cài đặt miễn phí.</translation>
+        </message>
+        <message>
+            <source>Personal, non-commercial use</source>
+            <translation>Dùng cá nhân, phi thương mại</translation>
+        </message>
+        <message>
+            <source>Plan</source>
+            <translation>Gói</translation>
+        </message>
+        <message>
+            <source>Profile</source>
+            <translation>Hồ sơ</translation>
+        </message>
+        <message>
+            <source>Resets in {n} days</source>
+            <translation>Đặt lại sau {n} ngày</translation>
+        </message>
+        <message>
+            <source>Resets tomorrow</source>
+            <translation>Đặt lại vào ngày mai</translation>
+        </message>
+        <message>
+            <source>Rules the AI agent always follows.</source>
+            <translation>Các quy tắc tác nhân AI luôn tuân theo.</translation>
+        </message>
+        <message>
+            <source>Saved on this computer.</source>
+            <translation>Được lưu trên máy tính này.</translation>
+        </message>
+        <message>
+            <source>Search settings</source>
+            <translation>Tìm trong cài đặt</translation>
+        </message>
+        <message>
+            <source>Show its panel.</source>
+            <translation>Hiện bảng của nó.</translation>
+        </message>
+        <message>
+            <source>Sign in to see your plan and tasks</source>
+            <translation>Đăng nhập để xem gói và tác vụ của bạn</translation>
+        </message>
+        <message>
+            <source>Sounds</source>
+            <translation>Âm thanh</translation>
+        </message>
+        <message>
+            <source>Tell the AI agent who you are and the rules it always follows. Included in Pro.</source>
+            <translation>Cho tác nhân AI biết bạn là ai và các quy tắc nó luôn tuân theo. Có trong Pro.</translation>
+        </message>
+        <message>
+            <source>Two more AI plugins for QGIS, from the makers of AI Agent.</source>
+            <translation>Hai plugin AI khác cho QGIS, từ nhóm làm ra AI Agent.</translation>
+        </message>
+        <message>
+            <source>Upgrade plan</source>
+            <translation>Nâng cấp gói</translation>
+        </message>
+        <message>
+            <source>Upgrade to Pro</source>
+            <translation>Nâng cấp lên Pro</translation>
+        </message>
+        <message>
+            <source>Usage</source>
+            <translation>Mức sử dụng</translation>
+        </message>
+        <message>
+            <source>What counts as a task</source>
+            <translation>Điều gì được tính là một tác vụ</translation>
+        </message>
+        <message>
+            <source>What leaves this computer, and for how long.</source>
+            <translation>Những gì rời khỏi máy tính này, và trong bao lâu.</translation>
+        </message>
+        <message>
+            <source>What you work on, your data, your area.</source>
+            <translation>Bạn làm gì, dữ liệu của bạn, khu vực của bạn.</translation>
+        </message>
+        <message>
+            <source>Your plan and the tasks you used this month.</source>
+            <translation>Gói của bạn và các tác vụ bạn đã dùng trong tháng này.</translation>
+        </message>
+        <message>
+            <source>Your plan, payment method and invoices, on terra-lab.ai.</source>
+            <translation>Gói, phương thức thanh toán và hóa đơn của bạn, trên terra-lab.ai.</translation>
+        </message>
+        <message>
+            <source>Your tasks are counted on our side; nothing is lost.</source>
+            <translation>Các tác vụ của bạn được đếm ở phía chúng tôi; không có gì bị mất.</translation>
+        </message>
+        <message>
+            <source>of {limit} this month</source>
+            <translation>trên {limit} trong tháng này</translation>
+        </message>
+        <message>
+            <source>{n} tasks left</source>
+            <translation>Còn {n} tác vụ</translation>
+        </message>
+        <message>
+            <source>{p}% left</source>
+            <translation>Còn {p}%</translation>
+        </message>
+        <message>
+            <source>1 task left this month</source>
+            <translation>Còn 1 tác vụ trong tháng này</translation>
+        </message>
+        <message>
+            <source>Cancel anytime before it ends.</source>
+            <translation>Hủy bất cứ lúc nào trước khi hết hạn.</translation>
+        </message>
+        <message>
+            <source>Card declined</source>
+            <translation>Thẻ bị từ chối</translation>
+        </message>
+        <message>
+            <source>Come back to Pro</source>
+            <translation>Quay lại Pro</translation>
+        </message>
+        <message>
+            <source>Ends {date}</source>
+            <translation>Kết thúc {date}</translation>
+        </message>
+        <message>
+            <source>Payment failed</source>
+            <translation>Thanh toán thất bại</translation>
+        </message>
+        <message>
+            <source>Pro is off until it's paid.</source>
+            <translation>Pro sẽ tạm tắt cho đến khi thanh toán.</translation>
+        </message>
+        <message>
+            <source>Pro trial</source>
+            <translation>Dùng thử Pro</translation>
+        </message>
+        <message>
+            <source>Pro trial, 1 day left</source>
+            <translation>Dùng thử Pro, còn 1 ngày</translation>
+        </message>
+        <message>
+            <source>Pro trial, ends {date}</source>
+            <translation>Dùng thử Pro, kết thúc {date}</translation>
+        </message>
+        <message>
+            <source>Pro trial, {n} days left</source>
+            <translation>Dùng thử Pro, còn {n} ngày</translation>
+        </message>
+        <message>
+            <source>Then {price}/month. Cancel anytime.</source>
+            <translation>Sau đó {price}/tháng. Hủy bất cứ lúc nào.</translation>
+        </message>
+        <message>
+            <source>Try Pro free for {n} days</source>
+            <translation>Dùng thử Pro miễn phí {n} ngày</translation>
+        </message>
+        <message>
+            <source>Try another card</source>
+            <translation>Thử thẻ khác</translation>
+        </message>
+        <message>
+            <source>Update card</source>
+            <translation>Cập nhật thẻ</translation>
+        </message>
+        <message>
+            <source>You're out of tasks this month</source>
+            <translation>Bạn đã hết tác vụ trong tháng này</translation>
+        </message>
+        <message>
+            <source>You're out until {date}</source>
+            <translation>Bạn hết lượt đến {date}</translation>
+        </message>
+        <message>
+            <source>Your trial didn't start. Nothing was charged.</source>
+            <translation>Bản dùng thử chưa bắt đầu. Bạn chưa bị tính phí.</translation>
+        </message>
+        <message>
+            <source>{amount} due.</source>
+            <translation>Cần thanh toán {amount}.</translation>
+        </message>
+        <message>
+            <source>{n} tasks left this month</source>
+            <translation>Còn {n} tác vụ trong tháng này</translation>
+        </message>
+        <message>
+            <source>{plan}, renews {date}</source>
+            <translation>{plan}, gia hạn {date}</translation>
+        </message>
+        <message>
+            <source>{price} excl. VAT</source>
+            <translation>{price} chưa gồm VAT</translation>
+        </message>
+        <message>
+            <source>{price}/month. Cancel anytime.</source>
+            <translation>{price}/tháng. Hủy bất cứ lúc nào.</translation>
+        </message>
+        <message>
+            <source>{used} of {limit} used</source>
+            <translation>Đã dùng {used}/{limit}</translation>
+        </message>
+        <message>
+            <source>Clear search</source>
+            <translation>Xóa nội dung tìm kiếm</translation>
+        </message>
+        <message>
+            <source>Try Pro free</source>
+            <translation>Thử Pro miễn phí</translation>
+        </message>
+        <message>
+            <source>Delete account</source>
+            <translation>Xóa tài khoản</translation>
+        </message>
+        <message>
+            <source>Report a problem</source>
+            <translation>Báo cáo sự cố</translation>
+        </message>
+        <message>
+            <source>Ends on {date}</source>
+            <translation>Kết thúc vào {date}</translation>
+        </message>
+        <message>
+            <source>Monthly limit reached, resets {date}</source>
+            <translation>Đã đạt giới hạn hằng tháng, đặt lại vào {date}</translation>
+        </message>
+        <message>
+            <source>Pro is paused until payment goes through.</source>
+            <translation>Pro tạm dừng cho đến khi thanh toán thành công.</translation>
+        </message>
+        <message>
+            <source>Pro trial: 1 day left</source>
+            <translation>Dùng thử Pro: còn 1 ngày</translation>
+        </message>
+        <message>
+            <source>Pro trial: {n} days left</source>
+            <translation>Dùng thử Pro: còn {n} ngày</translation>
+        </message>
+        <message>
+            <source>Your trial did not start. You were not charged.</source>
+            <translation>Bản dùng thử của bạn chưa bắt đầu. Bạn không bị tính phí.</translation>
+        </message>
+        <message>
+            <source>Then {price}/month excl. VAT. Cancel anytime.</source>
+            <translation>Sau đó {price}/tháng chưa gồm VAT. Hủy bất cứ lúc nào.</translation>
+        </message>
+        <message>
+            <source>{price}/month excl. VAT. Cancel anytime.</source>
+            <translation>{price}/tháng chưa gồm VAT. Hủy bất cứ lúc nào.</translation>
+        </message>
+        <message>
+            <source>Desktop notifications</source>
+            <translation>Thông báo trên máy tính</translation>
+        </message>
+        <message>
+            <source>When QGIS is in the background and a run finishes or needs you.</source>
+            <translation>Khi QGIS chạy nền và một lượt chạy kết thúc hoặc cần bạn.</translation>
+        </message>
+        <message>
+            <source>Resets today</source>
+            <translation>Đặt lại hôm nay</translation>
+        </message>
+        <message>
+            <source>Try Pro free for 1 day</source>
+            <translation>Dùng thử Pro miễn phí 1 ngày</translation>
+        </message>
+        <message>
+            <source>More AI plugins</source>
+            <translation>Thêm plugin AI</translation>
+        </message>
+        <message>
+            <source>Applies after restarting QGIS.</source>
+            <translation>Có hiệu lực sau khi khởi động lại QGIS.</translation>
+        </message>
+        <message>
+            <source>How AI Agent looks, what it knows about you, and how it calls you back.</source>
+            <translation>AI Agent trông ra sao, nó biết gì về bạn và cách nó gọi bạn quay lại.</translation>
+        </message>
+        <message>
+            <source>Language</source>
+            <translation>Ngôn ngữ</translation>
+        </message>
+        <message>
+            <source>Usage stats: only that you used the app and when. Chats are kept as your History retention says, so a conversation survives an update; we may read one, or have a model score it, to fix bugs, never to train AI. 0 days of history stores nothing.</source>
+            <translation>Thống kê sử dụng: chỉ việc bạn đã dùng ứng dụng và vào lúc nào. Cuộc trò chuyện được giữ theo cài đặt Thời gian lưu giữ lịch sử của bạn để không mất sau khi cập nhật; chúng tôi có thể đọc một cuộc trò chuyện, hoặc nhờ một mô hình chấm điểm nó, để sửa lỗi, không bao giờ để huấn luyện AI. Lịch sử 0 ngày nghĩa là không lưu gì cả.</translation>
+        </message>
+        <message>
+            <source>Grey text in the message box. Tab takes it.</source>
+            <translation>Chữ xám trong khung tin nhắn. Nhấn Tab để chấp nhận.</translation>
+        </message>
+        <message>
+            <source>Typing suggestions</source>
+            <translation>Gợi ý khi gõ</translation>
+        </message>
+        <message>
+            <source>Language, response style, suggestions and notifications go back to their defaults.</source>
+            <translation>Ngôn ngữ, phong cách trả lời, gợi ý và thông báo sẽ trở về mặc định.</translation>
+        </message>
+        <message>
+            <source>Reset settings</source>
+            <translation>Đặt lại cài đặt</translation>
+        </message>
     </context>
     <context>
         <name>SiblingCard</name>
@@ -6608,6 +7320,10 @@ Cảm ơn</translation>
         <message>
             <source>Always allowed</source>
             <translation>Đã luôn cho phép</translation>
+        </message>
+        <message>
+            <source>Allow AI Agent to write in {folder}?</source>
+            <translation>Cho phép AI Agent ghi vào {folder}?</translation>
         </message>
     </context>
     <context>
@@ -8919,6 +9635,97 @@ Cảm ơn</translation>
         <message>
             <source>Selected</source>
             <translation>Đã chọn</translation>
+        </message>
+    </context>
+    <context>
+        <name>FolderCard</name>
+        <message>
+            <source>A folder on another computer of your network.</source>
+            <translation>Một thư mục trên máy tính khác trong mạng của bạn.</translation>
+        </message>
+        <message>
+            <source>Denied</source>
+            <translation>Đã từ chối</translation>
+        </message>
+        <message>
+            <source>Deny</source>
+            <translation>Từ chối</translation>
+        </message>
+        <message>
+            <source>Let AI Agent open this folder?</source>
+            <translation>Cho phép AI Agent mở thư mục này?</translation>
+        </message>
+        <message>
+            <source>Read and write</source>
+            <translation>Đọc và ghi</translation>
+        </message>
+        <message>
+            <source>Read only</source>
+            <translation>Chỉ đọc</translation>
+        </message>
+        <message>
+            <source>What AI Agent reads there is sent to the AI model. Kept for this project.</source>
+            <translation>Nội dung AI Agent đọc ở đó sẽ được gửi đến mô hình AI. Được lưu cho dự án này.</translation>
+        </message>
+    </context>
+    <context>
+        <name>FolderChip</name>
+        <message>
+            <source>1 folder</source>
+            <translation>1 thư mục</translation>
+        </message>
+        <message>
+            <source>Folders</source>
+            <translation>Thư mục</translation>
+        </message>
+        <message>
+            <source>Folders AI Agent can open in this project</source>
+            <translation>Các thư mục AI Agent có thể mở trong dự án này</translation>
+        </message>
+        <message>
+            <source>{n} folders</source>
+            <translation>{n} thư mục</translation>
+        </message>
+    </context>
+    <context>
+        <name>FolderPopover</name>
+        <message>
+            <source>Folders AI Agent can open in this project</source>
+            <translation>Các thư mục AI Agent có thể mở trong dự án này</translation>
+        </message>
+        <message>
+            <source>The project folder and its layers' folders are always open for reading.</source>
+            <translation>Thư mục dự án và thư mục của các lớp luôn được mở để đọc.</translation>
+        </message>
+    </context>
+    <context>
+        <name>_FolderRow</name>
+        <message>
+            <source>Read and write</source>
+            <translation>Đọc và ghi</translation>
+        </message>
+        <message>
+            <source>Read only</source>
+            <translation>Chỉ đọc</translation>
+        </message>
+        <message>
+            <source>Remove</source>
+            <translation>Xóa</translation>
+        </message>
+    </context>
+    <context>
+        <name>AIAgentRecovery</name>
+        <message>
+            <source>QGIS closed during a run. {n} layer(s) of unsaved work came back in the group "{group}". Save them to keep them.</source>
+            <translation>QGIS đã đóng trong lúc chạy. {n} lớp của phần việc chưa lưu đã được khôi phục trong nhóm "{group}". Hãy lưu chúng để giữ lại.</translation>
+        </message>
+        <message>
+            <source>Some unsaved work could not be put back. Its copy is kept in {folder}.</source>
+            <translation>Một số phần việc chưa lưu không thể khôi phục. Bản sao của chúng được giữ trong {folder}.</translation>
+        </message>
+        <message>
+            <source>{name} (unsaved edits kept)</source>
+            <translation>{name} (giữ các chỉnh sửa chưa lưu)</translation>
         </message>
     </context>
 </TS>

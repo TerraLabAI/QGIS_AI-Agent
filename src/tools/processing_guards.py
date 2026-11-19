@@ -668,8 +668,17 @@ def _names_a_layer(value) -> bool:
     return not os.path.exists(value)
 
 
+def _list_entry_name(item):
+
+    return item.get("layer") if isinstance(item, dict) else item
+
+
 def _layer_id_for(item):
 
+    if isinstance(item, dict):
+        named = item.get("layer")
+        swapped = _layer_id_for(named)
+        return item if swapped == named else {**item, "layer": swapped}
     if not _names_a_layer(item):
         return item
     layer = resolve_layer(item.strip())
@@ -688,7 +697,7 @@ def _layer_list_keys(alg) -> set:
         return keys
     for definition in definitions:
         try:
-            if definition.type() == "multilayer":
+            if definition.type() in ("multilayer", "dxflayers"):
                 keys.add(definition.name())
         except Exception:  # nosec B112
             continue
@@ -964,9 +973,19 @@ def _unresolved_input_check(alg, parameters: dict) -> dict | None:
         items = parameters.get(key)
         if not isinstance(items, list):
             continue
-        missing = [item.strip() for item in items if _names_a_layer(item) and resolve_layer(item.strip()) is None]
+        names = [_list_entry_name(item).strip() for item in items if _names_a_layer(_list_entry_name(item))]
+        found = {name: resolve_layer(name) for name in names}
+        missing = [name for name, layer in found.items() if layer is None]
         if missing:
             return _no_such_layers(alg, key, missing)
+
+
+        broken = [layer.name() for layer in found.values() if not layer.isValid()]
+        if broken:
+            quoted = ", ".join(repr(name) for name in broken)
+            return tool_error(f"{PARAMETER_MARK} {quoted} in {key} cannot be read from its source, so "
+                              f"{alg.id() if alg is not None else 'this algorithm'} would refuse the whole "
+                              "list. Leave it out or repair its source. Nothing was run.", "INVALID_ARGS")
     return None
 
 
@@ -1357,7 +1376,9 @@ def _hillshade_patterns():
         return "|".join(found)
 
     algorithm, name = alternatives("algorithm_words"), alternatives("name_words")
-    history = re.compile(r"TerraLab AI Agent with ([\w.:-]*(?:" + algorithm + r")[\w.:-]*)", re.IGNORECASE)
+
+    history = re.compile(r"(?:UTC: |TerraLab AI Agent with )([\w.:-]*(?:" + algorithm + r")[\w.:-]*)",
+                         re.IGNORECASE)
     return (history if algorithm else None, re.compile(name, re.IGNORECASE) if name else None)
 
 

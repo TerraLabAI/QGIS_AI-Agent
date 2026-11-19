@@ -75,7 +75,7 @@ from .attachments import (
     any_filter,
     attachment_from_path,
     classify,
-    image_attachment,
+    pasted_image_attachment,
     wire_shape,
 )
 from .composer_input import EMPTY_CHAT_LINES, MIN_LINES, ComposerInput
@@ -83,6 +83,7 @@ from .composer_suggest import ComposerSuggest
 from .dictation_bar import ComposerDictation
 from .effort_chip import EffortChip, effort_texts
 from .file_preview import FilePreview
+from .folder_card import FolderChip
 from .font_scale import scale_qss_font_px
 from .geo_paste import capabilities_url, count_layers, place, read_paste, splice
 from .icons import icon_for, paper_of, pixmap_for
@@ -233,12 +234,12 @@ class Composer(QFrame):
     queue_recall_requested = pyqtSignal()
     files_attached = pyqtSignal(object)
     files_dropped = pyqtSignal(object)
-    context_add_requested = pyqtSignal(str)
     attachments_changed = pyqtSignal()
     chips_changed = pyqtSignal()
     chip_removed = pyqtSignal(str, str)
     layer_card_clicked = pyqtSignal(str)
     permission_mode_changed = pyqtSignal(str)
+    folder_removed = pyqtSignal(str)
     effort_changed = pyqtSignal(str)
     upsell_shown = pyqtSignal(str)
     upgrade_requested = pyqtSignal(str)
@@ -367,6 +368,9 @@ class Composer(QFrame):
         self._permission_chip.upgrade_requested.connect(lambda: self.upgrade_requested.emit("autopilot"))
         self._permission_chip.upsell_shown.connect(lambda: self.upsell_shown.emit("autopilot"))
         row.addWidget(self._permission_chip, 0, Qt.AlignmentFlag.AlignVCenter)
+        self._folder_chip = FolderChip(self)
+        self._folder_chip.removed.connect(self.folder_removed.emit)
+        row.addWidget(self._folder_chip, 0, Qt.AlignmentFlag.AlignVCenter)
         row.addStretch(1)
 
         self._input = ComposerInput(self)
@@ -486,6 +490,8 @@ class Composer(QFrame):
 
         need = (_ATTACH_PX + self._chip_width(perm, False) + _ROW_MIN_GAP
                 + self._chip_width(effort, False) + 2 * _SEND_SIZE + 5 * SPACE_OUTER)
+        if not self._folder_chip.isHidden():
+            need += self._folder_chip.width_for(False) + SPACE_OUTER
         margin = _ROW_HYSTERESIS if self._compact_controls else 0
         compact = not self._empty_chat or need + margin > room
         if compact == bool(self._compact_controls):
@@ -493,6 +499,7 @@ class Composer(QFrame):
         self._compact_controls = int(compact)
         perm.set_compact(compact)
         effort.set_compact(compact)
+        self._folder_chip.set_compact(compact)
 
     def text(self) -> str:
 
@@ -1072,7 +1079,7 @@ class Composer(QFrame):
         if image is None or image.isNull():
             self.show_hint(self.tr("No image in the clipboard."))
             return False
-        item = image_attachment(image, name)
+        item = pasted_image_attachment(image, name)
         return self.add_attachment(item) if item else False
 
     def add_paths(self, paths) -> list:
@@ -1447,6 +1454,12 @@ class Composer(QFrame):
         return chips
 
     def _on_add_files(self) -> None:
+
+
+
+        QTimer.singleShot(0, self._pick_files)
+
+    def _pick_files(self) -> None:
         paths, _filter = QFileDialog.getOpenFileNames(self, self.tr("Add files from your computer"), "", any_filter())
         self._attach_picked(paths)
 

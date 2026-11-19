@@ -1110,9 +1110,7 @@ def _elevation_profile(args: dict) -> dict:
         point = geometry.interpolate(distance).asPoint()
         if to_dem is not None:
             point = to_dem.transform(point)
-        identified = provider.identify(point, enum_member(QgsRaster, "IdentifyFormat", "IdentifyFormatValue"))
-        values = identified.results() if identified.isValid() else {}
-        value = values.get(1)
+        value = _bilinear(provider, dem, point)
         series.append({"distance": round(distance, 3), "elevation": None if value is None else round(float(value), 3)})
     path = _write_profile_png(series)
     return {
@@ -1121,7 +1119,41 @@ def _elevation_profile(args: dict) -> dict:
         "sample_count": count,
         "png_path": path,
         "distance_units": "meters",
+        "interpolation": "bilinear",
+        "dem_pixel": [round(dem.rasterUnitsPerPixelX(), 6), round(dem.rasterUnitsPerPixelY(), 6)],
     }
+
+
+def _bilinear(provider, dem, point):
+
+
+
+
+
+    value_format = enum_member(QgsRaster, "IdentifyFormat", "IdentifyFormatValue")
+
+    def at(x, y):
+        found = provider.identify(QgsPointXY(x, y), value_format)
+        value = (found.results() if found.isValid() else {}).get(1)
+        return None if value is None else float(value)
+
+    extent = dem.extent()
+    dx, dy = dem.rasterUnitsPerPixelX(), dem.rasterUnitsPerPixelY()
+    if dx <= 0 or dy <= 0:
+        return at(point.x(), point.y())
+    col = (point.x() - extent.xMinimum()) / dx - 0.5
+    row = (extent.yMaximum() - point.y()) / dy - 0.5
+    c0, r0 = math.floor(col), math.floor(row)
+    if c0 < 0 or r0 < 0 or c0 + 1 >= dem.width() or r0 + 1 >= dem.height():
+        return at(point.x(), point.y())
+    fx, fy = col - c0, row - r0
+    corners = [at(extent.xMinimum() + (c + 0.5) * dx, extent.yMaximum() - (r + 0.5) * dy)
+               for r in (r0, r0 + 1) for c in (c0, c0 + 1)]
+    if any(value is None for value in corners):
+        return at(point.x(), point.y())
+    top = corners[0] * (1 - fx) + corners[1] * fx
+    bottom = corners[2] * (1 - fx) + corners[3] * fx
+    return top * (1 - fy) + bottom * fy
 
 
 def _write_profile_png(series: list[dict]) -> str:

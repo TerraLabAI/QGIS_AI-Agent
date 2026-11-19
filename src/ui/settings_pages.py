@@ -10,7 +10,7 @@
 from __future__ import annotations
 
 from qgis.PyQt.QtCore import QRectF, Qt, pyqtSignal
-from qgis.PyQt.QtGui import QColor, QFont, QFontMetrics, QPainter
+from qgis.PyQt.QtGui import QColor, QFont, QFontMetrics, QPainter, QPen
 from qgis.PyQt.QtWidgets import (
     QAbstractButton,
     QButtonGroup,
@@ -27,23 +27,21 @@ from qgis.PyQt.QtWidgets import (
 
 from ..core.profile import MEMORY_NOTE_MAX_CHARS
 from ..core.settings import state_dir
+from . import tokens
+from .font_scale import scale_px_length
 from .icons import ink_of, pixmap_for
 from .style import (
     ACCENT,
-    ACCENT_DARK,
-    ACCENT_HOVER,
-    ACCENT_INK,
     FIELD,
     HOVER_ON,
     INK_2,
     INK_3,
     LINE,
     LINE_STRONG,
-    ON_ACCENT,
     RED,
     RED_TINT,
 )
-from .styles import INK_HOVER_FILL, INK_PRESSED_FILL, PANEL_BASE, PANEL_TEXT
+from .styles import DARK_UI, INK_HOVER_FILL, INK_PRESSED_FILL, PANEL_BASE, PANEL_TEXT
 from .widgets import IconButton, plain_tip
 
 
@@ -57,6 +55,17 @@ TINT_ON = LINE_STRONG
 ACCENT_TINT = "rgba(67, 160, 71, 0.10)"
 ACCENT_TINT_ON = "rgba(67, 160, 71, 0.20)"
 ACCENT_BORDER = "rgba(67, 160, 71, 0.45)"
+
+
+_T = tokens.DARK if DARK_UI else tokens.LIGHT
+EDGE = _T["border_default"]
+EDGE_HOVER = _T["border_strong"]
+RADIUS_CARD_PX, RADIUS_CONTROL_PX, RADIUS_THUMB_PX = 14, 8, 6
+CONTROL_PX = 30
+
+
+FOCUS_RING = "#81c784" if DARK_UI else _T["accent_hover"]
+FOCUS_RING_ON_FILL = "#ffffff" if DARK_UI else "#0f3d13"
 
 PAGE_TITLE_QSS = "font-size: 20px; font-weight: 600; color: " + PANEL_TEXT + "; background: transparent;"
 PAGE_SUBTITLE_QSS = f"font-size: 12px; color: {MUTED}; background: transparent;"
@@ -81,18 +90,13 @@ def nav_qss(name: str) -> str:
     return (
         f"QListWidget#{name} {{ background: transparent; border: none; outline: none;"
         " padding: 4px 6px; font-size: 13px; }"
-        f"QListWidget#{name}::item {{ padding: 7px 8px; border-radius: 8px; color: {PANEL_TEXT};"
-        " margin: 1px 0; }"
-        f"QListWidget#{name}::item:hover {{ background: {TINT_HOVER}; }}"
-        f"QListWidget#{name}::item:selected {{ background: {TINT_HOVER}; color: {PANEL_TEXT}; }}"
-    )
 
+        f"QListWidget#{name}::item {{ padding: 6px 7px; border: 1px solid transparent; border-radius: 8px;"
+        f" color: {PANEL_TEXT}; margin: 1px 0; }}"
+        f"QListWidget#{name}::item:hover {{ background: {_T['surface_hover']}; }}"
+        f"QListWidget#{name}::item:selected {{ background: {_T['surface_pressed']}; color: {PANEL_TEXT}; }}"
 
-def sidebar_qss(name: str) -> str:
-    return (
-        f"QFrame#{name} {{ background: {TINT};"
-        f" border: none; border-right: 1px solid {HAIRLINE}; }}"
-        f"QFrame#{name} QLabel {{ background: transparent; border: none; }}"
+        f"QListWidget#{name}::item:selected:focus {{ border-color: {FOCUS_RING}; }}"
     )
 
 
@@ -105,12 +109,14 @@ PRIMARY_BTN_QSS = (
     " border-radius: 8px; padding: 7px 14px; font-size: 12px; font-weight: 600; }"
     f"QPushButton:hover {{ background: {INK_HOVER_FILL}; }}"
     f"QPushButton:pressed {{ background: {INK_PRESSED_FILL}; }}"
+    f"QPushButton:focus {{ border: 2px solid {FOCUS_RING}; padding: 5px 12px; }}"
 )
 GHOST_BTN_QSS = (
     f"QPushButton {{ background: transparent; color: {PANEL_TEXT}; border: 1px solid {HAIRLINE};"
     " border-radius: 8px; padding: 6px 14px; font-size: 12px; }"
     f"QPushButton:hover {{ background: {ACCENT_TINT}; border-color: {ACCENT_BORDER}; }}"
     f"QPushButton:pressed {{ background: {ACCENT_TINT_ON}; }}"
+    f"QPushButton:focus {{ border: 2px solid {FOCUS_RING}; padding: 5px 13px; }}"
 )
 DANGER_GHOST_BTN_QSS = (
     f"QPushButton {{ background: transparent; color: {RED}; border: 1px solid {HAIRLINE};"
@@ -120,18 +126,11 @@ DANGER_GHOST_BTN_QSS = (
 
     f"QPushButton:disabled {{ color: {INK_3}; border-color: {HAIRLINE}; background: transparent; }}"
 )
-
-
-GET_PRO_BTN_QSS = (
-    f"QPushButton {{ background: {ACCENT}; color: {ON_ACCENT}; border: none;"
-    " border-radius: 8px; padding: 7px 14px; font-size: 12px; font-weight: 600; }"
-    f"QPushButton:hover {{ background: {ACCENT_HOVER}; }}"
-    f"QPushButton:pressed {{ background: {ACCENT_DARK}; }}"
-)
 COMBO_QSS = (
     f"QComboBox {{ color: {PANEL_TEXT}; background: {PANEL_BASE}; border: 1px solid {HAIRLINE};"
     " border-radius: 8px; padding: 5px 28px 5px 10px; font-size: 12px; min-height: 18px; }"
-    "QComboBox:hover { border-color: rgba(128,128,128,0.45); }"
+    f"QComboBox:hover {{ border-color: {EDGE_HOVER}; }}"
+    f"QComboBox:focus {{ border: 2px solid {FOCUS_RING}; padding: 4px 27px 4px 9px; }}"
     "QComboBox::drop-down { border: none; width: 26px; subcontrol-origin: padding;"
     " subcontrol-position: center right; }"
     "QComboBox QAbstractItemView { color: " + PANEL_TEXT + "; background: " + PANEL_BASE + ";"
@@ -164,21 +163,28 @@ def _chevron_rule(widget) -> str:
 INPUT_QSS = (
     f"QLineEdit {{ color: {PANEL_TEXT}; background: {PANEL_BASE}; border: 1px solid {HAIRLINE};"
     " border-radius: 8px; padding: 6px 10px; font-size: 12px; }"
-    "QLineEdit:focus { border-color: rgba(128,128,128,0.55); }"
+    f"QLineEdit:hover {{ border-color: {EDGE_HOVER}; }}"
+    f"QLineEdit:focus {{ border: 2px solid {FOCUS_RING}; padding: 5px 9px; }}"
 )
 TEXTAREA_QSS = (
     f"QPlainTextEdit {{ color: {PANEL_TEXT}; background: {PANEL_BASE}; border: 1px solid {HAIRLINE};"
     " border-radius: 8px; padding: 6px 8px; font-size: 12px; }"
-    "QPlainTextEdit:focus { border-color: rgba(128,128,128,0.55); }"
+    f"QPlainTextEdit:hover {{ border-color: {EDGE_HOVER}; }}"
+    f"QPlainTextEdit:focus {{ border: 2px solid {FOCUS_RING}; padding: 5px 7px; }}"
 )
+
+
 SEGMENT_QSS = (
-    "QPushButton { background: transparent; color: " + PANEL_TEXT + "; border: none;"
-    " border-radius: 6px; padding: 4px 12px; font-size: 12px; }"
-    f"QPushButton:hover {{ background: {ACCENT_TINT}; }}"
-    f"QPushButton:checked {{ background: {ACCENT_TINT_ON}; font-weight: 600; }}"
+    f"QPushButton {{ background: transparent; color: {_T['text_secondary']}; border: 1px solid transparent;"
+    f" border-radius: {RADIUS_THUMB_PX}px; padding: 0 12px; font-size: 12px; }}"
+    f"QPushButton:hover {{ color: {_T['text_primary']}; }}"
+    f"QPushButton:checked {{ background: {_T['surface_raised']}; color: {_T['text_primary']};"
+    f" border: 1px solid {EDGE}; font-weight: 600; }}"
+    f"QPushButton:focus {{ border: 1px solid {FOCUS_RING}; }}"
 )
-_SEGMENT_PAD_PX = 12
-SEGMENT_FRAME_QSS = f"QFrame#segmented {{ background: {TINT}; border: 1px solid {HAIRLINE}; border-radius: 8px; }}"
+_SEGMENT_PAD_PX = 14
+SEGMENT_FRAME_QSS = (f"QFrame#segmented {{ background: {_T['surface_field']}; border: none;"
+                     f" border-radius: {RADIUS_CONTROL_PX}px; }}")
 
 
 
@@ -246,6 +252,14 @@ class Switch(QAbstractButton):
             knob.setAlphaF(0.9)
         painter.setBrush(knob)
         painter.drawEllipse(QRectF(x, rect.top() + 3, knob_d, knob_d))
+        if self.hasFocus():
+
+            ring = QColor(ink)
+            ring.setAlphaF(0.55)
+            painter.setPen(QPen(ring, 1.5))
+            painter.setBrush(Qt.BrushStyle.NoBrush)
+            inner = rect.adjusted(1, 1, -1, -1)
+            painter.drawRoundedRect(inner, inner.height() / 2, inner.height() / 2)
         painter.end()
 
 
@@ -337,7 +351,9 @@ class SettingGroup(QFrame):
         super().__init__(parent)
         self.setObjectName("settingsGroup")
         self.setStyleSheet(GROUP_FLAT_QSS if flat else GROUP_QSS)
-        self.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Maximum)
+
+
+        self.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Minimum)
         self._col = QVBoxLayout(self)
         self._col.setContentsMargins(0, 0, 0, 0)
         self._col.setSpacing(0)
@@ -394,6 +410,14 @@ class Segmented(QFrame):
         row = QHBoxLayout(self)
         row.setContentsMargins(3, 3, 3, 3)
         row.setSpacing(2)
+
+
+        text = QFont(self.font())
+        text.setPixelSize(scale_px_length(12))
+        text.setBold(True)
+        metrics = QFontMetrics(text)
+        thumb = max(scale_px_length(CONTROL_PX - 6), metrics.height() + 8)
+        self.setFixedHeight(thumb + 6)
         self._group = QButtonGroup(self)
         self._group.setExclusive(True)
         self._buttons: dict[str, QPushButton] = {}
@@ -408,10 +432,8 @@ class Segmented(QFrame):
 
 
 
-            btn.ensurePolished()
-            bold = QFont(btn.font())
-            bold.setBold(True)
-            btn.setMinimumWidth(QFontMetrics(bold).horizontalAdvance(label) + 2 * _SEGMENT_PAD_PX)
+            btn.setFixedHeight(thumb)
+            btn.setMinimumWidth(metrics.horizontalAdvance(label) + 2 * scale_px_length(_SEGMENT_PAD_PX))
             btn.setChecked(value == current)
             btn.clicked.connect(lambda _=False, v=value: self.changed.emit(v))
             self._group.addButton(btn)
@@ -510,85 +532,6 @@ class NoteRow(QFrame):
             self.edited.emit(self.note_id, text)
 
 
-
-
-
-
-TEXT_LINK_QSS = (
-    f"QPushButton {{ background: transparent; border: none; color: {ACCENT_INK};"
-    " font-size: 12px; font-weight: 600; padding: 2px 0; }"
-    "QPushButton:hover { text-decoration: underline; }"
-)
-
-
-
-
-
-LOCKED_OPACITY = 0.42
-
-
-def set_section_locked(*widgets, locked: bool = True) -> None:
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    from qgis.PyQt.QtWidgets import QGraphicsOpacityEffect
-
-    for widget in widgets:
-        if widget is None:
-            continue
-        try:
-            widget.setEnabled(not locked)
-            if not locked:
-                widget.setGraphicsEffect(None)
-                continue
-            effect = QGraphicsOpacityEffect(widget)
-            effect.setOpacity(LOCKED_OPACITY)
-            widget.setGraphicsEffect(effect)
-        except RuntimeError:
-            continue
-
-
-class ProNote(QWidget):
-
-
-
-
-
-
-    upgrade_requested = pyqtSignal()
-
-    def __init__(self, reason: str, parent=None):
-        super().__init__(parent)
-        line = QHBoxLayout(self)
-        line.setContentsMargins(2, 0, 2, 0)
-        line.setSpacing(12)
-        words = QLabel(reason, self)
-        words.setStyleSheet(ROW_NOTE_QSS)
-        words.setWordWrap(True)
-        line.addWidget(words, 1, Qt.AlignmentFlag.AlignVCenter)
-        self.link = QPushButton(self.tr("Get Pro"), self)
-        self.link.setStyleSheet(TEXT_LINK_QSS)
-        self.link.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.link.setAutoDefault(False)
-        self.link.clicked.connect(self.upgrade_requested.emit)
-        line.addWidget(self.link, 0, Qt.AlignmentFlag.AlignVCenter)
-
-    def set_trial(self, label: str) -> None:
-        self.link.setText(label or self.tr("Get Pro"))
-
-
 class Page(QWidget):
 
 
@@ -636,6 +579,7 @@ class Page(QWidget):
     def add_group_title(self, text: str, aside: QWidget | None = None) -> QLabel:
 
         label = QLabel(text, self._body)
+        label.setObjectName("settingsGroupTitle")
         label.setStyleSheet(GROUP_TITLE_QSS)
 
         label.setContentsMargins(14, 18, 0, 2)
@@ -653,12 +597,3 @@ class Page(QWidget):
 
 
 USAGE_KEYS = ("runs_used", "runs_limit", "period_end", "reset_date", "is_subscriber", "is_free_tier")
-
-
-
-PROGRESS_QSS = (
-    "QProgressBar { background: rgba(128,128,128,0.18); border: none; border-radius: 2px;"
-    " height: 4px; max-height: 4px; min-height: 4px; }"
-    f"QProgressBar::chunk {{ background: {ACCENT}; border-radius: 2px; }}"
-)
-

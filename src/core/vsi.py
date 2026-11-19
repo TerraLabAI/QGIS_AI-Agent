@@ -47,6 +47,7 @@ from __future__ import annotations
 import contextlib
 import html
 import os
+import posixpath
 import re
 import urllib.parse
 
@@ -627,7 +628,7 @@ def scoped_read(gdal=None, **overrides: str):
 _XML_DATASET_MAX_BYTES = 2 * 1024 * 1024
 _REMOTE_VSI = ("/vsicurl", "/vsis3", "/vsigs", "/vsiaz", "/vsioss", "/vsiswift", "/vsiadls", "/vsihdfs", "/vsiwebhdfs")
 _XML_SOURCE_RE = re.compile(
-    rb"(?is)<(SourceFilename|SrcDataSource|SourceDataset)\b([^>]*)>(.*?)</\1\s*>")
+    rb"(?is)<(SourceFilename|SrcDataSource|SourceDataset|IndexDataset)\b([^>]*)>(.*?)</\1\s*>")
 
 
 def looks_like_xml(head: bytes) -> bool:
@@ -655,7 +656,9 @@ def xml_dataset_refusal(body: bytes, base_url: str) -> str | None:
     return None
 
 
-def local_dataset_sources(path: str, seen: set | None = None) -> list:
+def _source_refusal(path: str, seen: set, depth: int = 0) -> str | None:
+
+
 
 
 
@@ -663,31 +666,146 @@ def local_dataset_sources(path: str, seen: set | None = None) -> list:
 
     from . import security
 
-    seen = set() if seen is None else seen
-    if security.refused_share(path):
-
-        return []
-    real = os.path.realpath(path)
-    if real in seen or len(seen) >= 16 or not os.path.isfile(real):
-        return []
-    seen.add(real)
-    try:
-        with open(real, "rb") as handle:
-            body = handle.read(256)
-            if not looks_like_xml(body):
-                return []
-            body += handle.read(_XML_DATASET_MAX_BYTES)
-    except OSError:
-        return []
-    found = []
-    for _tag, _attrs, raw in _XML_SOURCE_RE.findall(body):
-        text = html.unescape(raw.decode("utf-8", "replace")).strip()
-        if not text or re.match(r"(?i)[a-z][a-z0-9+.-]+:", text) or text.lower().startswith(_REMOTE_VSI):
+    body, cut = _xml_head(path, seen)
+    if cut:
+        return f"{path} makes GDAL read more datasets than the agent can check; open the files it names instead."
+    if not body:
+        return None
+    if re.search(rb"(?is)<GDALTileIndexDataset\b", body):
+        return f"{path} is a tile index whose tiles the agent cannot check; open the tiles themselves."
+    for _tag, attrs, raw in _XML_SOURCE_RE.findall(body):
+        written = html.unescape(raw.decode("utf-8", "replace")).strip()
+        text = _dataset_file(written)
+        if text == "":
             continue
-        source = text if text.startswith("/vsi") else os.path.normpath(os.path.join(os.path.dirname(path), text))
-        found.append(source)
-        found.extend(local_dataset_sources(source, seen))
-    return found
+        if text is None:
+            return f"{path} makes GDAL read {written[:200]}, a source the agent cannot check; open that file itself."
+        if not (text.startswith("/vsi") or os.path.isabs(text) or security._is_remote_share(text)):
+
+
+            beside = b'relativetovrt="1"' in attrs.lower().replace(b" ", b"").replace(b"'", b'"')
+            base = os.path.dirname(path) if beside else os.getcwd()
+            text = posixpath.join(base, text) if base.startswith("/vsi") else os.path.normpath(os.path.join(base, text))
+        error = security.validate_read(text)
+        if error:
+            return error
+        if not text.startswith("/vsi") and not os.path.exists(text):
+            return f"{path} makes GDAL read {written[:200]}, which the agent cannot find; open that file itself."
+        error = _source_refusal(text, seen, depth + 1)
+        if error:
+            return error
+    return None
+
+
+def _xml_head(path: str, seen: set) -> tuple[bytes, bool]:
+
+
+    from . import security
+
+    key = path if path.lower().startswith("/vsi") else os.path.normcase(os.path.abspath(path))
+    if key in seen:
+        return b"", False
+    if len(seen) >= 16:
+        return b"", True
+    seen.add(key)
+    if path.lower().startswith("/vsi"):
+        kind, _inner = security.unwrap_vsi(path)
+        if kind != "local":
+            return b"", False
+        try:
+            from osgeo import gdal
+
+            handle = gdal.VSIFOpenL(path, "rb")
+            if not handle:
+                return b"", False
+            try:
+                body = bytes(gdal.VSIFReadL(1, 256, handle) or b"")
+                if looks_like_xml(body):
+                    body += bytes(gdal.VSIFReadL(1, _XML_DATASET_MAX_BYTES + 1, handle) or b"")
+            finally:
+                gdal.VSIFCloseL(handle)
+        except Exception:  # noqa: BLE001
+            return b"", False
+    else:
+        if not os.path.isfile(path):
+            return b"", False
+        try:
+            with open(path, "rb") as handle:
+                body = handle.read(256)
+                if looks_like_xml(body):
+                    body += handle.read(_XML_DATASET_MAX_BYTES + 1)
+        except OSError:
+            return b"", False
+    if not looks_like_xml(body):
+        return b"", False
+    return body, len(body) > 256 + _XML_DATASET_MAX_BYTES
+
+
+_DRIVER_RE = re.compile(r"(?i)^([a-z][a-z0-9_]{1,15}):(.+)$")
+
+_CONNECTIONS = frozenset({"PG", "POSTGRESQL", "MYSQL", "MSSQL", "OCI", "ODBC", "PGEO", "MONGODBV3", "MONGODB",
+                          "ELASTICSEARCH", "ES", "COUCHDB", "CARTO", "SDE", "INGRES", "HANA", "DB2ODBC", "WFS",
+                          "OAPIF", "WMS", "WCS", "EEDA", "EEDAI", "PLSCENES", "NGW", "AMIGOCLOUD"})
+
+
+def _dataset_file(text: str):
+
+
+
+
+    low = text.lower()
+    if not text or low.startswith(_REMOTE_VSI) or re.match(r"(?i)(https?|ftp)://", text):
+        return ""
+    if low.startswith("vrt://"):
+        return text[6:].split("?", 1)[0] or None
+    if re.match(r"(?i)file://", text):
+        return None
+    match = _DRIVER_RE.match(text)
+    if not match or re.match(r"(?i)^[a-z]:[\\/]", text):
+        return text
+    name, rest = match.group(1).upper(), match.group(2).strip()
+    if name in _CONNECTIONS:
+        return ""
+    if name == "GTI" or rest.startswith("//"):
+        return None
+    if rest[:1] in "\"'":
+        return rest[1:].split(rest[0], 1)[0] or None
+    rest = re.sub(r"^\d+:", "", rest)
+    head = re.sub(r":[^:/\\]+$", "", rest)
+    return head if len(head) > 2 or rest[1:2] != ":" else rest
+
+
+def dataset_scope_refusal(path: str) -> str | None:
+
+
+    from . import security
+
+    low = path.lower()
+    if low.endswith((".gti.gpkg", ".gti.fgb", ".gti.parquet")):
+        return f"{path} is a tile index whose tiles the agent cannot check; open the tiles themselves."
+
+    start = path if low.startswith("/vsi") else security.expand_path(path)
+    if security.refused_share(start):
+        return None
+    return _source_refusal(start, set())
+
+
+def opened_files_refusal(dataset) -> str | None:
+
+
+    from . import security
+
+    try:
+        files = list(dataset.GetFileList() or [])
+    except Exception:  # noqa: BLE001
+        return None
+    for name in files:
+        if not name or name.lower().startswith("/vsimem/"):
+            continue
+        error = security.validate_read(name)
+        if error:
+            return error
+    return None
 
 
 def remote_dataset_refusal(url: str) -> str | None:

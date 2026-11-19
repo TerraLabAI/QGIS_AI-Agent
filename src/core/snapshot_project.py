@@ -37,6 +37,34 @@ def _signals_blocked(project):
 
 
 @contextlib.contextmanager
+def name_kept(project, file_name: str | None = None, dirty: bool | None = None):
+
+
+
+
+
+
+
+
+
+
+    from .project_identity import _kept_name
+
+    file_name = project.fileName() if file_name is None else file_name
+    dirty = project.isDirty() if dirty is None else dirty
+    _kept_name.append(file_name)
+    try:
+        yield
+    finally:
+        _kept_name.pop()
+        try:
+            project.setFileName(file_name)
+            project.setDirty(dirty)
+        except Exception:  # noqa: BLE001  # nosec B110
+            pass
+
+
+@contextlib.contextmanager
 def _paths_absolute(project, on: bool = True):
 
 

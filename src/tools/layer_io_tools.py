@@ -35,6 +35,7 @@ from ..core.host_platform import IS_WINDOWS, release_pooled_handles, remove_quie
 from ..core.layer_order import feature_count_of, is_remote_vector
 from ..core.layer_release import register_task
 from ..core.logger import log_warning
+from ..core.net_stream import STREAM_KEEP_FREE_BYTES, free_disk_bytes
 from ..core.policy import create_managed_temp_dir
 from ..core.qt_compat import enum_member
 from ..core.security import validate_path
@@ -1013,6 +1014,14 @@ def _add_vector_layer(args: dict) -> dict:
 
 
             return _add_inner_zips(path, inner, args)
+        if not members and not tables:
+            from .data_inspect import is_archive_raster
+
+            rasters = [n for n in names if is_archive_raster(n) and not n.startswith("__MACOSX/")]
+            if wanted:
+                rasters = members_matching(rasters, wanted)
+            if rasters:
+                return _add_zipped_rasters(path, rasters, args)
         if not members:
             return tool_error(f"{os.path.basename(path)} holds no vector file QGIS reads.",
                               hint="archive_no_vector_file", files=names[:50])
@@ -1151,6 +1160,35 @@ def _add_vector_layer(args: dict) -> dict:
 
 
 _INNER_ZIPS = 20
+
+
+def _add_zipped_rasters(path: str, rasters: list, args: dict) -> dict:
+
+
+
+
+    import zipfile
+
+    from .data_inspect import _load_unpacked_raster
+
+    with zipfile.ZipFile(path) as archive:
+        size = sum(info.file_size for info in archive.infolist())
+        folder = create_managed_temp_dir("unzipped")
+        free = free_disk_bytes(folder)
+        room = limits.current("MAX_STREAM_BYTES")
+        if free is not None:
+            room = min(room, free - STREAM_KEEP_FREE_BYTES)
+        if size > room:
+            return tool_error(f"{os.path.basename(path)} unpacks to {size / 2 ** 20:,.0f} MB, over the "
+                              f"{max(room, 0) / 2 ** 20:,.0f} MB this computer can unpack now.",
+                              hint="archive_too_large", files=rasters[:50])
+        archive.extractall(folder)
+    paths = [os.path.join(folder, *name.split("/")) for name in rasters]
+    loaded = _load_unpacked_raster(folder, path, paths, args.get("name"))
+    if isinstance(loaded, dict):
+        loaded.pop("url", None)
+        loaded["archive"] = path
+    return loaded
 
 
 def _add_inner_zips(path: str, inner: list, args: dict) -> dict:

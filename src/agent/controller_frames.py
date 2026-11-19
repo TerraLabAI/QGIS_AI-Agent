@@ -15,7 +15,7 @@ from ..api.account import Account, site_url, usage_to_runs
 from ..core import crash_note, telemetry
 from ..core import telemetry_events as ev
 from ..core.logger import log, log_warning
-from ..core.plan import set_plan_features
+from ..core.plan import autopilot_allowed, set_plan_features, stated
 from ..core.profile import project_key
 from ..core.project_identity import open_project_file
 from ..core.protocol import Decision, RunStatus, ServerErrorCode
@@ -40,6 +40,7 @@ from .controller_shared import (
     RUN_SILENCE_S,
     tr,
 )
+from .executor_calls import _options_joined
 from .run_report import VERIFY_RUN
 
 
@@ -183,6 +184,10 @@ class _ControllerFrames:
 
 
         set_plan_features(session.get("plan_features"))
+
+
+        if stated("yolo") and not autopilot_allowed():
+            self._settings.forget_autopilot()
 
 
         paid = self._settings.last_paid
@@ -404,6 +409,10 @@ class _ControllerFrames:
 
             self._executor.handle_tool_call(call)
             return
+
+
+
+        self._pause_watchdog()
         self._call_runs[tool_call_id] = run_id
         self._call_names[tool_call_id] = (str(call.get("name") or ""), str(call.get("danger") or "read"))
         task_rows = self.__dict__.setdefault("_task_rows", {})
@@ -571,6 +580,9 @@ class _ControllerFrames:
 
 
         grant = "answer" if self._executor.covers_answer(tool_call_id) else ""
+        folder = self._executor.write_folder_for(tool_call_id)
+        if folder:
+            grant = "folder\n" + folder
 
         group = self._executor.card_group(tool_call_id)
         preview = self._executor.code_preview_for(tool_call_id)
@@ -627,6 +639,15 @@ class _ControllerFrames:
         self._runs.user_answered(tool_call_id)
         self._approval_pending(tool_call_id, False)
         self._touch_watchdog()
+        self._folder_card_first(answer or "", None, offered=_options_joined(answer or "", options))
+        if self._folder_card_open_for(answer or "", _options_joined(answer or "", options)):
+
+
+            self._held_answers = [*getattr(self, "_held_answers", []), (tool_call_id, answer, attachments)]
+            return
+        self._send_answer(tool_call_id, answer, attachments)
+
+    def _send_answer(self, tool_call_id: str, answer: str, attachments=None) -> None:
         if attachments:
             self._executor.on_question_answered(tool_call_id, answer, attachments)
         else:
@@ -777,7 +798,7 @@ class _ControllerFrames:
 
             self._restore_after_run(run_id)
             try:
-                self.run_finished.emit(str(status or ""))
+                self.run_finished.emit(str(status or ""), str(run_id or ""))
             except (AttributeError, RuntimeError):
                 pass
 

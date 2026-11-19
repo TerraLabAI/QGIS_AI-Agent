@@ -64,6 +64,7 @@ from qgis.PyQt.QtGui import (
 from qgis.PyQt.QtWidgets import QAbstractScrollArea, QSizePolicy, QWidget
 
 from ...core.background import run_off_thread
+from ...core.host_platform import prefers_reduced_motion
 from ...core.logger import log_warning
 from ..font_scale import widget_pixel_ratio
 from ..icons import contrast_ratio, render_pixmap
@@ -476,7 +477,11 @@ class Tween:
 
 
     def __init__(self, widget: QWidget, ms: int, apply,
-                 curve=QEasingCurve.Type.OutCubic):
+                 curve=QEasingCurve.Type.OutCubic, moves: bool = True):
+
+
+        self._moves = moves
+        self._apply = apply
         self._anim = QVariantAnimation(widget)
         self._anim.setDuration(int(ms))
         self._anim.setEasingCurve(QEasingCurve(curve))
@@ -484,6 +489,9 @@ class Tween:
 
     def run(self, start: float, end: float, keys: tuple = ()) -> None:
         self._anim.stop()
+        if self._moves and prefers_reduced_motion():
+            self._apply(float(end))
+            return
         self._anim.setStartValue(float(start))
         for at, value in keys:
             self._anim.setKeyValueAt(float(at), float(value))
@@ -561,7 +569,7 @@ class PictureView(QWidget):
         self._handle = 0
         self._before_text = tr("Before")
         self._after_text = tr("After")
-        self._fade_tween = Tween(self, _FADE_MS, self._set_fade)
+        self._fade_tween = Tween(self, _FADE_MS, self._set_fade, moves=False)
         self._zoom_tween = Tween(self, _ZOOM_MS, self._set_zoom)
         self._rest_tween = Tween(self, _REST_MS, self._set_pos, QEasingCurve.Type.InOutCubic)
         policy = QSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)

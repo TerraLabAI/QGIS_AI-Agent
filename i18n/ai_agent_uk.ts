@@ -1882,6 +1882,78 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <source>left out</source>
             <translation>не включено</translation>
         </message>
+        <message>
+            <source>The AI agent has been thinking for {time}</source>
+            <translation>ШІ-агент думає уже {time}</translation>
+        </message>
+        <message>
+            <source>Code running in QGIS for {time}</source>
+            <translation>Код виконується в QGIS уже {time}</translation>
+        </message>
+        <message>
+            <source>Running in QGIS for {time}</source>
+            <translation>Виконується в QGIS уже {time}</translation>
+        </message>
+        <message>
+            <source>Bugs</source>
+            <translation>Помилки</translation>
+        </message>
+        <message>
+            <source>For a team, a call is quickest.</source>
+            <translation>Для команди найшвидше зв'язатися по дзвінку.</translation>
+        </message>
+        <message>
+            <source>Ideas</source>
+            <translation>Ідеї</translation>
+        </message>
+        <message>
+            <source>Licences, quotes and invoices for your team, too.</source>
+            <translation>Ліцензії, комерційні пропозиції та рахунки для вашої команди також.</translation>
+        </message>
+        <message>
+            <source>Questions</source>
+            <translation>Запитання</translation>
+        </message>
+        <message>
+            <source>Team needs</source>
+            <translation>Потреби команди</translation>
+        </message>
+        <message>
+            <source>Map history</source>
+            <translation>Історія карти</translation>
+        </message>
+        <message>
+            <source>Open earlier project versions</source>
+            <translation>Відкрити попередні версії проєкту</translation>
+        </message>
+        <message>
+            <source>Recall your last message</source>
+            <translation>Повернути ваше останнє повідомлення</translation>
+        </message>
+        <message>
+            <source>Redo it</source>
+            <translation>Повторити</translation>
+        </message>
+        <message>
+            <source>Sent with this conversation and the plugin's recent log.</source>
+            <translation>Надсилається разом із цією розмовою та нещодавнім журналом плагіна.</translation>
+        </message>
+        <message>
+            <source>Undo the last request</source>
+            <translation>Скасувати останній запит</translation>
+        </message>
+        <message>
+            <source>We read every message and use it to improve AI Agent.</source>
+            <translation>Ми читаємо кожне повідомлення та використовуємо його, щоб покращувати AI Agent.</translation>
+        </message>
+        <message>
+            <source>What happened, and what did you expect? For example: the buffer came out in degrees instead of metres.</source>
+            <translation>Що сталося і чого ви очікували? Наприклад: буфер вийшов у градусах замість метрів.</translation>
+        </message>
+        <message>
+            <source>Kept until you delete it</source>
+            <translation>Зберігається, доки ви не видалите</translation>
+        </message>
     </context>
     <context>
         <name>AIAgentContext</name>
@@ -2015,12 +2087,12 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <translation>інструмент: {tool}</translation>
         </message>
         <message>
-            <source>{day} UTC, AI Agent run {run}: added {layers}</source>
-            <translation>{day} UTC, запуск AI Agent {run}: додано {layers}</translation>
+            <source>{day} UTC, run {run}: added {layers}</source>
+            <translation>{day} UTC, запуск {run}: додано {layers}</translation>
         </message>
         <message>
-            <source>{day} UTC, added by AI Agent by TerraLab</source>
-            <translation>{day} UTC, додано AI Agent від TerraLab</translation>
+            <source>Data source</source>
+            <translation>Джерело даних</translation>
         </message>
     </context>
     <context>
@@ -3477,6 +3549,10 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <source>Stopping...</source>
             <translation>Зупиняємо...</translation>
         </message>
+        <message>
+            <source>the map render</source>
+            <translation>відтворення карти</translation>
+        </message>
     </context>
     <context>
         <name>Composer</name>
@@ -4265,6 +4341,18 @@ This file is no longer where the run wrote it.</source>
             <source>Dock or undock AI Agent</source>
             <translation>Закріпити або відкріпити AI Agent</translation>
         </message>
+        <message>
+            <source>Pro ends on {date}. Keep it in one click.</source>
+            <translation>Pro завершується {date}. Збережіть його одним кліком.</translation>
+        </message>
+        <message>
+            <source>Pro is set to end. Keep it in one click.</source>
+            <translation>Pro незабаром завершиться. Збережіть його одним кліком.</translation>
+        </message>
+        <message>
+            <source>See what's in Pro</source>
+            <translation>Що входить у Pro</translation>
+        </message>
     </context>
     <context>
         <name>HistoryPopup</name>
@@ -4860,6 +4948,10 @@ Click to show it in the Layers panel.</source>
             <source>{n} of {total} features in {layer}</source>
             <translation>Об'єктів у {layer}: {n} із {total}</translation>
         </message>
+        <message>
+            <source>Allow lets AI Agent read and write in {folder} for this project.</source>
+            <translation>«Дозволити» дає AI Agent право читати й записувати в {folder} для цього проєкту.</translation>
+        </message>
     </context>
     <context>
         <name>PermissionChip</name>
@@ -5404,6 +5496,138 @@ Thank you</source>
             <source>{n} tasks a month, cancel anytime</source>
             <translation>{n} завдань на місяць, скасувати можна будь-коли</translation>
         </message>
+        <message>
+            <source>1 task left this month</source>
+            <translation>Залишилось 1 завдання цього місяця</translation>
+        </message>
+        <message>
+            <source>All {n} tasks used. They reset on {date}.</source>
+            <translation>Усі {n} завдань використано. Вони оновляться {date}.</translation>
+        </message>
+        <message>
+            <source>Back to Pro</source>
+            <translation>Повернутися до Pro</translation>
+        </message>
+        <message>
+            <source>Come back to Pro for {n} tasks a month.</source>
+            <translation>Поверніться до Pro, щоб мати {n} завдань на місяць.</translation>
+        </message>
+        <message>
+            <source>Contact us</source>
+            <translation>Зв'язатися з нами</translation>
+        </message>
+        <message>
+            <source>Contact us for more tasks</source>
+            <translation>Зв'яжіться з нами, щоб отримати більше завдань</translation>
+        </message>
+        <message>
+            <source>Get Pro for {n} tasks a month.</source>
+            <translation>Отримайте Pro: {n} завдань на місяць.</translation>
+        </message>
+        <message>
+            <source>Need Pro for work?</source>
+            <translation>Потрібен Pro для роботи?</translation>
+        </message>
+        <message>
+            <source>No card? Contact us to pay by invoice.</source>
+            <translation>Немає картки? Зв'яжіться з нами, щоб оплатити за рахунком.</translation>
+        </message>
+        <message>
+            <source>No card? Contact us to start your free trial.</source>
+            <translation>Немає картки? Зв'яжіться з нами, щоб почати безкоштовну пробну версію.</translation>
+        </message>
+        <message>
+            <source>Pay nothing today</source>
+            <translation>Сьогодні нічого не платіть</translation>
+        </message>
+        <message>
+            <source>Pay nothing today, then your local price each month. Cancel anytime.</source>
+            <translation>Сьогодні нічого не платіть, далі щомісяця за вашою місцевою ціною. Скасувати можна будь-коли.</translation>
+        </message>
+        <message>
+            <source>Pay nothing today, then your student price each month. Cancel anytime.</source>
+            <translation>Сьогодні нічого не платіть, далі щомісяця за вашою студентською ціною. Скасувати можна будь-коли.</translation>
+        </message>
+        <message>
+            <source>Pay nothing today, then {price}/month excl. VAT. Cancel anytime.</source>
+            <translation>Сьогодні нічого не платіть, далі {price}/міс. без ПДВ. Скасувати можна будь-коли.</translation>
+        </message>
+        <message>
+            <source>Pay nothing today, then {price}/month. Cancel anytime.</source>
+            <translation>Сьогодні нічого не платіть, далі {price}/міс. Скасувати можна будь-коли.</translation>
+        </message>
+        <message>
+            <source>Payment of {amount} failed</source>
+            <translation>Не вдалося оплатити {amount}</translation>
+        </message>
+        <message>
+            <source>Pro is paused until payment goes through.</source>
+            <translation>Pro призупинено, доки оплата не пройде.</translation>
+        </message>
+        <message>
+            <source>Start Pro now</source>
+            <translation>Почати Pro зараз</translation>
+        </message>
+        <message>
+            <source>Start free trial</source>
+            <translation>Почати безкоштовну пробну версію</translation>
+        </message>
+        <message>
+            <source>Try Pro free for a week to get more tasks.</source>
+            <translation>Спробуйте Pro безкоштовно тиждень, щоб отримати більше завдань.</translation>
+        </message>
+        <message>
+            <source>Welcome to Pro</source>
+            <translation>Ласкаво просимо до Pro</translation>
+        </message>
+        <message>
+            <source>You now have {n} tasks a month.</source>
+            <translation>Тепер у вас {n} завдань на місяць.</translation>
+        </message>
+        <message>
+            <source>You used all your tasks this month</source>
+            <translation>Ви використали всі завдання цього місяця</translation>
+        </message>
+        <message>
+            <source>You used your last task</source>
+            <translation>Ви використали останнє завдання</translation>
+        </message>
+        <message>
+            <source>Your free trial runs until {date}.</source>
+            <translation>Ваша безкоштовна пробна версія діє до {date}.</translation>
+        </message>
+        <message>
+            <source>Your tasks reset next month.</source>
+            <translation>Ваші завдання оновляться наступного місяця.</translation>
+        </message>
+        <message>
+            <source>Your tasks reset on {date}.</source>
+            <translation>Ваші завдання оновляться {date}.</translation>
+        </message>
+        <message>
+            <source>Your trial did not start. You were not charged.</source>
+            <translation>Пробна версія не розпочалася. Гроші не списано.</translation>
+        </message>
+        <message>
+            <source>{n} tasks a month. Cancel anytime.</source>
+            <translation>{n} завдань на місяць. Скасувати можна будь-коли.</translation>
+        </message>
+        <message>
+            <source>{n} tasks left this month</source>
+            <translation>Залишилось завдань цього місяця: {n}</translation>
+        </message>
+        <message>
+            <source>{price} excl. VAT</source>
+            <translation>{price} без ПДВ</translation>
+        </message>
+        <message>
+            <source>{price}/month. Cancel anytime.</source>
+            <translation>{price}/міс. Скасувати можна будь-коли.</translation>
+        </message>
+        <message>
+            <source>{price}/month excl. VAT. Cancel anytime.</source>
+            <translation>{price}/міс. без ПДВ. Скасувати можна будь-коли.</translation>
+        </message>
     </context>
     <context>
         <name>QuotaPauseCard</name>
@@ -5645,6 +5869,22 @@ Thank you</source>
         <message>
             <source>{n} free tasks left</source>
             <translation>Залишилось безкоштовних завдань: {n}</translation>
+        </message>
+        <message>
+            <source>1 task left</source>
+            <translation>Залишилось 1 завдання</translation>
+        </message>
+        <message>
+            <source>Get more with Pro</source>
+            <translation>Більше з Pro</translation>
+        </message>
+        <message>
+            <source>Pro: {n} tasks a month, higher effort levels and Autopilot.</source>
+            <translation>Pro: {n} завдань на місяць, вищі рівні зусиль та автопілот.</translation>
+        </message>
+        <message>
+            <source>{n} tasks left</source>
+            <translation>Залишилось завдань: {n}</translation>
         </message>
     </context>
     <context>
@@ -6206,6 +6446,478 @@ Thank you</source>
             <source>Your usage and chats help us fix bugs. Turn it off anytime.</source>
             <translation>Ваше використання та чати допомагають нам виправляти помилки. Вимкнути можна будь-коли.</translation>
         </message>
+        <message>
+            <source>Bell</source>
+            <translation>Дзвоник</translation>
+        </message>
+        <message>
+            <source>Chime</source>
+            <translation>Передзвін</translation>
+        </message>
+        <message>
+            <source>Icon and sound</source>
+            <translation>Значок і звук</translation>
+        </message>
+        <message>
+            <source>Icon only</source>
+            <translation>Лише значок</translation>
+        </message>
+        <message>
+            <source>Little train</source>
+            <translation>Паровозик</translation>
+        </message>
+        <message>
+            <source>Marimba</source>
+            <translation>Марімба</translation>
+        </message>
+        <message>
+            <source>Needs your answer</source>
+            <translation>Потрібна ваша відповідь</translation>
+        </message>
+        <message>
+            <source>Notifications</source>
+            <translation>Сповіщення</translation>
+        </message>
+        <message>
+            <source>Notify me</source>
+            <translation>Сповіщати мене</translation>
+        </message>
+        <message>
+            <source>Off</source>
+            <translation>Вимкнено</translation>
+        </message>
+        <message>
+            <source>Only while QGIS is in the background or the panel is hidden.</source>
+            <translation>Лише коли QGIS працює у фоні або панель приховано.</translation>
+        </message>
+        <message>
+            <source>Play</source>
+            <translation>Відтворити</translation>
+        </message>
+        <message>
+            <source>Questions and approvals.</source>
+            <translation>Запитання та підтвердження.</translation>
+        </message>
+        <message>
+            <source>Run finished</source>
+            <translation>Запуск завершено</translation>
+        </message>
+        <message>
+            <source>Volume</source>
+            <translation>Гучність</translation>
+        </message>
+        <message>
+            <source>1 task left</source>
+            <translation>Залишилося 1 завдання</translation>
+        </message>
+        <message>
+            <source>A badge on the QGIS icon and a sound, only while QGIS is in the background or the panel is hidden.</source>
+            <translation>Значок на іконці QGIS і звук, лише коли QGIS працює у фоні або панель приховано.</translation>
+        </message>
+        <message>
+            <source>About you and Instructions</source>
+            <translation>Про вас та інструкції</translation>
+        </message>
+        <message>
+            <source>Back in {n} days</source>
+            <translation>Знову доступно через {n} дн.</translation>
+        </message>
+        <message>
+            <source>Back tomorrow</source>
+            <translation>Знову доступно завтра</translation>
+        </message>
+        <message>
+            <source>Call me back while I work elsewhere</source>
+            <translation>Сповіщати мене, поки я працюю деінде</translation>
+        </message>
+        <message>
+            <source>Change</source>
+            <translation>Змінити</translation>
+        </message>
+        <message>
+            <source>Commercial use included</source>
+            <translation>Комерційне використання включено</translation>
+        </message>
+        <message>
+            <source>Context for every task</source>
+            <translation>Контекст для кожного завдання</translation>
+        </message>
+        <message>
+            <source>Could not load your usage</source>
+            <translation>Не вдалося завантажити ваше використання</translation>
+        </message>
+        <message>
+            <source>Detect and outline objects on imagery: buildings, trees, water or fields become polygons you can edit.</source>
+            <translation>Виявляйте й обводьте об'єкти на знімках: будівлі, дерева, вода чи поля стають полігонами, які можна редагувати.</translation>
+        </message>
+        <message>
+            <source>Edit your imagery with one sentence, the way you would ask a colleague.</source>
+            <translation>Редагуйте знімки одним реченням, так само, як попросили б колегу.</translation>
+        </message>
+        <message>
+            <source>Every task, day by day, on terra-lab.ai</source>
+            <translation>Кожне завдання по днях на terra-lab.ai</translation>
+        </message>
+        <message>
+            <source>Everything else here works without an account.</source>
+            <translation>Усе інше тут працює без облікового запису.</translation>
+        </message>
+        <message>
+            <source>From your TerraLab account.</source>
+            <translation>З вашого облікового запису TerraLab.</translation>
+        </message>
+        <message>
+            <source>General</source>
+            <translation>Загальні</translation>
+        </message>
+        <message>
+            <source>How the AI agent answers.</source>
+            <translation>Як відповідає агент ШІ.</translation>
+        </message>
+        <message>
+            <source>How the AI agent calls you back.</source>
+            <translation>Як агент ШІ сповіщає вас.</translation>
+        </message>
+        <message>
+            <source>Install</source>
+            <translation>Установити</translation>
+        </message>
+        <message>
+            <source>Install {plugin}</source>
+            <translation>Установити {plugin}</translation>
+        </message>
+        <message>
+            <source>Loading your plan...</source>
+            <translation>Завантаження вашого тарифу...</translation>
+        </message>
+        <message>
+            <source>Loading your tasks...</source>
+            <translation>Завантаження ваших завдань...</translation>
+        </message>
+        <message>
+            <source>Monthly tasks</source>
+            <translation>Завдання за місяць</translation>
+        </message>
+        <message>
+            <source>More from TerraLab</source>
+            <translation>Більше від TerraLab</translation>
+        </message>
+        <message>
+            <source>Needs your answer: {a} · Run finished: {b}</source>
+            <translation>Потрібна ваша відповідь: {a} · Запуск завершено: {b}</translation>
+        </message>
+        <message>
+            <source>One TerraLab account signs you in to all three plugins.</source>
+            <translation>Один обліковий запис TerraLab дає вхід у всі три плагіни.</translation>
+        </message>
+        <message>
+            <source>One task is one message you send, however many steps the AI agent takes. Tasks that fail on our side are given back.</source>
+            <translation>Одне завдання відповідає одному повідомленню, яке ви надсилаєте, скільки б кроків не виконав агент ШІ. Завдання, що не вдалися з нашого боку, повертаються.</translation>
+        </message>
+        <message>
+            <source>Open {plugin}</source>
+            <translation>Відкрити {plugin}</translation>
+        </message>
+        <message>
+            <source>Opens the QGIS plugin manager on this plugin. Free to install.</source>
+            <translation>Відкриває менеджер плагінів QGIS на цьому плагіні. Установлення безкоштовне.</translation>
+        </message>
+        <message>
+            <source>Personal, non-commercial use</source>
+            <translation>Особисте некомерційне використання</translation>
+        </message>
+        <message>
+            <source>Plan</source>
+            <translation>Тариф</translation>
+        </message>
+        <message>
+            <source>Profile</source>
+            <translation>Профіль</translation>
+        </message>
+        <message>
+            <source>Resets in {n} days</source>
+            <translation>Оновлення через {n} дн.</translation>
+        </message>
+        <message>
+            <source>Resets tomorrow</source>
+            <translation>Оновиться завтра</translation>
+        </message>
+        <message>
+            <source>Rules the AI agent always follows.</source>
+            <translation>Правила, яких агент ШІ завжди дотримується.</translation>
+        </message>
+        <message>
+            <source>Saved on this computer.</source>
+            <translation>Збережено на цьому комп'ютері.</translation>
+        </message>
+        <message>
+            <source>Search settings</source>
+            <translation>Пошук у налаштуваннях</translation>
+        </message>
+        <message>
+            <source>Show its panel.</source>
+            <translation>Показати його панель.</translation>
+        </message>
+        <message>
+            <source>Sign in to see your plan and tasks</source>
+            <translation>Увійдіть, щоб побачити свій тариф і завдання</translation>
+        </message>
+        <message>
+            <source>Sounds</source>
+            <translation>Звуки</translation>
+        </message>
+        <message>
+            <source>Tell the AI agent who you are and the rules it always follows. Included in Pro.</source>
+            <translation>Розкажіть агенту ШІ, хто ви і яких правил він завжди дотримується. Входить у Pro.</translation>
+        </message>
+        <message>
+            <source>Two more AI plugins for QGIS, from the makers of AI Agent.</source>
+            <translation>Ще два плагіни ШІ для QGIS від творців AI Agent.</translation>
+        </message>
+        <message>
+            <source>Upgrade plan</source>
+            <translation>Покращити тариф</translation>
+        </message>
+        <message>
+            <source>Upgrade to Pro</source>
+            <translation>Перейти на Pro</translation>
+        </message>
+        <message>
+            <source>Usage</source>
+            <translation>Використання</translation>
+        </message>
+        <message>
+            <source>What counts as a task</source>
+            <translation>Що вважається завданням</translation>
+        </message>
+        <message>
+            <source>What leaves this computer, and for how long.</source>
+            <translation>Що залишає цей комп'ютер і на який час.</translation>
+        </message>
+        <message>
+            <source>What you work on, your data, your area.</source>
+            <translation>Над чим ви працюєте, ваші дані, ваша територія.</translation>
+        </message>
+        <message>
+            <source>Your plan and the tasks you used this month.</source>
+            <translation>Ваш тариф і завдання, використані цього місяця.</translation>
+        </message>
+        <message>
+            <source>Your plan, payment method and invoices, on terra-lab.ai.</source>
+            <translation>Ваш тариф, спосіб оплати та рахунки на terra-lab.ai.</translation>
+        </message>
+        <message>
+            <source>Your tasks are counted on our side; nothing is lost.</source>
+            <translation>Ваші завдання рахуються з нашого боку; нічого не втрачається.</translation>
+        </message>
+        <message>
+            <source>of {limit} this month</source>
+            <translation>із {limit} цього місяця</translation>
+        </message>
+        <message>
+            <source>{n} tasks left</source>
+            <translation>Залишилося завдань: {n}</translation>
+        </message>
+        <message>
+            <source>{p}% left</source>
+            <translation>Залишилося {p}%</translation>
+        </message>
+        <message>
+            <source>1 task left this month</source>
+            <translation>Залишилося 1 завдання цього місяця</translation>
+        </message>
+        <message>
+            <source>Cancel anytime before it ends.</source>
+            <translation>Скасуйте будь-коли до завершення.</translation>
+        </message>
+        <message>
+            <source>Card declined</source>
+            <translation>Картку відхилено</translation>
+        </message>
+        <message>
+            <source>Come back to Pro</source>
+            <translation>Повернутися до Pro</translation>
+        </message>
+        <message>
+            <source>Ends {date}</source>
+            <translation>Закінчується {date}</translation>
+        </message>
+        <message>
+            <source>Payment failed</source>
+            <translation>Платіж не вдався</translation>
+        </message>
+        <message>
+            <source>Pro is off until it's paid.</source>
+            <translation>Pro вимкнено, доки не буде оплачено.</translation>
+        </message>
+        <message>
+            <source>Pro trial</source>
+            <translation>Пробний період Pro</translation>
+        </message>
+        <message>
+            <source>Pro trial, 1 day left</source>
+            <translation>Пробний період Pro, залишився 1 день</translation>
+        </message>
+        <message>
+            <source>Pro trial, ends {date}</source>
+            <translation>Пробний період Pro, закінчується {date}</translation>
+        </message>
+        <message>
+            <source>Pro trial, {n} days left</source>
+            <translation>Пробний період Pro, залишилося днів: {n}</translation>
+        </message>
+        <message>
+            <source>Then {price}/month. Cancel anytime.</source>
+            <translation>Далі {price}/місяць. Скасуйте будь-коли.</translation>
+        </message>
+        <message>
+            <source>Try Pro free for {n} days</source>
+            <translation>Спробуйте Pro безкоштовно: {n} дн.</translation>
+        </message>
+        <message>
+            <source>Try another card</source>
+            <translation>Спробувати іншу картку</translation>
+        </message>
+        <message>
+            <source>Update card</source>
+            <translation>Оновити картку</translation>
+        </message>
+        <message>
+            <source>You're out of tasks this month</source>
+            <translation>Завдання на цей місяць закінчилися</translation>
+        </message>
+        <message>
+            <source>You're out until {date}</source>
+            <translation>Завдань немає до {date}</translation>
+        </message>
+        <message>
+            <source>Your trial didn't start. Nothing was charged.</source>
+            <translation>Пробний період не розпочався. Гроші не списано.</translation>
+        </message>
+        <message>
+            <source>{amount} due.</source>
+            <translation>До сплати: {amount}.</translation>
+        </message>
+        <message>
+            <source>{n} tasks left this month</source>
+            <translation>Залишилося завдань цього місяця: {n}</translation>
+        </message>
+        <message>
+            <source>{plan}, renews {date}</source>
+            <translation>{plan}, поновлення {date}</translation>
+        </message>
+        <message>
+            <source>{price} excl. VAT</source>
+            <translation>{price} без ПДВ</translation>
+        </message>
+        <message>
+            <source>{price}/month. Cancel anytime.</source>
+            <translation>{price}/місяць. Скасуйте будь-коли.</translation>
+        </message>
+        <message>
+            <source>{used} of {limit} used</source>
+            <translation>Використано {used} із {limit}</translation>
+        </message>
+        <message>
+            <source>Clear search</source>
+            <translation>Очистити пошук</translation>
+        </message>
+        <message>
+            <source>Try Pro free</source>
+            <translation>Pro безкоштовно</translation>
+        </message>
+        <message>
+            <source>Delete account</source>
+            <translation>Видалити обліковий запис</translation>
+        </message>
+        <message>
+            <source>Report a problem</source>
+            <translation>Повідомити про проблему</translation>
+        </message>
+        <message>
+            <source>Ends on {date}</source>
+            <translation>Завершується {date}</translation>
+        </message>
+        <message>
+            <source>Monthly limit reached, resets {date}</source>
+            <translation>Місячний ліміт вичерпано, оновиться {date}</translation>
+        </message>
+        <message>
+            <source>Pro is paused until payment goes through.</source>
+            <translation>Pro призупинено, доки оплата не пройде.</translation>
+        </message>
+        <message>
+            <source>Pro trial: 1 day left</source>
+            <translation>Пробна версія Pro: залишився 1 день</translation>
+        </message>
+        <message>
+            <source>Pro trial: {n} days left</source>
+            <translation>Пробна версія Pro: залишилось днів: {n}</translation>
+        </message>
+        <message>
+            <source>Your trial did not start. You were not charged.</source>
+            <translation>Пробна версія не розпочалася. Гроші не списано.</translation>
+        </message>
+        <message>
+            <source>Then {price}/month excl. VAT. Cancel anytime.</source>
+            <translation>Далі {price}/міс. без ПДВ. Скасувати можна будь-коли.</translation>
+        </message>
+        <message>
+            <source>{price}/month excl. VAT. Cancel anytime.</source>
+            <translation>{price}/міс. без ПДВ. Скасувати можна будь-коли.</translation>
+        </message>
+        <message>
+            <source>Desktop notifications</source>
+            <translation>Сповіщення на робочому столі</translation>
+        </message>
+        <message>
+            <source>When QGIS is in the background and a run finishes or needs you.</source>
+            <translation>Коли QGIS у фоновому режимі, а виконання завершується або потребує вас.</translation>
+        </message>
+        <message>
+            <source>Resets today</source>
+            <translation>Оновлюється сьогодні</translation>
+        </message>
+        <message>
+            <source>Try Pro free for 1 day</source>
+            <translation>Спробуйте Pro безкоштовно 1 день</translation>
+        </message>
+        <message>
+            <source>More AI plugins</source>
+            <translation>Більше плагінів зі ШІ</translation>
+        </message>
+        <message>
+            <source>Applies after restarting QGIS.</source>
+            <translation>Застосується після перезапуску QGIS.</translation>
+        </message>
+        <message>
+            <source>How AI Agent looks, what it knows about you, and how it calls you back.</source>
+            <translation>Вигляд AI Agent, що він знає про вас і як вас викликає.</translation>
+        </message>
+        <message>
+            <source>Language</source>
+            <translation>Мова</translation>
+        </message>
+        <message>
+            <source>Usage stats: only that you used the app and when. Chats are kept as your History retention says, so a conversation survives an update; we may read one, or have a model score it, to fix bugs, never to train AI. 0 days of history stores nothing.</source>
+            <translation>Статистика використання: лише те, що ви користувалися застосунком, і коли. Чати зберігаються відповідно до налаштування «Зберігання історії», щоб розмова пережила оновлення; ми можемо прочитати один із них або доручити моделі оцінити його, щоб виправити помилки, але ніколи для навчання AI. 0 днів історії означає, що нічого не зберігається.</translation>
+        </message>
+        <message>
+            <source>Grey text in the message box. Tab takes it.</source>
+            <translation>Сірий текст у полі повідомлення. Tab приймає його.</translation>
+        </message>
+        <message>
+            <source>Typing suggestions</source>
+            <translation>Підказки під час введення</translation>
+        </message>
+        <message>
+            <source>Language, response style, suggestions and notifications go back to their defaults.</source>
+            <translation>Мова, стиль відповідей, підказки та сповіщення повернуться до значень за замовчуванням.</translation>
+        </message>
+        <message>
+            <source>Reset settings</source>
+            <translation>Скинути налаштування</translation>
+        </message>
     </context>
     <context>
         <name>SiblingCard</name>
@@ -6608,6 +7320,10 @@ Thank you</source>
         <message>
             <source>Always allowed</source>
             <translation>Завжди дозволено</translation>
+        </message>
+        <message>
+            <source>Allow AI Agent to write in {folder}?</source>
+            <translation>Дозволити AI Agent записувати в {folder}?</translation>
         </message>
     </context>
     <context>
@@ -8929,6 +9645,97 @@ Thank you</source>
         <message>
             <source>Selected</source>
             <translation>Вибрано</translation>
+        </message>
+    </context>
+    <context>
+        <name>FolderCard</name>
+        <message>
+            <source>A folder on another computer of your network.</source>
+            <translation>Тека на іншому комп'ютері вашої мережі.</translation>
+        </message>
+        <message>
+            <source>Denied</source>
+            <translation>Заборонено</translation>
+        </message>
+        <message>
+            <source>Deny</source>
+            <translation>Заборонити</translation>
+        </message>
+        <message>
+            <source>Let AI Agent open this folder?</source>
+            <translation>Дозволити AI Agent відкривати цю теку?</translation>
+        </message>
+        <message>
+            <source>Read and write</source>
+            <translation>Читання й запис</translation>
+        </message>
+        <message>
+            <source>Read only</source>
+            <translation>Лише читання</translation>
+        </message>
+        <message>
+            <source>What AI Agent reads there is sent to the AI model. Kept for this project.</source>
+            <translation>Те, що AI Agent там читає, надсилається до моделі ШІ. Зберігається для цього проєкту.</translation>
+        </message>
+    </context>
+    <context>
+        <name>FolderChip</name>
+        <message>
+            <source>1 folder</source>
+            <translation>1 тека</translation>
+        </message>
+        <message>
+            <source>Folders</source>
+            <translation>Теки</translation>
+        </message>
+        <message>
+            <source>Folders AI Agent can open in this project</source>
+            <translation>Теки, які AI Agent може відкривати в цьому проєкті</translation>
+        </message>
+        <message>
+            <source>{n} folders</source>
+            <translation>Тек: {n}</translation>
+        </message>
+    </context>
+    <context>
+        <name>FolderPopover</name>
+        <message>
+            <source>Folders AI Agent can open in this project</source>
+            <translation>Теки, які AI Agent може відкривати в цьому проєкті</translation>
+        </message>
+        <message>
+            <source>The project folder and its layers' folders are always open for reading.</source>
+            <translation>Тека проєкту та теки його шарів завжди відкриті для читання.</translation>
+        </message>
+    </context>
+    <context>
+        <name>_FolderRow</name>
+        <message>
+            <source>Read and write</source>
+            <translation>Читання й запис</translation>
+        </message>
+        <message>
+            <source>Read only</source>
+            <translation>Лише читання</translation>
+        </message>
+        <message>
+            <source>Remove</source>
+            <translation>Вилучити</translation>
+        </message>
+    </context>
+    <context>
+        <name>AIAgentRecovery</name>
+        <message>
+            <source>QGIS closed during a run. {n} layer(s) of unsaved work came back in the group "{group}". Save them to keep them.</source>
+            <translation>QGIS закрився під час виконання. {n} шар(ів) із незбереженою роботою повернулося до групи "{group}". Збережіть їх, щоб не втратити.</translation>
+        </message>
+        <message>
+            <source>Some unsaved work could not be put back. Its copy is kept in {folder}.</source>
+            <translation>Частину незбереженої роботи не вдалося повернути. Її копія зберігається в {folder}.</translation>
+        </message>
+        <message>
+            <source>{name} (unsaved edits kept)</source>
+            <translation>{name} (незбережені зміни збережено)</translation>
         </message>
     </context>
 </TS>

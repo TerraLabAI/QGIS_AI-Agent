@@ -1983,13 +1983,77 @@ De verwijdering is definitief zodra de respijtperiode is verstreken. Tot die tij
             <source>left out</source>
             <translation>weggelaten</translation>
         </message>
-    </context>
-    <context>
-        <name>AIAgentContext</name>
         <message>
-            <location filename="src/core/context.py" />
-            <source>Raster</source>
-            <translation>Raster</translation>
+            <source>The AI agent has been thinking for {time}</source>
+            <translation>De AI-agent denkt al {time} na</translation>
+        </message>
+        <message>
+            <source>Code running in QGIS for {time}</source>
+            <translation>Code wordt al {time} uitgevoerd in QGIS</translation>
+        </message>
+        <message>
+            <source>Running in QGIS for {time}</source>
+            <translation>Wordt al {time} uitgevoerd in QGIS</translation>
+        </message>
+        <message>
+            <source>Bugs</source>
+            <translation>Bugs</translation>
+        </message>
+        <message>
+            <source>For a team, a call is quickest.</source>
+            <translation>Voor een team is bellen het snelst.</translation>
+        </message>
+        <message>
+            <source>Ideas</source>
+            <translation>Ideeën</translation>
+        </message>
+        <message>
+            <source>Licences, quotes and invoices for your team, too.</source>
+            <translation>Ook licenties, offertes en facturen voor je team.</translation>
+        </message>
+        <message>
+            <source>Questions</source>
+            <translation>Vragen</translation>
+        </message>
+        <message>
+            <source>Team needs</source>
+            <translation>Wensen voor je team</translation>
+        </message>
+        <message>
+            <source>Map history</source>
+            <translation>Kaartgeschiedenis</translation>
+        </message>
+        <message>
+            <source>Open earlier project versions</source>
+            <translation>Eerdere projectversies openen</translation>
+        </message>
+        <message>
+            <source>Recall your last message</source>
+            <translation>Je laatste bericht terughalen</translation>
+        </message>
+        <message>
+            <source>Redo it</source>
+            <translation>Opnieuw uitvoeren</translation>
+        </message>
+        <message>
+            <source>Sent with this conversation and the plugin's recent log.</source>
+            <translation>Wordt meegestuurd met dit gesprek en het recente logboek van de plugin.</translation>
+        </message>
+        <message>
+            <source>Undo the last request</source>
+            <translation>Het laatste verzoek ongedaan maken</translation>
+        </message>
+        <message>
+            <source>We read every message and use it to improve AI Agent.</source>
+            <translation>We lezen elk bericht en gebruiken het om AI Agent te verbeteren.</translation>
+        </message>
+        <message>
+            <source>What happened, and what did you expect? For example: the buffer came out in degrees instead of metres.</source>
+            <translation>Wat is er gebeurd en wat had je verwacht? Bijvoorbeeld: de buffer kwam uit in graden in plaats van in meters.</translation>
+        </message>
+        <message>
+            <source>Kept until you delete it</source>
+            <translation>Bewaard tot je het verwijdert</translation>
         </message>
         <message>
             <location filename="src/core/context.py" />
@@ -4519,6 +4583,18 @@ De verwijdering is definitief zodra de respijtperiode is verstreken. Tot die tij
             <source>Dock or undock AI Agent</source>
             <translation>AI Agent vastzetten of losmaken</translation>
         </message>
+        <message>
+            <source>Pro ends on {date}. Keep it in one click.</source>
+            <translation>Pro eindigt op {date}. Behoud het met één klik.</translation>
+        </message>
+        <message>
+            <source>Pro is set to end. Keep it in one click.</source>
+            <translation>Pro staat op het punt te eindigen. Behoud het met één klik.</translation>
+        </message>
+        <message>
+            <source>See what's in Pro</source>
+            <translation>Bekijk wat er in Pro zit</translation>
+        </message>
     </context>
     <context>
         <name>HistoryPopup</name>
@@ -5069,6 +5145,10 @@ Klik om de pagina te openen.</translation>
         <message>
             <source>{n} of {total} features in {layer}</source>
             <translation>{n} van {total} objecten in {layer}</translation>
+        </message>
+        <message>
+            <source>Allow lets AI Agent read and write in {folder} for this project.</source>
+            <translation>Met Toestaan kan AI Agent in {folder} lezen en schrijven voor dit project.</translation>
         </message>
     </context>
     <context>
@@ -5650,6 +5730,138 @@ Bedankt</translation>
         <message>
             <source>{n} tasks a month, cancel anytime</source>
             <translation>{n} taken per maand, altijd opzegbaar</translation>
+        </message>
+        <message>
+            <source>1 task left this month</source>
+            <translation>Nog 1 taak deze maand</translation>
+        </message>
+        <message>
+            <source>All {n} tasks used. They reset on {date}.</source>
+            <translation>Alle {n} taken gebruikt. Ze worden op {date} gereset.</translation>
+        </message>
+        <message>
+            <source>Back to Pro</source>
+            <translation>Terug naar Pro</translation>
+        </message>
+        <message>
+            <source>Come back to Pro for {n} tasks a month.</source>
+            <translation>Kom terug naar Pro voor {n} taken per maand.</translation>
+        </message>
+        <message>
+            <source>Contact us</source>
+            <translation>Neem contact op</translation>
+        </message>
+        <message>
+            <source>Contact us for more tasks</source>
+            <translation>Neem contact op voor meer taken</translation>
+        </message>
+        <message>
+            <source>Get Pro for {n} tasks a month.</source>
+            <translation>Neem Pro voor {n} taken per maand.</translation>
+        </message>
+        <message>
+            <source>Need Pro for work?</source>
+            <translation>Pro nodig voor je werk?</translation>
+        </message>
+        <message>
+            <source>No card? Contact us to pay by invoice.</source>
+            <translation>Geen kaart? Neem contact op om per factuur te betalen.</translation>
+        </message>
+        <message>
+            <source>No card? Contact us to start your free trial.</source>
+            <translation>Geen kaart? Neem contact op om je gratis proefperiode te starten.</translation>
+        </message>
+        <message>
+            <source>Pay nothing today</source>
+            <translation>Vandaag niets betalen</translation>
+        </message>
+        <message>
+            <source>Pay nothing today, then your local price each month. Cancel anytime.</source>
+            <translation>Vandaag niets betalen, daarna elke maand je lokale prijs. Op elk moment opzegbaar.</translation>
+        </message>
+        <message>
+            <source>Pay nothing today, then your student price each month. Cancel anytime.</source>
+            <translation>Vandaag niets betalen, daarna elke maand je studentenprijs. Op elk moment opzegbaar.</translation>
+        </message>
+        <message>
+            <source>Pay nothing today, then {price}/month excl. VAT. Cancel anytime.</source>
+            <translation>Vandaag niets betalen, daarna {price}/maand excl. btw. Op elk moment opzegbaar.</translation>
+        </message>
+        <message>
+            <source>Pay nothing today, then {price}/month. Cancel anytime.</source>
+            <translation>Vandaag niets betalen, daarna {price}/maand. Op elk moment opzegbaar.</translation>
+        </message>
+        <message>
+            <source>Payment of {amount} failed</source>
+            <translation>Betaling van {amount} mislukt</translation>
+        </message>
+        <message>
+            <source>Pro is paused until payment goes through.</source>
+            <translation>Pro staat op pauze totdat de betaling is gelukt.</translation>
+        </message>
+        <message>
+            <source>Start Pro now</source>
+            <translation>Start Pro nu</translation>
+        </message>
+        <message>
+            <source>Start free trial</source>
+            <translation>Gratis proefperiode starten</translation>
+        </message>
+        <message>
+            <source>Try Pro free for a week to get more tasks.</source>
+            <translation>Probeer Pro een week gratis voor meer taken.</translation>
+        </message>
+        <message>
+            <source>Welcome to Pro</source>
+            <translation>Welkom bij Pro</translation>
+        </message>
+        <message>
+            <source>You now have {n} tasks a month.</source>
+            <translation>Je hebt nu {n} taken per maand.</translation>
+        </message>
+        <message>
+            <source>You used all your tasks this month</source>
+            <translation>Je hebt al je taken van deze maand gebruikt</translation>
+        </message>
+        <message>
+            <source>You used your last task</source>
+            <translation>Je hebt je laatste taak gebruikt</translation>
+        </message>
+        <message>
+            <source>Your free trial runs until {date}.</source>
+            <translation>Je gratis proefperiode loopt tot {date}.</translation>
+        </message>
+        <message>
+            <source>Your tasks reset next month.</source>
+            <translation>Je taken worden volgende maand gereset.</translation>
+        </message>
+        <message>
+            <source>Your tasks reset on {date}.</source>
+            <translation>Je taken worden op {date} gereset.</translation>
+        </message>
+        <message>
+            <source>Your trial did not start. You were not charged.</source>
+            <translation>Je proefperiode is niet gestart. Er is niets afgeschreven.</translation>
+        </message>
+        <message>
+            <source>{n} tasks a month. Cancel anytime.</source>
+            <translation>{n} taken per maand. Op elk moment opzegbaar.</translation>
+        </message>
+        <message>
+            <source>{n} tasks left this month</source>
+            <translation>Nog {n} taken deze maand</translation>
+        </message>
+        <message>
+            <source>{price} excl. VAT</source>
+            <translation>{price} excl. btw</translation>
+        </message>
+        <message>
+            <source>{price}/month. Cancel anytime.</source>
+            <translation>{price}/maand. Op elk moment opzegbaar.</translation>
+        </message>
+        <message>
+            <source>{price}/month excl. VAT. Cancel anytime.</source>
+            <translation>{price}/maand excl. btw. Op elk moment opzegbaar.</translation>
         </message>
     </context>
     <context>
@@ -6455,6 +6667,478 @@ Bedankt</translation>
             <source>Your usage and chats help us fix bugs. Turn it off anytime.</source>
             <translation>Je gebruik en chats helpen ons bugs op te lossen. Je kunt het altijd uitzetten.</translation>
         </message>
+        <message>
+            <source>Bell</source>
+            <translation>Bel</translation>
+        </message>
+        <message>
+            <source>Chime</source>
+            <translation>Klokkenspel</translation>
+        </message>
+        <message>
+            <source>Icon and sound</source>
+            <translation>Pictogram en geluid</translation>
+        </message>
+        <message>
+            <source>Icon only</source>
+            <translation>Alleen pictogram</translation>
+        </message>
+        <message>
+            <source>Little train</source>
+            <translation>Treintje</translation>
+        </message>
+        <message>
+            <source>Marimba</source>
+            <translation>Marimba</translation>
+        </message>
+        <message>
+            <source>Needs your answer</source>
+            <translation>Antwoord nodig</translation>
+        </message>
+        <message>
+            <source>Notifications</source>
+            <translation>Meldingen</translation>
+        </message>
+        <message>
+            <source>Notify me</source>
+            <translation>Meld me</translation>
+        </message>
+        <message>
+            <source>Off</source>
+            <translation>Uit</translation>
+        </message>
+        <message>
+            <source>Only while QGIS is in the background or the panel is hidden.</source>
+            <translation>Alleen als QGIS op de achtergrond staat of het paneel verborgen is.</translation>
+        </message>
+        <message>
+            <source>Play</source>
+            <translation>Afspelen</translation>
+        </message>
+        <message>
+            <source>Questions and approvals.</source>
+            <translation>Vragen en goedkeuringen.</translation>
+        </message>
+        <message>
+            <source>Run finished</source>
+            <translation>Uitvoering voltooid</translation>
+        </message>
+        <message>
+            <source>Volume</source>
+            <translation>Volume</translation>
+        </message>
+        <message>
+            <source>1 task left</source>
+            <translation>Nog 1 taak</translation>
+        </message>
+        <message>
+            <source>A badge on the QGIS icon and a sound, only while QGIS is in the background or the panel is hidden.</source>
+            <translation>Een badge op het QGIS-pictogram en een geluid, alleen als QGIS op de achtergrond staat of het paneel verborgen is.</translation>
+        </message>
+        <message>
+            <source>About you and Instructions</source>
+            <translation>Over jou en Instructies</translation>
+        </message>
+        <message>
+            <source>Back in {n} days</source>
+            <translation>Terug over {n} dagen</translation>
+        </message>
+        <message>
+            <source>Back tomorrow</source>
+            <translation>Morgen terug</translation>
+        </message>
+        <message>
+            <source>Call me back while I work elsewhere</source>
+            <translation>Roep me terug terwijl ik elders werk</translation>
+        </message>
+        <message>
+            <source>Change</source>
+            <translation>Wijzigen</translation>
+        </message>
+        <message>
+            <source>Commercial use included</source>
+            <translation>Commercieel gebruik inbegrepen</translation>
+        </message>
+        <message>
+            <source>Context for every task</source>
+            <translation>Context voor elke taak</translation>
+        </message>
+        <message>
+            <source>Could not load your usage</source>
+            <translation>Je verbruik kon niet worden geladen</translation>
+        </message>
+        <message>
+            <source>Detect and outline objects on imagery: buildings, trees, water or fields become polygons you can edit.</source>
+            <translation>Herken en omlijn objecten op beeldmateriaal: gebouwen, bomen, water of velden worden polygonen die je kunt bewerken.</translation>
+        </message>
+        <message>
+            <source>Edit your imagery with one sentence, the way you would ask a colleague.</source>
+            <translation>Bewerk je beeldmateriaal met één zin, zoals je het aan een collega zou vragen.</translation>
+        </message>
+        <message>
+            <source>Every task, day by day, on terra-lab.ai</source>
+            <translation>Elke taak, dag per dag, op terra-lab.ai</translation>
+        </message>
+        <message>
+            <source>Everything else here works without an account.</source>
+            <translation>Al het andere hier werkt zonder account.</translation>
+        </message>
+        <message>
+            <source>From your TerraLab account.</source>
+            <translation>Van je TerraLab-account.</translation>
+        </message>
+        <message>
+            <source>General</source>
+            <translation>Algemeen</translation>
+        </message>
+        <message>
+            <source>How the AI agent answers.</source>
+            <translation>Hoe de AI-agent antwoordt.</translation>
+        </message>
+        <message>
+            <source>How the AI agent calls you back.</source>
+            <translation>Hoe de AI-agent je terugroept.</translation>
+        </message>
+        <message>
+            <source>Install</source>
+            <translation>Installeren</translation>
+        </message>
+        <message>
+            <source>Install {plugin}</source>
+            <translation>{plugin} installeren</translation>
+        </message>
+        <message>
+            <source>Loading your plan...</source>
+            <translation>Je abonnement wordt geladen...</translation>
+        </message>
+        <message>
+            <source>Loading your tasks...</source>
+            <translation>Je taken worden geladen...</translation>
+        </message>
+        <message>
+            <source>Monthly tasks</source>
+            <translation>Taken per maand</translation>
+        </message>
+        <message>
+            <source>More from TerraLab</source>
+            <translation>Meer van TerraLab</translation>
+        </message>
+        <message>
+            <source>Needs your answer: {a} · Run finished: {b}</source>
+            <translation>Wacht op je antwoord: {a} · Run voltooid: {b}</translation>
+        </message>
+        <message>
+            <source>One TerraLab account signs you in to all three plugins.</source>
+            <translation>Met één TerraLab-account meld je je aan bij alle drie de plugins.</translation>
+        </message>
+        <message>
+            <source>One task is one message you send, however many steps the AI agent takes. Tasks that fail on our side are given back.</source>
+            <translation>Eén taak is één bericht dat je stuurt, hoeveel stappen de AI-agent ook neemt. Taken die aan onze kant mislukken, krijg je terug.</translation>
+        </message>
+        <message>
+            <source>Open {plugin}</source>
+            <translation>{plugin} openen</translation>
+        </message>
+        <message>
+            <source>Opens the QGIS plugin manager on this plugin. Free to install.</source>
+            <translation>Opent de QGIS-pluginbeheerder bij deze plugin. Gratis te installeren.</translation>
+        </message>
+        <message>
+            <source>Personal, non-commercial use</source>
+            <translation>Persoonlijk, niet-commercieel gebruik</translation>
+        </message>
+        <message>
+            <source>Plan</source>
+            <translation>Abonnement</translation>
+        </message>
+        <message>
+            <source>Profile</source>
+            <translation>Profiel</translation>
+        </message>
+        <message>
+            <source>Resets in {n} days</source>
+            <translation>Wordt opnieuw ingesteld over {n} dagen</translation>
+        </message>
+        <message>
+            <source>Resets tomorrow</source>
+            <translation>Wordt morgen opnieuw ingesteld</translation>
+        </message>
+        <message>
+            <source>Rules the AI agent always follows.</source>
+            <translation>Regels die de AI-agent altijd volgt.</translation>
+        </message>
+        <message>
+            <source>Saved on this computer.</source>
+            <translation>Opgeslagen op deze computer.</translation>
+        </message>
+        <message>
+            <source>Search settings</source>
+            <translation>Instellingen zoeken</translation>
+        </message>
+        <message>
+            <source>Show its panel.</source>
+            <translation>Toon het paneel.</translation>
+        </message>
+        <message>
+            <source>Sign in to see your plan and tasks</source>
+            <translation>Meld je aan om je abonnement en taken te zien</translation>
+        </message>
+        <message>
+            <source>Sounds</source>
+            <translation>Geluiden</translation>
+        </message>
+        <message>
+            <source>Tell the AI agent who you are and the rules it always follows. Included in Pro.</source>
+            <translation>Vertel de AI-agent wie je bent en welke regels hij altijd volgt. Inbegrepen in Pro.</translation>
+        </message>
+        <message>
+            <source>Two more AI plugins for QGIS, from the makers of AI Agent.</source>
+            <translation>Nog twee AI-plugins voor QGIS, van de makers van AI Agent.</translation>
+        </message>
+        <message>
+            <source>Upgrade plan</source>
+            <translation>Abonnement upgraden</translation>
+        </message>
+        <message>
+            <source>Upgrade to Pro</source>
+            <translation>Upgraden naar Pro</translation>
+        </message>
+        <message>
+            <source>Usage</source>
+            <translation>Verbruik</translation>
+        </message>
+        <message>
+            <source>What counts as a task</source>
+            <translation>Wat telt als taak</translation>
+        </message>
+        <message>
+            <source>What leaves this computer, and for how long.</source>
+            <translation>Wat deze computer verlaat, en hoelang.</translation>
+        </message>
+        <message>
+            <source>What you work on, your data, your area.</source>
+            <translation>Waar je aan werkt, je gegevens, je gebied.</translation>
+        </message>
+        <message>
+            <source>Your plan and the tasks you used this month.</source>
+            <translation>Je abonnement en de taken die je deze maand hebt gebruikt.</translation>
+        </message>
+        <message>
+            <source>Your plan, payment method and invoices, on terra-lab.ai.</source>
+            <translation>Je abonnement, betaalmethode en facturen, op terra-lab.ai.</translation>
+        </message>
+        <message>
+            <source>Your tasks are counted on our side; nothing is lost.</source>
+            <translation>Je taken worden aan onze kant geteld; er gaat niets verloren.</translation>
+        </message>
+        <message>
+            <source>of {limit} this month</source>
+            <translation>van {limit} deze maand</translation>
+        </message>
+        <message>
+            <source>{n} tasks left</source>
+            <translation>Nog {n} taken</translation>
+        </message>
+        <message>
+            <source>{p}% left</source>
+            <translation>Nog {p}% over</translation>
+        </message>
+        <message>
+            <source>1 task left this month</source>
+            <translation>Nog 1 taak deze maand</translation>
+        </message>
+        <message>
+            <source>Cancel anytime before it ends.</source>
+            <translation>Opzeggen kan altijd vóór het einde.</translation>
+        </message>
+        <message>
+            <source>Card declined</source>
+            <translation>Kaart geweigerd</translation>
+        </message>
+        <message>
+            <source>Come back to Pro</source>
+            <translation>Kom terug naar Pro</translation>
+        </message>
+        <message>
+            <source>Ends {date}</source>
+            <translation>Eindigt op {date}</translation>
+        </message>
+        <message>
+            <source>Payment failed</source>
+            <translation>Betaling mislukt</translation>
+        </message>
+        <message>
+            <source>Pro is off until it's paid.</source>
+            <translation>Pro staat uit tot de betaling gelukt is.</translation>
+        </message>
+        <message>
+            <source>Pro trial</source>
+            <translation>Pro-proefperiode</translation>
+        </message>
+        <message>
+            <source>Pro trial, 1 day left</source>
+            <translation>Pro-proefperiode, nog 1 dag</translation>
+        </message>
+        <message>
+            <source>Pro trial, ends {date}</source>
+            <translation>Pro-proefperiode, eindigt op {date}</translation>
+        </message>
+        <message>
+            <source>Pro trial, {n} days left</source>
+            <translation>Pro-proefperiode, nog {n} dagen</translation>
+        </message>
+        <message>
+            <source>Then {price}/month. Cancel anytime.</source>
+            <translation>Daarna {price}/maand. Altijd opzegbaar.</translation>
+        </message>
+        <message>
+            <source>Try Pro free for {n} days</source>
+            <translation>Probeer Pro {n} dagen gratis</translation>
+        </message>
+        <message>
+            <source>Try another card</source>
+            <translation>Probeer een andere kaart</translation>
+        </message>
+        <message>
+            <source>Update card</source>
+            <translation>Kaart bijwerken</translation>
+        </message>
+        <message>
+            <source>You're out of tasks this month</source>
+            <translation>Je hebt geen taken meer deze maand</translation>
+        </message>
+        <message>
+            <source>You're out until {date}</source>
+            <translation>Je hebt geen taken meer tot {date}</translation>
+        </message>
+        <message>
+            <source>Your trial didn't start. Nothing was charged.</source>
+            <translation>Je proefperiode is niet gestart. Er is niets afgeschreven.</translation>
+        </message>
+        <message>
+            <source>{amount} due.</source>
+            <translation>{amount} verschuldigd.</translation>
+        </message>
+        <message>
+            <source>{n} tasks left this month</source>
+            <translation>Nog {n} taken deze maand</translation>
+        </message>
+        <message>
+            <source>{plan}, renews {date}</source>
+            <translation>{plan}, verlengt op {date}</translation>
+        </message>
+        <message>
+            <source>{price} excl. VAT</source>
+            <translation>{price} excl. btw</translation>
+        </message>
+        <message>
+            <source>{price}/month. Cancel anytime.</source>
+            <translation>{price}/maand. Altijd opzegbaar.</translation>
+        </message>
+        <message>
+            <source>{used} of {limit} used</source>
+            <translation>{used} van {limit} gebruikt</translation>
+        </message>
+        <message>
+            <source>Clear search</source>
+            <translation>Zoekopdracht wissen</translation>
+        </message>
+        <message>
+            <source>Try Pro free</source>
+            <translation>Pro gratis proberen</translation>
+        </message>
+        <message>
+            <source>Delete account</source>
+            <translation>Account verwijderen</translation>
+        </message>
+        <message>
+            <source>Report a problem</source>
+            <translation>Een probleem melden</translation>
+        </message>
+        <message>
+            <source>Ends on {date}</source>
+            <translation>Eindigt op {date}</translation>
+        </message>
+        <message>
+            <source>Monthly limit reached, resets {date}</source>
+            <translation>Maandlimiet bereikt, reset op {date}</translation>
+        </message>
+        <message>
+            <source>Pro is paused until payment goes through.</source>
+            <translation>Pro staat op pauze totdat de betaling is gelukt.</translation>
+        </message>
+        <message>
+            <source>Pro trial: 1 day left</source>
+            <translation>Pro-proefperiode: nog 1 dag</translation>
+        </message>
+        <message>
+            <source>Pro trial: {n} days left</source>
+            <translation>Pro-proefperiode: nog {n} dagen</translation>
+        </message>
+        <message>
+            <source>Your trial did not start. You were not charged.</source>
+            <translation>Je proefperiode is niet gestart. Er is niets afgeschreven.</translation>
+        </message>
+        <message>
+            <source>Then {price}/month excl. VAT. Cancel anytime.</source>
+            <translation>Daarna {price}/maand excl. btw. Op elk moment opzegbaar.</translation>
+        </message>
+        <message>
+            <source>{price}/month excl. VAT. Cancel anytime.</source>
+            <translation>{price}/maand excl. btw. Op elk moment opzegbaar.</translation>
+        </message>
+        <message>
+            <source>Desktop notifications</source>
+            <translation>Bureaubladmeldingen</translation>
+        </message>
+        <message>
+            <source>When QGIS is in the background and a run finishes or needs you.</source>
+            <translation>Wanneer QGIS op de achtergrond staat en een run klaar is of jou nodig heeft.</translation>
+        </message>
+        <message>
+            <source>Resets today</source>
+            <translation>Wordt vandaag gereset</translation>
+        </message>
+        <message>
+            <source>Try Pro free for 1 day</source>
+            <translation>Probeer Pro 1 dag gratis</translation>
+        </message>
+        <message>
+            <source>More AI plugins</source>
+            <translation>Meer AI-plugins</translation>
+        </message>
+        <message>
+            <source>Applies after restarting QGIS.</source>
+            <translation>Geldt na het herstarten van QGIS.</translation>
+        </message>
+        <message>
+            <source>How AI Agent looks, what it knows about you, and how it calls you back.</source>
+            <translation>Hoe AI Agent eruitziet, wat het over je weet en hoe het je terugroept.</translation>
+        </message>
+        <message>
+            <source>Language</source>
+            <translation>Taal</translation>
+        </message>
+        <message>
+            <source>Usage stats: only that you used the app and when. Chats are kept as your History retention says, so a conversation survives an update; we may read one, or have a model score it, to fix bugs, never to train AI. 0 days of history stores nothing.</source>
+            <translation>Gebruiksstatistieken: alleen dat je de app hebt gebruikt en wanneer. Chats worden bewaard volgens je instelling Bewaartermijn van geschiedenis, zodat een gesprek een update overleeft. We mogen er een lezen, of door een model laten beoordelen, om bugs op te lossen, nooit om AI te trainen. Bij 0 dagen geschiedenis wordt niets opgeslagen.</translation>
+        </message>
+        <message>
+            <source>Grey text in the message box. Tab takes it.</source>
+            <translation>Grijze tekst in het berichtvak. Tab neemt hem over.</translation>
+        </message>
+        <message>
+            <source>Typing suggestions</source>
+            <translation>Typsuggesties</translation>
+        </message>
+        <message>
+            <source>Language, response style, suggestions and notifications go back to their defaults.</source>
+            <translation>Taal, antwoordstijl, suggesties en meldingen worden teruggezet naar de standaardwaarden.</translation>
+        </message>
+        <message>
+            <source>Reset settings</source>
+            <translation>Instellingen resetten</translation>
+        </message>
     </context>
     <context>
         <name>SourcesButton</name>
@@ -6876,6 +7560,10 @@ Bedankt</translation>
             <source>Always allowed</source>
             <translation>Altijd toegestaan</translation>
         </message>
+        <message>
+            <source>Allow AI Agent to write in {folder}?</source>
+            <translation>Mag AI Agent schrijven in {folder}?</translation>
+        </message>
     </context>
     <context>
         <name>TraceSteps</name>
@@ -7284,10 +7972,6 @@ Bedankt</translation>
             <translation>tool: {tool}</translation>
         </message>
         <message>
-            <source>{day} UTC, added by AI Agent by TerraLab</source>
-            <translation>{day} UTC, toegevoegd door AI Agent by TerraLab</translation>
-        </message>
-        <message>
             <source>Accessed {day} via {host}</source>
             <translation>Geraadpleegd op {day} via {host}</translation>
         </message>
@@ -7336,8 +8020,12 @@ Bedankt</translation>
             <translation>projectlagen die de code noemt: {names}</translation>
         </message>
         <message>
-            <source>{day} UTC, AI Agent run {run}: added {layers}</source>
-            <translation>{day} UTC, AI Agent-run {run}: {layers} toegevoegd</translation>
+            <source>{day} UTC, run {run}: added {layers}</source>
+            <translation>{day} UTC, run {run}: {layers} toegevoegd</translation>
+        </message>
+        <message>
+            <source>Data source</source>
+            <translation>Gegevensbron</translation>
         </message>
     </context>
     <context>
@@ -7463,6 +8151,22 @@ Dit bestand staat niet meer op de plek waar het is weggeschreven.</translation>
         <message>
             <source>Get more tasks with Pro</source>
             <translation>Krijg meer taken met Pro</translation>
+        </message>
+        <message>
+            <source>1 task left</source>
+            <translation>Nog 1 taak</translation>
+        </message>
+        <message>
+            <source>Get more with Pro</source>
+            <translation>Krijg meer met Pro</translation>
+        </message>
+        <message>
+            <source>Pro: {n} tasks a month, higher effort levels and Autopilot.</source>
+            <translation>Pro: {n} taken per maand, hogere inspanningsniveaus en Autopilot.</translation>
+        </message>
+        <message>
+            <source>{n} tasks left</source>
+            <translation>Nog {n} taken</translation>
         </message>
     </context>
     <context>
@@ -7790,6 +8494,10 @@ Dit bestand staat niet meer op de plek waar het is weggeschreven.</translation>
         <message>
             <source>Stopping...</source>
             <translation>Bezig met stoppen...</translation>
+        </message>
+        <message>
+            <source>the map render</source>
+            <translation>de kaartweergave</translation>
         </message>
     </context>
     <context>
@@ -9873,6 +10581,120 @@ Dit bestand staat niet meer op de plek waar het is weggeschreven.</translation>
         <message>
             <source>Selected</source>
             <translation>Geselecteerd</translation>
+        </message>
+    </context>
+    <context>
+        <name>FolderCard</name>
+        <message>
+            <source>A folder on another computer of your network.</source>
+            <translation>Een map op een andere computer in je netwerk.</translation>
+        </message>
+        <message>
+            <source>Denied</source>
+            <translation>Geweigerd</translation>
+        </message>
+        <message>
+            <source>Deny</source>
+            <translation>Weigeren</translation>
+        </message>
+        <message>
+            <source>Let AI Agent open this folder?</source>
+            <translation>Mag AI Agent deze map openen?</translation>
+        </message>
+        <message>
+            <source>Read and write</source>
+            <translation>Lezen en schrijven</translation>
+        </message>
+        <message>
+            <source>Read only</source>
+            <translation>Alleen lezen</translation>
+        </message>
+        <message>
+            <source>What AI Agent reads there is sent to the AI model. Kept for this project.</source>
+            <translation>Wat AI Agent daar leest, wordt naar het AI-model gestuurd. Bewaard voor dit project.</translation>
+        </message>
+    </context>
+    <context>
+        <name>FolderChip</name>
+        <message>
+            <source>1 folder</source>
+            <translation>1 map</translation>
+        </message>
+        <message>
+            <source>Folders</source>
+            <translation>Mappen</translation>
+        </message>
+        <message>
+            <source>Folders AI Agent can open in this project</source>
+            <translation>Mappen die AI Agent in dit project kan openen</translation>
+        </message>
+        <message>
+            <source>{n} folders</source>
+            <translation>{n} mappen</translation>
+        </message>
+    </context>
+    <context>
+        <name>FolderPopover</name>
+        <message>
+            <source>Folders AI Agent can open in this project</source>
+            <translation>Mappen die AI Agent in dit project kan openen</translation>
+        </message>
+        <message>
+            <source>The project folder and its layers' folders are always open for reading.</source>
+            <translation>De projectmap en de mappen van de lagen zijn altijd open om te lezen.</translation>
+        </message>
+    </context>
+    <context>
+        <name>_FolderRow</name>
+        <message>
+            <source>Read and write</source>
+            <translation>Lezen en schrijven</translation>
+        </message>
+        <message>
+            <source>Read only</source>
+            <translation>Alleen lezen</translation>
+        </message>
+        <message>
+            <source>Remove</source>
+            <translation>Verwijderen</translation>
+        </message>
+    </context>
+    <context>
+        <name>AIAgentContext</name>
+        <message>
+            <source>QGIS is not running</source>
+            <translation>QGIS is niet actief</translation>
+        </message>
+        <message>
+            <source>Raster</source>
+            <translation>Raster</translation>
+        </message>
+        <message>
+            <source>Show in QGIS</source>
+            <translation>Tonen in QGIS</translation>
+        </message>
+        <message>
+            <source>Shown in QGIS</source>
+            <translation>Getoond in QGIS</translation>
+        </message>
+        <message>
+            <source>Table</source>
+            <translation>Tabel</translation>
+        </message>
+    </context>
+    <context>
+        <name>AIAgentRecovery</name>
+        <message>
+            <source>QGIS closed during a run. {n} layer(s) of unsaved work came back in the group "{group}". Save them to keep them.</source>
+            <translation>QGIS is tijdens een run gesloten. {n} laag/lagen met niet-opgeslagen werk zijn terug in de groep "{group}". Sla ze op om ze te bewaren.</translation>
+        </message>
+        <message>
+            <source>Some unsaved work could not be put back. Its copy is kept in {folder}.</source>
+            <translation>Een deel van het niet-opgeslagen werk kon niet worden teruggezet. De kopie staat in {folder}.</translation>
+        </message>
+        <message>
+            <source>{name} (unsaved edits kept)</source>
+            <translation>{name} (niet-opgeslagen bewerkingen bewaard)</translation>
         </message>
     </context>
 </TS>

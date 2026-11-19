@@ -99,7 +99,8 @@ def _numeric_domain_error(layer, field: str) -> dict | None:
 
 
 def _build(path: str, name: str, field: str, classes: int, mode_name: str, ramp_name: str,
-           credit: str, abstract: str, licence: str = "", source: str = "", source_url: str = "") -> dict:
+           credit: str, abstract: str, licence: str = "", source: str = "", source_url: str = "",
+           lineage: str = "") -> dict:
     layer = QgsVectorLayer(path, name, "ogr")
     if not layer.isValid():
         return tool_error("The statistics layer could not be read as a vector layer.")
@@ -124,6 +125,8 @@ def _build(path: str, name: str, field: str, classes: int, mode_name: str, ramp_
     metadata = QgsLayerMetadata()
     metadata.setTitle(name)
     metadata.setAbstract(abstract)
+    if lineage:
+        metadata.addHistoryItem(lineage)
 
 
     if licence:
@@ -198,14 +201,14 @@ def _map_statistic(args: dict) -> dict:
 
 
     joined_here = _is_backend_url(url)
-    provenance = ("Values joined to the boundaries on the official code by the TerraLab statistics route."
+    provenance = ("Values joined to the boundaries on their official code by the statistics service."
                   if joined_here else
                   "Loaded from an address given by the caller; the join was not performed or checked here.")
-    abstract = (f"{name}. Source: {source or 'not stated'}. Year: {year or 'not stated'}. "
-                f"Licence: {licence or 'not stated'}. {provenance}")
+
+    abstract = f"{name}. Source: {source or 'not stated'}. Year: {year or 'not stated'}."
     built = run_on_main_thread(_build, str(path), name, field, classes, mode_name,
                                 str(args.get("color_ramp") or ""), credit, abstract,
-                                licence, source, url if joined_here else "")
+                                licence, source, url if joined_here else "", provenance)
     if isinstance(built, dict) and built.get("_error"):
         return built
     built["credit"] = credit

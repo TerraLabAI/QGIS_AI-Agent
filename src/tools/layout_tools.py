@@ -38,6 +38,7 @@
 
 
 
+
 import glob
 import math
 import os
@@ -82,6 +83,7 @@ from ..core import security, tuning
 from ..core.layer_order import source_gone
 from ..core.qt_compat import enum_member
 from ..core.tool_registry import Tool, ToolRegistry, coded_fact, tool_error
+from . import raster_overviews
 from ._layers import layer_not_found, resolve_layer_note, source_gone_error
 from .colour_text import hex_from_qcolor, qcolor_from_text
 from .layout_facts import _apply_scale, _layout_credits, _page_summary
@@ -105,7 +107,10 @@ def _placement(name: str, neutral: float) -> float:
     return float(_layout_rules("placement").get(name, neutral))
 
 
-_PAGE_SIZES = ["A4", "A3", "A2", "A1", "A0", "Letter"]
+
+_PAGE_SIZES = ["A4", "A3", "A2", "A1", "A0", "Letter", "A6", "A5", "B6", "B5", "B4", "B3", "B2", "B1", "B0",
+               "Legal", "ANSI A", "ANSI B", "ANSI C", "ANSI D", "ANSI E",
+               "Arch A", "Arch B", "Arch C", "Arch D", "Arch E", "Arch E1", "Arch E2", "Arch E3"]
 
 
 def _create_layout_label(args: dict) -> str:
@@ -202,6 +207,7 @@ def register_layout_tools(registry: ToolRegistry):
             "required": ["layout_name"],
         },
         handler=_add_layout_map,
+        prepare=raster_overviews.prepare_layout_map,
     ))
 
     registry.register(Tool(
@@ -514,6 +520,11 @@ _SCALEBAR_UNITS = {
     "millesmarins": "NauticalMiles",
     "deg": "Degrees", "degree": "Degrees", "degrees": "Degrees",
     "degre": "Degrees", "degres": "Degrees",
+
+    "км": "Kilometers", "километр": "Kilometers", "километра": "Kilometers",
+    "километры": "Kilometers", "километров": "Kilometers",
+    "м": "Meters", "метр": "Meters", "метра": "Meters", "метры": "Meters", "метров": "Meters",
+    "см": "Centimeters", "мм": "Millimeters",
 }
 
 _UNIT_ACCENTS = str.maketrans("àâäéèêëîïôöùûüç", "aaaeeeeiioouuuc")
@@ -1283,6 +1294,11 @@ def _find_item(layout, ref, kind, noun: str):
              if isinstance(item, QgsLayoutItem) and not isinstance(item, QgsLayoutItemPage)]
     found = next((item for item in items if item.uuid().strip("{}").casefold() == bare
                   or (item.id() and item.id().casefold() == bare)), None)
+    if found is None:
+
+        named = [item for item in items if (kind is None or isinstance(item, kind))
+                 and str(_item_name(item) or "").casefold() == bare]
+        found = named[0] if len(named) == 1 else None
     if found is not None and (kind is None or isinstance(found, kind)):
         return found, None
     same = [{"uuid": item.uuid(), "name": _item_name(item)} for item in items
@@ -2059,8 +2075,11 @@ def _add_layout_map_in(layout, args: dict) -> dict:
                 rect = QgsCoordinateTransform(project.crs(), map_crs, project.transformContext()) \
                     .transformBoundingBox(rect)
             except Exception as exc:
-                return tool_error(f"Could not bring the map's area into {map_crs.authid()}: {exc}. "
-                                  "Nothing was added.", "INVALID_EXTENT")
+
+                return tool_error(f"Could not bring the map's area from the project CRS {project.crs().authid()}, "
+                                  f"which extent, layer and view are read in, into {map_crs.authid()}: {exc}. "
+                                  "Nothing was added.", "INVALID_EXTENT",
+                                  extent_crs=project.crs().authid(), map_crs=map_crs.authid())
 
     map_item = QgsLayoutItemMap(layout)
     map_item.attemptMove(_mm_point(args["x"], args["y"]))
@@ -2351,6 +2370,12 @@ def _fit_frame_to(map_item, rect) -> str:
 
 
         if min(subject / frame, frame / subject) >= _placement("min_fill", 0.0):
+            return ""
+
+
+        page = _containing_page_rect(map_item.layout(), map_item.sceneBoundingRect())
+        if page.width() * page.height() > 0 and (
+                width * height / (page.width() * page.height()) >= _placement("full_page_share", 2.0)):
             return ""
         x, y = float(pos.x()), float(pos.y())
         if subject < frame:

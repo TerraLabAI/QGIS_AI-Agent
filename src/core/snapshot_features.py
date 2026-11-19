@@ -13,6 +13,8 @@
 from __future__ import annotations
 
 import collections
+import contextlib
+import gc
 import hashlib
 import os
 import sqlite3
@@ -78,6 +80,8 @@ MEMORY_COPY_FILE = "memory.gpkg"
 
 _LAST_COPIES: dict[str, tuple[bytes, str, str, int]] = {}
 _COPIES_LOCK = threading.Lock()
+
+_GC_HOLDS: set = set()
 
 
 def forget_copies(folder: str) -> None:
@@ -620,14 +624,22 @@ class _FeaturePass:
             if on_done is not None:
                 on_done()
             return
-        try:
-            from . import background
 
+
+
+
+
+
+        self._gc_hold = contextlib.ExitStack()
+        self._gc_hold.enter_context(background.gc_paused())
+        _GC_HOLDS.add(self)
+        try:
             task = background.run_off_thread("AI Agent: snapshot signatures", self._work,
                                              lambda _result, error: self._finish(error, on_done))
         except Exception:  # noqa: BLE001
             task = None
         if task is None:
+            self._release_gc()
 
             error = ""
             try:
@@ -691,7 +703,18 @@ class _FeaturePass:
         if files:
             self._write_copies(files)
 
+    def _release_gc(self) -> None:
+
+        hold, self._gc_hold = getattr(self, "_gc_hold", None), None
+        _GC_HOLDS.discard(self)
+        if hold is None:
+            return
+        hold.close()
+        if gc.isenabled():
+            gc.collect(1)
+
     def _finish(self, error: str, on_done) -> None:
+        self._release_gc()
         if error:
             log_warning(f"Snapshot feature pass failed: {error}")
 
@@ -744,6 +767,10 @@ def shutdown() -> None:
 
 
     global _JOBS
+
+
+    for feature_pass in list(_GC_HOLDS):
+        feature_pass._release_gc()
     with _COPIES_LOCK:
         _LAST_COPIES.clear()
     jobs, _JOBS = _JOBS, None

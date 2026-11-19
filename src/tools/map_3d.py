@@ -60,6 +60,7 @@ from qgis.core import (
     Qgis,
     QgsCoordinateReferenceSystem,
     QgsCoordinateTransform,
+    QgsCsException,
     QgsPointXY,
     QgsProject,
     QgsRasterLayer,
@@ -70,6 +71,7 @@ from qgis.utils import iface
 
 from ..core import output_paths, security, view3d_windows
 from ..core.layer_order import source_gone
+from ..core.net import current_cancel_check
 from ..core.tool_registry import Tool, ToolRegistry, tool_error
 from . import style_3d
 from ._compat import enum_value
@@ -77,6 +79,10 @@ from ._layers import resolve_layer, source_gone_error
 from .pointcloud_style import give_3d_renderer
 
 TOOL = "configure_3d_map_view"
+
+
+_OCTREE_DEPTH = 9
+_OCTREE_BUDGET_S = 90.0
 _DEFAULT_TILE_RESOLUTION = 256
 _DEFAULT_GROUND_ERROR = 1.0
 _DEFAULT_SCREEN_ERROR = 3.0
@@ -121,6 +127,7 @@ def register_map_3d_tools(registry: ToolRegistry):
             "x-terrain-project-crs": True,
         },
         handler=_configure_3d_map_view,
+        prepare=_prepare_point_cloud_octrees,
     ))
 
 
@@ -502,6 +509,77 @@ def _main_map_view(settings):
     if extent.isEmpty() or not extent.isFinite():
         return None
     return extent.center().x(), extent.center().y(), max(extent.width(), extent.height()) * 1.2
+
+
+def _prepare_point_cloud_octrees(args: dict):
+
+
+
+
+
+
+
+
+
+
+
+    from qgis.core import QgsPointCloudLayer, QgsRectangle
+
+    project = QgsProject.instance()
+    remote = [layer for layer in project.mapLayers().values()
+              if isinstance(layer, QgsPointCloudLayer) and layer.isValid()
+              and str(layer.source()).lower().startswith(("http://", "https://", "/vsicurl"))]
+    if not remote:
+        return None
+    try:
+        if args.get("center") is not None:
+            x, y = _view_point(args["center"], args.get("crs"), project.crs())
+        else:
+            middle = iface.mapCanvas().extent().center()
+            x, y = middle.x(), middle.y()
+        half = float(args.get("distance") or 0) or max(iface.mapCanvas().extent().width(),
+                                                         iface.mapCanvas().extent().height()) / 2
+    except (ValueError, AttributeError, RuntimeError):
+        return None
+    half = half if project.crs().isGeographic() else min(max(half, 500.0), 5000.0)
+    around = QgsRectangle(x - half, y - half, x + half, y + half)
+    walks = []
+    for layer in remote:
+        try:
+            box = QgsCoordinateTransform(project.crs(), layer.crs(), project).transformBoundingBox(around)
+        except QgsCsException:
+            continue
+        walks.append((layer.name(), layer.index(), box))
+    if not walks:
+        return None
+
+    def work():
+        import time
+
+        cancel = current_cancel_check()
+        started, nodes = time.monotonic(), 0
+        for _name, index, box in walks:
+            stack = [(index.root(), 0)]
+            while stack and time.monotonic() - started < _OCTREE_BUDGET_S and not (cancel and cancel()):
+                node_id, depth = stack.pop()
+                node = index.getNode(node_id)
+                nodes += 1
+                if depth >= _OCTREE_DEPTH:
+                    continue
+                for child in node.children():
+                    b = index.getNode(child).bounds()
+                    if b.xMaximum() >= box.xMinimum() and b.xMinimum() <= box.xMaximum() \
+                            and b.yMaximum() >= box.yMinimum() and b.yMinimum() <= box.yMaximum():
+                        stack.append((child, depth + 1))
+        seconds = round(time.monotonic() - started, 1)
+
+        def finish() -> dict:
+            return {"point_cloud_octree_read": {"layers": [name for name, _i, _b in walks], "nodes": nodes,
+                                                "seconds": seconds}}
+
+        return finish
+
+    return work
 
 
 def _view_point(center, crs_text, view_crs):

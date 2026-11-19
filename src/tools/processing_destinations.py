@@ -11,7 +11,7 @@ from qgis.core import QgsApplication, QgsProject
 from ..core import tool_rules
 from ..core.layer_release import remove_layers
 from ..core.logger import log_warning
-from ..core.output_paths import gpkg_table_target
+from ..core.output_paths import gpkg_sink_uri, gpkg_table_target
 from ..core.qt_compat import enum_member
 from ..core.tool_registry import tool_error
 from ._layers import resolve_layer
@@ -46,6 +46,49 @@ def _fid_blocks_geopackage(layer_ids) -> bool:
         if index not in keys:
             return True
     return False
+
+
+def fid_keyed_destinations(alg, plans, run_parameters: dict, layer_ids) -> list:
+
+
+
+
+
+
+
+
+    from qgis.core import QgsProcessingOutputLayerDefinition
+
+    try:
+        provider = alg.provider().id() if alg.provider() is not None else ""
+    except Exception:  # noqa: BLE001
+        provider = ""
+    if provider not in ("native", "qgis") or not _fid_blocks_geopackage(layer_ids):
+        return []
+    sinks = {d.name() for d in alg.parameterDefinitions() if d.type() == "sink"}
+    taken = {field.name().casefold() for layer_id in layer_ids or ()
+             for layer in [QgsProject.instance().mapLayer(layer_id)] if layer is not None and hasattr(layer, "fields")
+             for field in layer.fields()}
+    key = next(name for name in ("fid_gpkg", *(f"fid_gpkg_{n}" for n in range(2, 100)), "fid_gpkg_x")
+               if name not in taken)
+    notes = []
+    for kind, name, payload in plans:
+        if name not in sinks:
+            continue
+        if kind == "file" and payload.lower().endswith(".gpkg"):
+            uri = gpkg_sink_uri(payload, os.path.splitext(os.path.basename(payload))[0])
+        elif kind == "table":
+            uri = payload[2]
+        else:
+            continue
+        if uri is None:
+            continue
+        definition = QgsProcessingOutputLayerDefinition(uri)
+        definition.createOptions = {"layerOptions": [f"FID={key}"]}
+        run_parameters[name] = definition
+        notes.append(f"{name}: an input's fid field is not a GeoPackage feature id, so the GeoPackage "
+                     f"keys its rows on {key} and keeps fid as written")
+    return notes
 
 
 def _any_table_without_geometry(layer_ids) -> bool:
@@ -596,6 +639,10 @@ def output_evidence_problem(alg, parameters: dict, outputs: dict) -> str:
         if isinstance(summary, dict) and summary.get("readable") is True:
             continue
         value = parameters.get(name)
+        if value in (None, "") and summary is None and _is_optional(definition):
+
+
+            continue
         target = gpkg_table_target(value) if isinstance(value, str) else None
         if target:
             where = f"{target[0]} table {target[1]}"

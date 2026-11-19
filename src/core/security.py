@@ -26,6 +26,9 @@
 
 
 
+
+
+
 from __future__ import annotations
 
 import contextlib
@@ -45,11 +48,6 @@ from .host_platform import IS_WINDOWS, resolved
 from .policy import AGENT_CACHE_DIR, AGENT_EXPORT_DIR, AGENT_HOME, AGENT_ROOT, AGENT_TMP_DIR
 from .security_urls import remember_user_hosts, vouched_hosts_for
 from .serialization import CodedText
-
-
-
-
-STRICT_WRITE_ROOTS = False
 
 _HOME = os.path.normpath(os.path.expanduser("~"))
 _PLUGIN_DIR = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."))
@@ -173,9 +171,6 @@ _INSTALL_DIRS: list[str] = []
 _AGENT_WORK_DIRS = list(dict.fromkeys(
     [AGENT_TMP_DIR, AGENT_EXPORT_DIR, AGENT_CACHE_DIR]
     + [os.path.join(AGENT_ROOT, name) for name in ("tmp", "exports", "cache")]))
-_MOUNT_ROOTS = ["/Volumes", "/mnt", "/media", "/srv", "/data", "/home", "/Users",
-                "/tmp", "/private/tmp",
-                "/var/folders", "/private/var/folders", "/var/tmp", "/private/var/tmp"]  # nosec B108
 
 
 
@@ -449,7 +444,44 @@ def _explicit_roots() -> list[str]:
     if _output_root:
         out.append(_output_root)
     out.extend(_allowed_roots)
+    out.extend(_export_roots())
+    for folder, write in _folder_grants.items():
+        if write and not _is_remote_share(folder):
+            out.append(folder)
+            real = _resolved_root(folder)
+            if real:
+                out.append(real)
     return list(dict.fromkeys(out))
+
+
+_EXPORT_ROOTS: list = []
+
+
+def _export_roots() -> list[str]:
+
+
+
+
+
+
+
+    if _EXPORT_ROOTS or "qgis.core" not in sys.modules:
+        return list(_EXPORT_ROOTS)
+    try:
+        from . import output_paths
+
+        folders = output_paths.export_candidates() + output_paths.legacy_folders()
+    except Exception:  # nosec B110
+        return []
+    roots = []
+    for folder in folders:
+        roots.append(os.path.normpath(folder))
+        real = _resolved_root(folder)
+        if (real and os.path.normcase(os.path.basename(real)) == os.path.normcase(os.path.basename(folder))
+                and _hidden_component(real, []) is None and _read_denied(real, []) is None):
+            roots.append(real)
+    _EXPORT_ROOTS[:] = list(dict.fromkeys(roots))
+    return list(_EXPORT_ROOTS)
 
 
 
@@ -487,6 +519,7 @@ _WARM_GENERATION = [0]
 _thread_roots: list[str] = []
 _THREAD_ROOTS_MAX = 512
 _thread_roots_keep: list = [None]
+_thread_roots_project: list = [None]
 
 
 def set_read_roots(roots) -> None:
@@ -496,7 +529,9 @@ def set_read_roots(roots) -> None:
 
 def write_roots() -> dict:
 
-    return {"project_dir": project_dir(), "output_root": _output_root, "allowed": list(_allowed_roots),
+    return {"project_dir": project_dir(), "output_root": _output_root,
+            "allowed": list(_allowed_roots) + _export_roots(),
+            "grants": [[folder, write] for folder, write in _folder_grants.items()],
             "shares": _shares_in_use() + list(_named_shares)}
 
 
@@ -510,6 +545,10 @@ def set_write_roots(roots) -> None:
         return
     _shares_override[0] = [str(root) for root in roots.get("shares") or [] if root]
     set_output_folder(roots.get("output_root") or None)
+    _folder_grants.clear()
+    for item in roots.get("grants") or []:
+        if isinstance(item, (list, tuple)) and len(item) == 2 and item[0]:
+            _folder_grants[str(item[0])] = bool(item[1])
     for root in list(roots.get("allowed") or []) + [roots.get("project_dir") or ""]:
         if not root:
             continue
@@ -562,6 +601,33 @@ def _keep_thread_roots(roots: list[str]) -> None:
         return
     _thread_roots.extend(new)
     del _thread_roots[:-_THREAD_ROOTS_MAX]
+    _store_thread_roots()
+
+
+def forget_thread_roots() -> None:
+
+
+
+
+    if _thread_roots_project[0] == "":
+        _thread_roots.clear()
+        _store_thread_roots()
+    _thread_roots.clear()
+    _thread_roots_project[0] = None
+    _thread_roots_keep[0] = None
+    _LAYER_ROOTS.update(key=None, roots=[])
+
+
+def thread_roots_saved_as(project: str, keep_layer_roots) -> None:
+
+    if _thread_roots_keep[0] is None:
+        return
+    _thread_roots_project[0] = project
+    _thread_roots_keep[0] = keep_layer_roots
+    _store_thread_roots()
+
+
+def _store_thread_roots() -> None:
     keep = _thread_roots_keep[0]
     if keep is None:
         return
@@ -832,9 +898,10 @@ def read_roots() -> list[str]:
     roots = list(temp_roots()) + [project_dir(), tempfile.gettempdir(), _output_root]
     roots += _layer_folders() + [PLUGIN_RESOURCES] + list(_attached_files)
     try:
-        from .output_paths import exports_folder
+        from .output_paths import exports_folder, legacy_folders
 
         roots.append(exports_folder(make=False))
+        roots += [folder for folder in legacy_folders() if os.path.isdir(folder)]
     except Exception:  # nosec B110
         pass
     profile = qgis_profile_dir()
@@ -844,7 +911,7 @@ def read_roots() -> list[str]:
 
 
 
-    roots = [root for root in roots if root and not too_wide(root)] + list(_user_paths)
+    roots = [root for root in roots if root and not too_wide(root)] + list(_user_paths) + list(_folder_grants)
 
 
 
@@ -853,7 +920,7 @@ def read_roots() -> list[str]:
     covered = {root for root in roots if _FOLDERS.get(root) is False and _norm(os.path.dirname(root)) in folders}
 
 
-    covered |= {root for root in roots if _is_remote_share(root) and _in_named_share(root)}
+    covered |= {root for root in roots if _is_remote_share(root) and (_in_named_share(root) or root in _folder_grants)}
     warm_roots([root for root in roots if root not in covered])
     out: list[str] = []
     for root in roots:
@@ -890,8 +957,10 @@ def _sidecar_of_attached(path: str) -> bool:
     return False
 
 
-def _scope_problem(expanded: str, real: str) -> str | None:
+def _scope_problem(expanded: str, real: str, shown: str = "") -> str | None:
 
+
+    named = shown or expanded
     candidates = list(dict.fromkeys((expanded, real)))
     if any(_norm(c) in _own_paths for c in candidates) or any(_sidecar_of_attached(c) for c in candidates):
         return None
@@ -917,12 +986,12 @@ def _scope_problem(expanded: str, real: str) -> str | None:
         typo = next((part for part in parts if _is_agent_dir_name(part)
                      and part != os.path.basename(os.path.normpath(AGENT_ROOT))), "")
         if typo:
-            return CodedText(f"No such file or folder: {expanded}.", "agent_folder_misspelled", path=expanded,
+            return CodedText(f"No such file or folder: {named}.", "agent_folder_misspelled", path=named,
                              agent_folder=os.path.basename(os.path.normpath(AGENT_ROOT)), typo=typo)
-        return f"No such file or folder: {expanded}."
-    return CodedText(f"{expanded} is outside the project, its layers' folders and the files the user gave; the "
+        return f"No such file or folder: {named}."
+    return CodedText(f"{named} is outside the project, its layers' folders and the files the user gave; the "
                      "agent does not read or list other folders of this computer.",
-                     "read_outside_scope", path=expanded)
+                     "read_outside_scope", path=named)
 
 
 def _hidden_component(path: str, roots: list[str]) -> str | None:
@@ -1022,16 +1091,24 @@ def _read_denied(path: str, roots: list[str]) -> str | None:
     return None
 
 
-def _write_root_ok(path: str, roots: list[str]) -> bool:
-    if any(path_is_under(path, root) for root in roots):
-        return True
-    if STRICT_WRITE_ROOTS:
-        return False
-    if path_is_under(path, _HOME):
-        return True
-    if IS_WINDOWS:
-        return not any(path_is_under(path, d) for d in _WINDOWS_SYSTEM if d)
-    return any(path_is_under(path, root) for root in _MOUNT_ROOTS)
+def _write_root_ok(candidates, roots: list[str]) -> bool:
+
+
+
+
+    candidates = list(candidates)
+    real = candidates[-1] if candidates else ""
+    for path in candidates:
+
+
+        if path != real and not (path[1:2] == ":" and _is_remote_share(real)
+                                 and _is_remote_share(_resolved_root(path[:3]))):
+            continue
+        if any(path_is_under(path, root) for root in roots):
+            return True
+        if _is_remote_share(path) and (_in_own_share_folder(path) or _in_granted_share(path, write=True)):
+            return True
+    return False
 
 
 
@@ -1134,7 +1211,7 @@ def refused_share(path: str) -> bool:
 
 
     return (isinstance(path, str) and _is_remote_share(path) and not _in_own_share_folder(path)
-            and not _in_used_share(path) and not _in_named_share(path))
+            and not _in_used_share(path) and not _in_named_share(path) and not _in_granted_share(path))
 
 
 
@@ -1149,6 +1226,7 @@ _named_shares: list[str] = []
 
 
 _offered_shares: list[str] = []
+_offered_files: list[str] = []
 
 
 def note_model_text(text: str, typed: str = "") -> None:
@@ -1160,7 +1238,13 @@ def note_model_text(text: str, typed: str = "") -> None:
         root = _share_root(path) if _is_remote_share(path) else ""
         if root and root not in own and root not in _offered_shares:
             _offered_shares.append(root)
+
+    mine = {_norm(path) for path in typed_paths(typed) if not _is_remote_share(path)}
+    for path in typed_paths(text):
+        if not _is_remote_share(path) and _norm(path) not in mine and _norm(path) not in _offered_files:
+            _offered_files.append(_norm(path))
     del _offered_shares[:-_USER_PATHS_MAX]
+    del _offered_files[:-_USER_PATHS_MAX]
 
 
 def _share_root(path: str) -> str:
@@ -1256,25 +1340,32 @@ def fits_path(path: str, margin: int = 0) -> bool:
     return len(path) + margin < MAX_PATH or long_paths_ok()
 
 
-def windows_path_problem(path: str) -> str | None:
+def windows_path_problem(path: str, shown: str | None = None) -> str | None:
 
 
 
 
 
+
+
+    named = path if shown is None else shown
     drive, tail = ntpath.splitdrive(path)
     if drive and not tail.startswith(("/", "\\")):
-        return CodedText(f"{path} is a drive-relative Windows path.", "windows_path_drive_relative", path=path)
+        return CodedText(f"{named} is a drive-relative Windows path.", "windows_path_drive_relative", path=named)
     for part in re.split(r"[\\/]", tail):
         if not part or part in (".", ".."):
             continue
-        if any(ord(c) < 32 or c in '<>:"|?*' for c in part):
-            return "The Windows path contains a reserved character or an alternate data stream."
+        bad = next((c for c in part if ord(c) < 32 or c in '<>:"|?*'), None)
+        if bad is not None:
+            where = f" in {part!r}" if shown is None else " once its variables are expanded"
+            return (f"The Windows path {named} holds {bad!r}{where}, and Windows allows no {bad!r} "
+                    "in a file or folder name.")
         if part != part.rstrip(" ."):
             return "Windows path components must not end with a space or a dot."
         stem = part.split(".", 1)[0].rstrip(" ").upper()
         if re.fullmatch(r"CON|PRN|AUX|NUL|CONIN\$|CONOUT\$|COM[1-9¹²³]|LPT[1-9¹²³]", stem):
-            return CodedText("The Windows path names a reserved device.", "windows_reserved_device", name=part)
+            return CodedText("The Windows path names a reserved device.", "windows_reserved_device",
+                             name=part if shown is None else named)
     return None
 
 
@@ -1287,6 +1378,31 @@ def validate_read(path: str) -> str | None:
 
 
     return validate_path(path, scoped=True)
+
+
+def _behind_gdal_driver(path: str) -> str | None:
+
+
+
+
+
+    name, colon, rest = path.partition(":")
+    if not colon or not re.fullmatch(r"[A-Za-z][A-Za-z0-9_]{1,15}", name):
+        return None
+    try:
+        from osgeo import gdal
+    except ImportError:
+        return None
+    driver = gdal.GetDriverByName(name)
+    if driver is None or driver.GetMetadataItem("DMD_CONNECTION_PREFIX"):
+        return None
+    if rest.startswith('"'):
+        inner = rest[1:].split('"', 1)[0]
+    else:
+        drive, tail = ntpath.splitdrive(rest)
+        inner = drive + tail.split(":", 1)[0]
+
+    return inner if re.match(r"([A-Za-z]:)?[\\/]", inner) else None
 
 
 def validate_path(path: str, write: bool = False, overwrite: bool | None = None,
@@ -1318,6 +1434,12 @@ def validate_path(path: str, write: bool = False, overwrite: bool | None = None,
             return None
 
         path = inner.split("|", 1)[0] or inner
+    else:
+        inner = _behind_gdal_driver(path)
+        if inner is not None:
+
+
+            path, overwrite = inner, None if overwrite is False else overwrite
     if refused_share(path):
 
 
@@ -1331,11 +1453,13 @@ def validate_path(path: str, write: bool = False, overwrite: bool | None = None,
                          "network_share_refused")
     expanded = expand_path(path)
 
+    shown = expanded if os.path.expandvars(path or "") == (path or "") else path
+
 
     if refused_share(expanded):
         return CodedText("The expanded path is a network share.", "network_share_refused")
     if IS_WINDOWS:
-        reason = windows_path_problem(path) or windows_path_problem(expanded)
+        reason = windows_path_problem(path) or windows_path_problem(expanded, shown=path)
         if reason:
             return reason
         if write:
@@ -1364,7 +1488,7 @@ def validate_path(path: str, write: bool = False, overwrite: bool | None = None,
         if reason:
             return reason
     if not write:
-        return _scope_problem(expanded, real) if scoped else None
+        return _scope_problem(expanded, real, shown) if scoped else None
 
 
 
@@ -1387,14 +1511,15 @@ def validate_path(path: str, write: bool = False, overwrite: bool | None = None,
 
 
 
-                return CodedText(f"{expanded} is under {root}, a system or application folder.",
-                                 "write_system_folder", path=expanded, root=root)
-    if not _write_root_ok(real, roots):
-        return CodedText(f"{expanded} is outside the folders the agent writes to.", "write_scope", path=expanded)
+                return CodedText(f"{shown} is under {root}, a system or application folder.",
+                                 "write_system_folder", path=shown, root=root)
+    if not _write_root_ok(dict.fromkeys((expanded, real)), roots):
+        return CodedText(f"{shown} is outside the folders the agent writes to. A folder the user names in the chat "
+                         "gets a card that lets them allow writing there.", "write_scope", path=shown)
     if overwrite is False and os.path.isfile(real):
         if not overwrite_remedy:
-            return CodedText(f"{expanded} already exists.", "file_exists", path=expanded)
-        return f"{expanded} already exists. {overwrite_remedy}"
+            return CodedText(f"{shown} already exists.", "file_exists", path=shown)
+        return f"{shown} already exists. {overwrite_remedy}"
     return None
 
 
@@ -1428,20 +1553,192 @@ def remember_user_text(text: str, offered: bool = False) -> None:
 
 
 
+
+
+
     remember_user_hosts(text)
+    if offered:
+        return
     for path in typed_paths(text):
-        share = _is_remote_share(path)
-        if share and (offered or _share_root(path) in _offered_shares):
+        if _is_remote_share(path) or _names_folder(path) or _norm(path) in _offered_files:
             continue
         if len(_user_paths) >= _USER_PATHS_MAX:
             del _user_paths[:2]
-        if share:
-            _name_share(path)
-            if not _in_named_share(path):
-                continue
-        for spelling in dict.fromkeys((path,) if share else (path, os.path.realpath(path))):
+        for spelling in dict.fromkeys((path, os.path.realpath(path))):
             if spelling not in _user_paths:
                 _user_paths.append(spelling)
+        _allow_typed_file_folder(path)
+
+
+def _allow_typed_file_folder(path: str) -> None:
+
+
+    folder = os.path.dirname(path)
+    if (folder and folder not in _allowed_roots and not too_wide(folder) and os.path.isfile(path)
+            and not _read_denied(folder, [])):
+        _allowed_roots.append(folder)
+
+
+
+
+
+_folder_grants: dict[str, bool] = {}
+_SHARE_FILE_RE = re.compile(r"\.[A-Za-z0-9]{1,8}$")
+
+
+def _grant_spelling(path: str) -> str:
+    text = str(path or "").strip()
+    return ntpath.normpath(text) if _is_remote_share(text) else expand_path(text)
+
+
+def _in_share(path: str, root: str) -> bool:
+    text, folder = _share_text(path), _share_text(root)
+    return text == folder or text.startswith(folder.rstrip("\\") + "\\")
+
+
+def _in_granted_share(path: str, write: bool = False) -> bool:
+
+    return any(_in_share(path, root) for root, can_write in _folder_grants.items()
+               if _is_remote_share(root) and (can_write or not write))
+
+
+def _names_folder(path: str) -> bool:
+
+    try:
+        return os.path.isdir(path)
+    except (OSError, ValueError):
+        return False
+
+
+def _share_folder(path: str) -> str:
+
+
+    text = ntpath.normpath(path)
+    if _SHARE_FILE_RE.search(ntpath.basename(text)):
+        text = ntpath.dirname(text).rstrip("\\")
+    return text if len([part for part in ntpath.splitdrive(text)[0].split("\\") if part]) >= 2 else ""
+
+
+_grants_listener = None
+
+
+def on_grants_changed(listener) -> None:
+
+    global _grants_listener
+    _grants_listener = listener
+
+
+def _grants_changed() -> None:
+    if _grants_listener is not None:
+        _grants_listener()
+
+
+def folder_grants() -> list[tuple[str, bool]]:
+
+    return list(_folder_grants.items())
+
+
+def set_folder_grants(grants) -> None:
+
+
+    _folder_grants.clear()
+    for item in grants or ():
+        try:
+            folder, write = item
+        except (TypeError, ValueError):
+            continue
+        folder = _grant_spelling(str(folder))
+
+
+        if folder and not _device_spelling(folder):
+            _folder_grants[folder] = bool(write) and (_is_remote_share(folder) or not too_wide(folder)
+                                                      or bool(re.fullmatch(r"[A-Za-z]:[\\/]?", folder)))
+
+
+def _may_write_in(folder: str) -> bool:
+
+
+    if _is_remote_share(folder) or not too_wide(folder):
+        return True
+    real = _resolved_root(folder)
+    return bool(real) and _norm(real) != _norm(folder) and (_is_remote_share(real) or not too_wide(real))
+
+
+def _device_spelling(path: str) -> bool:
+
+
+    text = str(path or "").strip().replace("/", "\\")
+    return text[:4] in ("\\\\?\\", "\\\\.\\") and text[4:8].upper() != "UNC\\"
+
+
+def grant_folder(path: str, write: bool, quiet: bool = False) -> str:
+
+    folder = _grant_spelling(path)
+    if not folder or _device_spelling(folder) or (not _is_remote_share(folder) and _read_denied(folder, [])):
+        return ""
+
+    _folder_grants[folder] = bool(write) and _may_write_in(folder)
+    if not quiet:
+        _grants_changed()
+    return folder
+
+
+def revoke_folder(path: str, quiet: bool = False) -> None:
+
+    folder = _grant_spelling(path)
+    share = _is_remote_share(folder)
+    _folder_grants.pop(folder, None)
+
+    def under(entry: str) -> bool:
+        if share or _is_remote_share(entry):
+            return share and _is_remote_share(entry) and _in_share(entry, folder)
+        return path_is_under(entry, folder) or path_is_under(entry, _resolved_root(folder) or folder)
+
+    for store in (_user_paths, _attached_files, _allowed_roots, _named_shares):
+        store[:] = [entry for entry in store if not under(entry)]
+    kept = [entry for entry in _thread_roots if not under(entry)]
+    if len(kept) != len(_thread_roots):
+        _thread_roots[:] = kept
+        _LAYER_ROOTS["key"] = None
+        _store_thread_roots()
+    if not quiet:
+        _grants_changed()
+
+
+def pending_folders(text: str, offered: bool = False) -> list[str]:
+
+
+
+
+
+
+
+
+    paths = typed_paths(text)
+    shares = [path for path in paths if _is_remote_share(path)]
+    out: list[str] = []
+    roots = None
+    for path in paths:
+        if _is_remote_share(path):
+            if offered or any(path != other and path.startswith(other + " ") for other in shares):
+                continue
+            folder = _share_folder(path)
+            if (not folder or _share_root(folder) in _offered_shares or _in_granted_share(folder)
+                    or _in_used_share(folder) or _in_named_share(folder)):
+                continue
+        else:
+            if not _names_folder(path):
+                continue
+            folder = _grant_spelling(path)
+            if roots is None:
+                roots = [r for r in read_roots() if r not in _user_paths]
+            if any(path_is_under(folder, root) for root in roots):
+                continue
+            if _read_denied(folder, []):
+                continue
+        if folder not in out:
+            out.append(folder)
+    return out
 
 
 
@@ -1544,7 +1841,7 @@ def typed_paths(text: str, probe: bool = True) -> list[str]:
     return found
 
 
-def vouched_for_thread(thread_id, layer_roots=(), keep_layer_roots=None) -> None:
+def vouched_for_thread(thread_id, layer_roots=(), keep_layer_roots=None, project=None) -> None:
 
 
 
@@ -1555,11 +1852,15 @@ def vouched_for_thread(thread_id, layer_roots=(), keep_layer_roots=None) -> None
 
 
 
-    if vouched_hosts_for(thread_id):
+
+
+    other = vouched_hosts_for(thread_id)
+    if other or project != _thread_roots_project[0]:
         _thread_roots.clear()
         _thread_roots.extend(str(root) for root in list(layer_roots or ())[-_THREAD_ROOTS_MAX:]
                              if isinstance(root, str) and root)
         _LAYER_ROOTS["key"] = None
+    _thread_roots_project[0] = project
     _thread_roots_keep[0] = keep_layer_roots if thread_id else None
     if thread_id:
         _layer_folders()

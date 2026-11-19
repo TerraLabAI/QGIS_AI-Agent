@@ -81,9 +81,15 @@ def _parameter_help(param) -> dict:
             choices = list(param.options())
         except (AttributeError, TypeError, RuntimeError):
             choices = []
+        try:
+            static = bool(param.usesStaticStrings())
+        except (AttributeError, TypeError, RuntimeError):
+            static = False
         if choices:
+
+
             answer["options"] = [
-                {"value": index, "label": str(label)}
+                {"value": str(label) if static else index, "label": str(label)}
                 for index, label in enumerate(choices)
             ]
     return answer

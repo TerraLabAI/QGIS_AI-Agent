@@ -1983,13 +1983,77 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <source>left out</source>
             <translation>已排除</translation>
         </message>
-    </context>
-    <context>
-        <name>AIAgentContext</name>
         <message>
-            <location filename="src/core/context.py" />
-            <source>Raster</source>
-            <translation>栅格</translation>
+            <source>The AI agent has been thinking for {time}</source>
+            <translation>AI 智能体已思考 {time}</translation>
+        </message>
+        <message>
+            <source>Code running in QGIS for {time}</source>
+            <translation>代码已在 QGIS 中运行 {time}</translation>
+        </message>
+        <message>
+            <source>Running in QGIS for {time}</source>
+            <translation>已在 QGIS 中运行 {time}</translation>
+        </message>
+        <message>
+            <source>Bugs</source>
+            <translation>错误</translation>
+        </message>
+        <message>
+            <source>For a team, a call is quickest.</source>
+            <translation>团队咨询，通话最快。</translation>
+        </message>
+        <message>
+            <source>Ideas</source>
+            <translation>想法</translation>
+        </message>
+        <message>
+            <source>Licences, quotes and invoices for your team, too.</source>
+            <translation>也可为您的团队提供许可证、报价单和发票。</translation>
+        </message>
+        <message>
+            <source>Questions</source>
+            <translation>问题</translation>
+        </message>
+        <message>
+            <source>Team needs</source>
+            <translation>团队需求</translation>
+        </message>
+        <message>
+            <source>Map history</source>
+            <translation>地图历史</translation>
+        </message>
+        <message>
+            <source>Open earlier project versions</source>
+            <translation>打开项目的早期版本</translation>
+        </message>
+        <message>
+            <source>Recall your last message</source>
+            <translation>调回上一条消息</translation>
+        </message>
+        <message>
+            <source>Redo it</source>
+            <translation>重做</translation>
+        </message>
+        <message>
+            <source>Sent with this conversation and the plugin's recent log.</source>
+            <translation>将随本次对话和插件的近期日志一起发送。</translation>
+        </message>
+        <message>
+            <source>Undo the last request</source>
+            <translation>撤销上一次请求</translation>
+        </message>
+        <message>
+            <source>We read every message and use it to improve AI Agent.</source>
+            <translation>我们会阅读每条消息，并用它来改进 AI Agent。</translation>
+        </message>
+        <message>
+            <source>What happened, and what did you expect? For example: the buffer came out in degrees instead of metres.</source>
+            <translation>发生了什么，你原本期望什么？例如：缓冲区的单位是度而不是米。</translation>
+        </message>
+        <message>
+            <source>Kept until you delete it</source>
+            <translation>保留到你删除为止</translation>
         </message>
         <message>
             <location filename="src/core/context.py" />
@@ -4519,6 +4583,18 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <source>Dock or undock AI Agent</source>
             <translation>停靠或取消停靠 AI Agent</translation>
         </message>
+        <message>
+            <source>Pro ends on {date}. Keep it in one click.</source>
+            <translation>Pro 将于 {date} 结束。一键即可继续保留。</translation>
+        </message>
+        <message>
+            <source>Pro is set to end. Keep it in one click.</source>
+            <translation>Pro 即将结束。一键即可继续保留。</translation>
+        </message>
+        <message>
+            <source>See what's in Pro</source>
+            <translation>查看 Pro 包含什么</translation>
+        </message>
     </context>
     <context>
         <name>HistoryPopup</name>
@@ -5069,6 +5145,10 @@ Click to open its page.</source>
         <message>
             <source>{n} of {total} features in {layer}</source>
             <translation>{layer} 中 {total} 个要素里的 {n} 个</translation>
+        </message>
+        <message>
+            <source>Allow lets AI Agent read and write in {folder} for this project.</source>
+            <translation>允许后，AI Agent 可在此项目中读写 {folder}。</translation>
         </message>
     </context>
     <context>
@@ -5650,6 +5730,138 @@ Thank you</source>
         <message>
             <source>{n} tasks a month, cancel anytime</source>
             <translation>每月 {n} 次任务，随时可取消</translation>
+        </message>
+        <message>
+            <source>1 task left this month</source>
+            <translation>本月还剩 1 个任务</translation>
+        </message>
+        <message>
+            <source>All {n} tasks used. They reset on {date}.</source>
+            <translation>{n} 个任务已全部用完。将于 {date} 重置。</translation>
+        </message>
+        <message>
+            <source>Back to Pro</source>
+            <translation>回到 Pro</translation>
+        </message>
+        <message>
+            <source>Come back to Pro for {n} tasks a month.</source>
+            <translation>回到 Pro，每月 {n} 个任务。</translation>
+        </message>
+        <message>
+            <source>Contact us</source>
+            <translation>联系我们</translation>
+        </message>
+        <message>
+            <source>Contact us for more tasks</source>
+            <translation>联系我们获取更多任务</translation>
+        </message>
+        <message>
+            <source>Get Pro for {n} tasks a month.</source>
+            <translation>升级 Pro，每月 {n} 个任务。</translation>
+        </message>
+        <message>
+            <source>Need Pro for work?</source>
+            <translation>工作中需要 Pro？</translation>
+        </message>
+        <message>
+            <source>No card? Contact us to pay by invoice.</source>
+            <translation>没有银行卡？联系我们，可按发票付款。</translation>
+        </message>
+        <message>
+            <source>No card? Contact us to start your free trial.</source>
+            <translation>没有银行卡？联系我们开始免费试用。</translation>
+        </message>
+        <message>
+            <source>Pay nothing today</source>
+            <translation>今天无需付款</translation>
+        </message>
+        <message>
+            <source>Pay nothing today, then your local price each month. Cancel anytime.</source>
+            <translation>今天无需付款，之后每月按当地价格收费。可随时取消。</translation>
+        </message>
+        <message>
+            <source>Pay nothing today, then your student price each month. Cancel anytime.</source>
+            <translation>今天无需付款，之后每月按学生价格收费。可随时取消。</translation>
+        </message>
+        <message>
+            <source>Pay nothing today, then {price}/month excl. VAT. Cancel anytime.</source>
+            <translation>今天无需付款，之后每月 {price}（不含增值税）。可随时取消。</translation>
+        </message>
+        <message>
+            <source>Pay nothing today, then {price}/month. Cancel anytime.</source>
+            <translation>今天无需付款，之后每月 {price}。可随时取消。</translation>
+        </message>
+        <message>
+            <source>Payment of {amount} failed</source>
+            <translation>{amount} 的付款失败了</translation>
+        </message>
+        <message>
+            <source>Pro is paused until payment goes through.</source>
+            <translation>在付款成功前，Pro 已暂停。</translation>
+        </message>
+        <message>
+            <source>Start Pro now</source>
+            <translation>立即开始 Pro</translation>
+        </message>
+        <message>
+            <source>Start free trial</source>
+            <translation>开始免费试用</translation>
+        </message>
+        <message>
+            <source>Try Pro free for a week to get more tasks.</source>
+            <translation>免费试用 Pro 一周，获取更多任务。</translation>
+        </message>
+        <message>
+            <source>Welcome to Pro</source>
+            <translation>欢迎使用 Pro</translation>
+        </message>
+        <message>
+            <source>You now have {n} tasks a month.</source>
+            <translation>你现在每月有 {n} 个任务。</translation>
+        </message>
+        <message>
+            <source>You used all your tasks this month</source>
+            <translation>你已用完本月所有任务</translation>
+        </message>
+        <message>
+            <source>You used your last task</source>
+            <translation>你已用掉最后一个任务</translation>
+        </message>
+        <message>
+            <source>Your free trial runs until {date}.</source>
+            <translation>你的免费试用持续到 {date}。</translation>
+        </message>
+        <message>
+            <source>Your tasks reset next month.</source>
+            <translation>你的任务将在下月重置。</translation>
+        </message>
+        <message>
+            <source>Your tasks reset on {date}.</source>
+            <translation>你的任务将于 {date} 重置。</translation>
+        </message>
+        <message>
+            <source>Your trial did not start. You were not charged.</source>
+            <translation>试用未能开始，你没有被扣费。</translation>
+        </message>
+        <message>
+            <source>{n} tasks a month. Cancel anytime.</source>
+            <translation>每月 {n} 个任务。可随时取消。</translation>
+        </message>
+        <message>
+            <source>{n} tasks left this month</source>
+            <translation>本月还剩 {n} 个任务</translation>
+        </message>
+        <message>
+            <source>{price} excl. VAT</source>
+            <translation>{price}（不含增值税）</translation>
+        </message>
+        <message>
+            <source>{price}/month. Cancel anytime.</source>
+            <translation>{price}/月。可随时取消。</translation>
+        </message>
+        <message>
+            <source>{price}/month excl. VAT. Cancel anytime.</source>
+            <translation>{price}/月（不含增值税）。可随时取消。</translation>
         </message>
     </context>
     <context>
@@ -6455,6 +6667,478 @@ Thank you</source>
             <source>Your usage and chats help us fix bugs. Turn it off anytime.</source>
             <translation>您的使用情况和对话有助于我们修复错误。可随时关闭。</translation>
         </message>
+        <message>
+            <source>Bell</source>
+            <translation>铃声</translation>
+        </message>
+        <message>
+            <source>Chime</source>
+            <translation>风铃</translation>
+        </message>
+        <message>
+            <source>Icon and sound</source>
+            <translation>图标和声音</translation>
+        </message>
+        <message>
+            <source>Icon only</source>
+            <translation>仅图标</translation>
+        </message>
+        <message>
+            <source>Little train</source>
+            <translation>小火车</translation>
+        </message>
+        <message>
+            <source>Marimba</source>
+            <translation>马林巴</translation>
+        </message>
+        <message>
+            <source>Needs your answer</source>
+            <translation>需要你的回答</translation>
+        </message>
+        <message>
+            <source>Notifications</source>
+            <translation>通知</translation>
+        </message>
+        <message>
+            <source>Notify me</source>
+            <translation>通知我</translation>
+        </message>
+        <message>
+            <source>Off</source>
+            <translation>关闭</translation>
+        </message>
+        <message>
+            <source>Only while QGIS is in the background or the panel is hidden.</source>
+            <translation>仅在 QGIS 位于后台或面板被隐藏时。</translation>
+        </message>
+        <message>
+            <source>Play</source>
+            <translation>播放</translation>
+        </message>
+        <message>
+            <source>Questions and approvals.</source>
+            <translation>提问和审批。</translation>
+        </message>
+        <message>
+            <source>Run finished</source>
+            <translation>运行完成</translation>
+        </message>
+        <message>
+            <source>Volume</source>
+            <translation>音量</translation>
+        </message>
+        <message>
+            <source>1 task left</source>
+            <translation>剩余 1 个任务</translation>
+        </message>
+        <message>
+            <source>A badge on the QGIS icon and a sound, only while QGIS is in the background or the panel is hidden.</source>
+            <translation>仅当 QGIS 在后台或面板隐藏时，QGIS 图标上才会显示角标并播放提示音。</translation>
+        </message>
+        <message>
+            <source>About you and Instructions</source>
+            <translation>关于你和指令</translation>
+        </message>
+        <message>
+            <source>Back in {n} days</source>
+            <translation>{n} 天后恢复</translation>
+        </message>
+        <message>
+            <source>Back tomorrow</source>
+            <translation>明天恢复</translation>
+        </message>
+        <message>
+            <source>Call me back while I work elsewhere</source>
+            <translation>我在别处工作时提醒我</translation>
+        </message>
+        <message>
+            <source>Change</source>
+            <translation>更改</translation>
+        </message>
+        <message>
+            <source>Commercial use included</source>
+            <translation>含商业用途</translation>
+        </message>
+        <message>
+            <source>Context for every task</source>
+            <translation>每个任务的背景信息</translation>
+        </message>
+        <message>
+            <source>Could not load your usage</source>
+            <translation>无法加载你的用量</translation>
+        </message>
+        <message>
+            <source>Detect and outline objects on imagery: buildings, trees, water or fields become polygons you can edit.</source>
+            <translation>在影像上检测并勾画对象：建筑、树木、水体或农田都会变成可编辑的多边形。</translation>
+        </message>
+        <message>
+            <source>Edit your imagery with one sentence, the way you would ask a colleague.</source>
+            <translation>用一句话编辑你的影像，就像请同事帮忙一样。</translation>
+        </message>
+        <message>
+            <source>Every task, day by day, on terra-lab.ai</source>
+            <translation>在 terra-lab.ai 上按天查看每个任务</translation>
+        </message>
+        <message>
+            <source>Everything else here works without an account.</source>
+            <translation>这里的其他功能无需账户即可使用。</translation>
+        </message>
+        <message>
+            <source>From your TerraLab account.</source>
+            <translation>来自你的 TerraLab 账户。</translation>
+        </message>
+        <message>
+            <source>General</source>
+            <translation>通用</translation>
+        </message>
+        <message>
+            <source>How the AI agent answers.</source>
+            <translation>AI 智能体如何回答。</translation>
+        </message>
+        <message>
+            <source>How the AI agent calls you back.</source>
+            <translation>AI 智能体如何提醒你。</translation>
+        </message>
+        <message>
+            <source>Install</source>
+            <translation>安装</translation>
+        </message>
+        <message>
+            <source>Install {plugin}</source>
+            <translation>安装 {plugin}</translation>
+        </message>
+        <message>
+            <source>Loading your plan...</source>
+            <translation>正在加载你的套餐...</translation>
+        </message>
+        <message>
+            <source>Loading your tasks...</source>
+            <translation>正在加载你的任务...</translation>
+        </message>
+        <message>
+            <source>Monthly tasks</source>
+            <translation>每月任务</translation>
+        </message>
+        <message>
+            <source>More from TerraLab</source>
+            <translation>TerraLab 的更多产品</translation>
+        </message>
+        <message>
+            <source>Needs your answer: {a} · Run finished: {b}</source>
+            <translation>需要你回答：{a} · 运行完成：{b}</translation>
+        </message>
+        <message>
+            <source>One TerraLab account signs you in to all three plugins.</source>
+            <translation>一个 TerraLab 账户即可登录全部三个插件。</translation>
+        </message>
+        <message>
+            <source>One task is one message you send, however many steps the AI agent takes. Tasks that fail on our side are given back.</source>
+            <translation>一个任务就是你发送的一条消息，无论 AI 智能体执行多少步。因我们这边出错而失败的任务会退还。</translation>
+        </message>
+        <message>
+            <source>Open {plugin}</source>
+            <translation>打开 {plugin}</translation>
+        </message>
+        <message>
+            <source>Opens the QGIS plugin manager on this plugin. Free to install.</source>
+            <translation>在 QGIS 插件管理器中打开此插件。可免费安装。</translation>
+        </message>
+        <message>
+            <source>Personal, non-commercial use</source>
+            <translation>个人非商业用途</translation>
+        </message>
+        <message>
+            <source>Plan</source>
+            <translation>套餐</translation>
+        </message>
+        <message>
+            <source>Profile</source>
+            <translation>个人资料</translation>
+        </message>
+        <message>
+            <source>Resets in {n} days</source>
+            <translation>{n} 天后重置</translation>
+        </message>
+        <message>
+            <source>Resets tomorrow</source>
+            <translation>明天重置</translation>
+        </message>
+        <message>
+            <source>Rules the AI agent always follows.</source>
+            <translation>AI 智能体始终遵守的规则。</translation>
+        </message>
+        <message>
+            <source>Saved on this computer.</source>
+            <translation>保存在这台电脑上。</translation>
+        </message>
+        <message>
+            <source>Search settings</source>
+            <translation>搜索设置</translation>
+        </message>
+        <message>
+            <source>Show its panel.</source>
+            <translation>显示其面板。</translation>
+        </message>
+        <message>
+            <source>Sign in to see your plan and tasks</source>
+            <translation>登录以查看你的套餐和任务</translation>
+        </message>
+        <message>
+            <source>Sounds</source>
+            <translation>声音</translation>
+        </message>
+        <message>
+            <source>Tell the AI agent who you are and the rules it always follows. Included in Pro.</source>
+            <translation>告诉 AI 智能体你是谁，以及它始终遵守的规则。Pro 版已包含。</translation>
+        </message>
+        <message>
+            <source>Two more AI plugins for QGIS, from the makers of AI Agent.</source>
+            <translation>另有两个 QGIS 的 AI 插件，出自 AI Agent 的开发团队。</translation>
+        </message>
+        <message>
+            <source>Upgrade plan</source>
+            <translation>升级套餐</translation>
+        </message>
+        <message>
+            <source>Upgrade to Pro</source>
+            <translation>升级到 Pro</translation>
+        </message>
+        <message>
+            <source>Usage</source>
+            <translation>用量</translation>
+        </message>
+        <message>
+            <source>What counts as a task</source>
+            <translation>什么算一个任务</translation>
+        </message>
+        <message>
+            <source>What leaves this computer, and for how long.</source>
+            <translation>哪些内容会离开这台电脑，以及保留多久。</translation>
+        </message>
+        <message>
+            <source>What you work on, your data, your area.</source>
+            <translation>你的工作内容、数据和区域。</translation>
+        </message>
+        <message>
+            <source>Your plan and the tasks you used this month.</source>
+            <translation>你的套餐和本月已用的任务。</translation>
+        </message>
+        <message>
+            <source>Your plan, payment method and invoices, on terra-lab.ai.</source>
+            <translation>在 terra-lab.ai 上管理套餐、付款方式和发票。</translation>
+        </message>
+        <message>
+            <source>Your tasks are counted on our side; nothing is lost.</source>
+            <translation>你的任务由我们这边统计，不会丢失。</translation>
+        </message>
+        <message>
+            <source>of {limit} this month</source>
+            <translation>本月共 {limit}</translation>
+        </message>
+        <message>
+            <source>{n} tasks left</source>
+            <translation>剩余 {n} 个任务</translation>
+        </message>
+        <message>
+            <source>{p}% left</source>
+            <translation>剩余 {p}%</translation>
+        </message>
+        <message>
+            <source>1 task left this month</source>
+            <translation>本月还剩 1 个任务</translation>
+        </message>
+        <message>
+            <source>Cancel anytime before it ends.</source>
+            <translation>到期前可随时取消。</translation>
+        </message>
+        <message>
+            <source>Card declined</source>
+            <translation>银行卡被拒</translation>
+        </message>
+        <message>
+            <source>Come back to Pro</source>
+            <translation>重新使用 Pro</translation>
+        </message>
+        <message>
+            <source>Ends {date}</source>
+            <translation>{date} 结束</translation>
+        </message>
+        <message>
+            <source>Payment failed</source>
+            <translation>付款失败</translation>
+        </message>
+        <message>
+            <source>Pro is off until it's paid.</source>
+            <translation>付款后才能继续使用 Pro。</translation>
+        </message>
+        <message>
+            <source>Pro trial</source>
+            <translation>Pro 试用</translation>
+        </message>
+        <message>
+            <source>Pro trial, 1 day left</source>
+            <translation>Pro 试用，还剩 1 天</translation>
+        </message>
+        <message>
+            <source>Pro trial, ends {date}</source>
+            <translation>Pro 试用，{date} 结束</translation>
+        </message>
+        <message>
+            <source>Pro trial, {n} days left</source>
+            <translation>Pro 试用，还剩 {n} 天</translation>
+        </message>
+        <message>
+            <source>Then {price}/month. Cancel anytime.</source>
+            <translation>之后每月 {price}。可随时取消。</translation>
+        </message>
+        <message>
+            <source>Try Pro free for {n} days</source>
+            <translation>免费试用 Pro {n} 天</translation>
+        </message>
+        <message>
+            <source>Try another card</source>
+            <translation>换一张卡试试</translation>
+        </message>
+        <message>
+            <source>Update card</source>
+            <translation>更新银行卡</translation>
+        </message>
+        <message>
+            <source>You're out of tasks this month</source>
+            <translation>本月任务已用完</translation>
+        </message>
+        <message>
+            <source>You're out until {date}</source>
+            <translation>额度已用完，{date} 恢复</translation>
+        </message>
+        <message>
+            <source>Your trial didn't start. Nothing was charged.</source>
+            <translation>试用未开始，未产生任何扣款。</translation>
+        </message>
+        <message>
+            <source>{amount} due.</source>
+            <translation>应付 {amount}。</translation>
+        </message>
+        <message>
+            <source>{n} tasks left this month</source>
+            <translation>本月还剩 {n} 个任务</translation>
+        </message>
+        <message>
+            <source>{plan}, renews {date}</source>
+            <translation>{plan}，{date} 续订</translation>
+        </message>
+        <message>
+            <source>{price} excl. VAT</source>
+            <translation>{price}（不含增值税）</translation>
+        </message>
+        <message>
+            <source>{price}/month. Cancel anytime.</source>
+            <translation>每月 {price}。可随时取消。</translation>
+        </message>
+        <message>
+            <source>{used} of {limit} used</source>
+            <translation>已用 {used} / {limit}</translation>
+        </message>
+        <message>
+            <source>Clear search</source>
+            <translation>清除搜索</translation>
+        </message>
+        <message>
+            <source>Try Pro free</source>
+            <translation>免费试用 Pro</translation>
+        </message>
+        <message>
+            <source>Delete account</source>
+            <translation>删除账户</translation>
+        </message>
+        <message>
+            <source>Report a problem</source>
+            <translation>报告问题</translation>
+        </message>
+        <message>
+            <source>Ends on {date}</source>
+            <translation>将于 {date} 结束</translation>
+        </message>
+        <message>
+            <source>Monthly limit reached, resets {date}</source>
+            <translation>已达本月上限，将于 {date} 重置</translation>
+        </message>
+        <message>
+            <source>Pro is paused until payment goes through.</source>
+            <translation>在付款成功前，Pro 已暂停。</translation>
+        </message>
+        <message>
+            <source>Pro trial: 1 day left</source>
+            <translation>Pro 试用：还剩 1 天</translation>
+        </message>
+        <message>
+            <source>Pro trial: {n} days left</source>
+            <translation>Pro 试用：还剩 {n} 天</translation>
+        </message>
+        <message>
+            <source>Your trial did not start. You were not charged.</source>
+            <translation>试用未能开始，你没有被扣费。</translation>
+        </message>
+        <message>
+            <source>Then {price}/month excl. VAT. Cancel anytime.</source>
+            <translation>之后每月 {price}（不含增值税）。可随时取消。</translation>
+        </message>
+        <message>
+            <source>{price}/month excl. VAT. Cancel anytime.</source>
+            <translation>{price}/月（不含增值税）。可随时取消。</translation>
+        </message>
+        <message>
+            <source>Desktop notifications</source>
+            <translation>桌面通知</translation>
+        </message>
+        <message>
+            <source>When QGIS is in the background and a run finishes or needs you.</source>
+            <translation>当 QGIS 在后台运行，且某次运行完成或需要你操作时。</translation>
+        </message>
+        <message>
+            <source>Resets today</source>
+            <translation>今天重置</translation>
+        </message>
+        <message>
+            <source>Try Pro free for 1 day</source>
+            <translation>免费试用 Pro 1 天</translation>
+        </message>
+        <message>
+            <source>More AI plugins</source>
+            <translation>更多 AI 插件</translation>
+        </message>
+        <message>
+            <source>Applies after restarting QGIS.</source>
+            <translation>重启 QGIS 后生效。</translation>
+        </message>
+        <message>
+            <source>How AI Agent looks, what it knows about you, and how it calls you back.</source>
+            <translation>AI Agent 的外观、它对你的了解，以及它如何通知你。</translation>
+        </message>
+        <message>
+            <source>Language</source>
+            <translation>语言</translation>
+        </message>
+        <message>
+            <source>Usage stats: only that you used the app and when. Chats are kept as your History retention says, so a conversation survives an update; we may read one, or have a model score it, to fix bugs, never to train AI. 0 days of history stores nothing.</source>
+            <translation>使用统计：仅记录您使用了应用及使用时间。对话按您设置的历史保留期保留，以便更新后对话不会丢失；我们可能会查看某次对话，或让模型为其评分，用于修复错误，绝不用于训练 AI。历史记录设为 0 天时不存储任何内容。</translation>
+        </message>
+        <message>
+            <source>Grey text in the message box. Tab takes it.</source>
+            <translation>消息框中的灰色文字，按 Tab 键采用。</translation>
+        </message>
+        <message>
+            <source>Typing suggestions</source>
+            <translation>输入建议</translation>
+        </message>
+        <message>
+            <source>Language, response style, suggestions and notifications go back to their defaults.</source>
+            <translation>语言、回复风格、输入建议和通知将恢复为默认值。</translation>
+        </message>
+        <message>
+            <source>Reset settings</source>
+            <translation>重置设置</translation>
+        </message>
     </context>
     <context>
         <name>SourcesButton</name>
@@ -6876,6 +7560,10 @@ Thank you</source>
             <source>Always allowed</source>
             <translation>已始终允许</translation>
         </message>
+        <message>
+            <source>Allow AI Agent to write in {folder}?</source>
+            <translation>允许 AI Agent 写入 {folder} 吗？</translation>
+        </message>
     </context>
     <context>
         <name>TraceSteps</name>
@@ -7284,10 +7972,6 @@ Thank you</source>
             <translation>工具：{tool}</translation>
         </message>
         <message>
-            <source>{day} UTC, added by AI Agent by TerraLab</source>
-            <translation>{day} UTC，由 AI Agent by TerraLab 添加</translation>
-        </message>
-        <message>
             <source>Accessed {day} via {host}</source>
             <translation>于 {day} 通过 {host} 访问</translation>
         </message>
@@ -7336,8 +8020,12 @@ Thank you</source>
             <translation>代码指定的项目图层：{names}</translation>
         </message>
         <message>
-            <source>{day} UTC, AI Agent run {run}: added {layers}</source>
-            <translation>{day} UTC，AI Agent 运行 {run}：已添加 {layers}</translation>
+            <source>{day} UTC, run {run}: added {layers}</source>
+            <translation>{day} UTC，运行 {run}：已添加 {layers}</translation>
+        </message>
+        <message>
+            <source>Data source</source>
+            <translation>数据来源</translation>
         </message>
     </context>
     <context>
@@ -7463,6 +8151,22 @@ This file is no longer where the run wrote it.</source>
         <message>
             <source>Get more tasks with Pro</source>
             <translation>升级 Pro 获得更多任务</translation>
+        </message>
+        <message>
+            <source>1 task left</source>
+            <translation>还剩 1 个任务</translation>
+        </message>
+        <message>
+            <source>Get more with Pro</source>
+            <translation>升级 Pro 获取更多</translation>
+        </message>
+        <message>
+            <source>Pro: {n} tasks a month, higher effort levels and Autopilot.</source>
+            <translation>Pro：每月 {n} 个任务，更高的强度级别和自动驾驶。</translation>
+        </message>
+        <message>
+            <source>{n} tasks left</source>
+            <translation>还剩 {n} 个任务</translation>
         </message>
     </context>
     <context>
@@ -7790,6 +8494,10 @@ This file is no longer where the run wrote it.</source>
         <message>
             <source>Stopping...</source>
             <translation>正在停止...</translation>
+        </message>
+        <message>
+            <source>the map render</source>
+            <translation>地图渲染</translation>
         </message>
     </context>
     <context>
@@ -9873,6 +10581,120 @@ This file is no longer where the run wrote it.</source>
         <message>
             <source>Selected</source>
             <translation>已选择</translation>
+        </message>
+    </context>
+    <context>
+        <name>FolderCard</name>
+        <message>
+            <source>A folder on another computer of your network.</source>
+            <translation>网络中另一台电脑上的文件夹。</translation>
+        </message>
+        <message>
+            <source>Denied</source>
+            <translation>已拒绝</translation>
+        </message>
+        <message>
+            <source>Deny</source>
+            <translation>拒绝</translation>
+        </message>
+        <message>
+            <source>Let AI Agent open this folder?</source>
+            <translation>允许 AI Agent 打开此文件夹吗？</translation>
+        </message>
+        <message>
+            <source>Read and write</source>
+            <translation>读写</translation>
+        </message>
+        <message>
+            <source>Read only</source>
+            <translation>只读</translation>
+        </message>
+        <message>
+            <source>What AI Agent reads there is sent to the AI model. Kept for this project.</source>
+            <translation>AI Agent 在其中读取的内容会发送给 AI 模型。仅为此项目保留。</translation>
+        </message>
+    </context>
+    <context>
+        <name>FolderChip</name>
+        <message>
+            <source>1 folder</source>
+            <translation>1 个文件夹</translation>
+        </message>
+        <message>
+            <source>Folders</source>
+            <translation>文件夹</translation>
+        </message>
+        <message>
+            <source>Folders AI Agent can open in this project</source>
+            <translation>AI Agent 在此项目中可打开的文件夹</translation>
+        </message>
+        <message>
+            <source>{n} folders</source>
+            <translation>{n} 个文件夹</translation>
+        </message>
+    </context>
+    <context>
+        <name>FolderPopover</name>
+        <message>
+            <source>Folders AI Agent can open in this project</source>
+            <translation>AI Agent 在此项目中可打开的文件夹</translation>
+        </message>
+        <message>
+            <source>The project folder and its layers' folders are always open for reading.</source>
+            <translation>项目文件夹及其图层所在的文件夹始终可供读取。</translation>
+        </message>
+    </context>
+    <context>
+        <name>_FolderRow</name>
+        <message>
+            <source>Read and write</source>
+            <translation>读写</translation>
+        </message>
+        <message>
+            <source>Read only</source>
+            <translation>只读</translation>
+        </message>
+        <message>
+            <source>Remove</source>
+            <translation>移除</translation>
+        </message>
+    </context>
+    <context>
+        <name>AIAgentContext</name>
+        <message>
+            <source>QGIS is not running</source>
+            <translation>QGIS 未运行</translation>
+        </message>
+        <message>
+            <source>Raster</source>
+            <translation>栅格</translation>
+        </message>
+        <message>
+            <source>Show in QGIS</source>
+            <translation>在 QGIS 中显示</translation>
+        </message>
+        <message>
+            <source>Shown in QGIS</source>
+            <translation>已在 QGIS 中显示</translation>
+        </message>
+        <message>
+            <source>Table</source>
+            <translation>表格</translation>
+        </message>
+    </context>
+    <context>
+        <name>AIAgentRecovery</name>
+        <message>
+            <source>QGIS closed during a run. {n} layer(s) of unsaved work came back in the group "{group}". Save them to keep them.</source>
+            <translation>运行期间 QGIS 已关闭。{n} 个未保存的图层已恢复到组“{group}”中。请保存以保留它们。</translation>
+        </message>
+        <message>
+            <source>Some unsaved work could not be put back. Its copy is kept in {folder}.</source>
+            <translation>部分未保存的工作无法恢复。其副本保存在 {folder}。</translation>
+        </message>
+        <message>
+            <source>{name} (unsaved edits kept)</source>
+            <translation>{name}（已保留未保存的编辑）</translation>
         </message>
     </context>
 </TS>

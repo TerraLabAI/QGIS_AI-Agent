@@ -27,7 +27,7 @@ import re
 from dataclasses import dataclass
 from urllib.parse import parse_qsl, unquote, urlsplit
 
-from . import accounts
+from . import accounts, vsi
 from .tool_registry import tool_error
 
 S3, AZURE, GCS = "s3", "azure", "gcs"
@@ -342,8 +342,8 @@ def probe(ref: Ref, values: dict, meta: dict) -> str:
     options = {**literal, **{option: str(values.get(field) or "") for option, field in vault.items()}}
     said: list[str] = []
     gdal.PushErrorHandler(lambda _cls, _no, msg: said.append(str(msg)))
-    for option, value in {"CPL_DEBUG": "ON", **_PROBE_HTTP}.items():
-        gdal.SetThreadLocalConfigOption(option, value)
+    debug = vsi.thread_options(gdal, CPL_DEBUG="ON", **_PROBE_HTTP)
+    debug.__enter__()
     try:
         for prefix in (ref.route_path, ref.path):
             for option, value in route.items():
@@ -354,8 +354,7 @@ def probe(ref: Ref, values: dict, meta: dict) -> str:
         gdal.VSICurlClearCache()
         found = gdal.VSIStatL(ref.path)
     finally:
-        for option in ("CPL_DEBUG", *_PROBE_HTTP):
-            gdal.SetThreadLocalConfigOption(option, None)
+        debug.__exit__(None, None, None)
         gdal.PopErrorHandler()
         accounts.clear_gdal_paths([ref.route_path, ref.path])
         gdal.VSICurlPartialClearCache(ref.path)

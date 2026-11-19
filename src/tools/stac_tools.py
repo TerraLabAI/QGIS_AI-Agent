@@ -1147,15 +1147,14 @@ def _s3_error_code(path: str) -> str:
     from osgeo import gdal
     said: list[str] = []
     gdal.PushErrorHandler(lambda _cls, _no, msg: said.append(str(msg)))
-    gdal.SetThreadLocalConfigOption("CPL_DEBUG", "ON")
     try:
-        if hasattr(gdal, "VSICurlPartialClearCache"):
-            gdal.VSICurlPartialClearCache(path)
-        gdal.VSIStatL(path)
+        with thread_options(gdal, CPL_DEBUG="ON"):
+            if hasattr(gdal, "VSICurlPartialClearCache"):
+                gdal.VSICurlPartialClearCache(path)
+            gdal.VSIStatL(path)
     except RuntimeError:
         pass
     finally:
-        gdal.SetThreadLocalConfigOption("CPL_DEBUG", None)
         gdal.PopErrorHandler()
     for text in said:
         found = re.search(r"<Code>([A-Za-z]+)</Code>", text)

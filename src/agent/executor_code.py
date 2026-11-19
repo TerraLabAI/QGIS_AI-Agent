@@ -191,9 +191,14 @@ class _ExecutorCode:
         def commit_class(strings: list, deletes: bool = False) -> tuple[str, str]:
             return self._commit_class(strings, deletes, own_files)
 
+        try:
+            kept = code_runtime.kept(self._threads.get(run_id, "") or run_id)
+        except Exception as exc:  # noqa: BLE001
+            log_warning(f"execute_code kept names not read: {exc}")
+            kept = None
         verdict = ce.classify(code, tool_class=self._code_tool_class, commit_class=commit_class,
-                              user_layer=user_layer, own_names=self._own_kept_names(run_id, user_layer),
-                              kept_libraries=self._kept_library_names(run_id))
+                              user_layer=user_layer, own_names=self._own_kept_names(kept, user_layer),
+                              kept_libraries=self._kept_library_names(kept or {}), kept_names=kept)
         cls = verdict.cls
         declared = _declared(call)
         if cls == ce.ASK and declared is not None:
@@ -241,7 +246,7 @@ class _ExecutorCode:
 
         return test
 
-    def _own_kept_names(self, run_id: str, user_layer) -> set:
+    def _own_kept_names(self, kept: dict | None, user_layer) -> set:
 
 
 
@@ -262,14 +267,9 @@ class _ExecutorCode:
                 return all(no_user_layer(v, depth + 1) for v in value)
             return True
 
-        try:
-            kept = code_runtime.kept(self._threads.get(run_id, "") or run_id)
-        except Exception as exc:  # noqa: BLE001
-            log_warning(f"execute_code kept names not read: {exc}")
-            return set()
-        return {name for name, value in kept.items() if no_user_layer(value)}
+        return {name for name, value in (kept or {}).items() if no_user_layer(value)}
 
-    def _kept_library_names(self, run_id: str) -> set:
+    def _kept_library_names(self, kept: dict) -> set:
 
 
 
@@ -277,11 +277,6 @@ class _ExecutorCode:
         import types
 
         libraries = ce.tables().get("library_modules") or ()
-        try:
-            kept = code_runtime.kept(self._threads.get(run_id, "") or run_id)
-        except Exception as exc:  # noqa: BLE001
-            log_warning(f"execute_code kept names not read: {exc}")
-            kept = {}
 
         def home(value) -> str:
             if isinstance(value, types.ModuleType):

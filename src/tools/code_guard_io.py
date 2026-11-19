@@ -15,7 +15,8 @@ import os
 from ..core.security import anchor, note_own_paths, validate_path
 from ..core.text_encoding import detect_encoding, python_codec
 
-_NO_FILE_CHANGE = "a snippet never removes, renames or overwrites a file, and writes a new file name instead."
+_NO_FILE_CHANGE = ("a snippet removes only a file this conversation wrote (os.remove), never renames or overwrites"
+                   " a file, and writes a new file name instead.")
 
 
 

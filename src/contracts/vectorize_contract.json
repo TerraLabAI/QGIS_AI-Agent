@@ -1,0 +1,240 @@
+{
+  "contract": "vectorize",
+  "api_version": 7,
+  "about": "How AI Agent, or any caller, drives AI Segmentation's vectorize_* methods. Byte-identical in AI Segmentation and AI Agent (scripts/check_shared_files.py). Additive only: a field, code or value that ships here never leaves, and a new request field is optional.",
+  "methods": {
+    "vectorize_capabilities": {"args": [], "spends": false, "answer": "capabilities"},
+    "vectorize_quote": {"args": ["request"], "spends": false, "answer": "quote"},
+    "vectorize_start": {"args": ["request"], "spends": true, "answer": "start"},
+    "vectorize_status": {"args": ["run_id", "wait_s"], "spends": false, "answer": "status"},
+    "vectorize_cancel": {"args": ["run_id"], "spends": false, "answer": "cancel"}
+  },
+  "codes": {
+    "OK": "Done, or the request can start.",
+    "INVALID_ARGS": "A request field has the wrong type or value. The message names it.",
+    "NOT_SIGNED_IN": "The person at this computer has to sign in to AI Segmentation.",
+    "SETTINGS_NOT_LOADED": "The cloud settings are not loaded yet. Open the AI Segmentation panel once, then retry.",
+    "NO_RASTER": "No imagery layer to run on, or source.layer names none.",
+    "ZONE_OUTSIDE_RASTER": "The zone does not overlap the imagery.",
+    "UNKNOWN_CLASS": "target.class is not a word the catalogue knows. suggestions lists near words.",
+    "WEAK_CLASS": "target.class names a kind of cover, not a countable object. Pass target.accept_weak true to run anyway.",
+    "OVER_ALLOWANCE": "The account's monthly allowance cannot cover any of this zone.",
+    "BUSY": "A run is already going. Wait on it or cancel it; never start a second one.",
+    "REVIEW_OPEN": "An unsaved review is open in the panel. Save it first.",
+    "INPUT_IN_PROGRESS": "The person is drawing on the map. Wait for them to finish.",
+    "WRONG_THREAD": "Called off the QGIS main thread.",
+    "UNSUPPORTED": "This build does not offer that capability, mode or output geometry. vectorize_capabilities says what it offers.",
+    "UNKNOWN_RUN": "run_id is neither the run going now nor the last one to finish.",
+    "NOT_RUNNING": "There is no run to cancel.",
+    "CANCELLED": "The run was stopped on request. What it had paid for is kept.",
+    "FAILED": "The run or the call failed. The message says why.",
+    "OUTDATED": "The installed AI Segmentation is older than the caller needs."
+  },
+  "capability_kinds": ["objects", "lines"],
+  "modes": ["automatic", "interactive"],
+  "output_geometries": ["polygon", "line", "point"],
+  "run_states": ["running", "finishing", "review", "saved", "cancelled", "failed"],
+  "features": ["quote", "start", "status", "cancel", "coverage", "quality", "output_geometry", "caller", "settings_schema", "review_retired_keys"],
+  "request": {
+    "type": "object",
+    "properties": {
+      "capability": {"type": "string", "enum": ["objects", "lines"], "default": "objects"},
+      "mode": {"type": "string", "enum": ["automatic", "interactive"], "default": "automatic"},
+      "target": {
+        "type": "object",
+        "properties": {
+          "class": {"type": "string"},
+          "accept_weak": {"type": "boolean"},
+          "exemplars": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "bbox": {"type": "array", "items": {"type": "number"}, "minItems": 4, "maxItems": 4},
+                "label": {"type": "integer", "enum": [0, 1]},
+                "polygon_wkt": {"type": "string"}
+              },
+              "required": ["bbox"]
+            }
+          }
+        }
+      },
+      "source": {"type": "object", "properties": {"layer": {"type": "string"}}},
+      "zone": {
+        "type": "object",
+        "properties": {
+          "wkt": {"type": "string"},
+          "crs": {"type": "string"},
+          "use_zone": {"type": "boolean"}
+        }
+      },
+      "settings": {
+        "type": "object",
+        "properties": {
+          "confidence": {"type": "number"},
+          "detail": {"type": "integer"},
+          "refine": {"type": "object"},
+          "instance_colors": {"type": "boolean"}
+        }
+      },
+      "output": {
+        "type": "object",
+        "properties": {
+          "geometry": {"type": "string", "enum": ["polygon", "line", "point"], "default": "polygon"},
+          "review": {"type": "boolean", "default": true},
+          "caller": {"type": "string"}
+        }
+      }
+    }
+  },
+  "answers": {
+    "envelope": {
+      "type": "object",
+      "properties": {
+        "ok": {"type": "boolean"},
+        "code": {"type": "string", "enum_from": "codes"},
+        "message": {"type": "string"},
+        "api_version": {"type": "integer"}
+      },
+      "required": ["ok", "code"]
+    },
+    "capabilities": {
+      "type": "object",
+      "properties": {
+        "api_version": {"type": "integer"},
+        "features": {"type": "array", "items": {"type": "string"}},
+        "codes": {"type": "array", "items": {"type": "string"}},
+        "capabilities": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "kind": {"type": "string", "enum_from": "capability_kinds"},
+              "available": {"type": "boolean"},
+              "geometry": {"type": "string"},
+              "modes": {"type": "array", "items": {"type": "string"}},
+              "targets": {"type": "array", "items": {"type": "string"}},
+              "output_geometries": {"type": "array", "items": {"type": "string", "enum_from": "output_geometries"}},
+              "billing_unit": {"type": "string"},
+              "output_columns": {"type": "array", "items": {"type": "string"}},
+              "methods": {"type": "array", "items": {"type": "string"}},
+              "settings_schema": {"type": "object"},
+              "review_actions": {"type": "array", "items": {"type": "string"}},
+              "classes_source": {"type": "string"}
+            },
+            "required": ["kind", "available", "geometry"]
+          }
+        }
+      },
+      "required": ["api_version", "features", "codes", "capabilities"]
+    },
+    "quote": {
+      "type": "object",
+      "properties": {
+        "startable": {"type": "boolean"},
+        "refusals": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {"code": {"type": "string", "enum_from": "codes"}, "message": {"type": "string"}},
+            "required": ["code", "message"]
+          }
+        },
+        "zone": {
+          "type": "object",
+          "properties": {
+            "wkt": {"type": "string"},
+            "crs": {"type": "string"},
+            "bbox": {"type": "array", "items": {"type": "number"}}
+          }
+        },
+        "km2_requested": {"type": "number"},
+        "km2_billed": {"type": "number"},
+        "km2_processed": {"type": "number"},
+        "free_cut": {"type": "boolean"},
+        "eta_s": {"type": "integer"},
+        "eta_slow_s": {"type": "integer"},
+        "allowance": {
+          "type": "object",
+          "properties": {
+            "km2_left": {"type": ["number", "null"]},
+            "credits_remaining": {"type": ["integer", "null"]},
+            "is_subscriber": {"type": "boolean"},
+            "fits": {"type": "boolean"}
+          }
+        },
+        "source": {"type": "object"},
+        "class": {"type": "object"}
+      },
+      "required": ["startable", "refusals"]
+    },
+    "start": {
+      "type": "object",
+      "properties": {
+        "run_id": {"type": "string"},
+        "eta_s": {"type": "integer"},
+        "eta_slow_s": {"type": "integer"},
+        "poll_after_s": {"type": "integer"},
+        "km2_billed": {"type": "number"},
+        "output_geometry": {"type": "string", "enum_from": "output_geometries"},
+        "prompt_rewritten": {"type": "object"},
+        "dropped_options": {"type": "array", "items": {"type": "string"}}
+      }
+    },
+    "status": {
+      "type": "object",
+      "properties": {
+        "run_id": {"type": ["string", "null"]},
+        "state": {"type": ["string", "null"], "enum_from": "run_states"},
+        "progress": {"type": ["object", "null"]},
+        "eta_s": {"type": "integer"},
+        "poll_after_s": {"type": "integer"},
+        "result": {
+          "type": ["object", "null"],
+          "properties": {
+            "count": {"type": "integer"},
+            "outcome": {"type": "string"},
+            "layer_id": {"type": ["string", "null"]},
+            "layer_name": {"type": ["string", "null"]},
+            "review_open": {"type": "boolean"},
+            "output_geometry": {"type": "string"},
+            "credits_remaining": {"type": ["integer", "null"]},
+            "coverage": {
+              "type": "object",
+              "properties": {
+                "km2_requested": {"type": "number"},
+                "km2_processed": {"type": "number"},
+                "tiles_planned": {"type": "integer"},
+                "tiles_ok": {"type": "integer"},
+                "tiles_blank": {"type": "integer"},
+                "tiles_failed": {"type": "integer"},
+                "tiles_timed_out": {"type": "integer"},
+                "tiles_skipped_network": {"type": "integer"}
+              }
+            },
+            "quality": {
+              "type": "object",
+              "properties": {
+                "scored": {"type": "integer"},
+                "score_p10": {"type": "number"},
+                "score_p50": {"type": "number"},
+                "score_p90": {"type": "number"},
+                "low_confidence_share": {"type": "number"},
+                "low_confidence_below": {"type": "number"}
+              }
+            }
+          }
+        }
+      },
+      "required": ["run_id", "state"]
+    },
+    "cancel": {
+      "type": "object",
+      "properties": {
+        "run_id": {"type": ["string", "null"]},
+        "was_running": {"type": "boolean"},
+        "tiles_salvaged": {"type": "integer"}
+      }
+    }
+  }
+}

@@ -28,6 +28,7 @@ from .font_scale import scale_px_length, scale_qss_font_px
 from .icons import icon_for, logo_size
 from .shared import tr
 from .style import (
+    ACCENT_INK,
     ACCENT_TINT,
     ACCENT_TINT_ON,
     FONT_BASE,
@@ -38,6 +39,8 @@ from .style import (
     SPACE_OUTER,
     SPACE_TIGHT,
     WEIGHT_MEDIUM,
+    _focus_ring,
+    keyboard_ring,
 )
 from .widgets import FlowLayout
 
@@ -61,6 +64,7 @@ _ROW_QSS = scale_qss_font_px(
     f" border-radius: 14px; padding: 6px 12px; font-size: {FONT_BODY}px; text-align: left; }}"
     f"QPushButton:hover {{ background: {ACCENT_TINT}; color: {INK}; }}"
     f"QPushButton:pressed {{ background: {ACCENT_TINT_ON}; }}"
+    + _focus_ring(ACCENT_INK, "4px 10px")
 )
 _ROW_GLYPH = 18
 
@@ -73,6 +77,7 @@ _FOOT_QSS = scale_qss_font_px(
     f" border-radius: 6px; padding: 4px 8px; font-size: {FONT_HINT}px; text-align: left; }}"
     f"QPushButton:hover {{ background: {ACCENT_TINT}; color: {INK}; }}"
     f"QPushButton:pressed {{ background: {ACCENT_TINT_ON}; }}"
+    + _focus_ring(ACCENT_INK, "2px 6px")
 )
 _FOOT_GLYPH = 14
 
@@ -82,6 +87,7 @@ def _row(parent: QWidget, glyph: str, text: str) -> QPushButton:
     button.setStyleSheet(_ROW_QSS)
     button.setCursor(Qt.CursorShape.PointingHandCursor)
     button.setAutoDefault(False)
+    keyboard_ring(button)
     button.setIcon(icon_for(button, glyph, _ROW_GLYPH, QColor(MUTED)))
     button.setIconSize(QSize(_ROW_GLYPH, _ROW_GLYPH))
     return button
@@ -107,6 +113,7 @@ def feedback_foot(parent: QWidget) -> QWidget:
     button.setStyleSheet(_FOOT_QSS)
     button.setCursor(Qt.CursorShape.PointingHandCursor)
     button.setAutoDefault(False)
+    keyboard_ring(button)
     button.setIcon(icon_for(button, "lu.bug", _FOOT_GLYPH, QColor(MUTED)))
     button.setIconSize(QSize(_FOOT_GLYPH, _FOOT_GLYPH))
     button.setToolTip(tr("Report a bug, suggest an idea, or share what's working well."))

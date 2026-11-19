@@ -19,6 +19,7 @@ from qgis.PyQt.QtCore import (
     QCoreApplication,
     QEasingCurve,
     QEvent,
+    QPoint,
     QPropertyAnimation,
     QSize,
     Qt,
@@ -33,6 +34,7 @@ from qgis.PyQt.QtWidgets import (
     QLabel,
     QPlainTextEdit,
     QPushButton,
+    QSizePolicy,
     QVBoxLayout,
     QWidget,
 )
@@ -49,7 +51,7 @@ from .image_preview import ClickableThumb, open_image_preview
 from .layer_card import LayerCard
 from .layer_icons import follows_layers
 from .layer_links import LAYER_URL, follow_layer_links
-from .loader import GAP_PX, LINE_PX, DotsLoader, ShimmerLabel
+from .loader import GAP_PX, LINE_PX, DotsLoader, ShimmerLabel, quiet_label
 from .markdown_view import MarkdownView
 from .selection_line import sent_selection_row
 from .shared import AGENT_ACTION
@@ -1267,18 +1269,35 @@ class StatusLine(QLabel):
     def __init__(self, text: str = "", parent=None, reduced_motion=None):
         super().__init__(parent)
         self._reduced_motion = reduced_motion
-        row = QHBoxLayout(self)
+        col = QVBoxLayout(self)
+        col.setContentsMargins(0, 0, 0, 0)
+        col.setSpacing(0)
+        line = QWidget(self)
+        line.setFixedHeight(LINE_PX)
+        row = QHBoxLayout(line)
         row.setContentsMargins(2, 0, 2, 0)
         row.setSpacing(GAP_PX)
-        self._dots = DotsLoader(self)
+        self._dots = DotsLoader(line)
         row.addWidget(self._dots, 0, Qt.AlignmentFlag.AlignVCenter)
-        self._label = ShimmerLabel("", self)
+        self._label = ShimmerLabel("", line)
         self._label.setObjectName("statusText")
         row.addWidget(self._label, 0, Qt.AlignmentFlag.AlignVCenter)
         row.addStretch(1)
-        self.setFixedHeight(LINE_PX)
+        col.addWidget(line)
+        self._quiet = quiet_label(self)
+        col.addWidget(self._quiet)
+        self.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Fixed)
         self.set_text(text)
         self.start()
+
+    def set_quiet(self, text: str) -> None:
+
+        if text == self._quiet.text() and self._quiet.isVisibleTo(self) == bool(text):
+            return
+        self._quiet.setIndent(self._label.mapTo(self, QPoint(0, 0)).x())
+        self._quiet.setText(text)
+        self._quiet.setVisible(bool(text))
+        self.updateGeometry()
 
     def set_text(self, text: str) -> None:
 

@@ -105,7 +105,7 @@ from ..core.background import on_main_thread, run_on_main_thread
 from ..core.logger import log_warning
 from ..core.qt_compat import enum_member
 from . import raster_overviews
-from .render_wait import wait_or_stop
+from .render_wait import finish_on_main, wait_or_stop
 
 
 
@@ -116,6 +116,8 @@ _MAX_PIXELS = 48_000_000
 _MAX_SPILL_PIXELS = 256_000_000
 
 _AT_ONCE = 4
+
+_INLINE_JOB_S = 120.0
 _PICTURE_TYPE = "ai_agent_layout_picture"
 
 
@@ -794,7 +796,7 @@ def _finish_inline(plan: dict) -> None:
             _start_job(plan, picture)
         job = _JOBS.get(picture.get("key"))
         if job is not None:
-            job.waitForFinished()
+            finish_on_main(job, _INLINE_JOB_S)
 
 
 def wait(plan: dict, budget_s: float) -> dict:

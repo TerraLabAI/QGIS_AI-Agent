@@ -89,6 +89,11 @@ class _StopSequence(QObject):
 
 class _ChatPanelThreads:
 
+    def _sync_new_chat(self, *_args) -> None:
+
+        sent = not self.message_list.is_empty()
+        self.header.set_new_chat_available(self._signed_in and sent and not self.update_gate.isVisibleTo(self))
+
     def _show_thread_surface(self) -> None:
 
         signed_in = self._signed_in
@@ -101,11 +106,11 @@ class _ChatPanelThreads:
         self.empty_state.setVisible(signed_in and empty and not gated)
         self._empty_rows.setVisible(signed_in and empty and not gated)
         self._feedback_foot.setVisible(signed_in and empty and not gated)
-        self._composer_host.setVisible(signed_in and not gated)
+        self._composer_host.setVisible(self._composer_shown())
         self.notice_bar.setVisible(not gated and bool(self.notice_bar.notice_id()))
         self.header.set_history_available(signed_in and empty and not gated)
         self.header.set_feedback_available(signed_in and not empty and not gated)
-        self.header.set_new_chat_available(signed_in and not gated)
+        self._sync_new_chat()
         stage = getattr(self, "mascot_stage", None)
         if stage is not None:
             stage.rest()

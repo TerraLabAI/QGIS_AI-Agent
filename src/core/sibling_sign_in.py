@@ -248,7 +248,8 @@ def _call(method: str, url: str, product: str, key: str, device_hash: str, body:
 class _SiblingKeyTask(QgsTask):
     def __init__(self, own: str, base_url: str, device_hash: str, siblings: list, on_done):
         flags = QgsTask.Flag.CanCancel
-        for name in ("Hidden", "Silent"):
+
+        for name in ("CancelWithoutPrompt", "Hidden", "Silent"):
             extra = getattr(QgsTask.Flag, name, None)
             if extra is not None:
                 flags = flags | extra

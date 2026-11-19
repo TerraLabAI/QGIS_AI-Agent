@@ -24,6 +24,7 @@ from qgis.PyQt.QtCore import QUrl
 
 from ..core import tuning
 from ..core.background import on_main_thread, run_on_main_thread
+from ..core.qt_compat import enum_member
 from ..core.text_encoding import detect_encoding, python_codec
 from ..core.tool_registry import coded_fact, tool_error
 from . import crs_landing
@@ -93,7 +94,10 @@ def sniff(path: str, encoding: str = "") -> dict:
     if lat and lon and body:
         i_lat, i_lon = header.index(lat), header.index(lon)
         cells = [r[i] for r in body for i in (i_lat, i_lon) if i < len(r)]
-        if cells and all(_DECIMAL_COMMA.match(c.strip()) for c in cells if c.strip()):
+
+
+
+        if any(_DECIMAL_COMMA.match(c.strip()) for c in cells):
             decimal = ","
         xs = _numbers(r[i_lon] for r in body if i_lon < len(r))
         ys = _numbers(r[i_lat] for r in body if i_lat < len(r))
@@ -522,6 +526,34 @@ def _projected_source(path: str, layer, info: dict, crs: str | None):
                       coordinates=_rounded_box(extent))
 
 
+def rows_without_point(layer) -> int:
+
+
+    flag = enum_member(QgsFeatureRequest, "Flag", "NoGeometry")
+    rows = sum(1 for _ in layer.getFeatures(QgsFeatureRequest().setFlags(flag).setNoAttributes()))
+    return max(0, rows - layer.featureCount())
+
+
+def _with_every_point(layer, path: str, name: str, info: dict, crs, prepared: dict):
+
+
+
+
+
+    missing = rows_without_point(layer)
+    if missing and info["decimal"] == ".":
+        comma_uri, _ = build_uri(path, dict(info, decimal=","), crs)
+        other = QgsVectorLayer(comma_uri, name, "delimitedtext", worker_options())
+        if other.isValid() and other.featureCount() > layer.featureCount():
+            sip.delete(layer)
+            layer, info["decimal"], prepared["uri"] = other, ",", comma_uri
+            missing = rows_without_point(layer)
+        else:
+            sip.delete(other)
+    prepared["rows_without_point"] = missing
+    return layer
+
+
 def prepare_csv(path: str, name: str, crs: str | None = None, encoding: str = "") -> dict | None:
 
 
@@ -540,6 +572,8 @@ def prepare_csv(path: str, name: str, crs: str | None = None, encoding: str = ""
     def make():
         layer = QgsVectorLayer(uri, name, "delimitedtext", worker_options())
         if layer.isValid():
+            if geometry == "point":
+                layer = _with_every_point(layer, path, name, info, crs, prepared)
             prepared["geometry_note"] = _geometry_check(layer, geometry, info)
             return layer
 
@@ -670,4 +704,6 @@ def load_csv(path: str, name: str, crs: str | None = None, prepared: dict | None
                      else _geometry_check(layer, geometry, info))
     if geometry_note:
         out["geometry_hint"] = geometry_note
+    if checked is not None and layer is checked and prepared.get("rows_without_point"):
+        out["rows_without_point"] = prepared["rows_without_point"]
     return out

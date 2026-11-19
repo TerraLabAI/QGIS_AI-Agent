@@ -23,6 +23,7 @@
 
 
 
+
 from __future__ import annotations
 
 import re
@@ -66,7 +67,8 @@ class ComposerSuggest(QObject):
 
     def _quiet(self) -> bool:
         cursor = self._box.textCursor()
-        return (self._composer.suggest_quiet() or self._box.sheet().isVisible() or bool(self._box.mentions())
+        off = self._suggester is not None and not self._suggester.enabled
+        return (off or self._composer.suggest_quiet() or self._box.sheet().isVisible() or bool(self._box.mentions())
                 or cursor.hasSelection() or not cursor.atEnd())
 
     @property
@@ -216,6 +218,7 @@ class ComposerSuggest(QObject):
 
     def eventFilter(self, watched, event):  # noqa: N802
         if watched is self._box and event.type() == QEvent.Type.FocusIn:
+            self._paint()
             self.prepare(focused=True)
         if watched is not self._box or not self._box.ghost():
             return False

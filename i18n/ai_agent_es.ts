@@ -1983,13 +1983,77 @@ La eliminación es definitiva una vez finalizado el periodo de gracia. Hasta ent
             <source>left out</source>
             <translation>excluido</translation>
         </message>
-    </context>
-    <context>
-        <name>AIAgentContext</name>
         <message>
-            <location filename="src/core/context.py" />
-            <source>Raster</source>
-            <translation>Ráster</translation>
+            <source>The AI agent has been thinking for {time}</source>
+            <translation>El agente de IA lleva pensando {time}</translation>
+        </message>
+        <message>
+            <source>Code running in QGIS for {time}</source>
+            <translation>Código en ejecución en QGIS desde hace {time}</translation>
+        </message>
+        <message>
+            <source>Running in QGIS for {time}</source>
+            <translation>En ejecución en QGIS desde hace {time}</translation>
+        </message>
+        <message>
+            <source>Bugs</source>
+            <translation>Errores</translation>
+        </message>
+        <message>
+            <source>For a team, a call is quickest.</source>
+            <translation>Para un equipo, lo más rápido es una llamada.</translation>
+        </message>
+        <message>
+            <source>Ideas</source>
+            <translation>Ideas</translation>
+        </message>
+        <message>
+            <source>Licences, quotes and invoices for your team, too.</source>
+            <translation>Licencias, presupuestos y facturas para tu equipo también.</translation>
+        </message>
+        <message>
+            <source>Questions</source>
+            <translation>Preguntas</translation>
+        </message>
+        <message>
+            <source>Team needs</source>
+            <translation>Necesidades del equipo</translation>
+        </message>
+        <message>
+            <source>Map history</source>
+            <translation>Historial del mapa</translation>
+        </message>
+        <message>
+            <source>Open earlier project versions</source>
+            <translation>Abrir versiones anteriores del proyecto</translation>
+        </message>
+        <message>
+            <source>Recall your last message</source>
+            <translation>Recuperar tu último mensaje</translation>
+        </message>
+        <message>
+            <source>Redo it</source>
+            <translation>Rehacer</translation>
+        </message>
+        <message>
+            <source>Sent with this conversation and the plugin's recent log.</source>
+            <translation>Se envía con esta conversación y el registro reciente del plugin.</translation>
+        </message>
+        <message>
+            <source>Undo the last request</source>
+            <translation>Deshacer la última solicitud</translation>
+        </message>
+        <message>
+            <source>We read every message and use it to improve AI Agent.</source>
+            <translation>Leemos cada mensaje y lo usamos para mejorar AI Agent.</translation>
+        </message>
+        <message>
+            <source>What happened, and what did you expect? For example: the buffer came out in degrees instead of metres.</source>
+            <translation>¿Qué ocurrió y qué esperabas? Por ejemplo: el buffer salió en grados en lugar de metros.</translation>
+        </message>
+        <message>
+            <source>Kept until you delete it</source>
+            <translation>Se conserva hasta que la borres</translation>
         </message>
         <message>
             <location filename="src/core/context.py" />
@@ -4519,6 +4583,18 @@ La eliminación es definitiva una vez finalizado el periodo de gracia. Hasta ent
             <source>Dock or undock AI Agent</source>
             <translation>Acoplar o desacoplar AI Agent</translation>
         </message>
+        <message>
+            <source>Pro ends on {date}. Keep it in one click.</source>
+            <translation>Pro termina el {date}. Consérvalo con un clic.</translation>
+        </message>
+        <message>
+            <source>Pro is set to end. Keep it in one click.</source>
+            <translation>Pro está a punto de terminar. Consérvalo con un clic.</translation>
+        </message>
+        <message>
+            <source>See what's in Pro</source>
+            <translation>Ver qué incluye Pro</translation>
+        </message>
     </context>
     <context>
         <name>HistoryPopup</name>
@@ -5069,6 +5145,10 @@ Haz clic para abrir su página.</translation>
         <message>
             <source>{n} of {total} features in {layer}</source>
             <translation>{n} de {total} entidades en {layer}</translation>
+        </message>
+        <message>
+            <source>Allow lets AI Agent read and write in {folder} for this project.</source>
+            <translation>Permitir deja que AI Agent lea y escriba en {folder} en este proyecto.</translation>
         </message>
     </context>
     <context>
@@ -5650,6 +5730,138 @@ Gracias</translation>
         <message>
             <source>{n} tasks a month, cancel anytime</source>
             <translation>{n} tareas al mes, cancela cuando quieras</translation>
+        </message>
+        <message>
+            <source>1 task left this month</source>
+            <translation>Queda 1 tarea este mes</translation>
+        </message>
+        <message>
+            <source>All {n} tasks used. They reset on {date}.</source>
+            <translation>Usaste las {n} tareas. Se restablecen el {date}.</translation>
+        </message>
+        <message>
+            <source>Back to Pro</source>
+            <translation>Volver a Pro</translation>
+        </message>
+        <message>
+            <source>Come back to Pro for {n} tasks a month.</source>
+            <translation>Vuelve a Pro para tener {n} tareas al mes.</translation>
+        </message>
+        <message>
+            <source>Contact us</source>
+            <translation>Contáctanos</translation>
+        </message>
+        <message>
+            <source>Contact us for more tasks</source>
+            <translation>Contáctanos para más tareas</translation>
+        </message>
+        <message>
+            <source>Get Pro for {n} tasks a month.</source>
+            <translation>Consigue Pro con {n} tareas al mes.</translation>
+        </message>
+        <message>
+            <source>Need Pro for work?</source>
+            <translation>¿Necesitas Pro para trabajar?</translation>
+        </message>
+        <message>
+            <source>No card? Contact us to pay by invoice.</source>
+            <translation>¿Sin tarjeta? Contáctanos para pagar con factura.</translation>
+        </message>
+        <message>
+            <source>No card? Contact us to start your free trial.</source>
+            <translation>¿Sin tarjeta? Contáctanos para empezar tu prueba gratuita.</translation>
+        </message>
+        <message>
+            <source>Pay nothing today</source>
+            <translation>No pagas nada hoy</translation>
+        </message>
+        <message>
+            <source>Pay nothing today, then your local price each month. Cancel anytime.</source>
+            <translation>No pagas nada hoy, después tu precio local cada mes. Cancela cuando quieras.</translation>
+        </message>
+        <message>
+            <source>Pay nothing today, then your student price each month. Cancel anytime.</source>
+            <translation>No pagas nada hoy, después tu precio de estudiante cada mes. Cancela cuando quieras.</translation>
+        </message>
+        <message>
+            <source>Pay nothing today, then {price}/month excl. VAT. Cancel anytime.</source>
+            <translation>No pagas nada hoy, después {price}/mes sin IVA. Cancela cuando quieras.</translation>
+        </message>
+        <message>
+            <source>Pay nothing today, then {price}/month. Cancel anytime.</source>
+            <translation>No pagas nada hoy, después {price}/mes. Cancela cuando quieras.</translation>
+        </message>
+        <message>
+            <source>Payment of {amount} failed</source>
+            <translation>El pago de {amount} falló</translation>
+        </message>
+        <message>
+            <source>Pro is paused until payment goes through.</source>
+            <translation>Pro está en pausa hasta que se complete el pago.</translation>
+        </message>
+        <message>
+            <source>Start Pro now</source>
+            <translation>Empezar Pro ahora</translation>
+        </message>
+        <message>
+            <source>Start free trial</source>
+            <translation>Empezar prueba gratuita</translation>
+        </message>
+        <message>
+            <source>Try Pro free for a week to get more tasks.</source>
+            <translation>Prueba Pro gratis una semana para tener más tareas.</translation>
+        </message>
+        <message>
+            <source>Welcome to Pro</source>
+            <translation>Te damos la bienvenida a Pro</translation>
+        </message>
+        <message>
+            <source>You now have {n} tasks a month.</source>
+            <translation>Ahora tienes {n} tareas al mes.</translation>
+        </message>
+        <message>
+            <source>You used all your tasks this month</source>
+            <translation>Usaste todas tus tareas este mes</translation>
+        </message>
+        <message>
+            <source>You used your last task</source>
+            <translation>Usaste tu última tarea</translation>
+        </message>
+        <message>
+            <source>Your free trial runs until {date}.</source>
+            <translation>Tu prueba gratuita dura hasta el {date}.</translation>
+        </message>
+        <message>
+            <source>Your tasks reset next month.</source>
+            <translation>Tus tareas se restablecen el próximo mes.</translation>
+        </message>
+        <message>
+            <source>Your tasks reset on {date}.</source>
+            <translation>Tus tareas se restablecen el {date}.</translation>
+        </message>
+        <message>
+            <source>Your trial did not start. You were not charged.</source>
+            <translation>Tu prueba no se inició. No se te cobró.</translation>
+        </message>
+        <message>
+            <source>{n} tasks a month. Cancel anytime.</source>
+            <translation>{n} tareas al mes. Cancela cuando quieras.</translation>
+        </message>
+        <message>
+            <source>{n} tasks left this month</source>
+            <translation>Quedan {n} tareas este mes</translation>
+        </message>
+        <message>
+            <source>{price} excl. VAT</source>
+            <translation>{price} sin IVA</translation>
+        </message>
+        <message>
+            <source>{price}/month. Cancel anytime.</source>
+            <translation>{price}/mes. Cancela cuando quieras.</translation>
+        </message>
+        <message>
+            <source>{price}/month excl. VAT. Cancel anytime.</source>
+            <translation>{price}/mes sin IVA. Cancela cuando quieras.</translation>
         </message>
     </context>
     <context>
@@ -6455,6 +6667,478 @@ Gracias</translation>
             <source>Your usage and chats help us fix bugs. Turn it off anytime.</source>
             <translation>Tu uso y tus chats nos ayudan a corregir errores. Puedes desactivarlo cuando quieras.</translation>
         </message>
+        <message>
+            <source>Bell</source>
+            <translation>Campana</translation>
+        </message>
+        <message>
+            <source>Chime</source>
+            <translation>Carillón</translation>
+        </message>
+        <message>
+            <source>Icon and sound</source>
+            <translation>Icono y sonido</translation>
+        </message>
+        <message>
+            <source>Icon only</source>
+            <translation>Solo icono</translation>
+        </message>
+        <message>
+            <source>Little train</source>
+            <translation>Trenecito</translation>
+        </message>
+        <message>
+            <source>Marimba</source>
+            <translation>Marimba</translation>
+        </message>
+        <message>
+            <source>Needs your answer</source>
+            <translation>Necesita tu respuesta</translation>
+        </message>
+        <message>
+            <source>Notifications</source>
+            <translation>Notificaciones</translation>
+        </message>
+        <message>
+            <source>Notify me</source>
+            <translation>Avisarme</translation>
+        </message>
+        <message>
+            <source>Off</source>
+            <translation>Desactivado</translation>
+        </message>
+        <message>
+            <source>Only while QGIS is in the background or the panel is hidden.</source>
+            <translation>Solo cuando QGIS está en segundo plano o el panel está oculto.</translation>
+        </message>
+        <message>
+            <source>Play</source>
+            <translation>Reproducir</translation>
+        </message>
+        <message>
+            <source>Questions and approvals.</source>
+            <translation>Preguntas y aprobaciones.</translation>
+        </message>
+        <message>
+            <source>Run finished</source>
+            <translation>Ejecución terminada</translation>
+        </message>
+        <message>
+            <source>Volume</source>
+            <translation>Volumen</translation>
+        </message>
+        <message>
+            <source>1 task left</source>
+            <translation>Queda 1 tarea</translation>
+        </message>
+        <message>
+            <source>A badge on the QGIS icon and a sound, only while QGIS is in the background or the panel is hidden.</source>
+            <translation>Una insignia en el icono de QGIS y un sonido, solo mientras QGIS está en segundo plano o el panel está oculto.</translation>
+        </message>
+        <message>
+            <source>About you and Instructions</source>
+            <translation>Sobre ti e Instrucciones</translation>
+        </message>
+        <message>
+            <source>Back in {n} days</source>
+            <translation>Vuelve en {n} días</translation>
+        </message>
+        <message>
+            <source>Back tomorrow</source>
+            <translation>Vuelve mañana</translation>
+        </message>
+        <message>
+            <source>Call me back while I work elsewhere</source>
+            <translation>Avísame mientras trabajo en otra cosa</translation>
+        </message>
+        <message>
+            <source>Change</source>
+            <translation>Cambiar</translation>
+        </message>
+        <message>
+            <source>Commercial use included</source>
+            <translation>Uso comercial incluido</translation>
+        </message>
+        <message>
+            <source>Context for every task</source>
+            <translation>Contexto para cada tarea</translation>
+        </message>
+        <message>
+            <source>Could not load your usage</source>
+            <translation>No se pudo cargar tu uso</translation>
+        </message>
+        <message>
+            <source>Detect and outline objects on imagery: buildings, trees, water or fields become polygons you can edit.</source>
+            <translation>Detecta y delimita objetos en imágenes: edificios, árboles, agua o campos se convierten en polígonos que puedes editar.</translation>
+        </message>
+        <message>
+            <source>Edit your imagery with one sentence, the way you would ask a colleague.</source>
+            <translation>Edita tus imágenes con una frase, como se lo pedirías a un colega.</translation>
+        </message>
+        <message>
+            <source>Every task, day by day, on terra-lab.ai</source>
+            <translation>Cada tarea, día a día, en terra-lab.ai</translation>
+        </message>
+        <message>
+            <source>Everything else here works without an account.</source>
+            <translation>Todo lo demás aquí funciona sin cuenta.</translation>
+        </message>
+        <message>
+            <source>From your TerraLab account.</source>
+            <translation>De tu cuenta de TerraLab.</translation>
+        </message>
+        <message>
+            <source>General</source>
+            <translation>General</translation>
+        </message>
+        <message>
+            <source>How the AI agent answers.</source>
+            <translation>Cómo responde el agente de IA.</translation>
+        </message>
+        <message>
+            <source>How the AI agent calls you back.</source>
+            <translation>Cómo te avisa el agente de IA.</translation>
+        </message>
+        <message>
+            <source>Install</source>
+            <translation>Instalar</translation>
+        </message>
+        <message>
+            <source>Install {plugin}</source>
+            <translation>Instalar {plugin}</translation>
+        </message>
+        <message>
+            <source>Loading your plan...</source>
+            <translation>Cargando tu plan...</translation>
+        </message>
+        <message>
+            <source>Loading your tasks...</source>
+            <translation>Cargando tus tareas...</translation>
+        </message>
+        <message>
+            <source>Monthly tasks</source>
+            <translation>Tareas mensuales</translation>
+        </message>
+        <message>
+            <source>More from TerraLab</source>
+            <translation>Más de TerraLab</translation>
+        </message>
+        <message>
+            <source>Needs your answer: {a} · Run finished: {b}</source>
+            <translation>Necesita tu respuesta: {a} · Ejecución terminada: {b}</translation>
+        </message>
+        <message>
+            <source>One TerraLab account signs you in to all three plugins.</source>
+            <translation>Una cuenta de TerraLab te conecta a los tres plugins.</translation>
+        </message>
+        <message>
+            <source>One task is one message you send, however many steps the AI agent takes. Tasks that fail on our side are given back.</source>
+            <translation>Una tarea es un mensaje que envías, sin importar cuántos pasos dé el agente de IA. Las tareas que fallan por nuestra parte se devuelven.</translation>
+        </message>
+        <message>
+            <source>Open {plugin}</source>
+            <translation>Abrir {plugin}</translation>
+        </message>
+        <message>
+            <source>Opens the QGIS plugin manager on this plugin. Free to install.</source>
+            <translation>Abre el gestor de plugins de QGIS en este plugin. Instalación gratuita.</translation>
+        </message>
+        <message>
+            <source>Personal, non-commercial use</source>
+            <translation>Uso personal, no comercial</translation>
+        </message>
+        <message>
+            <source>Plan</source>
+            <translation>Plan</translation>
+        </message>
+        <message>
+            <source>Profile</source>
+            <translation>Perfil</translation>
+        </message>
+        <message>
+            <source>Resets in {n} days</source>
+            <translation>Se restablece en {n} días</translation>
+        </message>
+        <message>
+            <source>Resets tomorrow</source>
+            <translation>Se restablece mañana</translation>
+        </message>
+        <message>
+            <source>Rules the AI agent always follows.</source>
+            <translation>Reglas que el agente de IA sigue siempre.</translation>
+        </message>
+        <message>
+            <source>Saved on this computer.</source>
+            <translation>Guardado en este equipo.</translation>
+        </message>
+        <message>
+            <source>Search settings</source>
+            <translation>Buscar ajustes</translation>
+        </message>
+        <message>
+            <source>Show its panel.</source>
+            <translation>Mostrar su panel.</translation>
+        </message>
+        <message>
+            <source>Sign in to see your plan and tasks</source>
+            <translation>Inicia sesión para ver tu plan y tus tareas</translation>
+        </message>
+        <message>
+            <source>Sounds</source>
+            <translation>Sonidos</translation>
+        </message>
+        <message>
+            <source>Tell the AI agent who you are and the rules it always follows. Included in Pro.</source>
+            <translation>Dile al agente de IA quién eres y qué reglas debe seguir siempre. Incluido en Pro.</translation>
+        </message>
+        <message>
+            <source>Two more AI plugins for QGIS, from the makers of AI Agent.</source>
+            <translation>Dos plugins de IA más para QGIS, de los creadores de AI Agent.</translation>
+        </message>
+        <message>
+            <source>Upgrade plan</source>
+            <translation>Mejorar plan</translation>
+        </message>
+        <message>
+            <source>Upgrade to Pro</source>
+            <translation>Pasar a Pro</translation>
+        </message>
+        <message>
+            <source>Usage</source>
+            <translation>Uso</translation>
+        </message>
+        <message>
+            <source>What counts as a task</source>
+            <translation>Qué cuenta como tarea</translation>
+        </message>
+        <message>
+            <source>What leaves this computer, and for how long.</source>
+            <translation>Qué sale de este equipo y por cuánto tiempo.</translation>
+        </message>
+        <message>
+            <source>What you work on, your data, your area.</source>
+            <translation>En qué trabajas, tus datos, tu zona.</translation>
+        </message>
+        <message>
+            <source>Your plan and the tasks you used this month.</source>
+            <translation>Tu plan y las tareas que usaste este mes.</translation>
+        </message>
+        <message>
+            <source>Your plan, payment method and invoices, on terra-lab.ai.</source>
+            <translation>Tu plan, método de pago y facturas, en terra-lab.ai.</translation>
+        </message>
+        <message>
+            <source>Your tasks are counted on our side; nothing is lost.</source>
+            <translation>Tus tareas se cuentan de nuestro lado; no se pierde nada.</translation>
+        </message>
+        <message>
+            <source>of {limit} this month</source>
+            <translation>de {limit} este mes</translation>
+        </message>
+        <message>
+            <source>{n} tasks left</source>
+            <translation>Quedan {n} tareas</translation>
+        </message>
+        <message>
+            <source>{p}% left</source>
+            <translation>{p}% restante</translation>
+        </message>
+        <message>
+            <source>1 task left this month</source>
+            <translation>Queda 1 tarea este mes</translation>
+        </message>
+        <message>
+            <source>Cancel anytime before it ends.</source>
+            <translation>Cancela cuando quieras antes de que termine.</translation>
+        </message>
+        <message>
+            <source>Card declined</source>
+            <translation>Tarjeta rechazada</translation>
+        </message>
+        <message>
+            <source>Come back to Pro</source>
+            <translation>Vuelve a Pro</translation>
+        </message>
+        <message>
+            <source>Ends {date}</source>
+            <translation>Termina el {date}</translation>
+        </message>
+        <message>
+            <source>Payment failed</source>
+            <translation>Pago fallido</translation>
+        </message>
+        <message>
+            <source>Pro is off until it's paid.</source>
+            <translation>Pro está desactivado hasta que se pague.</translation>
+        </message>
+        <message>
+            <source>Pro trial</source>
+            <translation>Prueba de Pro</translation>
+        </message>
+        <message>
+            <source>Pro trial, 1 day left</source>
+            <translation>Prueba de Pro, queda 1 día</translation>
+        </message>
+        <message>
+            <source>Pro trial, ends {date}</source>
+            <translation>Prueba de Pro, termina el {date}</translation>
+        </message>
+        <message>
+            <source>Pro trial, {n} days left</source>
+            <translation>Prueba de Pro, quedan {n} días</translation>
+        </message>
+        <message>
+            <source>Then {price}/month. Cancel anytime.</source>
+            <translation>Después, {price}/mes. Cancela cuando quieras.</translation>
+        </message>
+        <message>
+            <source>Try Pro free for {n} days</source>
+            <translation>Prueba Pro gratis durante {n} días</translation>
+        </message>
+        <message>
+            <source>Try another card</source>
+            <translation>Probar otra tarjeta</translation>
+        </message>
+        <message>
+            <source>Update card</source>
+            <translation>Actualizar tarjeta</translation>
+        </message>
+        <message>
+            <source>You're out of tasks this month</source>
+            <translation>Te has quedado sin tareas este mes</translation>
+        </message>
+        <message>
+            <source>You're out until {date}</source>
+            <translation>No tienes tareas hasta el {date}</translation>
+        </message>
+        <message>
+            <source>Your trial didn't start. Nothing was charged.</source>
+            <translation>Tu prueba no se inició. No se ha cobrado nada.</translation>
+        </message>
+        <message>
+            <source>{amount} due.</source>
+            <translation>{amount} pendientes.</translation>
+        </message>
+        <message>
+            <source>{n} tasks left this month</source>
+            <translation>Quedan {n} tareas este mes</translation>
+        </message>
+        <message>
+            <source>{plan}, renews {date}</source>
+            <translation>{plan}, se renueva el {date}</translation>
+        </message>
+        <message>
+            <source>{price} excl. VAT</source>
+            <translation>{price} sin IVA</translation>
+        </message>
+        <message>
+            <source>{price}/month. Cancel anytime.</source>
+            <translation>{price}/mes. Cancela cuando quieras.</translation>
+        </message>
+        <message>
+            <source>{used} of {limit} used</source>
+            <translation>{used} de {limit} usadas</translation>
+        </message>
+        <message>
+            <source>Clear search</source>
+            <translation>Borrar búsqueda</translation>
+        </message>
+        <message>
+            <source>Try Pro free</source>
+            <translation>Prueba Pro gratis</translation>
+        </message>
+        <message>
+            <source>Delete account</source>
+            <translation>Eliminar cuenta</translation>
+        </message>
+        <message>
+            <source>Report a problem</source>
+            <translation>Informar de un problema</translation>
+        </message>
+        <message>
+            <source>Ends on {date}</source>
+            <translation>Termina el {date}</translation>
+        </message>
+        <message>
+            <source>Monthly limit reached, resets {date}</source>
+            <translation>Límite mensual alcanzado, se restablece el {date}</translation>
+        </message>
+        <message>
+            <source>Pro is paused until payment goes through.</source>
+            <translation>Pro está en pausa hasta que se complete el pago.</translation>
+        </message>
+        <message>
+            <source>Pro trial: 1 day left</source>
+            <translation>Prueba de Pro: queda 1 día</translation>
+        </message>
+        <message>
+            <source>Pro trial: {n} days left</source>
+            <translation>Prueba de Pro: quedan {n} días</translation>
+        </message>
+        <message>
+            <source>Your trial did not start. You were not charged.</source>
+            <translation>Tu prueba no se inició. No se te cobró.</translation>
+        </message>
+        <message>
+            <source>Then {price}/month excl. VAT. Cancel anytime.</source>
+            <translation>Después {price}/mes sin IVA. Cancela cuando quieras.</translation>
+        </message>
+        <message>
+            <source>{price}/month excl. VAT. Cancel anytime.</source>
+            <translation>{price}/mes sin IVA. Cancela cuando quieras.</translation>
+        </message>
+        <message>
+            <source>Desktop notifications</source>
+            <translation>Notificaciones de escritorio</translation>
+        </message>
+        <message>
+            <source>When QGIS is in the background and a run finishes or needs you.</source>
+            <translation>Cuando QGIS está en segundo plano y una ejecución termina o te necesita.</translation>
+        </message>
+        <message>
+            <source>Resets today</source>
+            <translation>Se restablece hoy</translation>
+        </message>
+        <message>
+            <source>Try Pro free for 1 day</source>
+            <translation>Prueba Pro gratis durante 1 día</translation>
+        </message>
+        <message>
+            <source>More AI plugins</source>
+            <translation>Más plugins de IA</translation>
+        </message>
+        <message>
+            <source>Applies after restarting QGIS.</source>
+            <translation>Se aplica al reiniciar QGIS.</translation>
+        </message>
+        <message>
+            <source>How AI Agent looks, what it knows about you, and how it calls you back.</source>
+            <translation>Cómo se ve AI Agent, qué sabe de ti y cómo te avisa.</translation>
+        </message>
+        <message>
+            <source>Language</source>
+            <translation>Idioma</translation>
+        </message>
+        <message>
+            <source>Usage stats: only that you used the app and when. Chats are kept as your History retention says, so a conversation survives an update; we may read one, or have a model score it, to fix bugs, never to train AI. 0 days of history stores nothing.</source>
+            <translation>Estadísticas de uso: solo que usaste la aplicación y cuándo. Los chats se conservan según indique tu Retención del historial, para que una conversación sobreviva a una actualización; podemos leer uno, o hacer que un modelo lo puntúe, para corregir errores, nunca para entrenar IA. Con 0 días de historial no se guarda nada.</translation>
+        </message>
+        <message>
+            <source>Grey text in the message box. Tab takes it.</source>
+            <translation>Texto gris en el cuadro de mensaje. Tab lo acepta.</translation>
+        </message>
+        <message>
+            <source>Typing suggestions</source>
+            <translation>Sugerencias al escribir</translation>
+        </message>
+        <message>
+            <source>Language, response style, suggestions and notifications go back to their defaults.</source>
+            <translation>El idioma, el estilo de respuesta, las sugerencias y las notificaciones vuelven a sus valores predeterminados.</translation>
+        </message>
+        <message>
+            <source>Reset settings</source>
+            <translation>Restablecer la configuración</translation>
+        </message>
     </context>
     <context>
         <name>SourcesButton</name>
@@ -6876,6 +7560,10 @@ Gracias</translation>
             <source>Always allowed</source>
             <translation>Siempre permitido</translation>
         </message>
+        <message>
+            <source>Allow AI Agent to write in {folder}?</source>
+            <translation>¿Permitir que AI Agent escriba en {folder}?</translation>
+        </message>
     </context>
     <context>
         <name>TraceSteps</name>
@@ -7284,10 +7972,6 @@ Gracias</translation>
             <translation>herramienta: {tool}</translation>
         </message>
         <message>
-            <source>{day} UTC, added by AI Agent by TerraLab</source>
-            <translation>{day} UTC, añadido por AI Agent by TerraLab</translation>
-        </message>
-        <message>
             <source>Accessed {day} via {host}</source>
             <translation>Consultado {day} vía {host}</translation>
         </message>
@@ -7336,8 +8020,12 @@ Gracias</translation>
             <translation>capas del proyecto que nombra el código: {names}</translation>
         </message>
         <message>
-            <source>{day} UTC, AI Agent run {run}: added {layers}</source>
-            <translation>{day} UTC, ejecución {run} de AI Agent: añadió {layers}</translation>
+            <source>{day} UTC, run {run}: added {layers}</source>
+            <translation>{day} UTC, ejecución {run}: añadió {layers}</translation>
+        </message>
+        <message>
+            <source>Data source</source>
+            <translation>Fuente de datos</translation>
         </message>
     </context>
     <context>
@@ -7463,6 +8151,22 @@ Este archivo ya no está donde lo dejó la ejecución.</translation>
         <message>
             <source>Get more tasks with Pro</source>
             <translation>Consigue más tareas con Pro</translation>
+        </message>
+        <message>
+            <source>1 task left</source>
+            <translation>Queda 1 tarea</translation>
+        </message>
+        <message>
+            <source>Get more with Pro</source>
+            <translation>Consigue más con Pro</translation>
+        </message>
+        <message>
+            <source>Pro: {n} tasks a month, higher effort levels and Autopilot.</source>
+            <translation>Pro: {n} tareas al mes, niveles de esfuerzo más altos y Autopilot.</translation>
+        </message>
+        <message>
+            <source>{n} tasks left</source>
+            <translation>Quedan {n} tareas</translation>
         </message>
     </context>
     <context>
@@ -7790,6 +8494,10 @@ Este archivo ya no está donde lo dejó la ejecución.</translation>
         <message>
             <source>Stopping...</source>
             <translation>Deteniendo...</translation>
+        </message>
+        <message>
+            <source>the map render</source>
+            <translation>el renderizado del mapa</translation>
         </message>
     </context>
     <context>
@@ -9873,6 +10581,120 @@ Este archivo ya no está donde lo dejó la ejecución.</translation>
         <message>
             <source>Selected</source>
             <translation>Seleccionado</translation>
+        </message>
+    </context>
+    <context>
+        <name>FolderCard</name>
+        <message>
+            <source>A folder on another computer of your network.</source>
+            <translation>Una carpeta de otro equipo de tu red.</translation>
+        </message>
+        <message>
+            <source>Denied</source>
+            <translation>Denegado</translation>
+        </message>
+        <message>
+            <source>Deny</source>
+            <translation>Denegar</translation>
+        </message>
+        <message>
+            <source>Let AI Agent open this folder?</source>
+            <translation>¿Permitir que AI Agent abra esta carpeta?</translation>
+        </message>
+        <message>
+            <source>Read and write</source>
+            <translation>Lectura y escritura</translation>
+        </message>
+        <message>
+            <source>Read only</source>
+            <translation>Solo lectura</translation>
+        </message>
+        <message>
+            <source>What AI Agent reads there is sent to the AI model. Kept for this project.</source>
+            <translation>Lo que AI Agent lee allí se envía al modelo de IA. Se conserva para este proyecto.</translation>
+        </message>
+    </context>
+    <context>
+        <name>FolderChip</name>
+        <message>
+            <source>1 folder</source>
+            <translation>1 carpeta</translation>
+        </message>
+        <message>
+            <source>Folders</source>
+            <translation>Carpetas</translation>
+        </message>
+        <message>
+            <source>Folders AI Agent can open in this project</source>
+            <translation>Carpetas que AI Agent puede abrir en este proyecto</translation>
+        </message>
+        <message>
+            <source>{n} folders</source>
+            <translation>{n} carpetas</translation>
+        </message>
+    </context>
+    <context>
+        <name>FolderPopover</name>
+        <message>
+            <source>Folders AI Agent can open in this project</source>
+            <translation>Carpetas que AI Agent puede abrir en este proyecto</translation>
+        </message>
+        <message>
+            <source>The project folder and its layers' folders are always open for reading.</source>
+            <translation>La carpeta del proyecto y las carpetas de sus capas están siempre abiertas para lectura.</translation>
+        </message>
+    </context>
+    <context>
+        <name>_FolderRow</name>
+        <message>
+            <source>Read and write</source>
+            <translation>Lectura y escritura</translation>
+        </message>
+        <message>
+            <source>Read only</source>
+            <translation>Solo lectura</translation>
+        </message>
+        <message>
+            <source>Remove</source>
+            <translation>Quitar</translation>
+        </message>
+    </context>
+    <context>
+        <name>AIAgentContext</name>
+        <message>
+            <source>QGIS is not running</source>
+            <translation>QGIS no se está ejecutando</translation>
+        </message>
+        <message>
+            <source>Raster</source>
+            <translation>Ráster</translation>
+        </message>
+        <message>
+            <source>Show in QGIS</source>
+            <translation>Mostrar en QGIS</translation>
+        </message>
+        <message>
+            <source>Shown in QGIS</source>
+            <translation>Mostrado en QGIS</translation>
+        </message>
+        <message>
+            <source>Table</source>
+            <translation>Tabla</translation>
+        </message>
+    </context>
+    <context>
+        <name>AIAgentRecovery</name>
+        <message>
+            <source>QGIS closed during a run. {n} layer(s) of unsaved work came back in the group "{group}". Save them to keep them.</source>
+            <translation>QGIS se cerró durante una ejecución. {n} capa(s) de trabajo sin guardar se recuperaron en el grupo "{group}". Guárdalas para conservarlas.</translation>
+        </message>
+        <message>
+            <source>Some unsaved work could not be put back. Its copy is kept in {folder}.</source>
+            <translation>No se pudo restaurar parte del trabajo sin guardar. Su copia se conserva en {folder}.</translation>
+        </message>
+        <message>
+            <source>{name} (unsaved edits kept)</source>
+            <translation>{name} (ediciones sin guardar conservadas)</translation>
         </message>
     </context>
 </TS>

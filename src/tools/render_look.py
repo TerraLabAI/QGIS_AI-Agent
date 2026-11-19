@@ -37,6 +37,11 @@ _PIXMAP_SUFFIXES = frozenset({".png", ".jpg", ".jpeg", ".webp", ".gif", ".bmp", 
 
 _PDF_OPEN_DPI = 150.0
 
+_PDF_CHILD_BYTES = 2_000_000
+_PDF_CHILD_S = 170.0
+_PDF_WORKER = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "workers",
+                           "pdf_page_worker.py")
+
 
 def crop_box(args: dict):
 
@@ -337,12 +342,31 @@ def _pdf_with_qt(path: str, page: int, args: dict):
     return image, ""
 
 
-def _pdf_with_gdal(path: str, args: dict):
+def _first_page_mm(structure: dict) -> tuple:
+
+    rows = structure.get("page_details") if isinstance(structure, dict) else None
+    first = rows[0] if isinstance(rows, list) and rows and isinstance(rows[0], dict) else {}
+    return float(first.get("width_mm") or 0), float(first.get("height_mm") or 0)
+
+
+def _pdf_with_gdal(path: str, args: dict, structure: dict | None = None):
 
 
 
 
 
+
+    width_mm, height_mm = _first_page_mm(structure or {})
+    try:
+        heavy = os.path.getsize(path) >= _PDF_CHILD_BYTES
+    except OSError:
+        heavy = False
+    if heavy and width_mm > 0 and height_mm > 0:
+        width, height = _sized(width_mm, height_mm, args)
+        dpi = 25.4 * max(width / width_mm, height / height_mm)
+        image, why = _pdf_in_child(path, width, height, dpi)
+        if image is not None or why:
+            return image, why
     try:
         from osgeo import gdal
     except ImportError:  # pragma: no cover
@@ -402,6 +426,67 @@ def _pdf_with_gdal(path: str, args: dict):
     return image, ""
 
 
+def _pdf_in_child(path: str, width: int, height: int, dpi: float):
+
+
+
+
+
+
+
+
+    import subprocess  # nosec B404
+
+    from qgis.PyQt.QtGui import QImage
+
+    from ..core.background import run_on_main_thread
+    from ..core.host_platform import IS_WINDOWS, remove_tree
+    from ..core.policy import create_managed_temp_dir
+    from .child_python import _tail, environment, exit_name, python_for_child, start_refused
+    from .render_wait import stop_requested
+
+    python = run_on_main_thread(python_for_child, timeout=10)
+    if not python:
+        return None, ""
+    work = create_managed_temp_dir("pdfpage-")
+    page, log_path = os.path.join(work, "page.png"), os.path.join(work, "worker.log")
+    env = environment(python, work)
+    env["GDAL_PAM_ENABLED"] = "NO"
+    kwargs = {}
+    if IS_WINDOWS:
+        kwargs["creationflags"] = (getattr(subprocess, "CREATE_NO_WINDOW", 0)
+                                   | getattr(subprocess, "BELOW_NORMAL_PRIORITY_CLASS", 0))
+    try:
+        with open(log_path, "wb") as log_handle:
+            try:
+                process = subprocess.Popen(  # nosec B603
+                    [python, "-s", _PDF_WORKER, path, page, str(int(width)), str(int(height)), f"{dpi:.3f}"],
+                    cwd=work, env=env, stdin=subprocess.DEVNULL, stdout=log_handle, stderr=subprocess.STDOUT,
+                    **kwargs)
+            except OSError as exc:
+                start_refused(exc)
+                return None, ""
+            started = time.monotonic()
+            while process.poll() is None:
+                if stop_requested() or time.monotonic() - started > _PDF_CHILD_S:
+                    process.kill()
+                    process.wait()
+                    return None, ("the page was stopped" if stop_requested()
+                                  else f"GDAL drew nothing in {int(_PDF_CHILD_S)} s")
+                time.sleep(0.1)
+        code = process.returncode
+        if code != 0 or not os.path.isfile(page):
+            name = exit_name(code)
+            return None, ("GDAL's PDF driver ended without a page" + (f" ({name})" if name else "")
+                          + (f": {_tail(log_path, 300)}" if not name and _tail(log_path, 300) else ""))
+        image = QImage(page)
+        if image.isNull():
+            return None, "the page GDAL drew did not decode"
+        return image, ""
+    finally:
+        remove_tree(work)
+
+
 def file_image(args: dict) -> dict:
 
 
@@ -427,7 +512,7 @@ def file_image(args: dict) -> dict:
         structure = pdf_facts(path)
         image, why = _pdf_with_qt(path, page, args)
         if image is None:
-            fallback, gdal_why = _pdf_with_gdal(path, args)
+            fallback, gdal_why = _pdf_with_gdal(path, args, structure)
             if fallback is not None:
                 note = ("This QGIS reads a PDF through GDAL, which draws the first page only."
                         if page > 1 else "")
@@ -437,7 +522,8 @@ def file_image(args: dict) -> dict:
 
 
             return tool_error(f"This QGIS cannot turn {os.path.basename(path)} into a picture: "
-                              f"{why or gdal_why}.", "EXECUTION_FAILED", hint="render_pdf_unreadable",
+                              f"{'; '.join(part for part in (why, gdal_why) if part)}.", "EXECUTION_FAILED",
+                              hint="render_pdf_unreadable",
                               pdf=structure)
         return {"image": image, "facts": {"source_file": path, "page": page, "pdf": structure}}
 

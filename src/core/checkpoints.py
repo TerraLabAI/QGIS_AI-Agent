@@ -41,7 +41,7 @@ from .crash_note import pid_alive
 from .host_platform import remove_quietly, resolved, retry_file_op
 from .logger import log_warning
 from .numbers import as_float, as_int
-from .project_identity import open_project_file
+from .project_identity import open_project_file, writing_copy
 from .snapshot import (
     MAX_HASH_FILE_BYTES,
     MAX_INDEX_BYTES,
@@ -435,10 +435,18 @@ def _light_styles(snapshot) -> None:
             record["style"] = cached_style_digest(lid)
 
 
+def _mark_gaps(entries: list, kept_ids: set) -> None:
+
+    for before, entry in zip(entries, entries[1:]):
+        if entry.id in kept_ids and before.id not in kept_ids:
+            entry.gap_before = True
+
+
 class Checkpoint:
     __slots__ = ("id", "kind", "run_id", "run_index", "thread_id", "snapshot",
                  "changed_layers", "layers", "created_at", "prompt",
-                 "project_file", "project_files", "project_generation", "project_memory", "log", "twin")
+                 "project_file", "project_files", "project_generation", "project_memory", "log", "twin",
+                 "twin_of", "gap_before")
 
     def __init__(self, kind: str, run_id: str, run_index: int, thread_id: str,
                  snapshot: RunSnapshot, changed_layers: int = 0, layers: list | None = None,
@@ -464,6 +472,12 @@ class Checkpoint:
 
 
         self.twin = False
+
+
+        self.twin_of = ""
+
+
+        self.gap_before = False
 
     @property
     def available(self) -> bool:
@@ -543,7 +557,8 @@ class Checkpoint:
                 "layers": list(self.layers), "prompt": self.prompt,
                 "created_at": self.created_at, "project_file": self.project_file,
                 "project_files": list(self.project_files), "project_memory": self.project_memory,
-                "log": self.log, "twin": bool(self.twin),
+                "log": self.log, "twin": bool(self.twin), "twin_of": self.twin_of,
+                "gap_before": bool(self.gap_before),
                 "snapshot": self.snapshot.to_record() if self.snapshot is not None else None}
 
     @classmethod
@@ -585,6 +600,9 @@ class Checkpoint:
         entry.project_memory = memory if isinstance(memory, str) else ""
         entry.log = _clean_log(record.get("log"))
         entry.twin = record.get("twin") is True
+        twin_of = record.get("twin_of")
+        entry.twin_of = twin_of if isinstance(twin_of, str) else ""
+        entry.gap_before = record.get("gap_before") is True
         return entry
 
 
@@ -809,6 +827,13 @@ class CheckpointHistory:
                     size = len(text.encode("utf-8"))
                     if oldest is None:
                         break
+                if dropped:
+
+                    _mark_gaps(entries, {entry.id for entry in kept})
+                    for entry in kept:
+                        records[id(entry)]["gap_before"] = bool(entry.gap_before)
+                    text = json.dumps(record, ensure_ascii=False, default=str)
+                    size = len(text.encode("utf-8"))
                 if size > MAX_INDEX_BYTES:
                     log_warning(f"Checkpoint history not written ({path}): past {MAX_INDEX_BYTES} "
                                 "bytes with only its protected entries left")
@@ -890,6 +915,7 @@ class CheckpointHistory:
         if len(kept_ids) == len(entries):
             return
         kept = [entry for entry in entries if entry.id in kept_ids]
+        _mark_gaps(entries, kept_ids)
         for entry in entries:
             if entry.id in kept_ids or entry.snapshot is None:
                 continue
@@ -1053,7 +1079,7 @@ class CheckpointHistory:
 
 
         path = open_project_file()
-        if not path or _in_snapshots(path):
+        if not path or _in_snapshots(path) or writing_copy():
             return
 
 
@@ -1131,6 +1157,7 @@ class CheckpointHistory:
         if kind == KIND_BEFORE and behind is not None:
             try:
                 entry.twin = _same_state(behind, entry)
+                entry.twin_of = behind.id if entry.twin else ""
             except Exception as exc:  # noqa: BLE001
                 log_warning(f"Checkpoint state comparison failed: {exc}")
         if not entries:
@@ -1297,6 +1324,11 @@ class CheckpointHistory:
         except OSError as exc:
             log_warning(f"Restore not noted on disk: {exc}")
 
+    @property
+    def restore_running(self) -> bool:
+
+        return self._restore_running
+
     def restore_ended(self) -> None:
         self._restore_running = False
         if self._restore_noted:
@@ -1369,7 +1401,8 @@ class CheckpointHistory:
 
         self._ensure(thread_id)
         entries = self._entries.get(thread_id, [])
-        return {entries[i].id for i in range(1, len(entries)) if entries[i].twin and entries[i].kind == KIND_BEFORE}
+        return {entries[i].id for i in range(1, len(entries))
+                if entries[i].twin and entries[i].twin_of == entries[i - 1].id and entries[i].kind == KIND_BEFORE}
 
     def same_state(self, thread_id: str, entry: Checkpoint) -> bool:
 
@@ -1382,6 +1415,18 @@ class CheckpointHistory:
         low, high = min(index, target), max(index, target)
         twins = self.twins(thread_id)
         return all(entries[i].id in twins for i in range(low + 1, high + 1))
+
+    def gap_between(self, thread_id: str, entry: Checkpoint) -> bool:
+
+        entries = self._entries.get(thread_id, [])
+        index = self.current_index(thread_id)
+        if index is None:
+            index = len(entries) - 1
+        target = next((i for i, e in enumerate(entries) if e.id == entry.id), None)
+        if target is None:
+            return False
+        low, high = min(index, target), max(index, target)
+        return any(entries[i].gap_before for i in range(low + 1, high + 1))
 
     def previous(self, thread_id: str, same: frozenset = frozenset()) -> Checkpoint | None:
 

@@ -214,8 +214,15 @@ _UNPROVABLE = frozenset({
 _APP_PATH_READS = frozenset({"svgPaths", "defaultSvgPaths", "prefixPath", "pkgDataPath", "qgisSettingsDirPath",
                              "qgisUserDatabaseFilePath"})
 
+
+
+
 _DEFERRED_ATTRS = frozenset({"connect", "singleShot", "start", "exec", "exec_", "processEvents",
-                             "addTask", "setInterval", "callLater"})
+                             "addTask", "callLater"})
+
+
+
+_INSPECTORS = frozenset({"str", "repr", "int", "callable", "hasattr", "type", "isinstance", "dir", "bool"})
 
 _OS_WRITES = frozenset({"remove", "replace"})
 
@@ -435,7 +442,56 @@ def _literal_lookup(node: ast.Call) -> str:
     return ""
 
 
+def _pyqgis_class(node: ast.AST, own_bound: set[str]) -> bool:
+
+
+
+    while isinstance(node, ast.Attribute):
+        node = node.value
+    return (isinstance(node, ast.Name) and node.id not in own_bound
+            and (node.id == "Qgis" or node.id.startswith("Qgs")))
+
+
+def _dir_inspections(tree: ast.AST, own_bound: set[str]) -> set[int]:
+
+
+
+
+
+    if own_bound & {"dir", "getattr"}:
+        return set()
+    parents = {id(child): parent for parent in ast.walk(tree) for child in ast.iter_child_nodes(parent)}
+    out = set()
+    for node in ast.walk(tree):
+        if not (isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id == "getattr"
+                and node.args and _pyqgis_class(node.args[0], own_bound)):
+            continue
+        loop = _loop_binding(node, tree)
+        if not (isinstance(loop, ast.Call) and isinstance(loop.func, ast.Name) and loop.func.id == "dir"
+                and len(loop.args) == 1 and not loop.keywords):
+            continue
+        parent = parents.get(id(node))
+        if isinstance(parent, ast.Attribute) and parent.attr in ("__doc__", "__name__"):
+            if not isinstance(parents.get(id(parent)), ast.Call) or parents[id(parent)].func is not parent:
+                out.add(id(node.func))
+        elif (isinstance(parent, ast.Call) and parent.func is not node and isinstance(parent.func, ast.Name)
+              and parent.func.id in _INSPECTORS and parent.func.id not in own_bound
+              and any(arg is node for arg in parent.args)):
+            out.add(id(node.func))
+    return out
+
+
 def _loop_lookup(node: ast.Call, tree: ast.AST) -> tuple[str, ...]:
+
+
+
+
+    loop = _loop_binding(node, tree)
+    return _literal_strings(loop) if loop is not None else ()
+
+
+def _loop_binding(node: ast.Call, tree: ast.AST) -> ast.expr | None:
+
 
 
 
@@ -445,7 +501,7 @@ def _loop_lookup(node: ast.Call, tree: ast.AST) -> tuple[str, ...]:
     if (not isinstance(node.func, ast.Name) or node.func.id != "getattr" or node.keywords
             or len(args) not in (2, 3) or any(isinstance(a, ast.Starred) for a in args)
             or not isinstance(args[1], ast.Name)):
-        return ()
+        return None
     key = args[1].id
 
 
@@ -462,9 +518,7 @@ def _loop_lookup(node: ast.Call, tree: ast.AST) -> tuple[str, ...]:
             inner_stores = sum(1 for each in ast.walk(comp) if isinstance(each, ast.Name) and each.id == key
                                and isinstance(each.ctx, (ast.Store, ast.Del)))
             if len(mine) == 1 and inner_stores == 1:
-                names = _literal_strings(mine[0])
-                if names:
-                    return names
+                return mine[0]
     loops = [each for each in ast.walk(tree)
              if isinstance(each, (ast.For, ast.comprehension)) and isinstance(each.target, ast.Name)
              and each.target.id == key]
@@ -479,13 +533,13 @@ def _loop_lookup(node: ast.Call, tree: ast.AST) -> tuple[str, ...]:
         elif isinstance(each, (ast.Global, ast.Nonlocal)):
             others.update(each.names)
     if len(loops) != 1 or stores != 1 or key in others:
-        return ()
+        return None
 
 
     loop = loops[0]
     if not isinstance(loop, ast.For) or not any(node is inner for part in loop.body for inner in ast.walk(part)):
-        return ()
-    return _literal_strings(loop.iter)
+        return None
+    return loop.iter
 
 
 def _literal_strings(node: ast.AST) -> tuple[str, ...]:
@@ -1011,26 +1065,91 @@ class _Owner:
         return any(self.is_user(a) for a in node.args) or any(self.is_user(k.value) for k in node.keywords)
 
 
-def _stored_names(tree: ast.AST) -> set:
-    names = set()
+def _name_restores(tree: ast.AST, kept_names: object) -> set:
+
+
+
+
+
+
+
+
+
+
+
+    if kept_names is None:
+        return set()
+    stores: dict = {}
+    for name in _bound_names(tree):
+        stores[name] = stores.get(name, 0) + 1
+    kept = set(kept_names)
+    if "QgsProject" in stores or "QgsProject" in kept:
+        return set()
+    binds = {each.targets[0].id: each for each in getattr(tree, "body", ())
+             if isinstance(each, ast.Assign) and len(each.targets) == 1 and isinstance(each.targets[0], ast.Name)}
+
+    def once(name: str, at: tuple) -> ast.AST | None:
+        bind = binds.get(name)
+        if bind is None or stores.get(name) != 1 or (bind.end_lineno, bind.end_col_offset) > at:
+            return None
+        return bind.value
+
+    def is_open_project(expr: ast.AST, at: tuple) -> bool:
+        if isinstance(expr, ast.Name):
+            if expr.id == "project" and expr.id not in stores and expr.id not in kept:
+                return True
+            value = once(expr.id, at)
+            return value is not None and not isinstance(value, ast.Name) and is_open_project(value, at)
+        return (isinstance(expr, ast.Call) and not expr.args and isinstance(expr.func, ast.Attribute)
+                and expr.func.attr == "instance" and isinstance(expr.func.value, ast.Name)
+                and expr.func.value.id == "QgsProject")
+
+    restores = set()
+    for node in ast.walk(tree):
+        if not (isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute)
+                and node.func.attr == "setFileName"):
+            continue
+        at = (node.lineno, node.col_offset)
+        built = once(node.func.value.id, at) if isinstance(node.func.value, ast.Name) else None
+        if isinstance(built, ast.Call) and isinstance(built.func, ast.Name) and built.func.id == "QgsProject":
+            restores.add(id(node.func.value))
+            continue
+        if not (len(node.args) == 1 and not node.keywords and isinstance(node.args[0], ast.Name)
+                and is_open_project(node.func.value, at)):
+            continue
+        value = once(node.args[0].id, at)
+        if (isinstance(value, ast.Call) and not value.args and isinstance(value.func, ast.Attribute)
+                and value.func.attr == "fileName" and is_open_project(value.func.value, at)):
+            restores.add(id(node.func.value))
+    return restores
+
+
+def _bound_names(tree: ast.AST) -> list:
+
+
+    names = []
     for node in ast.walk(tree):
         if isinstance(node, ast.Name) and isinstance(node.ctx, (ast.Store, ast.Del)):
-            names.add(node.id)
+            names.append(node.id)
         elif isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
-            names.add(node.name)
+            names.append(node.name)
         elif isinstance(node, (ast.Import, ast.ImportFrom)):
-            names.update(str(a.asname or a.name or "").split(".")[0] for a in node.names)
+            names.extend(str(a.asname or a.name or "").split(".")[0] for a in node.names)
         elif isinstance(node, ast.arg):
-            names.add(node.arg)
+            names.append(node.arg)
         elif isinstance(node, ast.ExceptHandler) and node.name:
-            names.add(node.name)
+            names.append(node.name)
         elif isinstance(node, (ast.Global, ast.Nonlocal)):
-            names.update(node.names)
+            names.extend(node.names)
         elif type(node).__name__ in ("MatchAs", "MatchStar") and getattr(node, "name", None):
-            names.add(node.name)
+            names.append(node.name)
         elif type(node).__name__ == "MatchMapping" and getattr(node, "rest", None):
-            names.add(node.rest)
+            names.append(node.rest)
     return names
+
+
+def _stored_names(tree: ast.AST) -> set:
+    return set(_bound_names(tree))
 
 
 def _bindings(tree: ast.AST) -> list:
@@ -1072,7 +1191,9 @@ def classify(code: object, tool_class: Callable[[str], str | None] | None = None
              libraries: frozenset | set | tuple = (),
              user_layer: Callable[[str], bool] | None = None,
              own_names: frozenset | set = frozenset(),
-             kept_libraries: frozenset | set = frozenset()) -> Verdict:
+             kept_libraries: frozenset | set = frozenset(),
+             kept_names: object = ()) -> Verdict:
+
 
 
 
@@ -1128,6 +1249,7 @@ def classify(code: object, tool_class: Callable[[str], str | None] | None = None
     user = False
     drops = False
     tree_moves = _tree_moves(tree)
+    name_restores = _name_restores(tree, kept_names)
     commits = False
 
 
@@ -1165,7 +1287,9 @@ def classify(code: object, tool_class: Callable[[str], str | None] | None = None
         elif (name in _OS_WRITES and isinstance(recv, ast.Name) and (recv.id == "os" or recv.id in os_aliases)):
 
 
-            reach(D if name == "remove" else FW, "deletes a file" if name == "remove" else "moves a file")
+
+
+            reach(FP if name == "remove" else FW, "deletes a file" if name == "remove" else "moves a file")
         elif name == "replace" and (moves or (recv is not None and _may_be_path(recv, path_names))):
             reach(FW, "moves a file")
         elif (root in libraries and name not in t["d_attrs"] and name not in t["fw_attrs"]
@@ -1178,6 +1302,8 @@ def classify(code: object, tool_class: Callable[[str], str | None] | None = None
                 reach(FP, "writes a file")
         elif name in t["d_attrs"]:
             reach(D, "deletes data")
+        elif name == "setFileName" and not handed_on and id(recv) in name_restores:
+            pass
         elif name in t["fw_attrs"]:
             reach(FW, "writes over a file")
         elif name == "commitChanges":
@@ -1204,6 +1330,7 @@ def classify(code: object, tool_class: Callable[[str], str | None] | None = None
     called = {id(n.func) for n in ast.walk(tree) if isinstance(n, ast.Call)}
     lookups = {id(n.func) for n in ast.walk(tree)
                if isinstance(n, ast.Call) and (_literal_lookup(n) or _loop_lookup(n, tree))}
+    inspected = _dir_inspections(tree, own_bound | set(kept_names)) if kept_names is not None else set()
 
     membership = {id(c.func) for n in ast.walk(tree) if isinstance(n, ast.Compare)
                   and all(isinstance(op, (ast.In, ast.NotIn)) for op in n.ops)
@@ -1240,6 +1367,8 @@ def classify(code: object, tool_class: Callable[[str], str | None] | None = None
             elif _zip_reads(node, kind):
 
 
+                pass
+            elif kind == "name" and id(node.func) in inspected:
                 pass
             elif kind == "name" and id(node.func) in lookups:
                 for name in ((_literal_lookup(node),) if _literal_lookup(node) else _loop_lookup(node, tree)):
@@ -1309,7 +1438,7 @@ def classify(code: object, tool_class: Callable[[str], str | None] | None = None
                 method(_receiver_root(node.value), node.attr, handed_on=True, recv=node.value,
                        navigated=id(node) in navigated)
         elif isinstance(node, ast.Name):
-            if id(node) in lookups or id(node) in membership:
+            if id(node) in lookups or id(node) in membership or id(node) in inspected:
                 pass
             elif node.id in t["unprovable"] and isinstance(node.ctx, ast.Load) and id(node) not in app_reads:
 

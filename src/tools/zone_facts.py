@@ -9,6 +9,8 @@
 
 from __future__ import annotations
 
+import math
+
 from qgis.core import (
     QgsCoordinateReferenceSystem,
     QgsCoordinateTransform,
@@ -223,9 +225,19 @@ def _area_km2(geom: QgsGeometry | None) -> float | None:
     measure.setSourceCrs(_canvas_crs(), QgsProject.instance().transformContext())
     measure.setEllipsoid("WGS84")
     try:
-        return abs(measure.measureArea(geom)) / 1e6
+        area = abs(measure.measureArea(geom)) / 1e6
     except Exception:  # noqa: BLE001
         return None
+    if math.isfinite(area):
+        return area
+
+
+
+    from ..core.invariants import metres_per_map_unit
+
+    factor = metres_per_map_unit(_canvas_crs())
+    flat = abs(geom.area()) * factor * factor / 1e6 if factor else float("nan")
+    return flat if math.isfinite(flat) and flat > 0 else None
 
 
 DECLINED_PROPERTY = "terralab/zone_declined"

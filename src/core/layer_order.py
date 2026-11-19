@@ -318,6 +318,13 @@ def move_to_index(node, parent, target: int) -> bool:
     old = node.parent()
     if old is None:
         return False
+
+
+    above = parent
+    while above is not None:
+        if above is node:
+            return False
+        above = above.parent()
     if old is parent:
         children = list(parent.children())
         try:
@@ -761,8 +768,17 @@ def keep_place(layer) -> None:
 
 
 def keeps_place(layer) -> bool:
+
+
+
+
+
     try:
-        return bool(layer.customProperty(KEEP_PLACE_PROPERTY, False))
+        if layer.customProperty(KEEP_PLACE_PROPERTY, False):
+            return True
+        from .zone_of_interest import ZONE_PROPERTY
+
+        return bool(layer.customProperty(ZONE_PROPERTY, ""))
     except Exception:  # noqa: BLE001
         return False
 

@@ -438,7 +438,6 @@ def register_core_tools(registry: ToolRegistry):
     registry.register(Tool(
         name="get_field_statistics",
         danger="read",
-        reads_whole_layer=True,
         label=QT_TRANSLATE_NOOP("AIAgent", "Statistics of {field} in {layer_name}"),
         input_schema={
             "type": "object",

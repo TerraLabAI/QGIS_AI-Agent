@@ -113,14 +113,18 @@ def api_version(plugin) -> int | None:
     api = getattr(plugin, "mcp_api", None)
     if api is None:
         return None
+
+
+    version = getattr(sys.modules.get(type(api).__module__), "API_VERSION", None)
+    if isinstance(version, int):
+        return version
     try:
         reported = api.capabilities()
         if isinstance(reported, dict) and isinstance(reported.get("api_version"), int):
             return reported["api_version"]
     except Exception:  # nosec B110
         pass
-    version = getattr(sys.modules.get(type(api).__module__), "API_VERSION", None)
-    return version if isinstance(version, int) else None
+    return None
 
 
 def _tagged(url: str, content: str) -> str:

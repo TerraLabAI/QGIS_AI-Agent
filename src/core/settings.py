@@ -20,10 +20,10 @@ import re
 import uuid
 
 from qgis.core import QgsApplication, QgsAuthMethodConfig, QgsSettings
-from qgis.PyQt.QtCore import QLocale, QSysInfo
+from qgis.PyQt.QtCore import QSysInfo
 
 from .host_platform import IS_WINDOWS, retry_file_op
-from .i18n import current_locale, qgis_locale_names
+from .i18n import UI_LANGUAGES, current_locale
 from .net_state import clear_cache
 from .plan import effort_default
 from .policy import state_dir  # noqa: F401
@@ -131,10 +131,11 @@ KEY_RE = re.compile(r"^tl_[0-9a-f]{32}$")
 PROFILE_LINE_MAX_CHARS = 80
 
 _AUTHCFG_KEY = "authcfg_id"
+
+
+
+
 _LEGACY_KEY = "activation_key"
-
-
-
 _PROTECTED_KEY = "activation_key_dpapi"
 _DPAPI_PREFIX = "dpapi1:"
 _DATA_ACCESS_KEY = "data_access"
@@ -315,14 +316,31 @@ def _short_hash(text: str) -> str:
 PANEL_RETURN_DAYS = 7
 
 
+_RETIRED_CLEARED = [False]
+
+
 class Settings:
     def __init__(self, settings=None):
 
 
         self._cache_files = settings is None
         self._s = settings or profile_settings()
-        self._session_approval = ""
         self._session_effort = ""
+        if settings is None and not _RETIRED_CLEARED[0]:
+            _RETIRED_CLEARED[0] = True
+
+
+            for name in ("question_policy", "expertise", "units"):
+                if self._s.contains(self._key(name)):
+                    self._s.remove(self._key(name))
+
+
+            if self._s.contains(self._key("notify_volume")):
+                if self._get("notify_volume", "") in ("0", "0.0"):
+                    self._set("notify_mode", "off")
+                self._s.remove(self._key("notify_volume"))
+            if self._get("notify_mode", "") == "icon":
+                self._set("notify_mode", "sound")
 
     def _cache_get(self, name: str) -> str:
         if not self._cache_files:
@@ -532,8 +550,6 @@ class Settings:
 
 
 
-
-
     @property
     def known_connectors(self) -> list:
 
@@ -660,11 +676,8 @@ class Settings:
 
     CHOICES = {
         "mode": ("agent", "ask"),
-        "approval": ("ask", "careful"),
-        "reply_style": ("concise", "balanced", "detailed"),
-        "question_policy": ("balanced", "minimal", "confirm"),
-        "expertise": ("", "beginner", "intermediate", "expert"),
-        "units": ("metric", "imperial"),
+        "approval": ("ask", "careful", "auto"),
+        "reply_style": ("balanced", "concise", "detailed"),
         "layer_naming": ("human", "snake_case"),
         "send_shortcut": ("enter", "modifier"),
     }
@@ -714,23 +727,19 @@ class Settings:
     def approval(self) -> str:
 
 
-        if self._session_approval:
-            return self._session_approval
+
+
         return self._choice("approval")
 
     @approval.setter
     def approval(self, value: str) -> None:
-        if value == "auto":
-            self._session_approval = "auto"
-            return
-        self._session_approval = ""
         self._set_choice("approval", value)
 
-    def reset_autopilot(self) -> bool:
+    def forget_autopilot(self) -> bool:
 
-        if self._session_approval != "auto":
+        if self.approval != "auto":
             return False
-        self._session_approval = ""
+        self.approval = "ask"
         return True
 
 
@@ -738,7 +747,6 @@ class Settings:
     _stored_locale_dropped = False
 
     def _drop_stored_locale(self) -> None:
-
 
 
 
@@ -764,13 +772,14 @@ class Settings:
 
 
     @property
-    def reply_language(self) -> str:
+    def ui_language(self) -> str:
 
-        return self._get("reply_language", "")[:5]
+        value = self._get("ui_language", "")
+        return value if any(code == value for code, _name in UI_LANGUAGES) else ""
 
-    @reply_language.setter
-    def reply_language(self, value: str) -> None:
-        self._set("reply_language", (value or "")[:5])
+    @ui_language.setter
+    def ui_language(self, value: str) -> None:
+        self._set("ui_language", value or "")
 
     @property
     def reply_style(self) -> str:
@@ -781,30 +790,33 @@ class Settings:
         self._set_choice("reply_style", value)
 
     @property
-    def follow_edits(self) -> bool:
+    def notify_mode(self) -> str:
 
 
+        value = self._get("notify_mode", "sound")
+        return value if value in ("off", "icon", "sound") else "sound"
 
-
-
-
-
-        return self._get("follow_edits", "1") == "1"
-
-    @follow_edits.setter
-    def follow_edits(self, value: bool) -> None:
-        self._set("follow_edits", "1" if value else "0")
-
-
+    @notify_mode.setter
+    def notify_mode(self, value: str) -> None:
+        self._set("notify_mode", value if value in ("off", "icon", "sound") else "sound")
 
     @property
-    def mascot_animated(self) -> bool:
+    def notify_sound_waiting(self) -> str:
 
-        return self._get("mascot_animated", "1") == "1"
+        return self._get("notify_sound_waiting", "chime")
 
-    @mascot_animated.setter
-    def mascot_animated(self, value: bool) -> None:
-        self._set("mascot_animated", "1" if value else "0")
+    @notify_sound_waiting.setter
+    def notify_sound_waiting(self, value: str) -> None:
+        self._set("notify_sound_waiting", value)
+
+    @property
+    def notify_sound_finished(self) -> str:
+
+        return self._get("notify_sound_finished", "chime")
+
+    @notify_sound_finished.setter
+    def notify_sound_finished(self, value: str) -> None:
+        self._set("notify_sound_finished", value)
 
     @property
     def mascot_table(self) -> str:
@@ -815,42 +827,6 @@ class Settings:
     @mascot_table.setter
     def mascot_table(self, value: str) -> None:
         self._set("mascot_table", value)
-
-    @property
-    def question_policy(self) -> str:
-        return self._choice("question_policy")
-
-    @question_policy.setter
-    def question_policy(self, value: str) -> None:
-        self._set_choice("question_policy", value)
-
-    @property
-    def expertise(self) -> str:
-        return self._choice("expertise")
-
-    @expertise.setter
-    def expertise(self, value: str) -> None:
-        self._set_choice("expertise", value)
-
-    @property
-    def units(self) -> str:
-
-
-
-        stored = self._get("units", "")
-        if stored in self.CHOICES["units"]:
-            return stored
-        try:
-            override, _ = qgis_locale_names()
-            where = QLocale(override) if override else QLocale.system()
-            us = getattr(QLocale, "MeasurementSystem", QLocale).ImperialUSSystem
-            return "imperial" if where.measurementSystem() == us else "metric"
-        except Exception:  # noqa: BLE001
-            return "metric"
-
-    @units.setter
-    def units(self, value: str) -> None:
-        self._set_choice("units", value)
 
     @property
     def layer_naming(self) -> str:
@@ -894,6 +870,16 @@ class Settings:
         self._set("profile_role", (value or "").strip()[:PROFILE_LINE_MAX_CHARS])
 
     @property
+    def profile_prefilled(self) -> str:
+
+
+        return self._get("profile_prefilled", "")
+
+    @profile_prefilled.setter
+    def profile_prefilled(self, value: str) -> None:
+        self._set("profile_prefilled", value or "")
+
+    @property
     def profile_about(self) -> str:
         return self._get("profile_about", "")
 
@@ -908,6 +894,24 @@ class Settings:
     @profile_instructions.setter
     def profile_instructions(self, value: str) -> None:
         self._set("profile_instructions", value or "")
+
+    @property
+    def suggestions_enabled(self) -> bool:
+
+        return self._get("suggestions_enabled", "1") == "1"
+
+    @suggestions_enabled.setter
+    def suggestions_enabled(self, value: bool) -> None:
+        self._set("suggestions_enabled", "1" if value else "0")
+
+
+
+    PREFERENCES = ("ui_language", "reply_style", "suggestions_enabled", "notify_mode",
+                   "notify_sound_waiting", "notify_sound_finished")
+
+    def reset_preferences(self) -> None:
+        for name in self.PREFERENCES:
+            self._s.remove(self._key(name))
 
     @property
     def memory_enabled(self) -> bool:
@@ -959,10 +963,6 @@ class Settings:
     @property
     def personal_by_account(self) -> dict:
 
-
-
-
-
         try:
             data = json.loads(self._get("personal_by_account", "") or "{}")
         except ValueError:
@@ -972,36 +972,6 @@ class Settings:
     @personal_by_account.setter
     def personal_by_account(self, values: dict) -> None:
         self._set("personal_by_account", json.dumps(values or {}, ensure_ascii=False))
-
-
-    PREFERENCE_KEYS = (
-        "mode", "approval", "effort", "effort_pro", "model_mode", "reply_language", "reply_style",
-
-        "explain_runs", "show_tool_details",
-
-        "question_timeout_s", "question_policy", "follow_edits", "send_shortcut",
-        "expertise", "units", "layer_naming",
-        "profile_name", "profile_role", "profile_about", "profile_instructions", "memory_enabled",
-        "memory_notes", "memory_forgotten", "memory_declined", "allow_project",
-
-
-
-
-        "disabled_connectors", "enabled_connectors", "disabled_plugins",
-    )
-
-    def reset_preferences(self) -> None:
-
-
-        for name in self.PREFERENCE_KEYS:
-            try:
-                self._s.remove(self._key(name))
-            except Exception:  # nosec B110
-                self._set(name, "")
-        try:
-            self._s.sync()
-        except Exception:  # nosec B110
-            pass
 
 
     @property
@@ -1091,6 +1061,39 @@ class Settings:
         raw = str(project_path or "").strip() or UNSAVED_KEY
         return (key,) if raw == key else (key, raw)
 
+
+
+
+
+    def folder_grants(self, project_path: str) -> list:
+        key = self._grant_key(project_path)
+        if key == UNSAVED_KEY:
+            return []
+        try:
+            data = json.loads(self._get("folder_grants", "") or "{}")
+        except ValueError:
+            return []
+        rows = data.get(key) if isinstance(data, dict) else None
+        return [[str(r[0]), bool(r[1])] for r in rows or ()
+                if isinstance(r, (list, tuple)) and len(r) == 2 and str(r[0])]
+
+    def set_folder_grants(self, project_path: str, grants) -> None:
+        key = self._grant_key(project_path)
+        if key == UNSAVED_KEY:
+            return
+        try:
+            data = json.loads(self._get("folder_grants", "") or "{}")
+        except ValueError:
+            data = {}
+        if not isinstance(data, dict):
+            data = {}
+        rows = [[str(f), bool(w)] for f, w in grants or ()]
+        data.pop(key, None)
+        if rows:
+            data[key] = rows
+        data = {k: v for k, v in data.items() if not _project_deleted(k)}
+        self._set("folder_grants", json.dumps(dict(list(data.items())[-_GRANT_PROJECTS_MAX:])))
+
     def is_allowed(self, project_path: str, tool_name: str) -> bool:
         if self._grant_key(project_path) == UNSAVED_KEY:
             return False
@@ -1158,6 +1161,20 @@ class Settings:
         except Exception:  # nosec B110
             pass
 
+    def _move_to_plain(self, key: str) -> bool:
+
+
+
+
+
+        self._set(_LEGACY_KEY, key)
+        try:
+            self._s.sync()
+            with open(self._s.fileName(), encoding="utf-8", errors="replace") as fh:
+                return key in fh.read()
+        except (OSError, AttributeError, TypeError):
+            return False
+
     @property
     def activation_key(self) -> str:
         authcfg_id = self._get(_AUTHCFG_KEY, "")
@@ -1170,9 +1187,7 @@ class Settings:
                     if key:
 
 
-                        sealed = _protect(key)
-                        if sealed:
-                            self._set(_PROTECTED_KEY, sealed)
+                        if self._move_to_plain(key):
                             self._set(_AUTHCFG_KEY, "")
                             self._remove_auth_config(authcfg_id)
                         return key
@@ -1182,19 +1197,10 @@ class Settings:
         if protected:
             key = _unprotect(protected)
             if key:
+                if self._move_to_plain(key):
+                    self._set(_PROTECTED_KEY, "")
                 return key
-        key = self._get(_LEGACY_KEY, "")
-        if key and not authcfg_id:
-
-
-            sealed = _protect(key)
-            if sealed:
-                try:
-                    self._set(_PROTECTED_KEY, sealed)
-                    self._set(_LEGACY_KEY, "")
-                except Exception:  # nosec B110
-                    pass
-        return key
+        return self._get(_LEGACY_KEY, "")
 
     def set_activation_key(self, key: str) -> None:
         reset_account_tag_cache()
@@ -1203,29 +1209,8 @@ class Settings:
             self.clear_activation_key()
             return
         previous = self._get(_AUTHCFG_KEY, "")
-
-
-
-
-        am = None if _protect(key) else self._auth_manager()
-        if am is not None:
-            try:
-                cfg = QgsAuthMethodConfig()
-                cfg.setName("AI Agent activation key")
-                cfg.setMethod("Basic")
-                cfg.setConfig("password", key)
-                if am.storeAuthenticationConfig(cfg) and cfg.id():
-                    self._set(_AUTHCFG_KEY, cfg.id())
-                    self._set(_LEGACY_KEY, "")
-                    self._set(_PROTECTED_KEY, "")
-                    if previous and previous != cfg.id():
-                        self._remove_auth_config(previous)
-                    return
-            except Exception:  # nosec B110
-                pass
-        sealed = _protect(key)
-        self._set(_PROTECTED_KEY, sealed)
-        self._set(_LEGACY_KEY, "" if sealed else key)
+        self._set(_LEGACY_KEY, key)
+        self._set(_PROTECTED_KEY, "")
         self._set(_AUTHCFG_KEY, "")
         self._remove_auth_config(previous)
 
@@ -1273,3 +1258,19 @@ class Settings:
         if self._get(_LEGACY_KEY, "") or self._get(_PROTECTED_KEY, ""):
             return False
         return self._auth_manager() is None
+
+
+_GRANT_PROJECTS_MAX = 200
+
+
+def _project_deleted(key: str) -> bool:
+
+
+
+    home = os.path.normcase(os.path.abspath(os.path.expanduser("~"))).replace("\\", "/").rstrip("/") + "/"
+    if not key.startswith(home):
+        return False
+    try:
+        return os.path.isdir(os.path.dirname(key)) and not os.path.exists(key)
+    except (OSError, ValueError):
+        return False

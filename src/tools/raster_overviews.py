@@ -207,6 +207,26 @@ def prepare_layout(args: dict):
     return _work_for(wanted, "drawing the layout") if wanted else None
 
 
+def prepare_layout_map(args: dict):
+
+
+
+    wanted = layout_rasters(_layout_named(args))
+    project = QgsProject.instance()
+    names = [str(name) for name in args.get("layers") or [] if str(name).strip()]
+    if names:
+        layers = [resolve_layer(name) for name in names]
+    elif str(args.get("map_theme") or "").strip():
+        layers = list(project.mapThemeCollection().mapThemeVisibleLayers(str(args["map_theme"]).strip()))
+    else:
+        layers = [node.layer() for node in project.layerTreeRoot().findLayers() if node.isVisible()]
+    for layer in layers:
+        path = _needs_overviews(layer) if layer is not None else None
+        if path:
+            wanted[layer.id()] = path
+    return _work_for(wanted, "adding it to the layout") if wanted else None
+
+
 
 _MEASURED_STYLES = ("singleband_pseudocolor", "singleband_gray", "multiband_color")
 
@@ -293,8 +313,41 @@ def _read(reads: dict, reopen: bool = False) -> dict:
     return answers
 
 
+
+
+
+
+
+_BLOCK_ROWS_READ_WHOLE = 8
+
+
+def _reads_whole_blocks(path: str) -> bool:
+
+    from osgeo import gdal
+
+    try:
+        dataset = gdal.Open(path, gdal.GA_ReadOnly)
+        band = dataset.GetRasterBand(1) if dataset is not None else None
+        rows = band.GetBlockSize()[1] if band is not None else 0
+    except Exception:  # noqa: BLE001
+        return False
+    band = dataset = None
+    return rows >= _BLOCK_ROWS_READ_WHOLE
+
+
 def prepare_render(args: dict):
 
-    if str(args.get("target") or "canvas").strip().lower() != "layout":
-        return None
-    return prepare_layout(args)
+
+    if str(args.get("target") or "canvas").strip().lower() == "layout":
+        return prepare_layout(args)
+    names = [str(name) for name in args.get("layer_names") or [] if str(name).strip()]
+    if names:
+        layers = [resolve_layer(name) for name in names]
+    else:
+        layers = [node.layer() for node in QgsProject.instance().layerTreeRoot().findLayers() if node.isVisible()]
+    wanted = {}
+    for layer in layers:
+        path = _needs_overviews(layer) if layer is not None else None
+        if path and _reads_whole_blocks(path):
+            wanted[layer.id()] = path
+    return _work_for(wanted, "drawing the map") if wanted else None

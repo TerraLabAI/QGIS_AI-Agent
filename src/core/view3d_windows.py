@@ -86,10 +86,21 @@ def begin_run(run_id: str) -> None:
     _runs.add(run_id)
 
 
+
+
+
+_SHOW_AFTER_MS = 300
+
+
 def end_run(run_id: str) -> None:
 
+
     _runs.discard(run_id)
-    show_waiting()
+    if not _waiting:
+        return
+    from qgis.PyQt.QtCore import QTimer
+
+    QTimer.singleShot(_SHOW_AFTER_MS, show_waiting)
 
 
 def show_waiting() -> None:

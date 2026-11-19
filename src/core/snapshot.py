@@ -33,6 +33,7 @@ import sqlite3
 import threading
 import time
 import uuid
+import weakref
 import zipfile
 
 from qgis.core import QgsProject, QgsVectorLayer
@@ -108,6 +109,7 @@ from .snapshot_project import (
     _paths_absolute,
     _paths_back,
     _signals_blocked,
+    name_kept,
 )
 from .snapshot_report import (
     changed_layer_items,
@@ -477,6 +479,37 @@ def _backup_folder(snapshot_dir: str, lid: str) -> str:
     return os.path.join(snapshot_dir, "backup", f"{short}_{tag}")
 
 
+
+
+_OWN_SAVERS: weakref.WeakSet = weakref.WeakSet()
+
+
+def keep_ours_across(path: str):
+
+
+
+    try:
+        key = RunSnapshot._path_key(path)
+        now = [int(x) for x in _stamp(path)]
+    except (OSError, TypeError, ValueError):
+        return None
+    owners = [snap for snap in list(_OWN_SAVERS) if snap.own_save
+              and RunSnapshot._path_key(snap.own_save["path"]) == key and snap.own_save.get("written") == now]
+    if not owners:
+        return None
+
+    def moved() -> None:
+        try:
+            stamp = [int(x) for x in _stamp(path)]
+        except (OSError, TypeError, ValueError) as exc:
+            log_warning(f"Project file's stamp not read after the plugin's save: {exc}")
+            return
+        for snap in owners:
+            snap.own_save["written"] = stamp
+
+    return moved
+
+
 class RunSnapshot:
     copy_kind = "none"
     capture_ms = None
@@ -641,6 +674,8 @@ class RunSnapshot:
         own = record.get("own_save")
         snap.own_save = own if isinstance(own, dict) and isinstance(own.get("path"), str) and isinstance(
             own.get("copy"), str) and isinstance(own.get("written"), list) else None
+        if snap.own_save is not None:
+            _OWN_SAVERS.add(snap)
         snap.was_dirty = bool(record.get("was_dirty"))
         layers = record.get("layers")
         if isinstance(layers, dict):
@@ -741,6 +776,25 @@ class RunSnapshot:
             except Exception as exc:  # noqa: BLE001
                 log_warning(f"Snapshot features-ready callback failed: {exc}")
 
+    def uncopied(self) -> set:
+
+
+        feature_pass = getattr(self, "_pass", None)
+        return set(self.unbacked) | set(getattr(feature_pass, "unbacked", None) or ())
+
+    def holds_layers(self, layer_ids, wait_s: float = 10.0) -> bool:
+
+
+
+
+
+
+        ids = {str(lid) for lid in layer_ids}
+        planned = set(dict(getattr(getattr(self, "_pass", None), "memory_planned", None) or {}))
+        if ids & planned and self._copies_still_writing(wait_s):
+            return False
+        return not ids & self.uncopied()
+
     def _note_uncopied(self, feature_pass) -> None:
 
         for lid, (name, reason) in list(feature_pass.unbacked.items()):
@@ -830,7 +884,8 @@ class RunSnapshot:
             log_warning(f"Snapshot relations not kept apart, the copy is written with the project's signals: {exc}")
         with _signals_blocked(project) if self.quiet else contextlib.nullcontext():
             try:
-                with _paths_absolute(project, self.quiet) as own:
+                with name_kept(project, self.original_file, self.was_dirty), \
+                        _paths_absolute(project, self.quiet) as own:
                     ok = bool(project.write(self.project_path))
                 self.own_paths = own
                 if not ok:
@@ -839,12 +894,6 @@ class RunSnapshot:
                     log_warning(f"Snapshot write failed: {project.error() or 'QGIS gave no reason'}")
             except Exception as exc:
                 log_warning(f"Snapshot write failed: {exc}")
-            finally:
-                try:
-                    project.setFileName(self.original_file)
-                    project.setDirty(self.was_dirty)
-                except Exception:  # nosec B110
-                    pass
         if self.quiet:
 
 
@@ -1542,8 +1591,22 @@ class RunSnapshot:
 
 
 
-        if self.own_save is not None or not self.captured or not os.path.isfile(path):
+
+
+        if not self.captured or not os.path.isfile(path):
             return None
+        if self.own_save is not None:
+            own = self.own_save
+            if not self.own_save_unchanged(path):
+                return None
+
+            def moved() -> None:
+                try:
+                    own["written"] = [int(x) for x in _stamp(path)]
+                except (OSError, TypeError, ValueError) as exc:
+                    log_warning(f"Project file's stamp not read after the plugin's save: {exc}")
+
+            return moved
         copy = os.path.join(self.dir, "own_save", os.path.basename(path))
         try:
             os.makedirs(os.path.dirname(copy), exist_ok=True)
@@ -1555,10 +1618,24 @@ class RunSnapshot:
         def written() -> None:
             try:
                 self.own_save = {"path": path, "copy": copy, "written": [int(x) for x in _stamp(path)]}
+                _OWN_SAVERS.add(self)
             except (OSError, TypeError, ValueError) as exc:
                 log_warning(f"Project file's stamp not read after the plugin's save: {exc}")
 
         return written
+
+    def own_save_unchanged(self, path: str) -> bool:
+
+
+
+        own = self.own_save
+        if own is None:
+            return True
+        try:
+            return (self._path_key(own["path"]) == self._path_key(path)
+                    and own.get("written") == [int(x) for x in _stamp(path)])
+        except (OSError, TypeError, ValueError):
+            return False
 
     def _undo_own_save(self, kept: str, later=()) -> bool:
 

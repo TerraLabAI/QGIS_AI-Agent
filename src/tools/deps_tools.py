@@ -59,6 +59,16 @@ OPTIONAL_DEPENDENCIES = {
         "import_name": "PIL",
         "unlocks": "PNG and JPEG files in execute_code (PIL)",
     },
+
+
+
+
+
+    "learning": {
+        "package": "scikit-learn",
+        "import_name": "sklearn",
+        "unlocks": "Random forest, SVM and accuracy scores in execute_code (scikit-learn)",
+    },
 }
 
 

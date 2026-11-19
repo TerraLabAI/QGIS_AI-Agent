@@ -36,6 +36,7 @@ from ..core.policy import create_managed_temp_dir
 from ..core.security import fits_path
 from ..core.text_encoding import ansi_encoding, python_codec
 from ..core.tool_registry import tool_error
+from .layer_files import companions
 
 
 
@@ -179,6 +180,16 @@ def _has_sidecars(path: str) -> bool:
         return True
 
 
+def _drop_file_link(link: str, real: str) -> None:
+
+    try:
+        if _is_link(link) or os.path.samefile(link, real):
+            os.remove(link)
+    except OSError as exc:
+
+        log_warning(f"path alias {link} not removed: {exc}")
+
+
 class PathAliases:
 
 
@@ -186,6 +197,7 @@ class PathAliases:
         self.provider = provider
         self.pairs: list[tuple[str, str]] = []
         self.links: list[str] = []
+        self.file_links: list[tuple[str, str]] = []
         self.owner = ""
         self.problem = ""
         self._folder = None
@@ -251,12 +263,51 @@ class PathAliases:
 
         if os.path.isdir(real):
             return self.folder(real)
-        if unsafe_path(os.path.basename(real)) and not _has_sidecars(real):
-            short = _short_path(real)
-            if short and not unsafe_path(short):
-                self.pairs.append((short, real))
-                return short
+        if unsafe_path(os.path.basename(real)):
+            if not _has_sidecars(real):
+                short = _short_path(real)
+                if short and not unsafe_path(short):
+                    self.pairs.append((short, real))
+                    return short
+            linked = self._file_link(real)
+            if linked:
+                return linked
         return self.destination(real)
+
+    def _file_link(self, real: str) -> str:
+
+
+
+
+
+
+
+        base = self._link_folder()
+        if not base:
+            return ""
+        folder, name = os.path.split(os.path.abspath(real))
+        stem = os.path.splitext(name)[0]
+        safe = f"f{len(self.file_links)}"
+        made = []
+        try:
+            for path in [real] + [p for p in companions(real) if os.path.dirname(os.path.abspath(p)) == folder]:
+                tail = os.path.basename(path)[len(stem):]
+                link = os.path.join(base, safe + tail)
+                if IS_WINDOWS:
+                    os.link(path, link)
+                else:
+                    os.symlink(os.path.abspath(path), link)
+                made.append((link, path))
+        except OSError as exc:
+            for link, _path in made:
+                _drop_file_link(link, _path)
+            self.problem = self.problem or (
+                f"the file name itself has one, and no link to the file could be made ({exc})")
+            return ""
+        self.file_links.extend(made)
+        alias = made[0][0]
+        self.pairs.append((alias, real))
+        return alias
 
     def destination(self, real: str) -> str:
 
@@ -306,6 +357,9 @@ class PathAliases:
 
                 log_warning(f"path alias {link} not removed: {exc}")
         self.links = []
+        for link, real in self.file_links:
+            _drop_file_link(link, real)
+        self.file_links = []
         if self._folder:
             try:
                 os.rmdir(self._folder)
@@ -372,6 +426,13 @@ def alias_fragile_paths(algorithm_id: str, parameters: dict, destination_names) 
                 continue
             alias = aliases.destination(real) if destination else aliases.existing(real)
             built = (gpkg_sink_uri(alias, table) if table else alias + rest) if alias else None
+            if (not built and not destination and provider.startswith("grass") and real.isascii()
+                    and os.path.isfile(real)):
+
+
+
+                aliases.problem = ""
+                continue
             if not built or not fits_path(alias):
                 reason = aliases.problem or ("its alias would pass the 260 characters Windows opens"
                                              if built else "no short name or link of its folder could be made")

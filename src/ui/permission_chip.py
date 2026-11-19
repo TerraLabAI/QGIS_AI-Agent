@@ -34,7 +34,7 @@ from qgis.PyQt.QtWidgets import (
     QWidget,
 )
 
-from ..core.plan import autopilot_allowed, stated
+from ..core.plan import autopilot_open
 from ..core.served_state import get_pro_offer
 from .cards_click import PressSurface
 from .confirm_dialog import ask_confirm
@@ -80,7 +80,7 @@ def autopilot_pickable(paid: bool) -> bool:
 
 
 
-    return autopilot_allowed() if stated("yolo") else bool(paid)
+    return autopilot_open(paid)
 
 
 DEFAULT_MODE = ASK

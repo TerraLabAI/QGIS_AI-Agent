@@ -8,10 +8,10 @@ from __future__ import annotations
 
 from qgis.PyQt.QtCore import QTimer
 
-from ..core import layer_removed
+from ..core import layer_removed, security
 from ..core.checkpoints import _in_snapshots
 from ..core.logger import log, log_warning
-from ..core.project_identity import open_project_file
+from ..core.project_identity import open_project_file, writing_copy
 from ..core.protocol import CANCEL_PROJECT_CLOSED, RunStatus
 from ..core.qt_compat import qt_deleted
 from ..core.security import warm_layer_roots
@@ -48,6 +48,8 @@ class _ControllerProjects:
                 signal.connect(slot)
         except Exception as exc:  # noqa: BLE001
             log_warning(f"Project watch failed: {exc}")
+        security.on_grants_changed(self._store_folder_grants)
+        self._load_folder_grants()
 
     def _unwatch_project(self) -> None:
 
@@ -59,6 +61,7 @@ class _ControllerProjects:
                 pass
         self._project_connections = []
         self._clear_scratch_marks()
+        security.on_grants_changed(None)
 
     def _on_layers_removing(self, items) -> None:
         run = self._run
@@ -76,6 +79,8 @@ class _ControllerProjects:
 
 
         self._executor.history.project_opened()
+        if not self._own_read():
+            self._load_folder_grants()
         self._on_project_opened(*_args)
         if self._executor.history.interrupted_restore() is not None:
             self.notice.emit("warning", tr(
@@ -94,6 +99,10 @@ class _ControllerProjects:
 
         if self._restoring:
             return
+        if not self._own_read():
+            self._load_folder_grants("")
+            security.forget_thread_roots()
+            self._drop_folder_ask()
         run = self._run
         if run is not None and self._executor.main_call_in_flight(run["run_id"]):
             return
@@ -115,16 +124,45 @@ class _ControllerProjects:
                          tr("Stopped: the project this run worked on was closed."), {}, None)
         self.notice.emit("warning", tr("The AI Agent run stopped because its project was closed."))
 
+    def _own_read(self) -> bool:
+
+
+        return bool(self._restoring or self._executor.history.restore_running)
+
+    def _load_folder_grants(self, path: str | None = None) -> None:
+
+
+        path = open_project_file() if path is None else path
+        if path and _in_snapshots(path):
+            return
+        security.set_folder_grants(self._settings.folder_grants(path) if path else [])
+        self._panel_call("set_folder_grants", security.folder_grants())
+
+    def _store_folder_grants(self) -> None:
+
+
+        path = open_project_file()
+        if path and not _in_snapshots(path):
+            self._settings.set_folder_grants(path, security.folder_grants())
+        self._panel_call("set_folder_grants", security.folder_grants())
+
     def _on_project_saved(self, *_args) -> None:
 
 
         self._executor.history.project_saved()
-        if getattr(self, "_storing_layers", False) or self._restoring:
+        if getattr(self, "_storing_layers", False) or self._restoring or writing_copy():
             return
 
         path = open_project_file()
         if not path or _in_snapshots(path):
             return
+
+
+        self._store_folder_grants()
+        thread_id = self._thread_id
+        if thread_id:
+            security.thread_roots_saved_as(
+                path, lambda roots: self._store.set_layer_roots(thread_id, roots, path))
         if self._run is not None:
 
             self._executor.durable_after_run = True

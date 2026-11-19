@@ -74,6 +74,7 @@ from .style import (
     WEIGHT_MEDIUM,
     keyboard_ring,
 )
+from .tool_describe import group_number
 
 
 
@@ -175,10 +176,10 @@ class RunsLeftLine(QWidget):
 
         self.where = "warning" if left <= WARN_AT_RUNS_LEFT else ""
         if self.where == "warning":
-            count = (offer_text("runs.left.one", self.tr("1 free task left")) if left == 1
-                     else offer_text("runs.left.many", self.tr("{n} free tasks left"), n=left))
+            count = (offer_text("runs.left.one", self.tr("1 task left")) if left == 1
+                     else offer_text("runs.left.many", self.tr("{n} tasks left"), n=group_number(left)))
             link = (trial_short() if trial
-                    else offer_text("runs.link.pro", self.tr("Get more tasks with Pro")))
+                    else offer_text("runs.link.pro", self.tr("Get more with Pro")))
             self._label.setStyleSheet(scale_qss_font_px(_WARNING_QSS))
             text = (f'{html.escape(count)} &middot; <a href="pro" style="color: {ACCENT_INK};'
                     f' text-decoration: none;">{html.escape(link)}</a>')
@@ -198,8 +199,8 @@ class RunsLeftLine(QWidget):
         if self.where == "warning":
             tip = (trial_promise(*trial) if trial else
                    offer_text("runs.tip.pro", self.tr(
-                       "Pro: {n} tasks a month, Medium and High effort for harder work, Autopilot"),
-                       n=get_pro_runs_per_month()))
+                       "Pro: {n} tasks a month, higher effort levels and Autopilot."),
+                       n=group_number(get_pro_runs_per_month())))
         self._label.setToolTip(tip)
 
     def text(self) -> str:
@@ -230,7 +231,7 @@ def pro_price_per_month() -> str:
 
 def trial_cta(_days: int = 7) -> str:
 
-    return offer_text("trial.button", QCoreApplication.translate("QuotaCard", "Start 7 day free trial"))
+    return offer_text("trial.button", QCoreApplication.translate("QuotaCard", "Start free trial"))
 
 
 def trial_short() -> str:
@@ -250,19 +251,19 @@ def trial_reassurance() -> str:
     if student and student.get("applied"):
         return offer_text("trial.reassure.student", QCoreApplication.translate(
             "QuotaCard",
-            "Free for 7 days, nothing to pay today, then monthly at your student price. Cancel in one click."))
+            "Pay nothing today, then your student price each month. Cancel anytime."))
     price = get_pro_price()
     if not price:
         return offer_text("trial.reassure.local", QCoreApplication.translate(
             "QuotaCard",
-            "Free for 7 days, nothing to pay today, then monthly at your local price. Cancel in one click."))
+            "Pay nothing today, then your local price each month. Cancel anytime."))
     if get_pro_price_excludes_tax():
         return offer_text("trial.reassure.excl_vat", QCoreApplication.translate(
             "QuotaCard",
-            "Free for 7 days, nothing to pay today, then {price}/month excl. VAT. Cancel in one click."),
+            "Pay nothing today, then {price}/month excl. VAT. Cancel anytime."),
             price=price)
     return offer_text("trial.reassure.price", QCoreApplication.translate(
-        "QuotaCard", "Free for 7 days, nothing to pay today, then {price}/month. Cancel in one click."),
+        "QuotaCard", "Pay nothing today, then {price}/month. Cancel anytime."),
         price=price)
 
 
@@ -413,13 +414,13 @@ class QuotaCard(QWidget):
 
         del reset_text
         self.state = "free_low"
-        self._set(offer_text("low.title.one", self.tr("1 free task left this month")) if left == 1
-                  else offer_text("low.title.many", self.tr("{n} free tasks left this month"), n=left),
-                  offer_text("low.note.trial", self.tr("Want more? Pro is free for a week.")) if trial
-                  else offer_text("low.note.return", self.tr("Want more? Come back to Pro: {n} tasks a month."),
-                                  n=get_pro_runs_per_month()) if get_pro_offer() == "return"
-                  else offer_text("low.note.pro", self.tr("Want more? Pro has {n} tasks a month."),
-                                  n=get_pro_runs_per_month()),
+        self._set(offer_text("low.title.one", self.tr("1 task left this month")) if left == 1
+                  else offer_text("low.title.many", self.tr("{n} tasks left this month"), n=group_number(left)),
+                  offer_text("low.note.trial", self.tr("Try Pro free for a week to get more tasks.")) if trial
+                  else offer_text("low.note.return", self.tr("Come back to Pro for {n} tasks a month."),
+                                  n=group_number(get_pro_runs_per_month())) if get_pro_offer() == "return"
+                  else offer_text("low.note.pro", self.tr("Get Pro for {n} tasks a month."),
+                                  n=group_number(get_pro_runs_per_month())),
                   close=True)
         self._offer(trial, wall=False)
         self._moment("low")
@@ -437,19 +438,19 @@ class QuotaCard(QWidget):
             self.state = "paid_out"
             if limit and reset_text:
                 note = offer_text("spent.note.both", self.tr(
-                    "You used all {n} tasks this month. They come back on {date}."), n=limit, date=reset_text)
+                    "All {n} tasks used. They reset on {date}."), n=group_number(limit), date=reset_text)
             elif reset_text:
-                note = offer_text("spent.note.date", self.tr("They come back on {date}."), date=reset_text)
+                note = offer_text("spent.note.date", self.tr("Your tasks reset on {date}."), date=reset_text)
             else:
                 note = offer_text("spent.note.used", self.tr("You used all {n} tasks this month."),
-                                  n=limit) if limit else ""
-            self._set(offer_text("spent.title", self.tr("Your tasks for this month are used")), note)
+                                  n=group_number(limit)) if limit else ""
+            self._set(offer_text("spent.title", self.tr("You used all your tasks this month")), note)
             if start_now:
-                self._button_says(offer_text("spent.start", self.tr("Start my plan now")))
+                self._button_says(offer_text("spent.start", self.tr("Start Pro now")))
                 self._route_button(self.start_now_requested.emit)
             else:
                 self._button.hide()
-            self._links.setText(_link("write", offer_text("spent.write", self.tr("Need more this month? Write to us"))))
+            self._links.setText(_link("write", offer_text("spent.write", self.tr("Contact us for more tasks"))))
             self._links.show()
             self._moment("spent")
             return
@@ -460,10 +461,10 @@ class QuotaCard(QWidget):
                                              "Contact {email} and we will unlock it.").format(
                           email=get_support_email()))
         else:
-            self._set(offer_text("wall.title", self.tr("That was your last free task")),
-                      offer_text("wall.note.date", self.tr("Free tasks come back on {date}."), date=reset_text)
+            self._set(offer_text("wall.title", self.tr("You used your last task")),
+                      offer_text("wall.note.date", self.tr("Your tasks reset on {date}."), date=reset_text)
                       if reset_text
-                      else offer_text("wall.note.reset", self.tr("Free tasks come back at your monthly reset.")))
+                      else offer_text("wall.note.reset", self.tr("Your tasks reset next month.")))
         self._offer(trial, wall=True)
         self._moment("wall")
 
@@ -475,15 +476,15 @@ class QuotaCard(QWidget):
         self.state = "payment_failed"
         if declined:
             self._set(offer_text("declined.title", self.tr("Card declined")),
-                      offer_text("declined.note", self.tr("Your trial didn't start. Nothing was charged.")))
+                      offer_text("declined.note", self.tr("Your trial did not start. You were not charged.")))
             self._button_says(offer_text("declined.button", self.tr("Try another card")))
             self._route_button(self.pay_requested.emit)
             self._links.hide()
             self._moment("payment")
             return
-        self._set(offer_text("payment.title.amount", self.tr("Your payment of {amount} failed"), amount=amount)
+        self._set(offer_text("payment.title.amount", self.tr("Payment of {amount} failed"), amount=amount)
                   if amount else offer_text("payment.title", self.tr("Your Pro payment failed")),
-                  offer_text("payment.note", self.tr("Pro is off until it's paid.")))
+                  offer_text("payment.note", self.tr("Pro is paused until payment goes through.")))
         self._button_says(offer_text("payment.button.amount", self.tr("Pay {amount} now"),
                                      amount=amount.replace("&", "&&")) if amount
                           else offer_text("payment.button", self.tr("Pay now")))
@@ -497,17 +498,17 @@ class QuotaCard(QWidget):
 
         self.state = "checkout_return"
         self._trial = trial
-        self._set(offer_text("return.title", self.tr("Need it for work?")),
+        self._set(offer_text("return.title", self.tr("Need Pro for work?")),
                   offer_text("return.note.trial", self.tr(
-                      "No card to pay with? Write to us and we'll set up your 7 free days."))
+                      "No card? Contact us to start your free trial."))
                   if trial else offer_text("return.note", self.tr(
-                      "No card to pay with? Write to us and we'll send your company an invoice.")), close=True)
+                      "No card? Contact us to pay by invoice.")), close=True)
         self._address.setText(get_support_email())
         self._copy.setText(self._copy_label())
         self._email.show()
-        self._button_says(offer_text("return.button", self.tr("Write to us")))
+        self._button_says(offer_text("return.button", self.tr("Contact us")))
         self._route_button(self._write)
-        self._links.setText(_link("plans", offer_text("return.back", self.tr("Back to the Pro page"))))
+        self._links.setText(_link("plans", offer_text("return.back", self.tr("Back to Pro"))))
         self._links.show()
         self._moment("return")
 
@@ -515,10 +516,11 @@ class QuotaCard(QWidget):
 
 
         self.state = "pro_welcome"
-        lines = [offer_text("welcome.runs", self.tr("{n} tasks a month."), n=limit)] if limit > 0 else []
+        lines = ([offer_text("welcome.runs", self.tr("You now have {n} tasks a month."), n=group_number(limit))]
+                 if limit > 0 else [])
         if trial_until:
-            lines.append(offer_text("welcome.trial", self.tr("Free trial until {date}."), date=trial_until))
-        self._set(offer_text("welcome.title", self.tr("You're on Pro")), " ".join(lines))
+            lines.append(offer_text("welcome.trial", self.tr("Your free trial runs until {date}."), date=trial_until))
+        self._set(offer_text("welcome.title", self.tr("Welcome to Pro")), " ".join(lines))
         self._button_says(offer_text("welcome.ok", self.tr("OK")))
         self._route_button(self.welcome_closed.emit)
         self._links.hide()
@@ -550,15 +552,20 @@ class QuotaCard(QWidget):
         if trial:
             self._button_says(trial_cta(trial[0]), trial_short())
             self._button.setToolTip(trial_promise(*trial))
-            text = offer_text("wall.caption.trial", self.tr("Nothing to pay today"))
+            text = offer_text("wall.caption.trial", self.tr("Pay nothing today"))
         else:
             self._button_says(get_pro_label())
-            price = pro_price_per_month()
-            text = offer_text("wall.caption.price", self.tr("{price} · cancel anytime"),
-                              price=price) if price else ""
+
+            price = get_pro_price() if pro_price_per_month() else ""
+            if price and get_pro_price_excludes_tax():
+                text = offer_text("wall.caption.price.excl_vat",
+                                  self.tr("{price}/month excl. VAT. Cancel anytime."), price=price)
+            else:
+                text = offer_text("wall.caption.price", self.tr("{price}/month. Cancel anytime."),
+                                  price=price) if price else ""
             if not text and get_pro_offer() == "return":
-                text = offer_text("wall.caption.return", self.tr("{n} tasks a month, cancel anytime"),
-                                  n=get_pro_runs_per_month())
+                text = offer_text("wall.caption.return", self.tr("{n} tasks a month. Cancel anytime."),
+                                  n=group_number(get_pro_runs_per_month()))
         self._caption.setText(text)
         self._caption.setVisible(wall and bool(text))
         self._route_button(lambda: self.plans_requested.emit(where))

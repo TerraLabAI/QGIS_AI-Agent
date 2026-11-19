@@ -16,6 +16,7 @@ from qgis.PyQt.QtWidgets import QHBoxLayout, QLabel, QPushButton, QVBoxLayout, Q
 
 from ..core import telemetry, telemetry_events
 from ..core.protocol import StopCode
+from ..core.qt_compat import qt_deleted
 from ..core.settings import Settings
 from . import style as S
 from .account_card import AccountCard
@@ -23,6 +24,7 @@ from .cards_proposal import DiffTableCard, RecommendationCard
 from .cards_question import QuestionCard
 from .cards_run import _NEW_CHAT, _NO_RETRY, ErrorCard, InstallWaitCard, PermissionCard, QuotaPauseCard, run_ending
 from .confirm_dialog import BADGE_PX, ROW_SPACING, SIDE_PAD, ConfirmDialog
+from .folder_card import FolderCard
 from .font_scale import scale_px_length, scale_qss_font_px
 from .icons import pixmap_for
 from .loader import DotsLoader, ElapsedClock, ShimmerLabel, user_waiting
@@ -34,6 +36,25 @@ from .widgets import ElidedLabel, Spinner
 
 
 class _ChatPanelPrompts:
+
+    def ask_folder(self, folder: str) -> None:
+
+
+        self.close_folder_card()
+        card = FolderCard(folder)
+        card.decided.connect(self.folder_decided.emit)
+        self._folder_card = card
+        self._add(card)
+        QTimer.singleShot(0, self._show_pending_card)
+
+    def close_folder_card(self) -> None:
+
+        card, self._folder_card = getattr(self, "_folder_card", None), None
+        if not qt_deleted(card):
+            card.close_unanswered()
+
+    def set_folder_grants(self, grants) -> None:
+        self.composer._folder_chip.set_grants(grants)
 
     def ask_permission(self, tool_call_id: str, run_id: str, sentence: str, args, addresses=None,
                        grant: str = "", group: str = "", preview=None) -> None:

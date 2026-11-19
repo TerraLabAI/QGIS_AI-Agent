@@ -124,15 +124,14 @@ def _open_here(ref: Ref):
     from osgeo import gdal
     said: list[str] = []
     gdal.PushErrorHandler(lambda _cls, _no, msg: said.append(str(msg)))
-    gdal.SetThreadLocalConfigOption("CPL_DEBUG", "ON")
     try:
-        try:
-            dataset = gdal.OpenEx(ref.path, gdal.OF_VECTOR | gdal.OF_RASTER | gdal.OF_READONLY)
-        except RuntimeError as exc:
-            said.append(str(exc))
-            dataset = None
+        with vsi.thread_options(gdal, CPL_DEBUG="ON"):
+            try:
+                dataset = gdal.OpenEx(ref.path, gdal.OF_VECTOR | gdal.OF_RASTER | gdal.OF_READONLY)
+            except RuntimeError as exc:
+                said.append(str(exc))
+                dataset = None
     finally:
-        gdal.SetThreadLocalConfigOption("CPL_DEBUG", None)
         gdal.PopErrorHandler()
     return dataset, said
 
@@ -179,10 +178,10 @@ def _downloaded(ref: Ref, key: str, args: dict, ext: str) -> tuple[str, dict]:
 
     from osgeo import gdal
     allowed = ext or "{noext}"
-    gdal.SetThreadLocalConfigOption("CPL_VSIL_CURL_ALLOWED_EXTENSIONS", allowed)
+    options = vsi.thread_options(gdal, CPL_VSIL_CURL_ALLOWED_EXTENSIONS=allowed, CPL_DEBUG="ON")
+    options.__enter__()
     said: list[str] = []
     gdal.PushErrorHandler(lambda _cls, _no, msg: said.append(str(msg)))
-    gdal.SetThreadLocalConfigOption("CPL_DEBUG", "ON")
     folder = create_managed_temp_dir("cloud")
     local = os.path.join(folder, safe_file_name(os.path.basename(ref.key), "download" + ext))
     try:
@@ -204,9 +203,8 @@ def _downloaded(ref: Ref, key: str, args: dict, ext: str) -> tuple[str, dict]:
         copied = -1
     finally:
         accounts_cloud.take_back(ref, key)
-        gdal.SetThreadLocalConfigOption("CPL_DEBUG", None)
         gdal.PopErrorHandler()
-        gdal.SetThreadLocalConfigOption("CPL_VSIL_CURL_ALLOWED_EXTENSIONS", None)
+        options.__exit__(None, None, None)
     if is_cancelled():
         remove_tree(folder)
         return "", tool_error("Stopped.", "CANCELLED")

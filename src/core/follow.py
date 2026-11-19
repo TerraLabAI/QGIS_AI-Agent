@@ -1330,14 +1330,7 @@ class Follower:
 
     def _on(self) -> bool:
 
-
-        if not self.enabled or self._halted or self.view_taken:
-            return False
-        try:
-            from .settings import Settings
-            return bool(Settings().follow_edits)
-        except Exception:  # noqa: BLE001
-            return True
+        return self.enabled and not self._halted and not self.view_taken
 
     def _user_took_view(self) -> None:
         if self.view_taken:

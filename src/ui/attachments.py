@@ -206,6 +206,50 @@ def image_attachment(image: QImage, name: str, path: str = "") -> dict | None:
     return item
 
 
+def _write_png(image: QImage, target: str) -> None:
+
+    from ..core import host_platform
+
+    part = target + ".part"
+    if image.save(part, "PNG"):
+        host_platform.retry_file_op(os.replace, part, target)
+    else:
+        host_platform.remove_quietly(part)
+
+
+def pasted_image_attachment(image: QImage, name: str) -> dict | None:
+
+
+
+
+
+
+
+    item = image_attachment(image, name)
+    if item is None:
+        return None
+    import threading
+
+    from ..core import output_paths
+
+    try:
+        folder = os.path.join(output_paths.exports_folder(), "pasted")
+        os.makedirs(folder, exist_ok=True)
+    except OSError:
+        return item
+    target = os.path.join(folder, f"pasted-{uuid.uuid4().hex[:8]}.png")
+
+
+
+    image = image.convertToFormat(resolve_qt_enum(QImage, "Format", "Format_RGBA8888"))
+    image.setColorSpace(QColorSpace(resolve_qt_enum(QColorSpace, "NamedColorSpace", "SRgb")))
+    threading.Thread(target=_write_png, args=(image, target), daemon=True,
+                     name="terralab-pasted-png").start()
+    item["path"] = target
+    item["name"] = os.path.basename(target)
+    return item
+
+
 def file_attachment(path: str) -> dict:
     return {"id": uuid.uuid4().hex, "kind": "file",
             "name": os.path.basename(path) or path, "path": path}

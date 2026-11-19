@@ -36,7 +36,7 @@ from . import layout_child, layout_ready, render_look
 from ._layers import layer_not_found, resolve_layer
 from .harvest_canvas import _labels_in_view, _labels_placed
 from .render_look import _clamp_render_size
-from .render_wait import stop_requested, wait_or_stop
+from .render_wait import finish_on_main, stop_requested, wait_or_stop
 
 
 def _encode_jpeg(image, quality=70) -> bytes:
@@ -362,7 +362,7 @@ def _render_pass_async(settings, budget: float = _RENDER_PASS_SECONDS):
 
 
 
-            job.waitForFinished()
+            finish_on_main(job, _RENDER_PASS_SECONDS)
 
     inline = on_main_thread()
     run_on_main_thread(start, timeout=30)

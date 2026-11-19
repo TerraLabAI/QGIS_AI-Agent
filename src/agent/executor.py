@@ -140,6 +140,7 @@ class ToolExecutor(_ExecutorAccounts, _ExecutorInstallWait, _ExecutorRuns, _Exec
         self._journal: dict[str, list[dict]] = {}
         self._snapshots: dict[str, RunSnapshot] = {}
         self._written: dict[str, list[str]] = {}
+        self._own_save_done: dict = {}
 
         self._own_files: dict[str, set[str]] = {}
 
@@ -354,7 +355,7 @@ class ToolExecutor(_ExecutorAccounts, _ExecutorInstallWait, _ExecutorRuns, _Exec
 
 
 
-    def _own_unchanged_point(self, thread_id: str) -> frozenset:
+    def _undo_target(self, thread_id: str):
 
 
 
@@ -363,29 +364,52 @@ class ToolExecutor(_ExecutorAccounts, _ExecutorInstallWait, _ExecutorRuns, _Exec
 
 
 
-        current = self.history.current(thread_id) if thread_id else None
-        if current is None or current.kind != KIND_BEFORE or current.run_id not in getattr(self, "_threads", {}):
-            return frozenset()
-        entries = self.history.entries(thread_id)
-        index = next((i for i, e in enumerate(entries) if e.id == current.id), 0)
-        behind = entries[index - 1] if index > 0 else None
-        try:
 
 
-            if diff_changed(current.snapshot.diff()) or behind is None or behind.snapshot is None \
-                    or diff_changed(behind.snapshot.diff()):
-                return frozenset()
-            return frozenset({current.id})
-        except Exception as exc:  # noqa: BLE001
-            log(f"Own before point not compared: {exc}")
-            return frozenset()
+
+
+        history = self.history
+        current = history.current(thread_id)
+        own = current if current is not None and current.kind == KIND_BEFORE \
+            and current.run_id in getattr(self, "_threads", {}) else None
+        same = frozenset()
+        if own is not None:
+            entries = history.entries(thread_id)
+            index = next((i for i, e in enumerate(entries) if e.id == own.id), 0)
+            behind = entries[index - 1] if index > 0 else None
+            try:
+                if diff_changed(own.snapshot.diff()):
+                    return (own, True) if own.available else (None, False)
+                if behind is not None and behind.snapshot is not None and not diff_changed(behind.snapshot.diff()):
+                    same = frozenset({own.id})
+            except Exception as exc:  # noqa: BLE001
+                log(f"qgis_undo refused: the run's own before point could not be compared: {exc}")
+                return None, False
+        entry = history.previous(thread_id, same)
+        if entry is not None and history.gap_between(thread_id, entry):
+            log(f"qgis_undo refused: the points between before request {entry.run_index} and the "
+                "project's state were not kept")
+            return None, False
+        return entry, False
+
+    def _own_writes(self, run_id: str) -> set:
+
+        _fold = restore_guard._fold
+        out = set()
+        for item in self._journal.get(run_id) or []:
+            for layer in item.get("layers") or []:
+                if layer.get("path") and layer.get("file_changed"):
+                    out.add(_fold(layer["path"]))
+            out.update(_fold(f["path"]) for f in item.get("files") or [] if f.get("path"))
+        return out
 
     def restore_previous(self, thread_id: str) -> dict:
 
         history = self.history
-        entry = history.previous(thread_id, self._own_unchanged_point(thread_id)) if thread_id else None
+        entry, own = self._undo_target(thread_id) if thread_id else (None, False)
         if entry is None:
-            return tool_error("This chat has no earlier state to go back to.", hint="undo_no_earlier_state")
+            return tool_error("This chat has no earlier state to go back to, or the one before the last "
+                              "request was not kept. Nothing was restored.", hint="undo_no_earlier_state")
         if not history.belongs_here(entry):
             return tool_error("The earlier state belongs to another project.", hint="undo_other_project")
 
@@ -399,6 +423,16 @@ class ToolExecutor(_ExecutorAccounts, _ExecutorInstallWait, _ExecutorRuns, _Exec
             return tool_error("Whether a file changed by hand since the AI agent's last step could not be "
                               "read, so nothing was restored. The chat's Undo button asks the user first.",
                               hint="undo_hand_changed")
+        if own:
+
+
+            mine = self._own_writes(entry.run_id)
+            exempt = set()
+            for group in entry.snapshot.data_groups():
+                members = {restore_guard._fold(original) for original, _copy in group}
+                if members & mine:
+                    exempt |= members
+            changed = [path for path in changed if restore_guard._fold(path) not in exempt]
         if changed:
             names = ", ".join(os.path.basename(path) for path in changed[:5])
             return tool_error(f"{names} changed since the AI agent's last step, possibly by the user's hand; "
@@ -439,8 +473,13 @@ class ToolExecutor(_ExecutorAccounts, _ExecutorInstallWait, _ExecutorRuns, _Exec
                 track_restore_failure(result, "typed")
             return tool_error(str(result.get("message") or "The earlier state could not be fully restored."),
                               hint="" if result.get("refused") else "undo_partly_restored")
-        return {"undone": True, "restored_to": f"before request {entry.run_index}",
+        if own:
+            note = ("The edit was already saved, so the whole project went back to before this request's "
+                    "changes. Nothing holds those changes now: no Redo brings them back.")
+        else:
+            note = ("The edit was already saved, so the whole project went back to before that request, "
+                    "as the chat's Undo arrow does; Redo brings it back.")
+        return {"undone": True, "restored_to": f"before request {entry.run_index}", "this_request": own,
                 "request": str(entry.prompt or "")[:200],
                 "files_put_back": list(result.get("files_put_back") or result.get("files_restored") or [])[:20],
-                "note": ("The edit was already saved, so the whole project went back to before that request, "
-                         "as the chat's Undo arrow does; Redo brings it back.")}
+                "note": note}

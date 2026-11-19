@@ -34,6 +34,7 @@ from typing import Any, Callable
 
 from qgis.PyQt.QtCore import QCoreApplication, QObject, pyqtSignal, pyqtSlot
 
+from . import crash_note
 from .logger import log_warning
 from .net_state import current_cancel_check, is_cancelled, set_cancel_check
 from .qt_compat import task_flags
@@ -563,14 +564,22 @@ def current_call() -> str:
 
 
 @contextlib.contextmanager
-def calling(tool_call_id: str):
+def calling(tool_call_id: str, hands_back: bool = False):
 
-    previous = current_call()
+
+
+    previous = current_call(), hands_back_call()
     _CALL.tool_call_id = str(tool_call_id or "")
+    _CALL.hands_back = bool(hands_back)
     try:
         yield
     finally:
-        _CALL.tool_call_id = previous
+        _CALL.tool_call_id, _CALL.hands_back = previous
+
+
+def hands_back_call() -> bool:
+
+    return getattr(_CALL, "hands_back", False)
 
 
 
@@ -673,7 +682,7 @@ def run_on_main_thread(fn, *args, timeout=10):
         try:
             if wait.given_up or (cancel_check is not None and cancel_check()):
                 raise InterruptedError("Main-thread work cancelled before it started")
-            with calling(caller):
+            with calling(caller), crash_note.main_step(caller):
                 result_queue.put(("ok", fn(*args)))
         except Exception as exc:  # noqa: BLE001
             result_queue.put(("err", _without_locals(exc)))

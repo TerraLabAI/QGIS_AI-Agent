@@ -11,6 +11,7 @@ import math
 import re
 import threading
 import time
+from array import array
 
 from qgis.core import (
     QgsExpression,
@@ -347,7 +348,9 @@ def _features_plan(args: dict, for_worker: bool = False) -> dict:
             "geometry_columns": any(column.needsGeometry() for column in expressions), "eval_errors": {},
             "limit": limit, "offset": offset, "include_geometry": include_geometry,
             "native_offset": native_offset, "request": request, "expression": expression, "expr": expr,
-            "all_fields": [f.name() for f in layer.fields()], "geometry_crs": crs_ref(layer.crs()),
+            "all_fields": [f.name() for f in layer.fields()],
+            "indices": {name: layer.fields().indexOf(name) for name, parsed in columns if parsed is None},
+            "geometry_crs": crs_ref(layer.crs()),
             "filter_facts": filter_facts(layer)}
     if order_by:
         plan["ordered_by"] = {"expression": order_by, "descending": bool(args.get("descending"))}
@@ -413,6 +416,7 @@ def _page_rows(features, plan: dict, halted=None) -> tuple:
         if not plan["native_offset"] and i < plan["offset"]:
             continue
         row = {"_fid": feat.id()}
+        attributes = feat.attributes()
         context = plan["column_context"]
         if context is not None:
             context.setFeature(feat)
@@ -421,7 +425,11 @@ def _page_rows(features, plan: dict, halted=None) -> tuple:
 
 
 
-                row[name] = json.loads(QgsJsonUtils.encodeValue(feat[name]))
+
+
+                index = plan["indices"][name]
+                value = attributes[index] if 0 <= index < len(attributes) else None
+                row[name] = json.loads(QgsJsonUtils.encodeValue(value))
                 continue
             row[name] = _jsonable_value(expr.evaluate(context))
             if expr.hasEvalError():
@@ -961,7 +969,7 @@ def _stats_open(layer_name: str, field: str, args: dict = None) -> dict:
     for prepared in (expr, keep, group_expr):
         if prepared is not None:
             prepared.prepare(context)
-    state = {"layer_name": layer.name(), "field": field, "index": index, "numbers": [], "others": [],
+    state = {"layer_name": layer.name(), "field": field, "index": index, "numbers": array("d"), "texts": None,
              "total": 0, "missing": 0, "numeric_only": True, "filter_facts": filter_facts(layer),
              "expr": expr, "keep": keep, "context": context, "group_index": group_index, "group_by": group_by,
              "group_expr": group_expr, "groups": {} if group_by else None, "extra": extra}
@@ -979,7 +987,8 @@ def _stats_read(state: dict) -> bool:
 
 
 
-    numbers, others, index = state["numbers"], state["others"], state["index"]
+
+    numbers, index = state["numbers"], state["index"]
     expr, context, groups, group_index = state["expr"], state["context"], state["groups"], state["group_index"]
     keep, group_expr = state["keep"], state["group_expr"]
     for read, feature in enumerate(state["features"], start=1):
@@ -1002,8 +1011,11 @@ def _stats_read(state: dict) -> bool:
             number = float(value)
             numbers.append(number)
         else:
-            state["numeric_only"] = False
-            others.append(value)
+            texts = state["texts"]
+            if texts is None:
+                texts = state["texts"] = _text_summary(numbers)
+                state["numeric_only"] = False
+            texts.addString(_stat_text(value))
         if groups is not None:
             key = _jsonable_value(feature[group_index] if group_expr is None else group_expr.evaluate(context))
             if not isinstance(key, (str, int, float, bool, type(None))):
@@ -1065,7 +1077,7 @@ def _stats_summary(state: dict) -> dict:
     from qgis.core import QgsStatisticalSummary, QgsStringStatisticalSummary
 
     name, field = state["layer_name"], state["field"]
-    numbers, others, missing = state["numbers"], state["others"], state["missing"]
+    numbers, texts, missing = state["numbers"], state["texts"], state["missing"]
     stats: dict = {"count": state["total"]}
     if state["numeric_only"] and numbers:
         summary = QgsStatisticalSummary()
@@ -1078,15 +1090,19 @@ def _stats_summary(state: dict) -> dict:
                            ("stdev", summary.stDev()), ("q1", summary.firstQuartile()),
                            ("q3", summary.thirdQuartile()), ("iqr", summary.interQuartileRange())):
             stats[key] = _jsonable_value(value)
-        return _statistics_result(name, field, stats, _fragment_split(numbers))
 
-    values = [_stat_text(value) for value in others + numbers]
-    if values or missing:
-        summary = QgsStringStatisticalSummary()
-        summary.calculate(values + [None] * missing)
+
+        split = _fragment_split(numbers) if len(numbers) <= limits.current("MAX_FEATURES_MATERIALISED") else {}
+        return _statistics_result(name, field, stats, split)
+
+    if texts is not None or missing:
+        summary = texts if texts is not None else QgsStringStatisticalSummary()
+        for _ in range(missing):
+            summary.addString(None)
+        summary.finalize()
         stats["count_distinct"] = summary.countDistinct()
         stats["count_missing"] = summary.countMissing()
-        if values:
+        if texts is not None:
             stats["min"] = _jsonable_value(summary.min())
             stats["max"] = _jsonable_value(summary.max())
     else:
@@ -1158,6 +1174,17 @@ def _fragment_note(split: dict, field: str) -> str:
             f"of {field!r} (none above {split['smallest_largest_value']:.4g}), and the other "
             f"{split['rest']} carry "
             f"{split['rest_share_of_sum_pct']}%.")
+
+
+def _text_summary(numbers):
+
+    from qgis.core import QgsStringStatisticalSummary
+
+    summary = QgsStringStatisticalSummary()
+    for number in numbers:
+        summary.addString(_stat_text(number))
+    del numbers[:]
+    return summary
 
 
 def _stat_text(value) -> str:

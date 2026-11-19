@@ -238,6 +238,8 @@ class AIAgentPlugin:
 
             QgsProject.instance().writeProject.connect(self._on_project_write_zone)
             QgsProject.instance().readProject.connect(self._on_project_read_zone)
+            QgsProject.instance().readProject.connect(self._on_project_read_recovery)
+            QgsProject.instance().cleared.connect(self._on_project_cleared_recovery)
             self._on_project_read_zone()
         except Exception as exc:  # noqa: BLE001
             log_warning(f"Shared zone hooks not installed: {exc}")
@@ -331,6 +333,7 @@ class AIAgentPlugin:
             drop_legacy_cache_dir()
         except Exception as exc:  # noqa: BLE001
             log_warning(f"Old cache folder not cleared: {exc}")
+        self._on_project_read_recovery()
 
     def _open_once_started(self) -> None:
 
@@ -714,6 +717,12 @@ class AIAgentPlugin:
         snapshot_watch.shutdown()
 
     @staticmethod
+    def _stop_crash_recovery() -> None:
+        from .core import crash_recovery
+
+        crash_recovery.shutdown()
+
+    @staticmethod
     def _stop_code_runtime() -> None:
         from .tools import code_runtime
 
@@ -896,6 +905,7 @@ class AIAgentPlugin:
         ("background algorithms", "_stop_processing_tasks"),
         ("report bridge", "_stop_report_bridge"),
         ("code runtime", "_stop_code_runtime"),
+        ("crash recovery copy", "_stop_crash_recovery"),
     )
 
     def unload(self):
@@ -925,6 +935,9 @@ class AIAgentPlugin:
             self._on_approval_waiting(False)
         with contextlib.suppress(Exception):
             self._drop_bar_item("_finished_bar_item")
+        with contextlib.suppress(Exception):
+            from .core import notify_sound
+            notify_sound.release()
         for _what, name in self._UNLOAD_STOPS:
             try:
                 getattr(self, name)()
@@ -1062,6 +1075,24 @@ class AIAgentPlugin:
         except Exception as exc:  # noqa: BLE001
             log_warning(f"Shared zone not restored: {exc}")
 
+    def _on_project_read_recovery(self, *_args) -> None:
+
+        if self._unloading:
+            return
+        try:
+            from .core import crash_recovery
+
+            crash_recovery.offer(self.iface)
+        except Exception as exc:  # noqa: BLE001
+            log_warning(f"Recovery not offered: {exc}")
+
+    @staticmethod
+    def _on_project_cleared_recovery(*_args) -> None:
+        with contextlib.suppress(Exception):
+            from .core import crash_recovery
+
+            crash_recovery.project_cleared()
+
     @staticmethod
     def _on_project_write_zone(*_args) -> None:
 
@@ -1077,7 +1108,9 @@ class AIAgentPlugin:
 
         project = QgsProject.instance()
         for signal, slot in ((project.writeProject, self._on_project_write_zone),
-                             (project.readProject, self._on_project_read_zone)):
+                             (project.readProject, self._on_project_read_zone),
+                             (project.readProject, self._on_project_read_recovery),
+                             (project.cleared, self._on_project_cleared_recovery)):
             with contextlib.suppress(TypeError, RuntimeError):
                 signal.disconnect(slot)
 
@@ -1275,6 +1308,7 @@ class AIAgentPlugin:
             self.controller = AgentController(self.iface, dock.panel, self.registry, self._settings)
             self.controller.layer_action_requested.connect(self._on_layer_action)
             self.controller.settings_requested.connect(self.open_settings)
+            self.controller.settings_page_requested.connect(self.open_settings)
             self.controller.notice.connect(self._on_notice)
             self.controller.approval_waiting.connect(self._on_approval_waiting)
             self.controller.run_finished.connect(self._on_run_finished)
@@ -1382,13 +1416,18 @@ class AIAgentPlugin:
         try:
             main_window = self.iface.mainWindow()
             dock_seen = bool(dock is not None and dock.isVisible() and not dock.visibleRegion().isEmpty())
-            window_active = bool(main_window is not None and main_window.isActiveWindow()
+
+
+            window_active = bool(main_window is not None and QApplication.activeWindow() is not None
                                  and not main_window.isMinimized())
         except RuntimeError:
             return None
         return main_window, window_active, dock_seen
 
-    def _call_user(self, attr: str, message: str, level) -> None:
+    def _call_user(self, attr: str, message: str, level, sound: str, kind: str, run_id: str = "") -> None:
+
+
+
 
 
 
@@ -1396,9 +1435,22 @@ class AIAgentPlugin:
         if seen is None:
             return
         main_window, window_active, dock_seen = seen
-        if not window_active and main_window is not None:
+        settings = self._settings or Settings()
+        mode = settings.notify_mode
+        if mode != "off" and not window_active and main_window is not None:
             with contextlib.suppress(RuntimeError, AttributeError):
                 QApplication.alert(main_window, 0)
+        player = "none"
+        if mode == "sound" and not window_active:
+            from .core import notify_sound
+
+            player = notify_sound.play(sound)
+        channel = "sound" if player != "none" else "icon" if mode != "off" and not window_active else "none"
+        props = {"kind": kind, "channel": channel, "mode": mode, "window_active": bool(window_active),
+                 "panel_seen": bool(dock_seen), "player": player}
+        if run_id:
+            props["run_id"] = run_id
+        telemetry.track(ev.AGENT_NOTIFICATION_FIRED, props)
         if dock_seen or getattr(self, attr, None) is not None:
             return
         try:
@@ -1434,10 +1486,12 @@ class AIAgentPlugin:
             self._drop_bar_item("_approval_bar_item")
             return
         self._drop_bar_item("_finished_bar_item")
+        run = getattr(getattr(self.controller, "_runs", None), "current", None) or {}
         self._call_user("_approval_bar_item", tr("The AI agent is waiting for your answer."),
-                        Qgis.MessageLevel.Warning)
+                        Qgis.MessageLevel.Warning, (self._settings or Settings()).notify_sound_waiting,
+                        "waiting", str(run.get("run_id") or ""))
 
-    def _on_run_finished(self, status: str) -> None:
+    def _on_run_finished(self, status: str, run_id: str = "") -> None:
 
 
 
@@ -1451,7 +1505,8 @@ class AIAgentPlugin:
             message, level = tr("The AI agent finished."), Qgis.MessageLevel.Success
         else:
             message, level = tr("The AI agent stopped before finishing."), Qgis.MessageLevel.Warning
-        self._call_user("_finished_bar_item", message, level)
+        self._call_user("_finished_bar_item", message, level, (self._settings or Settings()).notify_sound_finished,
+                        "finished", run_id)
 
     def _push(self, message: str, kind: str = "info"):
         level = Qgis.MessageLevel.Warning if kind == "warning" else Qgis.MessageLevel.Info
@@ -1542,7 +1597,7 @@ class AIAgentPlugin:
 
             log_warning(f"Theme change watch not installed: {exc}")
 
-    def open_settings(self):
+    def open_settings(self, page: str = ""):
 
 
 
@@ -1555,7 +1610,7 @@ class AIAgentPlugin:
         try:
             from . import plugin_settings
 
-            plugin_settings.open_settings_dialog(self)
+            plugin_settings.open_settings_dialog(self, page)
         except ImportError as exc:
             log_warning(f"Settings dialog import failed: {exc}")
             self._push(tr("AI Agent was updated while QGIS was running. Restart QGIS to open its "

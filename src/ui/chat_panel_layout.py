@@ -25,14 +25,13 @@ from ..core.served_state import (
     get_dashboard_url,
     get_free_runs,
     get_support_email,
-    get_tutorial_url,
     set_pro_offer,
 )
 from ..core.telemetry_errors import slot_guard
 from . import card_base
 from .bubbles import UserBubble
 from .chat_panel_shared import CompactionDivider, _turn_divider
-from .dock.about import show_contact_dialog, show_shortcuts_dialog
+from .dock.about import show_contact_dialog
 from .external_links import open_external_url
 from .feedback_dialog import show_feedback
 from .privacy_notice_dialog import PrivacyNoticeDialog
@@ -104,10 +103,10 @@ class _ChatPanelLayout:
         c.stop_clicked.connect(self._on_stop)
         c.files_dropped.connect(lambda paths: self.files_dropped.emit(list(paths)))
         c.attachments_changed.connect(self._on_attachments_changed)
-        c.context_add_requested.connect(self.context_add_requested.emit)
         c.chip_removed.connect(self.chip_removed.emit)
         c.layer_card_clicked.connect(lambda layer_id: self.layer_action_requested.emit(layer_id, "show"))
         c.permission_mode_changed.connect(lambda approval: self.mode_changed.emit("", approval))
+        c.folder_removed.connect(self.folder_removed.emit)
         c.effort_changed.connect(self.effort_changed.emit)
         c.upgrade_requested.connect(self._on_upgrade)
         c.upsell_shown.connect(self._note_upsell)
@@ -160,10 +159,20 @@ class _ChatPanelLayout:
             return
 
         self._run_selection = (self._last_run, selection_key(selection))
+        self._empty_composer()
+
+    def _empty_composer(self) -> None:
         self.composer.take_chips()
         self.composer.selection_sent()
         self.composer.clear()
         self.composer.clear_attachments()
+
+    def composer_sent(self, text: str) -> None:
+
+
+        if self.composer.text().strip() == str(text or "").strip():
+            self._run_selection = (self._last_run, selection_key(self.composer.selection_snapshot()))
+            self._empty_composer()
 
     def _require_privacy_notice(self, on_accept) -> bool:
 
@@ -299,15 +308,14 @@ class _ChatPanelLayout:
     def open_help(self, kind: str) -> None:
 
 
+
         self._on_help(kind)
 
     @slot_guard("panel_help")
     def _on_help(self, kind: str) -> None:
         self.help_requested.emit(kind)
         if kind == "tutorial":
-            open_external_url(get_tutorial_url(), parent=self)
-        elif kind == "shortcuts":
-            show_shortcuts_dialog(self)
+            self.open_settings_page_requested.emit("learn")
         elif kind == "contact":
             show_contact_dialog(self, get_support_email(), get_contact_call_url())
         elif kind == "report":
@@ -432,6 +440,16 @@ class _ChatPanelLayout:
         return not self.isVisible()
 
     def _apply_quota(self) -> None:
+        self._draw_quota()
+
+
+        self._composer_host.setVisible(self._composer_shown())
+
+    def _composer_shown(self) -> bool:
+        return (self._signed_in and not self.update_gate.isVisibleTo(self)
+                and not self.composer.is_blocked())
+
+    def _draw_quota(self) -> None:
 
 
 
@@ -771,12 +789,10 @@ class _ChatPanelLayout:
 
 
 
-        try:
-            days = int(days) if days is not None and not isinstance(days, bool) else None
-        except (TypeError, ValueError, OverflowError):
-            days = None
-        offer = (days, str(ends_on)[:10] if isinstance(ends_on, str) and ends_on else None) \
-            if days and 0 < days <= 31 else None
+        from ..core.plan_moment import trial_days
+
+        days = trial_days(days)
+        offer = (days, str(ends_on)[:10] if isinstance(ends_on, str) and ends_on else None) if days else None
         if offer == self.trial_offer():
             return
         self._trial_days = offer

@@ -185,11 +185,12 @@ HIT_PX = 24
 
 
 
-
-MOTION_HOVER_MS = 120
-MOTION_FOLD_MS = 300
-MOTION_FADE_MS = 150
-MOTION_POP_MS = 160
+MOTION_HOVER_MS = tokens.MOTION_HOVER_MS
+MOTION_FOLD_MS = tokens.MOTION_FOLD_MS
+MOTION_FADE_MS = tokens.MOTION_FADE_MS
+MOTION_POP_MS = tokens.MOTION_POP_MS
+MOTION_EXIT_MS = tokens.MOTION_EXIT_MS
+MOTION_MOVE_MS = tokens.MOTION_MOVE_MS
 
 MIN_PANEL_WIDTH = 320
 
@@ -397,8 +398,8 @@ BTN_PRIMARY_WIDE_PX = 36
 
 
 def _focus_ring(colour: str, padding: str) -> str:
-    return (f'QPushButton[ring="true"]:focus {{ border: 2px solid {colour}; padding: {padding};'
-            " outline: none; }")
+    return (f'QPushButton[ring="true"]:focus, QToolButton[ring="true"]:focus'
+            f' {{ border: 2px solid {colour}; padding: {padding}; outline: none; }}')
 
 
 def keyboard_ring(button) -> None:
@@ -422,13 +423,15 @@ _BTN_PRIMARY = (
 
 OFFER_FILL = BTN_GREEN_HOVER
 OFFER_FILL_HOVER = "#1b5e20"
+
+OFFER_FILL_PRESSED = "#0f3d13"
 ON_OFFER = "#ffffff"
 _BTN_PRIMARY_WIDE = (
     f"QPushButton {{ background: {OFFER_FILL}; color: {ON_OFFER};"
     f" border: none; border-radius: {RADIUS_CONTROL}px;"
     f" padding: 0 18px; font-size: {FONT_BASE}px; font-weight: {WEIGHT_MEDIUM}; }}"
     f"QPushButton:hover {{ background: {OFFER_FILL_HOVER}; }}"
-    f"QPushButton:pressed {{ background: {OFFER_FILL_HOVER}; }}"
+    f"QPushButton:pressed {{ background: {OFFER_FILL_PRESSED}; }}"
     f"QPushButton:disabled {{ background: {ACCENT_BORDER}; color: {ON_ACCENT}; }}"
     + _focus_ring(INK, "0 16px")
 )
@@ -471,7 +474,7 @@ _BTN_OFFER_PILL = (
     f" border-radius: {OFFER_PILL_PX // 2}px; padding: 0 16px;"
     f" font-size: {FONT_BASE}px; font-weight: 600; }}"
     f"QPushButton:hover {{ background: {OFFER_FILL_HOVER}; }}"
-    f"QPushButton:pressed {{ background: {OFFER_FILL_HOVER}; }}"
+    f"QPushButton:pressed {{ background: {OFFER_FILL_PRESSED}; }}"
     + _focus_ring(INK, "0 14px")
 )
 
@@ -485,7 +488,7 @@ _BTN_PRO_PILL = (
     f" color: {ON_OFFER}; border: none;"
     f" padding: 0 12px; font-size: {FONT_BODY}px; font-weight: 600; }}"
     f"QPushButton#hdrProPill:hover {{ background: {OFFER_FILL_HOVER}; }}"
-    f"QPushButton#hdrProPill:pressed {{ background: {OFFER_FILL_HOVER}; }}"
+    f"QPushButton#hdrProPill:pressed {{ background: {OFFER_FILL_PRESSED}; }}"
     f"QPushButton#hdrProPill:focus {{ border: 2px solid {INK}; padding: 0 10px; }}"
     f'QPushButton#hdrProPill[compact="true"] {{ padding: 0 8px; font-size: {FONT_HINT}px; }}'
     f'QPushButton#hdrProPill[compact="true"]:focus {{ padding: 0 6px; }}'
@@ -780,6 +783,8 @@ def _shadow_level(level: str) -> tuple:
         "card": (6, 2, 0.20 if DARK else 0.06),
         "raised": (10, 2, 0.22 if DARK else 0.08),
         "overlay": (28, 8, 0.34 if DARK else 0.10),
+
+        "lift": (24, 3, 0.40 if DARK else 0.10),
     }.get(level, (28, 8, 0.34 if DARK else 0.10))
 
 
@@ -859,6 +864,54 @@ def paint_shadow(host, rect, radius: float, level: str = "overlay") -> None:
         painter.end()
 
 
+
+def lay_shadow(card, level: str = "lift", radius: float = RADIUS_CARD):
+
+
+
+
+
+
+
+
+    from qgis.PyQt.QtCore import QEvent, QObject, QRect, Qt
+    from qgis.PyQt.QtWidgets import QWidget
+
+    host = card.parentWidget()
+    if host is None:
+        return None
+    blur, offset, _alpha = _shadow_level(level)
+
+    class _Plate(QWidget):
+        def paintEvent(self, _event):  # noqa: N802
+            if card.isVisible():
+                paint_shadow(self, QRect(blur, blur, card.width(), card.height()), radius, level)
+
+    class _Follow(QObject):
+        def eventFilter(self, _watched, event):  # noqa: N802
+            if event.type() in (QEvent.Type.Move, QEvent.Type.Resize, QEvent.Type.Show,
+                                QEvent.Type.Hide, QEvent.Type.ZOrderChange):
+                _sync()
+            return False
+
+    plate = _Plate(host)
+    plate.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, True)
+    plate.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+    follow = _Follow(plate)
+
+    def _sync() -> None:
+        try:
+            plate.setGeometry(card.geometry().adjusted(-blur, -blur, blur, blur + offset))
+            plate.setVisible(card.isVisibleTo(host))
+            plate.stackUnder(card)
+        except RuntimeError:
+            pass
+
+    card.installEventFilter(follow)
+    card.destroyed.connect(plate.deleteLater)
+    _sync()
+    return plate
+
 __all__ = [
     "ACCENT",
     "ACCENT_BORDER",
@@ -902,7 +955,9 @@ __all__ = [
     "MONO_FAMILY",
     "MOTION_FADE_MS",
     "MOTION_FOLD_MS",
+    "MOTION_EXIT_MS",
     "MOTION_HOVER_MS",
+    "MOTION_MOVE_MS",
     "MOTION_POP_MS",
     "MUTED",
     "ON_ACCENT",
@@ -957,6 +1012,7 @@ __all__ = [
     "is_dark",
     "keyboard_ring",
     "medium_font_weight",
+    "lay_shadow",
     "paint_shadow",
     "panel_qss",
     "qcolor",

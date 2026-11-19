@@ -26,7 +26,7 @@ try:
 except ImportError:
     _fromstring = ET.fromstring  # nosec B314
 
-from qgis.PyQt.QtCore import QCoreApplication
+from qgis.PyQt.QtCore import QCoreApplication, QLocale
 
 LAYER_TREE_MIME = "application/qgis.layertreemodeldata"
 LAYER_URI_MIME = "application/x-vnd.qgis.qgis.uri"
@@ -184,7 +184,7 @@ def card_kind_line(geometry: str, count: int | None = None) -> str:
         return kind
     if count == 1:
         return tr("{kind}, 1 feature").format(kind=kind)
-    return tr("{kind}, {count} features").format(kind=kind, count=f"{count:,}".replace(",", " "))
+    return tr("{kind}, {count} features").format(kind=kind, count=QLocale(QLocale().name()).toString(int(count)))
 
 
 class ChipRow:

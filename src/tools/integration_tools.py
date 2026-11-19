@@ -16,7 +16,7 @@ from ..core import net, siblings, zone_of_interest
 from ..core.background import run_on_main_thread
 from ..core.logger import log, log_warning
 from ..core.tool_registry import Tool, ToolRegistry, coded_fact, tool_error
-from . import aiseg_review, cost_guard, zone_facts
+from . import aiseg_review, aiseg_vectorize, cost_guard, zone_facts
 from . import sibling_setup as _setup
 from .adapters.ai_edit_access import ACCESS as AIEDIT
 from .aiseg_review import AISEG_REVIEW_API
@@ -58,13 +58,16 @@ def aiseg_version(plugin) -> str:
         return ""
 
 
-def _aiseg_outdated(plugin, command: str) -> dict:
+def _aiseg_outdated(plugin, command: str, needs_version: str | None = "1.3.0") -> dict:
+
 
 
     version = aiseg_version(plugin)
+    needs = f"AI Segmentation {needs_version} or later" if needs_version else "a newer AI Segmentation"
+    facts = {"needs_version": needs_version} if needs_version else {}
     return tool_error(f"AI Segmentation {version or '(this version)'} has no {command}: the agent needs "
-                      f"AI Segmentation 1.3.0 or later.", "PLUGIN_OUTDATED", hint="aiseg_outdated",
-                      installed_version=version, command=command, needs_version="1.3.0")
+                      f"{needs}.", "PLUGIN_OUTDATED", hint="aiseg_outdated",
+                      installed_version=version, command=command, **facts)
 
 
 def _no_mcp_api() -> dict:
@@ -598,6 +601,46 @@ def _aiseg_set_zone(args: dict) -> dict:
         return tool_error(f"AI Segmentation set_auto_zone failed: {str(e)}")
 
 
+def _aiseg_vectorize_request(plugin, api, args: dict) -> dict:
+
+    args = segmentation_arguments(plugin, args)
+    zone_wkt = _aiseg_zone_wkt(plugin, args)
+    holds_zone = not zone_wkt and bool((interactive_state(api) or {}).get("zone_wkt"))
+    return aiseg_vectorize.request_from_args(args, zone_wkt, holds_zone)
+
+
+def _aiseg_quote(args: dict) -> dict:
+
+    try:
+        _, plugin = siblings.find(siblings.AI_SEGMENTATION)
+        if not plugin:
+            return _aiseg_absent()
+        api = aiseg_vectorize.v7_api(plugin)
+        if api is None:
+            return _aiseg_outdated(plugin, "vectorize_quote", needs_version=None)
+        return api.vectorize_quote(_aiseg_vectorize_request(plugin, api, args))
+    except ValueError as exc:
+        return tool_error(str(exc), "INVALID_ARGS")
+    except Exception as e:
+        log_warning(f"AI Segmentation vectorize_quote failed: {e}")
+        return tool_error(f"AI Segmentation vectorize_quote failed: {str(e)}")
+
+
+def _aiseg_capabilities(args: dict) -> dict:
+
+    try:
+        _, plugin = siblings.find(siblings.AI_SEGMENTATION)
+        if not plugin:
+            return _aiseg_absent()
+        api = aiseg_vectorize.v7_api(plugin)
+        if api is None:
+            return _aiseg_outdated(plugin, "vectorize_capabilities", needs_version=None)
+        return api.vectorize_capabilities()
+    except Exception as e:
+        log_warning(f"AI Segmentation vectorize_capabilities failed: {e}")
+        return tool_error(f"AI Segmentation vectorize_capabilities failed: {str(e)}")
+
+
 def _show_zone_layer(plugin, args: dict, zone_wkt: str | None, result: dict) -> None:
 
 
@@ -793,10 +836,18 @@ def _aiseg_imagery_refusal(args: dict) -> dict | None:
         raster_layer(wanted)
         return None
     except ValueError as exc:
+
+
+        from qgis.core import QgsProject, QgsRasterLayer
+
+        rasters = [{"id": layer.id(), "name": layer.name()}
+                   for layer in QgsProject.instance().mapLayers().values()
+                   if isinstance(layer, QgsRasterLayer) and layer.isValid()]
         return {
             "error": str(exc),
             "code": "INVALID_ARGS",
-            **coded_fact(hint="aiseg_layer_name_is_source", layer_name=wanted),
+            **coded_fact(hint="aiseg_layer_name_is_source", layer_name=wanted, rasters=rasters[:12],
+                         rasters_total=len(rasters)),
         }
 
 
@@ -904,6 +955,9 @@ def aiseg_argument_refusal(args: dict) -> dict | None:
     refusal = _aiseg_imagery_refusal(args)
     if refusal is not None:
         return refusal
+    refusal = _aiseg_output_refusal(plugin, args)
+    if refusal is not None:
+        return refusal
     object_class = str(args.get("object_class") or "").strip()
     exemplars = args.get("exemplars")
     if not object_class and not exemplars:
@@ -938,6 +992,23 @@ def aiseg_argument_refusal(args: dict) -> dict | None:
             **coded_fact(hint="aiseg_zone_needs_newer_build", area_km2=round(area, 1)),
         }
     return _aiseg_zone_outside_refusal(plugin, args)
+
+
+def _aiseg_output_refusal(plugin, args: dict) -> dict | None:
+
+
+    if (args.get("capability") or "objects") != "objects":
+        return {"error": "detect_auto finds objects; capability 'lines' is not a detect_auto run.",
+                "code": "INVALID_ARGS"}
+    geometry = args.get("output_geometry") or "polygon"
+    if geometry == "polygon":
+        return None
+    api = aiseg_vectorize.v7_api(plugin)
+    offered = aiseg_vectorize.output_geometries(api) if api is not None else ["polygon"]
+    if geometry not in offered:
+        return {"error": f"The installed AI Segmentation cannot save a run as {geometry}s; it offers "
+                         f"{', '.join(offered)}.", "code": "INVALID_ARGS"}
+    return None
 
 
 def _aiseg_detect_auto(args: dict) -> dict:
@@ -1015,7 +1086,18 @@ def _aiseg_detect_auto(args: dict) -> dict:
 
 
         confidence = args.get("confidence")
-        if confidence is not None:
+        api7 = aiseg_vectorize.v7_api(plugin)
+        if confidence is not None and api7 is not None:
+
+
+            try:
+                low, high = aiseg_vectorize.confidence_band(api7)
+                confidence = max(low, min(high, float(confidence)))
+                kwargs["confidence"] = confidence
+                args = {**args, "confidence": confidence}
+            except (TypeError, ValueError):
+                pass
+        elif confidence is not None:
             try:
                 if hasattr(plugin, "_ensure_dock_widget"):
                     plugin._ensure_dock_widget()
@@ -1038,7 +1120,24 @@ def _aiseg_detect_auto(args: dict) -> dict:
 
 
         shown = _setup.show_panel("ai_segment")
-        result = fn(**kwargs)
+        if (args.get("output_geometry") or "polygon") != "polygon":
+
+            if api7 is None:
+                return _aiseg_outdated(plugin, "vectorize_start", needs_version=None)
+            holds_zone = not kwargs["zone_wkt"] and bool((interactive_state(api7) or {}).get("zone_wkt"))
+            if not kwargs["zone_wkt"] and not holds_zone:
+
+                return tool_error("No zone to sweep: the panel holds none.", "INVALID_ARGS")
+            result = api7.vectorize_start(
+                aiseg_vectorize.request_from_args(args, kwargs["zone_wkt"], holds_zone))
+            if isinstance(result, dict) and result.get("ok"):
+
+
+
+                result.pop("hint", None)
+                result.update(started=True, running=True, keep_review=True)
+        else:
+            result = fn(**kwargs)
         if kept and isinstance(result, dict):
             result["earlier_review_saved"] = (
                 f"The earlier detection review was still open, so it was saved as the layer "
@@ -1260,6 +1359,11 @@ def _aiseg_auto_status(args: dict) -> dict:
                 return _aiseg_outdated(plugin, "auto_detect_status(run_id)")
             kwargs["run_id"] = args["run_id"]
         status = fn(**kwargs)
+        last = status.get("last_result") if isinstance(status, dict) else None
+        if isinstance(last, dict) and last.get("run_id"):
+            extras = aiseg_vectorize.result_extras(aiseg_vectorize.v7_api(plugin), last["run_id"])
+            extras.pop("state", None)
+            last.update({k: v for k, v in extras.items() if k not in last})
         if isinstance(status, dict) and not status.get("_error") \
                 and (status.get("running") or status.get("finishing")) and status.get("run_id"):
             status["poll"] = {
@@ -1289,6 +1393,10 @@ def _aiseg_auto_cancel(args: dict) -> dict:
         if fn is None:
             return _aiseg_outdated(plugin, "cancel_auto")
 
+
+        api7 = aiseg_vectorize.v7_api(plugin) if args.get("run_id") else None
+        if api7 is not None:
+            return api7.vectorize_cancel(run_id=args["run_id"])
         return fn()
     except Exception as e:
         log_warning(f"AI Segmentation cancel_auto failed: {e}")

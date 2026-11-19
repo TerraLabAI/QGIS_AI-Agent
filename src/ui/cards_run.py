@@ -527,9 +527,13 @@ class PermissionCard(_Card, FoldMixin, MapProposalMixin):
         self._sentence = head.text_label
         body.addWidget(head)
         notes = [reasons] if reasons else []
-        offers = str(self._grant or "").split()
+        offers, _, folder = str(self._grant or "").partition("\n")
+        offers = offers.split()
         if "answer" in offers:
             notes.append(self.tr("Also covers the next calls of this kind in this answer"))
+        if "folder" in offers and folder:
+            notes.append(self.tr("Allow lets AI Agent read and write in {folder} for this project.").format(
+                folder=folder))
         for note in notes:
             line = ChatLabel(note, self._body, wrap=True, selectable=True)
             line.setObjectName("permissionReason")

@@ -754,7 +754,12 @@ class Mascot(QWidget):
             painter = QPainter(self)
             painter.setRenderHint(QPainter.RenderHint.Antialiasing, True)
             painter.setOpacity(self._alpha)
-            self.paint(painter, self._frac[0] + self._size * PAD_X, self._frac[1] + self._size * PAD_TOP)
+            fx, fy = self._frac
+            if self._mode != LIVE:
+
+                ratio = max(1.0, self.devicePixelRatioF())
+                fx, fy = round(fx * ratio) / ratio, round(fy * ratio) / ratio
+            self.paint(painter, fx + self._size * PAD_X, fy + self._size * PAD_TOP)
             painter.end()
         except Exception:  # noqa: BLE001
             return
@@ -810,12 +815,18 @@ class Mascot(QWidget):
         p.restore()
 
 
+
         p.fillPath(self._body, QColor(_CEL))
         p.save()
         p.setClipPath(self._body, Qt.ClipOperation.IntersectClip)
-        p.translate(-34, -44)
-        p.fillPath(self._body, lime)
+        for dx, dy, alpha in ((-14, -18, 0.4), (-24, -31, 0.5), (-34, -44, 1.0)):
+            p.save()
+            p.translate(dx, dy)
+            p.setOpacity(self._alpha * alpha)
+            p.fillPath(self._body, lime)
+            p.restore()
         p.restore()
+        p.setOpacity(self._alpha)
 
         cheek = _clamp(s["cheek"], 0.0, 1.0)
         turn = self._table["params"]["turn"]
@@ -855,6 +866,9 @@ class Mascot(QWidget):
                 p.setBrush(white)
                 dx, dy, r = _EYE["hi"]
                 p.drawEllipse(QPointF(px + dx, py + dy), r, r)
+
+                p.setOpacity(self._alpha * seen * 0.7)
+                p.drawEllipse(QPointF(px - dx * 0.6, py - dy * 0.75), r * 0.42, r * 0.42)
                 p.setOpacity(self._alpha)
 
             edge = cy - ry - 10 + shut * ry * 1.32

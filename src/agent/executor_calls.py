@@ -13,13 +13,14 @@ import threading
 import time
 from collections import OrderedDict, deque
 
-from qgis.core import QgsProject
+from qgis.core import QgsProject, QgsVectorLayer
 from qgis.PyQt.QtCore import QCoreApplication, QTimer
 
 from ..core import accounts, background, link_vault, project_read, same_page, security, security_urls, stalls
+from ..core.context import _made_here
 from ..core.log_scrub import DETAIL_CHARS, scrub_result, scrub_secrets, strip_paths
 from ..core.logger import log, log_warning
-from ..core.plan import autopilot_allowed
+from ..core.plan import autopilot_open
 from ..core.protocol import Approval, Danger, Decision, Mode, recommended_index
 from ..core.protocol import ClientErrorCode as Err
 from ..core.serialization import DETAILS_MARKER, CodedText, cut_string, dump_json, error_details
@@ -220,8 +221,25 @@ class _ExecutorCalls:
 
 
 
+
             danger = Danger.WRITE
+            call["needs_undo_copy"] = True
+        saved_over = guards.saved_over_open_project(name, args)
+        if saved_over:
+            snapshot = self._snapshots.get(run_id)
+            if snapshot is not None and not snapshot.own_save_unchanged(saved_over):
+
+
+                call["no_undo_copy"] = True
+            else:
+                call["needs_undo_copy"] = True
         verdict = self._guard_check(name, args, own_files)
+        if verdict.get("write_folder") and not call.get("write_folder"):
+
+
+            call["write_folder"] = verdict["write_folder"]
+            self._ask_write_folder(call)
+            return
         if verdict.get("error"):
             self._fail(call, verdict.get("code") or Err.INVALID_ARGS, verdict["error"], verdict.get("suggestion", ""),
                        details=_coded(verdict))
@@ -309,7 +327,7 @@ class _ExecutorCalls:
             if not self._preflight_before_card(call, costly):
                 self._costly_card(call, costly)
             return
-        always = guards.always_confirm(name, args)
+        always = guards.always_confirm(name, args) or bool(call.get("no_undo_copy"))
         if name == CODE_TOOL:
             always = self._code_always(call, always, approval)
         if unvouched:
@@ -342,6 +360,8 @@ class _ExecutorCalls:
             if name == CODE_TOOL and self._code_refused_before_card(call):
                 return
             call["always"] = always
+
+            call.pop("needs_undo_copy", None)
             self._pending[tool_call_id] = call
             sentence = str(call.get("sentence") or tr("Run {tool}").format(tool=name))
 
@@ -579,6 +599,10 @@ class _ExecutorCalls:
 
         call = self._pending.get(str(tool_call_id or "")) or {}
         return list(call.get("unvouched") or [])
+
+    def write_folder_for(self, tool_call_id: str) -> str:
+
+        return str((self._pending.get(str(tool_call_id or "")) or {}).get("write_folder") or "")
 
     def pending_name(self, tool_call_id: str) -> str:
         return str((self._pending.get(str(tool_call_id or "")) or {}).get("name") or "")
@@ -882,14 +906,39 @@ class _ExecutorCalls:
     def _added_this_run(self, run_id: str, layer) -> bool:
 
 
-        snapshot = self._snapshots.get(run_id)
-        if snapshot is None or not snapshot.captured:
+
+
+
+        found = self._layers_named(layer)
+        if not found or any(isinstance(each, QgsVectorLayer) and each.isEditable() and each.isModified()
+                            for each in found):
             return False
-        value = str(layer or "")
+        snapshot = self._snapshots.get(run_id)
+        before = snapshot.layer_ids if snapshot is not None and snapshot.captured else None
+        if before is not None and any(each.id() in snapshot.uncopied() for each in found):
+            return False
+        thread_id = self._threads.get(run_id, "")
+        return all(_made_here(each, thread_id) or (before is not None and each.id() not in before)
+                   for each in found)
+
+    @staticmethod
+    def _layers_named(value) -> list:
+
+        value = str(value or "")
         project = QgsProject.instance()
         layer = project.mapLayer(value) if value else None
-        found = [layer] if layer is not None else (project.mapLayersByName(value) if value else [])
-        return bool(found) and all(each.id() not in snapshot.layer_ids for each in found)
+        return [layer] if layer is not None else (project.mapLayersByName(value) if value else [])
+
+    def _undo_copy_made(self, run_id: str, name: str, args: dict, snapshot) -> bool:
+
+
+
+        if guards.saved_over_open_project(name, args):
+            return run_id in self._own_save_done
+        if snapshot is None or not snapshot.captured:
+            return False
+        removes = getattr(spec(name), "removes_layer_at", "")
+        return snapshot.holds_layers(each.id() for each in (self._layers_named(args.get(removes)) if removes else []))
 
     def _own_files_of(self, run_id: str) -> frozenset:
 
@@ -934,7 +983,7 @@ class _ExecutorCalls:
     def _approval_now(self) -> str:
 
         approval = self._settings.approval
-        if approval == Approval.AUTO and not autopilot_allowed():
+        if approval == Approval.AUTO and not autopilot_open(bool(self._settings.last_paid)):
             return Approval.ASK
         return approval
 
@@ -1036,6 +1085,19 @@ class _ExecutorCalls:
             security_urls.vouch_for_urls(call["unvouched"])
         if name == CODE_TOOL:
             self._code_decided(call)
+        if call.get("write_folder"):
+
+
+            if edits:
+                call.pop("write_folder")
+            else:
+                security.grant_folder(call["write_folder"], True)
+
+
+            self._session.send_permission_response(tool_call_id, run_id, decision)
+            call.pop("clock_from", None)
+            self.handle_tool_call(call)
+            return
         self._session.send_permission_response(tool_call_id, run_id, decision)
 
 
@@ -1043,6 +1105,19 @@ class _ExecutorCalls:
 
         call.pop("clock_from", None)
         self._execute(call)
+
+    def _ask_write_folder(self, call: dict) -> None:
+
+        tool_call_id = str(call.get("tool_call_id") or "")
+        run_id = str(call.get("run_id") or "")
+        if self._refused_before_card(call):
+            return
+        call["always"] = True
+        call["per_answer"] = False
+        self._pending[tool_call_id] = call
+        sentence = tr("Allow AI Agent to write in {folder}?").format(folder=call["write_folder"])
+        self._session.send_permission_response(tool_call_id, run_id, Decision.PENDING)
+        self.permission_needed.emit(tool_call_id, run_id, sentence, call.get("args") or {})
 
     def _pin_loose_names(self, call: dict, danger: str) -> tuple[str, str, str] | None:
 

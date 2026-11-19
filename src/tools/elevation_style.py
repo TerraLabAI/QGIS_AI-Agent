@@ -226,7 +226,7 @@ def min_max_origin(limits: str, cut: tuple | None = None):
     return origin
 
 
-def band_range(layer, band: int = 1) -> tuple | None:
+def band_range(layer, band: int = 1, flat: bool = False) -> tuple | None:
 
 
 
@@ -242,7 +242,7 @@ def band_range(layer, band: int = 1) -> tuple | None:
         return None
     import math as _math
 
-    if not (_math.isfinite(low) and _math.isfinite(high)) or not low < high:
+    if not (_math.isfinite(low) and _math.isfinite(high)) or not (low < high or (flat and low == high)):
         return None
     return low, high
 

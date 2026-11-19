@@ -435,6 +435,10 @@ class _ExecutorDeliver:
         self._note_sent(tool_call_id, run_id,
                         self._session.send_tool_result(tool_call_id, run_id, result, self._code_class_of(call)))
         self.tool_finished.emit(tool_call_id, True, self._summary(name, result), duration, detail, shown)
+        if getattr(registered, "saves_open_project", False):
+            done = self._own_save_done.pop(run_id, None)
+            if done is not None:
+                done()
 
 
         with stalls.probe("scratch.note"):
@@ -507,10 +511,15 @@ class _ExecutorDeliver:
                 snapshot.backup_project_files()
             if overwrites:
                 snapshot.backup_files(overwrites)
-            declared = spec(name)
-            if declared is not None and declared.saves_open_project and QgsProject.instance().fileName():
+            saved_over = guards.saved_over_open_project(name, args)
+            if saved_over:
 
-                snapshot.backup_files([QgsProject.instance().fileName()])
+                self._own_save_done.pop(run_id, None)
+
+
+                done = self.history.before_own_save(self._threads.get(run_id, ""), run_id, saved_over)
+                if done is not None:
+                    self._own_save_done[run_id] = done
         return snapshot
 
     @staticmethod
@@ -661,3 +670,6 @@ class _ExecutorDeliver:
             return
         if entry is not None and len(self._journal[run_id]) < cap:
             self._journal[run_id].append(entry)
+        from ..core import crash_recovery
+
+        crash_recovery.note_change(run_id)

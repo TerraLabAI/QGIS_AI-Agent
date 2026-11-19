@@ -17,7 +17,6 @@ from qgis.PyQt.QtCore import QCoreApplication, QTimer
 from ..core import datum_choice, layer_removed, link_vault, project_read, restore_guard, telemetry, trace
 from ..core import telemetry_events as ev
 from ..core.checkpoints import KIND_BEFORE, KIND_EDITS, NOT_PUT_BACK
-from ..core.context import mention_candidates
 from ..core.host_platform import resolved
 from ..core.layer_order import write_blocked_by
 from ..core.logger import log, log_warning, recent_logs
@@ -187,11 +186,9 @@ class PanelActionsMixin:
         began, had_messages = time.perf_counter(), self._thread_id is not None
         self._thread_id = None
 
-        if self._settings.reset_autopilot():
-            self._sync_permission_mode()
-
         if self._settings.reset_effort():
             self._panel_call("set_effort", self._landing_effort())
+        self._drop_folder_ask()
         self._panel_call("clear_thread")
         self._panel_call("set_current_thread", "")
         self._panel_call("set_run_changes", 0, False)
@@ -222,6 +219,7 @@ class PanelActionsMixin:
 
         telemetry.track(ev.THREAD_OPENED, dict(_thread_opened_props(thread),
                                                load_ms=int((time.perf_counter() - began) * 1000)))
+        self._drop_folder_ask()
         self._panel_call("set_current_thread", thread_id)
         self._panel_call("set_run_changes", 0, False)
 
@@ -764,7 +762,7 @@ class PanelActionsMixin:
         elif kind == "contact":
             telemetry.track(ev.CONTACT_OPENED)
         elif kind == "tutorial":
-            telemetry.track(ev.TUTORIAL_OPENED)
+            telemetry.track(ev.TUTORIAL_OPENED, {"source": "empty_state", "destination": "settings_learn"})
         log(f"Help opened: {kind}")
 
     def _on_pro_pill_requested(self) -> None:
@@ -892,22 +890,6 @@ class PanelActionsMixin:
         run = self._run
         group = self._session.effort_group(run.get("effort", "")) if run else ()
         self._panel.composer.set_effort_live(group)
-
-    def _on_context_add(self, kind: str) -> None:
-
-        from qgis.PyQt.QtWidgets import QFileDialog
-
-        if kind == "file":
-            path, _filter = QFileDialog.getOpenFileName(
-                self._panel, tr("Add a data file"), "",
-                tr("Data files (*.gpkg *.geojson *.json *.shp *.csv *.tif *.tiff *.kml *.kmz *.zip);;All files (*)"))
-            if path:
-                self._panel.composer.add_paths([path])
-            return
-        if not mention_candidates():
-            self.notice.emit("info", tr("Nothing to add: open a layer first."))
-            return
-        self._panel.composer._input.begin_mention()
 
     def _on_files_dropped(self, paths) -> None:
 

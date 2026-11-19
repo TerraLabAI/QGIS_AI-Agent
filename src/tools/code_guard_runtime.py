@@ -457,6 +457,23 @@ def _guarded_makedirs(path, mode=0o777, exist_ok=False):
     return os.makedirs(path, mode, exist_ok=exist_ok)
 
 
+def _guarded_remove(path, *, dir_fd=None):
+
+
+    if dir_fd is not None:
+        raise PermissionError("execute_code's os.remove takes a path, not dir_fd.")
+    path = anchor(path)
+    error = validate_path(str(path), write=True)
+    if error:
+        raise PermissionError(error)
+    cls, _reason = code_tripwire.delete_class(path, code_tripwire.own_now())
+    if cls == code_tripwire.ce.D:
+        raise PermissionError(
+            f"execute_code's os.remove deletes only a file this conversation wrote: "
+            f"{os.path.basename(str(path))} was not written by it.")
+    return os.remove(path)
+
+
 def _guarded_copy(copier: Callable):
     def _copy(src, dst, *args, **kwargs):
 
@@ -599,6 +616,7 @@ def _safe_path_module(source: types.ModuleType) -> types.ModuleType:
 def _safe_os() -> types.ModuleType:
 
     extra = {"makedirs": _guarded_makedirs, "mkdir": _guarded_makedirs, "walk": _guarded_walk,
+             "remove": _guarded_remove,
              "path": _safe_path_module(os.path),
 
              "getcwd": workspace_dir}
@@ -699,20 +717,35 @@ _GDAL_HANDLE_WRITERS = ("RasterizeLayer", "Polygonize", "FPolygonize", "SieveFil
 _OGR_DRIVER_WRITERS = {"CreateDataSource": ("utf8_path", "")}
 
 
+def _sources_outside(text: str):
+
+    from ..core import vsi
+
+    return vsi.dataset_scope_refusal(text) if text else None
+
+
 def _read_only_opener(opener: Callable, update_flag: int):
     def _open(path, *args, **kwargs):
 
         if not isinstance(path, (str, os.PathLike)):
             raise PermissionError("execute_code opens GDAL datasets by path only.")
         text = os.fspath(path)
-        problem = _no_network(text) or validate_path(text, scoped=True)
+        problem = _no_network(text) or validate_path(text, scoped=True) or _sources_outside(text)
         if problem:
             raise PermissionError(problem)
         mode = args[0] if args else kwargs.get("nOpenFlags", kwargs.get("update", 0))
         if isinstance(mode, int) and mode & update_flag:
             raise PermissionError("execute_code opens GDAL datasets read-only; write a new file with "
                                   "gdal.Translate or a driver's CreateCopy.")
-        return opener(path, *args, **kwargs)
+        dataset = opener(path, *args, **kwargs)
+        from ..core import vsi
+
+
+        problem = dataset is not None and vsi.opened_files_refusal(dataset)
+        if problem:
+            dataset = None
+            raise PermissionError(problem)
+        return dataset
 
     _open.__name__ = opener.__name__
     return _open
@@ -827,7 +860,8 @@ def _checked_writer(writer: Callable, names: tuple[str, str]) -> Callable:
         options = rest[1:] if positional_source else rest
         options = options + [value for key, value in kwargs.items() if key not in (dest_key, source_key)]
         problem = _options_refusal(options) or next(
-            (found for found in (_no_network(text) or validate_path(text, scoped=True) for text in _strings(source))
+            (found for found in (_no_network(text) or validate_path(text, scoped=True) or _sources_outside(text)
+                                 for text in _strings(source))
              if found),
             None)
         if problem:

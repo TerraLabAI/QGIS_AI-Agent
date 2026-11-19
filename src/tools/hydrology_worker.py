@@ -73,6 +73,11 @@ from .hydrology_terrain import (
 _MIN_ROUTED_SIDE = 200
 
 
+
+
+_SNAP_SHARE = 0.5
+
+
 def _cell_cap() -> tuple[int, str]:
 
     cap = int(limits.current("HYDROLOGY_MAX_CELLS"))
@@ -292,7 +297,7 @@ def _delineate(args: dict, checkpoint) -> dict:
         "outlet_snapped": {"lon": round(s_lon, 6), "lat": round(s_lat, 6), "moved_m": round(moved_m)},
         "dem": facts["name"],
         "window_km": round(2 * radius_km, 1),
-        "method": coded_fact(hint="hydrology_method", variant="watershed", snap_m=snap_m),
+        "method": coded_fact(hint="hydrology_method", variant="watershed_near", snap_m=snap_m),
     }
     if water.any():
         water_km2 = float(water.sum()) * cell_x_m * cell_y_m / 1e6
@@ -695,6 +700,9 @@ def _metres_per_unit(crs_wkt: str) -> float:
 
 def _snap(accumulation, invalid, r_o: int, c_o: int, snap_m: float, cell_x_m: float, cell_y_m: float, np):
 
+
+
+
     height, width = accumulation.shape
     snap_cols = int(round(snap_m / cell_x_m))
     snap_rows = int(round(snap_m / cell_y_m))
@@ -705,8 +713,14 @@ def _snap(accumulation, invalid, r_o: int, c_o: int, snap_m: float, cell_x_m: fl
 
 
     rows, cols = np.ogrid[r_lo - r_o:r_hi - r_o, c_lo - c_o:c_hi - c_o]
-    patch[np.hypot(cols * cell_x_m, rows * cell_y_m) > max(snap_m, 0.0)] = -1.0
-    best = int(np.argmax(patch))
+    distance = np.hypot(cols * cell_x_m, rows * cell_y_m)
+    patch[distance > max(snap_m, 0.0)] = -1.0
+    strongest = float(patch.max())
+    if strongest < 0:
+        return None, None, None
+
+    far = np.where(patch >= strongest * _SNAP_SHARE, distance, np.inf)
+    best = int(np.lexsort((-patch.ravel(), far.ravel()))[0])
     r_s, c_s = r_lo + best // patch.shape[1], c_lo + best % patch.shape[1]
     if invalid[r_s, c_s]:
         return None, None, None

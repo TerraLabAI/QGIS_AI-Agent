@@ -88,7 +88,6 @@ def register(registry: ToolRegistry) -> None:
                             "points_pct": {"type": "integer"},
                             "display_mode": {"type": "string",
                                              "enum": ["normal", "outline", "confidence", "random"]},
-                            "min_patch_m2": {"type": "number"},
                         },
                     },
                     "index": {"type": "integer"},

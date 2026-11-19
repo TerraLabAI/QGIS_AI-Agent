@@ -128,6 +128,10 @@ def forget_link_state() -> None:
 
 
 
+
+
+
+
 LINK_SAMPLE_MIN_BYTES = 64 * 1024
 
 
@@ -144,9 +148,15 @@ LINK_POOR_KBPS = 250.0
 _LINK_LOCK = threading.Lock()
 _link_kbps: float | None = None
 _link_samples = 0
+_host_kbps: dict[str, float] = {}
+_HOSTS_KEPT = 256
 
 
-def note_transfer(byte_count: int, seconds: float) -> None:
+def _smoothed(previous: float | None, observed: float) -> float:
+    return observed if previous is None else (1.0 - LINK_SMOOTHING) * previous + LINK_SMOOTHING * observed
+
+
+def note_transfer(byte_count: int, seconds: float, host: str = "") -> None:
 
     global _link_kbps, _link_samples
     try:
@@ -154,16 +164,18 @@ def note_transfer(byte_count: int, seconds: float) -> None:
             return
         observed = (byte_count / 1024.0) / seconds
         with _LINK_LOCK:
-            if _link_kbps is None:
-                _link_kbps = observed
-            else:
-                _link_kbps = (1.0 - LINK_SMOOTHING) * _link_kbps + LINK_SMOOTHING * observed
+            _link_kbps = _smoothed(_link_kbps, observed)
             _link_samples += 1
+            if host:
+                if host not in _host_kbps and len(_host_kbps) >= _HOSTS_KEPT:
+                    _host_kbps.pop(next(iter(_host_kbps)))
+                _host_kbps[host] = _smoothed(_host_kbps.get(host), observed)
     except Exception:  # nosec B110
         pass
 
 
-def link_kbps() -> float | None:
+def link_kbps(host: str = "") -> float | None:
+
 
 
 
@@ -180,7 +192,7 @@ def link_kbps() -> float | None:
         except ValueError:
             pass
     with _LINK_LOCK:
-        return _link_kbps
+        return _host_kbps.get(host) if host else _link_kbps
 
 
 def link_factor() -> float:
@@ -196,9 +208,9 @@ def link_factor() -> float:
     return round(max(0.05, rate / LINK_REFERENCE_KBPS), 4)
 
 
-def seconds_to_transfer(byte_count: int) -> float | None:
+def seconds_to_transfer(byte_count: int, host: str = "") -> float | None:
 
-    rate = link_kbps()
+    rate = link_kbps(host)
     if not rate:
         return None
     return (float(byte_count) / 1024.0) / rate

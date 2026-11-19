@@ -1882,6 +1882,78 @@ Silme, bekleme süresi bitince kesinleşir. O zamana kadar terra-lab.ai üzerind
             <source>left out</source>
             <translation>hariç</translation>
         </message>
+        <message>
+            <source>The AI agent has been thinking for {time}</source>
+            <translation>Yapay zekâ ajanı {time} süredir düşünüyor</translation>
+        </message>
+        <message>
+            <source>Code running in QGIS for {time}</source>
+            <translation>Kod {time} süredir QGIS'te çalışıyor</translation>
+        </message>
+        <message>
+            <source>Running in QGIS for {time}</source>
+            <translation>{time} süredir QGIS'te çalışıyor</translation>
+        </message>
+        <message>
+            <source>Bugs</source>
+            <translation>Hatalar</translation>
+        </message>
+        <message>
+            <source>For a team, a call is quickest.</source>
+            <translation>Ekipler için en hızlısı bir görüşme.</translation>
+        </message>
+        <message>
+            <source>Ideas</source>
+            <translation>Fikirler</translation>
+        </message>
+        <message>
+            <source>Licences, quotes and invoices for your team, too.</source>
+            <translation>Ekibiniz için lisans, teklif ve fatura da burada.</translation>
+        </message>
+        <message>
+            <source>Questions</source>
+            <translation>Sorular</translation>
+        </message>
+        <message>
+            <source>Team needs</source>
+            <translation>Ekip ihtiyaçları</translation>
+        </message>
+        <message>
+            <source>Map history</source>
+            <translation>Harita geçmişi</translation>
+        </message>
+        <message>
+            <source>Open earlier project versions</source>
+            <translation>Projenin önceki sürümlerini aç</translation>
+        </message>
+        <message>
+            <source>Recall your last message</source>
+            <translation>Son mesajınızı geri getir</translation>
+        </message>
+        <message>
+            <source>Redo it</source>
+            <translation>Yeniden yap</translation>
+        </message>
+        <message>
+            <source>Sent with this conversation and the plugin's recent log.</source>
+            <translation>Bu konuşma ve eklentinin son günlüğüyle birlikte gönderilir.</translation>
+        </message>
+        <message>
+            <source>Undo the last request</source>
+            <translation>Son isteği geri al</translation>
+        </message>
+        <message>
+            <source>We read every message and use it to improve AI Agent.</source>
+            <translation>Her mesajı okuyoruz ve AI Agent'ı geliştirmek için kullanıyoruz.</translation>
+        </message>
+        <message>
+            <source>What happened, and what did you expect? For example: the buffer came out in degrees instead of metres.</source>
+            <translation>Ne oldu ve ne bekliyordunuz? Örneğin: tampon bölge metre yerine derece olarak çıktı.</translation>
+        </message>
+        <message>
+            <source>Kept until you delete it</source>
+            <translation>Siz silene kadar saklanır</translation>
+        </message>
     </context>
     <context>
         <name>AIAgentContext</name>
@@ -2015,12 +2087,12 @@ Silme, bekleme süresi bitince kesinleşir. O zamana kadar terra-lab.ai üzerind
             <translation>araç: {tool}</translation>
         </message>
         <message>
-            <source>{day} UTC, AI Agent run {run}: added {layers}</source>
-            <translation>{day} UTC, AI Agent çalıştırması {run}: eklenenler {layers}</translation>
+            <source>{day} UTC, run {run}: added {layers}</source>
+            <translation>{day} UTC, çalıştırma {run}: eklenenler {layers}</translation>
         </message>
         <message>
-            <source>{day} UTC, added by AI Agent by TerraLab</source>
-            <translation>{day} UTC, AI Agent by TerraLab ile eklendi</translation>
+            <source>Data source</source>
+            <translation>Veri kaynağı</translation>
         </message>
     </context>
     <context>
@@ -3477,6 +3549,10 @@ Silme, bekleme süresi bitince kesinleşir. O zamana kadar terra-lab.ai üzerind
             <source>Stopping...</source>
             <translation>Durduruluyor...</translation>
         </message>
+        <message>
+            <source>the map render</source>
+            <translation>harita çizimi</translation>
+        </message>
     </context>
     <context>
         <name>Composer</name>
@@ -4265,6 +4341,18 @@ Bu dosya artık çalıştırmanın yazdığı yerde değil.</translation>
             <source>Dock or undock AI Agent</source>
             <translation>AI Agent'ı yerleştir veya ayır</translation>
         </message>
+        <message>
+            <source>Pro ends on {date}. Keep it in one click.</source>
+            <translation>Pro {date} tarihinde bitiyor. Tek tıkla devam ettirin.</translation>
+        </message>
+        <message>
+            <source>Pro is set to end. Keep it in one click.</source>
+            <translation>Pro sona erecek. Tek tıkla devam ettirin.</translation>
+        </message>
+        <message>
+            <source>See what's in Pro</source>
+            <translation>Pro'da neler olduğunu gör</translation>
+        </message>
     </context>
     <context>
         <name>HistoryPopup</name>
@@ -4860,6 +4948,10 @@ Katmanlar panelinde göstermek için tıklayın.</translation>
             <source>{n} of {total} features in {layer}</source>
             <translation>{layer} katmanındaki {total} nesneden {n} tanesi</translation>
         </message>
+        <message>
+            <source>Allow lets AI Agent read and write in {folder} for this project.</source>
+            <translation>İzin verirseniz AI Agent bu proje için {folder} içinde okuyup yazabilir.</translation>
+        </message>
     </context>
     <context>
         <name>PermissionChip</name>
@@ -5404,6 +5496,138 @@ Teşekkürler</translation>
             <source>{n} tasks a month, cancel anytime</source>
             <translation>Ayda {n} görev, istediğiniz zaman iptal</translation>
         </message>
+        <message>
+            <source>1 task left this month</source>
+            <translation>Bu ay 1 görev kaldı</translation>
+        </message>
+        <message>
+            <source>All {n} tasks used. They reset on {date}.</source>
+            <translation>{n} görevin tamamı kullanıldı. {date} tarihinde sıfırlanır.</translation>
+        </message>
+        <message>
+            <source>Back to Pro</source>
+            <translation>Pro'ya geri dön</translation>
+        </message>
+        <message>
+            <source>Come back to Pro for {n} tasks a month.</source>
+            <translation>Ayda {n} görev için Pro'ya geri dönün.</translation>
+        </message>
+        <message>
+            <source>Contact us</source>
+            <translation>Bize ulaşın</translation>
+        </message>
+        <message>
+            <source>Contact us for more tasks</source>
+            <translation>Daha fazla görev için bize ulaşın</translation>
+        </message>
+        <message>
+            <source>Get Pro for {n} tasks a month.</source>
+            <translation>Ayda {n} görev için Pro'ya geçin.</translation>
+        </message>
+        <message>
+            <source>Need Pro for work?</source>
+            <translation>İş için Pro mu lazım?</translation>
+        </message>
+        <message>
+            <source>No card? Contact us to pay by invoice.</source>
+            <translation>Kartınız yok mu? Fatura ile ödemek için bize ulaşın.</translation>
+        </message>
+        <message>
+            <source>No card? Contact us to start your free trial.</source>
+            <translation>Kartınız yok mu? Ücretsiz denemenizi başlatmak için bize ulaşın.</translation>
+        </message>
+        <message>
+            <source>Pay nothing today</source>
+            <translation>Bugün hiçbir şey ödemeyin</translation>
+        </message>
+        <message>
+            <source>Pay nothing today, then your local price each month. Cancel anytime.</source>
+            <translation>Bugün hiçbir şey ödemeyin, sonra her ay yerel fiyatınızı ödeyin. İstediğiniz zaman iptal edin.</translation>
+        </message>
+        <message>
+            <source>Pay nothing today, then your student price each month. Cancel anytime.</source>
+            <translation>Bugün hiçbir şey ödemeyin, sonra her ay öğrenci fiyatınızı ödeyin. İstediğiniz zaman iptal edin.</translation>
+        </message>
+        <message>
+            <source>Pay nothing today, then {price}/month excl. VAT. Cancel anytime.</source>
+            <translation>Bugün hiçbir şey ödemeyin, sonra ayda {price} (KDV hariç). İstediğiniz zaman iptal edin.</translation>
+        </message>
+        <message>
+            <source>Pay nothing today, then {price}/month. Cancel anytime.</source>
+            <translation>Bugün hiçbir şey ödemeyin, sonra ayda {price}. İstediğiniz zaman iptal edin.</translation>
+        </message>
+        <message>
+            <source>Payment of {amount} failed</source>
+            <translation>{amount} tutarındaki ödeme başarısız oldu</translation>
+        </message>
+        <message>
+            <source>Pro is paused until payment goes through.</source>
+            <translation>Ödeme gerçekleşene kadar Pro duraklatıldı.</translation>
+        </message>
+        <message>
+            <source>Start Pro now</source>
+            <translation>Pro'yu şimdi başlat</translation>
+        </message>
+        <message>
+            <source>Start free trial</source>
+            <translation>Ücretsiz denemeyi başlat</translation>
+        </message>
+        <message>
+            <source>Try Pro free for a week to get more tasks.</source>
+            <translation>Daha fazla görev için Pro'yu bir hafta ücretsiz deneyin.</translation>
+        </message>
+        <message>
+            <source>Welcome to Pro</source>
+            <translation>Pro'ya hoş geldiniz</translation>
+        </message>
+        <message>
+            <source>You now have {n} tasks a month.</source>
+            <translation>Artık ayda {n} göreviniz var.</translation>
+        </message>
+        <message>
+            <source>You used all your tasks this month</source>
+            <translation>Bu ayki tüm görevlerinizi kullandınız</translation>
+        </message>
+        <message>
+            <source>You used your last task</source>
+            <translation>Son görevinizi kullandınız</translation>
+        </message>
+        <message>
+            <source>Your free trial runs until {date}.</source>
+            <translation>Ücretsiz denemeniz {date} tarihine kadar sürer.</translation>
+        </message>
+        <message>
+            <source>Your tasks reset next month.</source>
+            <translation>Görevleriniz gelecek ay sıfırlanır.</translation>
+        </message>
+        <message>
+            <source>Your tasks reset on {date}.</source>
+            <translation>Görevleriniz {date} tarihinde sıfırlanır.</translation>
+        </message>
+        <message>
+            <source>Your trial did not start. You were not charged.</source>
+            <translation>Denemeniz başlamadı. Ücret alınmadı.</translation>
+        </message>
+        <message>
+            <source>{n} tasks a month. Cancel anytime.</source>
+            <translation>Ayda {n} görev. İstediğiniz zaman iptal edin.</translation>
+        </message>
+        <message>
+            <source>{n} tasks left this month</source>
+            <translation>Bu ay {n} görev kaldı</translation>
+        </message>
+        <message>
+            <source>{price} excl. VAT</source>
+            <translation>{price} KDV hariç</translation>
+        </message>
+        <message>
+            <source>{price}/month. Cancel anytime.</source>
+            <translation>Ayda {price}. İstediğiniz zaman iptal edin.</translation>
+        </message>
+        <message>
+            <source>{price}/month excl. VAT. Cancel anytime.</source>
+            <translation>Ayda {price} (KDV hariç). İstediğiniz zaman iptal edin.</translation>
+        </message>
     </context>
     <context>
         <name>QuotaPauseCard</name>
@@ -5645,6 +5869,22 @@ Teşekkürler</translation>
         <message>
             <source>{n} free tasks left</source>
             <translation>{n} ücretsiz görev kaldı</translation>
+        </message>
+        <message>
+            <source>1 task left</source>
+            <translation>1 görev kaldı</translation>
+        </message>
+        <message>
+            <source>Get more with Pro</source>
+            <translation>Pro ile daha fazlasını alın</translation>
+        </message>
+        <message>
+            <source>Pro: {n} tasks a month, higher effort levels and Autopilot.</source>
+            <translation>Pro: ayda {n} görev, daha yüksek efor düzeyleri ve Autopilot.</translation>
+        </message>
+        <message>
+            <source>{n} tasks left</source>
+            <translation>{n} görev kaldı</translation>
         </message>
     </context>
     <context>
@@ -6206,6 +6446,478 @@ Teşekkürler</translation>
             <source>Your usage and chats help us fix bugs. Turn it off anytime.</source>
             <translation>Kullanımınız ve sohbetleriniz hataları düzeltmemize yardımcı olur. İstediğiniz zaman kapatabilirsiniz.</translation>
         </message>
+        <message>
+            <source>Bell</source>
+            <translation>Çan</translation>
+        </message>
+        <message>
+            <source>Chime</source>
+            <translation>Çıngırak</translation>
+        </message>
+        <message>
+            <source>Icon and sound</source>
+            <translation>Simge ve ses</translation>
+        </message>
+        <message>
+            <source>Icon only</source>
+            <translation>Yalnızca simge</translation>
+        </message>
+        <message>
+            <source>Little train</source>
+            <translation>Küçük tren</translation>
+        </message>
+        <message>
+            <source>Marimba</source>
+            <translation>Marimba</translation>
+        </message>
+        <message>
+            <source>Needs your answer</source>
+            <translation>Yanıtınız gerekiyor</translation>
+        </message>
+        <message>
+            <source>Notifications</source>
+            <translation>Bildirimler</translation>
+        </message>
+        <message>
+            <source>Notify me</source>
+            <translation>Beni bilgilendir</translation>
+        </message>
+        <message>
+            <source>Off</source>
+            <translation>Kapalı</translation>
+        </message>
+        <message>
+            <source>Only while QGIS is in the background or the panel is hidden.</source>
+            <translation>Yalnızca QGIS arka plandayken veya panel gizliyken.</translation>
+        </message>
+        <message>
+            <source>Play</source>
+            <translation>Çal</translation>
+        </message>
+        <message>
+            <source>Questions and approvals.</source>
+            <translation>Sorular ve onaylar.</translation>
+        </message>
+        <message>
+            <source>Run finished</source>
+            <translation>Çalışma bitti</translation>
+        </message>
+        <message>
+            <source>Volume</source>
+            <translation>Ses düzeyi</translation>
+        </message>
+        <message>
+            <source>1 task left</source>
+            <translation>1 görev kaldı</translation>
+        </message>
+        <message>
+            <source>A badge on the QGIS icon and a sound, only while QGIS is in the background or the panel is hidden.</source>
+            <translation>QGIS simgesinde bir rozet ve bir ses, yalnızca QGIS arka plandayken veya panel gizliyken.</translation>
+        </message>
+        <message>
+            <source>About you and Instructions</source>
+            <translation>Hakkınızda ve Talimatlar</translation>
+        </message>
+        <message>
+            <source>Back in {n} days</source>
+            <translation>{n} gün sonra geri gelir</translation>
+        </message>
+        <message>
+            <source>Back tomorrow</source>
+            <translation>Yarın geri gelir</translation>
+        </message>
+        <message>
+            <source>Call me back while I work elsewhere</source>
+            <translation>Başka yerde çalışırken beni geri çağır</translation>
+        </message>
+        <message>
+            <source>Change</source>
+            <translation>Değiştir</translation>
+        </message>
+        <message>
+            <source>Commercial use included</source>
+            <translation>Ticari kullanım dahil</translation>
+        </message>
+        <message>
+            <source>Context for every task</source>
+            <translation>Her görev için bağlam</translation>
+        </message>
+        <message>
+            <source>Could not load your usage</source>
+            <translation>Kullanımınız yüklenemedi</translation>
+        </message>
+        <message>
+            <source>Detect and outline objects on imagery: buildings, trees, water or fields become polygons you can edit.</source>
+            <translation>Görüntülerdeki nesneleri algılayın ve çevreleyin: binalar, ağaçlar, su veya tarlalar düzenleyebileceğiniz çokgenlere dönüşür.</translation>
+        </message>
+        <message>
+            <source>Edit your imagery with one sentence, the way you would ask a colleague.</source>
+            <translation>Görüntülerinizi bir meslektaşınıza sorar gibi tek bir cümleyle düzenleyin.</translation>
+        </message>
+        <message>
+            <source>Every task, day by day, on terra-lab.ai</source>
+            <translation>Her görev, gün gün, terra-lab.ai'de</translation>
+        </message>
+        <message>
+            <source>Everything else here works without an account.</source>
+            <translation>Buradaki diğer her şey hesap olmadan çalışır.</translation>
+        </message>
+        <message>
+            <source>From your TerraLab account.</source>
+            <translation>TerraLab hesabınızdan.</translation>
+        </message>
+        <message>
+            <source>General</source>
+            <translation>Genel</translation>
+        </message>
+        <message>
+            <source>How the AI agent answers.</source>
+            <translation>Yapay zeka ajanının nasıl yanıt verdiği.</translation>
+        </message>
+        <message>
+            <source>How the AI agent calls you back.</source>
+            <translation>Yapay zeka ajanının sizi nasıl geri çağırdığı.</translation>
+        </message>
+        <message>
+            <source>Install</source>
+            <translation>Yükle</translation>
+        </message>
+        <message>
+            <source>Install {plugin}</source>
+            <translation>{plugin} eklentisini yükle</translation>
+        </message>
+        <message>
+            <source>Loading your plan...</source>
+            <translation>Planınız yükleniyor...</translation>
+        </message>
+        <message>
+            <source>Loading your tasks...</source>
+            <translation>Görevleriniz yükleniyor...</translation>
+        </message>
+        <message>
+            <source>Monthly tasks</source>
+            <translation>Aylık görevler</translation>
+        </message>
+        <message>
+            <source>More from TerraLab</source>
+            <translation>TerraLab'dan daha fazlası</translation>
+        </message>
+        <message>
+            <source>Needs your answer: {a} · Run finished: {b}</source>
+            <translation>Yanıtınız bekleniyor: {a} · Çalışma bitti: {b}</translation>
+        </message>
+        <message>
+            <source>One TerraLab account signs you in to all three plugins.</source>
+            <translation>Tek bir TerraLab hesabı üç eklentiye de giriş yapmanızı sağlar.</translation>
+        </message>
+        <message>
+            <source>One task is one message you send, however many steps the AI agent takes. Tasks that fail on our side are given back.</source>
+            <translation>Bir görev, gönderdiğiniz tek bir mesajdır; yapay zeka ajanı kaç adım atarsa atsın. Bizim tarafımızda başarısız olan görevler iade edilir.</translation>
+        </message>
+        <message>
+            <source>Open {plugin}</source>
+            <translation>{plugin} eklentisini aç</translation>
+        </message>
+        <message>
+            <source>Opens the QGIS plugin manager on this plugin. Free to install.</source>
+            <translation>QGIS eklenti yöneticisini bu eklentide açar. Yüklemek ücretsizdir.</translation>
+        </message>
+        <message>
+            <source>Personal, non-commercial use</source>
+            <translation>Kişisel, ticari olmayan kullanım</translation>
+        </message>
+        <message>
+            <source>Plan</source>
+            <translation>Plan</translation>
+        </message>
+        <message>
+            <source>Profile</source>
+            <translation>Profil</translation>
+        </message>
+        <message>
+            <source>Resets in {n} days</source>
+            <translation>{n} gün içinde sıfırlanır</translation>
+        </message>
+        <message>
+            <source>Resets tomorrow</source>
+            <translation>Yarın sıfırlanır</translation>
+        </message>
+        <message>
+            <source>Rules the AI agent always follows.</source>
+            <translation>Yapay zeka ajanının her zaman uyduğu kurallar.</translation>
+        </message>
+        <message>
+            <source>Saved on this computer.</source>
+            <translation>Bu bilgisayarda kayıtlı.</translation>
+        </message>
+        <message>
+            <source>Search settings</source>
+            <translation>Ayarlarda ara</translation>
+        </message>
+        <message>
+            <source>Show its panel.</source>
+            <translation>Panelini göster.</translation>
+        </message>
+        <message>
+            <source>Sign in to see your plan and tasks</source>
+            <translation>Planınızı ve görevlerinizi görmek için giriş yapın</translation>
+        </message>
+        <message>
+            <source>Sounds</source>
+            <translation>Sesler</translation>
+        </message>
+        <message>
+            <source>Tell the AI agent who you are and the rules it always follows. Included in Pro.</source>
+            <translation>Yapay zeka ajanına kim olduğunuzu ve her zaman uyacağı kuralları söyleyin. Pro'ya dahildir.</translation>
+        </message>
+        <message>
+            <source>Two more AI plugins for QGIS, from the makers of AI Agent.</source>
+            <translation>AI Agent'ın yapımcılarından QGIS için iki yapay zeka eklentisi daha.</translation>
+        </message>
+        <message>
+            <source>Upgrade plan</source>
+            <translation>Planı yükselt</translation>
+        </message>
+        <message>
+            <source>Upgrade to Pro</source>
+            <translation>Pro'ya geç</translation>
+        </message>
+        <message>
+            <source>Usage</source>
+            <translation>Kullanım</translation>
+        </message>
+        <message>
+            <source>What counts as a task</source>
+            <translation>Neyin görev sayıldığı</translation>
+        </message>
+        <message>
+            <source>What leaves this computer, and for how long.</source>
+            <translation>Bu bilgisayardan neyin çıktığı ve ne kadar süreyle.</translation>
+        </message>
+        <message>
+            <source>What you work on, your data, your area.</source>
+            <translation>Üzerinde çalıştığınız konu, verileriniz, alanınız.</translation>
+        </message>
+        <message>
+            <source>Your plan and the tasks you used this month.</source>
+            <translation>Planınız ve bu ay kullandığınız görevler.</translation>
+        </message>
+        <message>
+            <source>Your plan, payment method and invoices, on terra-lab.ai.</source>
+            <translation>Planınız, ödeme yönteminiz ve faturalarınız, terra-lab.ai'de.</translation>
+        </message>
+        <message>
+            <source>Your tasks are counted on our side; nothing is lost.</source>
+            <translation>Görevleriniz bizim tarafımızda sayılır; hiçbir şey kaybolmaz.</translation>
+        </message>
+        <message>
+            <source>of {limit} this month</source>
+            <translation>bu ay {limit} içinden</translation>
+        </message>
+        <message>
+            <source>{n} tasks left</source>
+            <translation>{n} görev kaldı</translation>
+        </message>
+        <message>
+            <source>{p}% left</source>
+            <translation>%{p} kaldı</translation>
+        </message>
+        <message>
+            <source>1 task left this month</source>
+            <translation>Bu ay 1 görev kaldı</translation>
+        </message>
+        <message>
+            <source>Cancel anytime before it ends.</source>
+            <translation>Bitmeden önce istediğiniz zaman iptal edebilirsiniz.</translation>
+        </message>
+        <message>
+            <source>Card declined</source>
+            <translation>Kart reddedildi</translation>
+        </message>
+        <message>
+            <source>Come back to Pro</source>
+            <translation>Pro'ya geri dön</translation>
+        </message>
+        <message>
+            <source>Ends {date}</source>
+            <translation>Bitiş: {date}</translation>
+        </message>
+        <message>
+            <source>Payment failed</source>
+            <translation>Ödeme başarısız</translation>
+        </message>
+        <message>
+            <source>Pro is off until it's paid.</source>
+            <translation>Ödeme yapılana kadar Pro kapalı.</translation>
+        </message>
+        <message>
+            <source>Pro trial</source>
+            <translation>Pro denemesi</translation>
+        </message>
+        <message>
+            <source>Pro trial, 1 day left</source>
+            <translation>Pro denemesi, 1 gün kaldı</translation>
+        </message>
+        <message>
+            <source>Pro trial, ends {date}</source>
+            <translation>Pro denemesi, bitiş: {date}</translation>
+        </message>
+        <message>
+            <source>Pro trial, {n} days left</source>
+            <translation>Pro denemesi, {n} gün kaldı</translation>
+        </message>
+        <message>
+            <source>Then {price}/month. Cancel anytime.</source>
+            <translation>Sonra ayda {price}. İstediğiniz zaman iptal edebilirsiniz.</translation>
+        </message>
+        <message>
+            <source>Try Pro free for {n} days</source>
+            <translation>Pro'yu {n} gün ücretsiz dene</translation>
+        </message>
+        <message>
+            <source>Try another card</source>
+            <translation>Başka kart dene</translation>
+        </message>
+        <message>
+            <source>Update card</source>
+            <translation>Kartı güncelle</translation>
+        </message>
+        <message>
+            <source>You're out of tasks this month</source>
+            <translation>Bu ayki görev hakkınız bitti</translation>
+        </message>
+        <message>
+            <source>You're out until {date}</source>
+            <translation>{date} tarihine kadar görev hakkınız yok</translation>
+        </message>
+        <message>
+            <source>Your trial didn't start. Nothing was charged.</source>
+            <translation>Denemeniz başlamadı. Ücret alınmadı.</translation>
+        </message>
+        <message>
+            <source>{amount} due.</source>
+            <translation>Ödenecek tutar: {amount}.</translation>
+        </message>
+        <message>
+            <source>{n} tasks left this month</source>
+            <translation>Bu ay {n} görev kaldı</translation>
+        </message>
+        <message>
+            <source>{plan}, renews {date}</source>
+            <translation>{plan}, yenilenme: {date}</translation>
+        </message>
+        <message>
+            <source>{price} excl. VAT</source>
+            <translation>{price} KDV hariç</translation>
+        </message>
+        <message>
+            <source>{price}/month. Cancel anytime.</source>
+            <translation>Ayda {price}. İstediğiniz zaman iptal edebilirsiniz.</translation>
+        </message>
+        <message>
+            <source>{used} of {limit} used</source>
+            <translation>{used} / {limit} kullanıldı</translation>
+        </message>
+        <message>
+            <source>Clear search</source>
+            <translation>Aramayı temizle</translation>
+        </message>
+        <message>
+            <source>Try Pro free</source>
+            <translation>Pro'yu ücretsiz dene</translation>
+        </message>
+        <message>
+            <source>Delete account</source>
+            <translation>Hesabı sil</translation>
+        </message>
+        <message>
+            <source>Report a problem</source>
+            <translation>Sorun bildir</translation>
+        </message>
+        <message>
+            <source>Ends on {date}</source>
+            <translation>{date} tarihinde biter</translation>
+        </message>
+        <message>
+            <source>Monthly limit reached, resets {date}</source>
+            <translation>Aylık sınıra ulaşıldı, {date} tarihinde sıfırlanır</translation>
+        </message>
+        <message>
+            <source>Pro is paused until payment goes through.</source>
+            <translation>Ödeme gerçekleşene kadar Pro duraklatıldı.</translation>
+        </message>
+        <message>
+            <source>Pro trial: 1 day left</source>
+            <translation>Pro denemesi: 1 gün kaldı</translation>
+        </message>
+        <message>
+            <source>Pro trial: {n} days left</source>
+            <translation>Pro denemesi: {n} gün kaldı</translation>
+        </message>
+        <message>
+            <source>Your trial did not start. You were not charged.</source>
+            <translation>Denemeniz başlamadı. Ücret alınmadı.</translation>
+        </message>
+        <message>
+            <source>Then {price}/month excl. VAT. Cancel anytime.</source>
+            <translation>Sonra ayda {price} (KDV hariç). İstediğiniz zaman iptal edin.</translation>
+        </message>
+        <message>
+            <source>{price}/month excl. VAT. Cancel anytime.</source>
+            <translation>Ayda {price} (KDV hariç). İstediğiniz zaman iptal edin.</translation>
+        </message>
+        <message>
+            <source>Desktop notifications</source>
+            <translation>Masaüstü bildirimleri</translation>
+        </message>
+        <message>
+            <source>When QGIS is in the background and a run finishes or needs you.</source>
+            <translation>QGIS arka plandayken bir çalıştırma bittiğinde veya size ihtiyaç duyduğunda.</translation>
+        </message>
+        <message>
+            <source>Resets today</source>
+            <translation>Bugün sıfırlanır</translation>
+        </message>
+        <message>
+            <source>Try Pro free for 1 day</source>
+            <translation>Pro'yu 1 gün ücretsiz deneyin</translation>
+        </message>
+        <message>
+            <source>More AI plugins</source>
+            <translation>Diğer AI eklentileri</translation>
+        </message>
+        <message>
+            <source>Applies after restarting QGIS.</source>
+            <translation>QGIS yeniden başlatıldıktan sonra uygulanır.</translation>
+        </message>
+        <message>
+            <source>How AI Agent looks, what it knows about you, and how it calls you back.</source>
+            <translation>AI Agent'ın görünümü, sizin hakkınızda bildikleri ve size nasıl geri döneceği.</translation>
+        </message>
+        <message>
+            <source>Language</source>
+            <translation>Dil</translation>
+        </message>
+        <message>
+            <source>Usage stats: only that you used the app and when. Chats are kept as your History retention says, so a conversation survives an update; we may read one, or have a model score it, to fix bugs, never to train AI. 0 days of history stores nothing.</source>
+            <translation>Kullanım istatistikleri: yalnızca uygulamayı kullandığınız ve ne zaman kullandığınız. Bir konuşma güncellemeden sonra da kalsın diye sohbetler Geçmişin saklanma süresi ayarınızın belirttiği süre boyunca saklanır; hataları düzeltmek için birini okuyabilir veya bir modele puanlatabiliriz, yapay zekâyı eğitmek için asla. Geçmiş 0 gün ise hiçbir şey saklanmaz.</translation>
+        </message>
+        <message>
+            <source>Grey text in the message box. Tab takes it.</source>
+            <translation>Mesaj kutusunda gri metin. Tab ile kabul edilir.</translation>
+        </message>
+        <message>
+            <source>Typing suggestions</source>
+            <translation>Yazarken öneriler</translation>
+        </message>
+        <message>
+            <source>Language, response style, suggestions and notifications go back to their defaults.</source>
+            <translation>Dil, yanıt stili, öneriler ve bildirimler varsayılan değerlerine döner.</translation>
+        </message>
+        <message>
+            <source>Reset settings</source>
+            <translation>Ayarları sıfırla</translation>
+        </message>
     </context>
     <context>
         <name>SiblingCard</name>
@@ -6608,6 +7320,10 @@ Teşekkürler</translation>
         <message>
             <source>Always allowed</source>
             <translation>Her zaman izinli</translation>
+        </message>
+        <message>
+            <source>Allow AI Agent to write in {folder}?</source>
+            <translation>AI Agent'ın {folder} içine yazmasına izin verilsin mi?</translation>
         </message>
     </context>
     <context>
@@ -8929,6 +9645,97 @@ Teşekkürler</translation>
         <message>
             <source>Selected</source>
             <translation>Seçili</translation>
+        </message>
+    </context>
+    <context>
+        <name>FolderCard</name>
+        <message>
+            <source>A folder on another computer of your network.</source>
+            <translation>Ağınızdaki başka bir bilgisayarda bulunan klasör.</translation>
+        </message>
+        <message>
+            <source>Denied</source>
+            <translation>Reddedildi</translation>
+        </message>
+        <message>
+            <source>Deny</source>
+            <translation>Reddet</translation>
+        </message>
+        <message>
+            <source>Let AI Agent open this folder?</source>
+            <translation>AI Agent bu klasörü açabilsin mi?</translation>
+        </message>
+        <message>
+            <source>Read and write</source>
+            <translation>Okuma ve yazma</translation>
+        </message>
+        <message>
+            <source>Read only</source>
+            <translation>Salt okunur</translation>
+        </message>
+        <message>
+            <source>What AI Agent reads there is sent to the AI model. Kept for this project.</source>
+            <translation>AI Agent'ın oradan okuduğu veriler yapay zeka modeline gönderilir. Bu proje için saklanır.</translation>
+        </message>
+    </context>
+    <context>
+        <name>FolderChip</name>
+        <message>
+            <source>1 folder</source>
+            <translation>1 klasör</translation>
+        </message>
+        <message>
+            <source>Folders</source>
+            <translation>Klasörler</translation>
+        </message>
+        <message>
+            <source>Folders AI Agent can open in this project</source>
+            <translation>AI Agent'ın bu projede açabileceği klasörler</translation>
+        </message>
+        <message>
+            <source>{n} folders</source>
+            <translation>{n} klasör</translation>
+        </message>
+    </context>
+    <context>
+        <name>FolderPopover</name>
+        <message>
+            <source>Folders AI Agent can open in this project</source>
+            <translation>AI Agent'ın bu projede açabileceği klasörler</translation>
+        </message>
+        <message>
+            <source>The project folder and its layers' folders are always open for reading.</source>
+            <translation>Proje klasörü ve katmanlarının klasörleri okumaya her zaman açıktır.</translation>
+        </message>
+    </context>
+    <context>
+        <name>_FolderRow</name>
+        <message>
+            <source>Read and write</source>
+            <translation>Okuma ve yazma</translation>
+        </message>
+        <message>
+            <source>Read only</source>
+            <translation>Salt okunur</translation>
+        </message>
+        <message>
+            <source>Remove</source>
+            <translation>Kaldır</translation>
+        </message>
+    </context>
+    <context>
+        <name>AIAgentRecovery</name>
+        <message>
+            <source>QGIS closed during a run. {n} layer(s) of unsaved work came back in the group "{group}". Save them to keep them.</source>
+            <translation>QGIS bir çalıştırma sırasında kapandı. Kaydedilmemiş çalışmanın {n} katmanı "{group}" grubunda geri geldi. Saklamak için kaydedin.</translation>
+        </message>
+        <message>
+            <source>Some unsaved work could not be put back. Its copy is kept in {folder}.</source>
+            <translation>Kaydedilmemiş bazı çalışmalar geri konamadı. Kopyası {folder} içinde saklanıyor.</translation>
+        </message>
+        <message>
+            <source>{name} (unsaved edits kept)</source>
+            <translation>{name} (kaydedilmemiş düzenlemeler korundu)</translation>
         </message>
     </context>
 </TS>

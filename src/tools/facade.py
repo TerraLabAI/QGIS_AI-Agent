@@ -34,7 +34,7 @@ from ..core.layer_order import feature_count_of, is_remote_vector
 from ..core.logger import log_warning
 from ..core.qt_compat import enum_member
 from ..core.tool_registry import Tool, ToolRegistry, tool_error
-from . import cloud_data, data_basemaps, data_inspect, data_ogc, ogc_inspect
+from . import aiseg_vectorize, cloud_data, data_basemaps, data_inspect, data_ogc, ogc_inspect
 from . import integration_tools as _integration
 from . import layer_io_tools as _layer_io
 from . import sibling_setup as _setup
@@ -54,7 +54,7 @@ AI_EDIT_ACTIONS = ("status", "generate", "generation_status", "select_version", 
                    "setup", "credits", "prepare")
 AI_SEGMENT_ACTIONS = (
     "status", "detect_auto", "auto_status", "set_zone", "presets", "cancel", "setup",
-    "detect_points", "prepare",
+    "detect_points", "prepare", "quote", "capabilities",
 )
 
 
@@ -81,6 +81,9 @@ AI_SEGMENT_ACTION_DANGER = {
     "detect_auto": "destructive",
     "setup": "write",
     "prepare": "write",
+
+    "quote": "read",
+    "capabilities": "read",
 }
 
 _CRS_CHECKED_KINDS = frozenset({"vector", "raster", "pointcloud", "geojson", "gpkg", "cog"})
@@ -317,6 +320,11 @@ def register_facade_tools(registry: ToolRegistry):
                     },
                 },
                 "run_id": {"type": "string"},
+
+                "capability": {"type": "string",
+                               "enum": list(aiseg_vectorize.vectorize_contract()["capability_kinds"])},
+                "output_geometry": {"type": "string",
+                                    "enum": list(aiseg_vectorize.vectorize_contract()["output_geometries"])},
             },
             "required": ["action"],
             "x-interactive-prepare": True,
@@ -1088,6 +1096,10 @@ def _ai_segment(args: dict) -> dict:
         return _integration._aiseg_get_presets(args)
     if action == "cancel":
         return _integration._aiseg_auto_cancel(args)
+    if action == "quote":
+        return _integration._aiseg_quote(args)
+    if action == "capabilities":
+        return _integration._aiseg_capabilities(args)
     return tool_error(f"Unknown action: {action}", "INVALID_ARGS", hint="facade_action_unknown",
                       actions=list(AI_SEGMENT_ACTIONS))
 

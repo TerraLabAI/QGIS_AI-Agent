@@ -30,8 +30,6 @@
 
 
 
-
-
 from __future__ import annotations
 
 import contextlib
@@ -51,14 +49,7 @@ MEMORY_NOTE_MAX_CHARS = 300
 
 REPLY_STYLES = ("concise", "balanced", "detailed")
 
-
-
-DEFAULT_REPLY_STYLE = "concise"
-QUESTION_POLICIES = ("balanced", "minimal", "confirm")
-DEFAULT_QUESTION_POLICY = "balanced"
-EXPERTISE_LEVELS = ("", "beginner", "intermediate", "expert")
-UNIT_SYSTEMS = ("metric", "imperial")
-DEFAULT_UNITS = "metric"
+DEFAULT_REPLY_STYLE = "balanced"
 LAYER_NAMINGS = ("human", "snake_case")
 DEFAULT_LAYER_NAMING = "human"
 MEMORY_SOURCES = ("user", "ai")
@@ -71,29 +62,6 @@ DEFAULT_MEMORY_KIND = "fact"
 
 MEMORY_SCOPES = ("user", "project")
 DEFAULT_MEMORY_SCOPE = "user"
-
-
-
-REPLY_LANGUAGES = (
-    ("en", "English"),
-    ("ar", "العربية"),
-    ("de", "Deutsch"),
-    ("es", "Español"),
-    ("fr", "Français"),
-    ("id", "Bahasa Indonesia"),
-    ("it", "Italiano"),
-    ("ja", "日本語"),
-    ("ko", "한국어"),
-    ("nl", "Nederlands"),
-    ("pl", "Polski"),
-    ("pt_BR", "Português (Brasil)"),
-    ("ru", "Русский"),
-    ("tr", "Türkçe"),
-    ("uk", "Українська"),
-    ("vi", "Tiếng Việt"),
-    ("zh_CN", "简体中文"),
-    ("zh_TW", "繁體中文"),
-)
 
 _WS = re.compile(r"\s+")
 
@@ -123,25 +91,8 @@ def _pick(value: object, choices: tuple, default: str) -> str:
     return value if value in choices else default
 
 
-def normalize_question_policy(value: object) -> str:
-    return _pick(value, QUESTION_POLICIES, DEFAULT_QUESTION_POLICY)
-
-
-def normalize_expertise(value: object) -> str:
-    return _pick(value, EXPERTISE_LEVELS, "")
-
-
-def normalize_units(value: object) -> str:
-    return _pick(value, UNIT_SYSTEMS, DEFAULT_UNITS)
-
-
 def normalize_layer_naming(value: object) -> str:
     return _pick(value, LAYER_NAMINGS, DEFAULT_LAYER_NAMING)
-
-
-def normalize_reply_language(value: object) -> str:
-    value = str(value or "").strip()
-    return value if any(code == value for code, _name in REPLY_LANGUAGES) else ""
 
 
 def _note_key(text: str) -> str:
@@ -479,7 +430,7 @@ def clear_memory_notes(settings) -> None:
 
 _PERSONAL_FIELDS = (
     ("profile_name", ""), ("profile_role", ""), ("profile_about", ""), ("profile_instructions", ""),
-    ("memory_notes", []), ("memory_forgotten", []),
+    ("memory_notes", []), ("memory_forgotten", []), ("profile_prefilled", ""),
 )
 
 
@@ -571,21 +522,9 @@ def profile_context(settings, project_path: str = "") -> dict:
     instructions = clean_text(getattr(settings, "profile_instructions", ""), PROFILE_MAX_CHARS)
     if instructions:
         context["instructions"] = instructions
-    language = normalize_reply_language(getattr(settings, "reply_language", ""))
-    if language:
-        context["reply_language"] = language
     style = normalize_reply_style(getattr(settings, "reply_style", DEFAULT_REPLY_STYLE))
     if style:
         context["reply_style"] = style
-    policy = normalize_question_policy(getattr(settings, "question_policy", DEFAULT_QUESTION_POLICY))
-    if policy != DEFAULT_QUESTION_POLICY:
-        context["question_policy"] = policy
-    expertise = normalize_expertise(getattr(settings, "expertise", ""))
-    if expertise:
-        context["expertise"] = expertise
-    units = normalize_units(getattr(settings, "units", DEFAULT_UNITS))
-    if units != DEFAULT_UNITS:
-        context["units"] = units
     naming = normalize_layer_naming(getattr(settings, "layer_naming", DEFAULT_LAYER_NAMING))
     if naming != DEFAULT_LAYER_NAMING:
         context["layer_naming"] = naming

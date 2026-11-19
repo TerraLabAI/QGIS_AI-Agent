@@ -310,7 +310,8 @@ class Response:
 
 
 def read_bounded(response, max_bytes: int, deadline: float | None = None, cancel=None,
-                 budget: float | None = None, progress=None, expected: int | None = None) -> bytes:
+                 budget: float | None = None, progress=None, expected: int | None = None,
+                 host: str = "") -> bytes:
 
 
 
@@ -343,7 +344,7 @@ def read_bounded(response, max_bytes: int, deadline: float | None = None, cancel
                 break
             parts.append(block)
             total += len(block)
-            slow = _pace_refusal(total, expected, time.monotonic() - reading_from, deadline, budget)
+            slow = _pace_refusal(total, expected, time.monotonic() - reading_from, deadline, budget, host)
             if slow is not None:
                 raise slow
             _tell_progress(progress, total, expected)
@@ -355,6 +356,12 @@ def read_bounded(response, max_bytes: int, deadline: float | None = None, cancel
             exc.received = b"".join(parts)
         raise
     return b"".join(parts)
+
+
+def _host_of(request) -> str:
+
+    full = getattr(request, "full_url", request)
+    return (urllib.parse.urlsplit(str(full)).hostname or "").lower()
 
 
 def _declared_length(headers) -> int | None:
@@ -371,8 +378,7 @@ def _span(deadline: float) -> float:
 
 
 def _pace_refusal(done: int, promised: int | None, spent: float, deadline: float | None,
-                  budget: float | None) -> FetchDeadline | None:
-
+                  budget: float | None, host: str = "") -> FetchDeadline | None:
 
 
 
@@ -388,7 +394,7 @@ def _pace_refusal(done: int, promised: int | None, spent: float, deadline: float
     allowed = spent + _span(deadline)
     if spent + rest <= allowed * read_clock.SLACK:
         return None
-    note_transfer(done, spent)
+    note_transfer(done, spent, host)
     needs = f"{rest / 60:.0f} more minutes" if rest >= 120 else f"{rest:.0f} more seconds"
     return FetchDeadline(
         f"{done / (1024 * 1024):.1f} of the {promised / (1024 * 1024):.1f} MB arrived in {spent:.0f} s "
@@ -691,12 +697,13 @@ def _send_once(request, timeout: float, max_bytes: int, deadline: float | None, 
 
 
 
+            host = _host_of(request)
             if promised is not None and budget and request.get_method() != "HEAD":
-                needed = seconds_to_transfer(promised)
+                needed = seconds_to_transfer(promised, host)
                 if needed is not None and needed > budget:
-                    rate = link_kbps() or 0.0
+                    rate = link_kbps(host) or 0.0
                     raise FetchTooSlow(
-                        f"The answer is {promised / (1024 * 1024):.0f} MB and this connection has been "
+                        f"The answer is {promised / (1024 * 1024):.0f} MB and {host} has been "
                         f"delivering {rate:.0f} kB/s, so it needs about {needed / 60:.0f} minutes, over "
                         f"the {budget:.0f} seconds this call has. A smaller area, a filtered "
                         "extract, or a lower resolution fits.")
@@ -705,13 +712,13 @@ def _send_once(request, timeout: float, max_bytes: int, deadline: float | None, 
 
             reading_from = time.perf_counter()
             body = read_bounded(response, max_bytes, deadline, cancel, budget,
-                                progress=current_progress_sink(), expected=promised)
+                                progress=current_progress_sink(), expected=promised, host=host)
 
 
 
 
 
-            note_transfer(len(body), time.perf_counter() - reading_from)
+            note_transfer(len(body), time.perf_counter() - reading_from, host)
             wire_bytes = len(body)
             headers = {k.lower(): v for k, v in response.headers.items()}
 
@@ -990,12 +997,13 @@ def _stream_once(request, path: str, part: str, timeout: float, max_bytes: int, 
                 raise FetchTooLarge(
                     f"The server says the answer is {promised} bytes, over the {cap} bytes this load "
                     "may write. Less of it, or a narrower area, fits.")
+            host = _host_of(request)
             if promised is not None and budget:
-                needed = seconds_to_transfer(promised)
+                needed = seconds_to_transfer(promised, host)
                 if needed is not None and needed > budget:
                     raise FetchTooSlow(
-                        f"The answer is {promised / (1024 * 1024):.0f} MB and this connection has been "
-                        f"delivering {link_kbps() or 0.0:.0f} kB/s, so it needs about {needed / 60:.0f} "
+                        f"The answer is {promised / (1024 * 1024):.0f} MB and {host} has been "
+                        f"delivering {link_kbps(host) or 0.0:.0f} kB/s, so it needs about {needed / 60:.0f} "
                         f"minutes, over the {budget:.0f} seconds this call has. A smaller area fits.")
             inflater = _StreamInflater(headers.get("content-encoding", ""), cap)
             reader = getattr(response, "read1", None) or response.read
@@ -1017,11 +1025,12 @@ def _stream_once(request, path: str, part: str, timeout: float, max_bytes: int, 
                     wire += len(block)
                     inflater.write(block, handle)
                     _tell_progress(progress, wire, promised)
-                    slow = _pace_refusal(wire, promised, time.perf_counter() - reading_from, deadline, budget)
+                    slow = _pace_refusal(wire, promised, time.perf_counter() - reading_from, deadline, budget,
+                                         host)
                     if slow is not None:
                         raise slow
                 inflater.close(handle)
-            note_transfer(wire, time.perf_counter() - reading_from)
+            note_transfer(wire, time.perf_counter() - reading_from, host)
             if promised is not None and wire < promised:
                 raise FetchTruncated(
                     f"The download stopped after {wire} of the {promised} bytes the server "

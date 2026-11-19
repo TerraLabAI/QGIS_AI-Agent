@@ -1882,6 +1882,78 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <source>left out</source>
             <translation>제외됨</translation>
         </message>
+        <message>
+            <source>The AI agent has been thinking for {time}</source>
+            <translation>AI 에이전트가 {time} 동안 생각하는 중</translation>
+        </message>
+        <message>
+            <source>Code running in QGIS for {time}</source>
+            <translation>QGIS에서 코드가 {time} 동안 실행 중</translation>
+        </message>
+        <message>
+            <source>Running in QGIS for {time}</source>
+            <translation>QGIS에서 {time} 동안 실행 중</translation>
+        </message>
+        <message>
+            <source>Bugs</source>
+            <translation>버그</translation>
+        </message>
+        <message>
+            <source>For a team, a call is quickest.</source>
+            <translation>팀이라면 통화가 가장 빠릅니다.</translation>
+        </message>
+        <message>
+            <source>Ideas</source>
+            <translation>아이디어</translation>
+        </message>
+        <message>
+            <source>Licences, quotes and invoices for your team, too.</source>
+            <translation>팀을 위한 라이선스, 견적서, 청구서도 안내해 드립니다.</translation>
+        </message>
+        <message>
+            <source>Questions</source>
+            <translation>질문</translation>
+        </message>
+        <message>
+            <source>Team needs</source>
+            <translation>팀 요구사항</translation>
+        </message>
+        <message>
+            <source>Map history</source>
+            <translation>지도 기록</translation>
+        </message>
+        <message>
+            <source>Open earlier project versions</source>
+            <translation>이전 프로젝트 버전 열기</translation>
+        </message>
+        <message>
+            <source>Recall your last message</source>
+            <translation>마지막 메시지 불러오기</translation>
+        </message>
+        <message>
+            <source>Redo it</source>
+            <translation>다시 실행</translation>
+        </message>
+        <message>
+            <source>Sent with this conversation and the plugin's recent log.</source>
+            <translation>이 대화와 플러그인의 최근 로그와 함께 전송됩니다.</translation>
+        </message>
+        <message>
+            <source>Undo the last request</source>
+            <translation>마지막 요청 취소</translation>
+        </message>
+        <message>
+            <source>We read every message and use it to improve AI Agent.</source>
+            <translation>모든 메시지를 읽고 AI Agent를 개선하는 데 사용합니다.</translation>
+        </message>
+        <message>
+            <source>What happened, and what did you expect? For example: the buffer came out in degrees instead of metres.</source>
+            <translation>무슨 일이 있었고 어떤 결과를 기대했나요? 예: 버퍼가 미터가 아닌 도 단위로 나왔습니다.</translation>
+        </message>
+        <message>
+            <source>Kept until you delete it</source>
+            <translation>삭제할 때까지 보관됩니다</translation>
+        </message>
     </context>
     <context>
         <name>AIAgentContext</name>
@@ -2015,12 +2087,12 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <translation>도구: {tool}</translation>
         </message>
         <message>
-            <source>{day} UTC, AI Agent run {run}: added {layers}</source>
-            <translation>{day} UTC, AI Agent 실행 {run}: {layers} 추가</translation>
+            <source>{day} UTC, run {run}: added {layers}</source>
+            <translation>{day} UTC, 실행 {run}: {layers} 추가</translation>
         </message>
         <message>
-            <source>{day} UTC, added by AI Agent by TerraLab</source>
-            <translation>{day} UTC, TerraLab의 AI Agent가 추가</translation>
+            <source>Data source</source>
+            <translation>데이터 소스</translation>
         </message>
     </context>
     <context>
@@ -3477,6 +3549,10 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <source>Stopping...</source>
             <translation>중지하는 중...</translation>
         </message>
+        <message>
+            <source>the map render</source>
+            <translation>지도 렌더링</translation>
+        </message>
     </context>
     <context>
         <name>Composer</name>
@@ -4265,6 +4341,18 @@ This file is no longer where the run wrote it.</source>
             <source>Dock or undock AI Agent</source>
             <translation>AI Agent 고정 또는 분리</translation>
         </message>
+        <message>
+            <source>Pro ends on {date}. Keep it in one click.</source>
+            <translation>Pro가 {date}에 종료됩니다. 한 번의 클릭으로 유지하세요.</translation>
+        </message>
+        <message>
+            <source>Pro is set to end. Keep it in one click.</source>
+            <translation>Pro가 곧 종료될 예정입니다. 한 번의 클릭으로 유지하세요.</translation>
+        </message>
+        <message>
+            <source>See what's in Pro</source>
+            <translation>Pro에 포함된 기능 보기</translation>
+        </message>
     </context>
     <context>
         <name>HistoryPopup</name>
@@ -4860,6 +4948,10 @@ Click to show it in the Layers panel.</source>
             <source>{n} of {total} features in {layer}</source>
             <translation>{layer}의 피처 {total}개 중 {n}개</translation>
         </message>
+        <message>
+            <source>Allow lets AI Agent read and write in {folder} for this project.</source>
+            <translation>허용하면 AI Agent가 이 프로젝트에서 {folder}에 읽고 쓸 수 있습니다.</translation>
+        </message>
     </context>
     <context>
         <name>PermissionChip</name>
@@ -5404,6 +5496,138 @@ Thank you</source>
             <source>{n} tasks a month, cancel anytime</source>
             <translation>월 {n}개 작업, 언제든 취소 가능</translation>
         </message>
+        <message>
+            <source>1 task left this month</source>
+            <translation>이번 달 작업 1개 남음</translation>
+        </message>
+        <message>
+            <source>All {n} tasks used. They reset on {date}.</source>
+            <translation>작업 {n}개를 모두 사용했습니다. {date}에 초기화됩니다.</translation>
+        </message>
+        <message>
+            <source>Back to Pro</source>
+            <translation>Pro로 돌아가기</translation>
+        </message>
+        <message>
+            <source>Come back to Pro for {n} tasks a month.</source>
+            <translation>Pro로 돌아오면 한 달에 작업 {n}개를 사용할 수 있습니다.</translation>
+        </message>
+        <message>
+            <source>Contact us</source>
+            <translation>문의하기</translation>
+        </message>
+        <message>
+            <source>Contact us for more tasks</source>
+            <translation>작업이 더 필요하면 문의하기</translation>
+        </message>
+        <message>
+            <source>Get Pro for {n} tasks a month.</source>
+            <translation>Pro로 한 달에 작업 {n}개를 사용하세요.</translation>
+        </message>
+        <message>
+            <source>Need Pro for work?</source>
+            <translation>업무용으로 Pro가 필요하세요?</translation>
+        </message>
+        <message>
+            <source>No card? Contact us to pay by invoice.</source>
+            <translation>카드가 없나요? 문의하시면 청구서로 결제할 수 있습니다.</translation>
+        </message>
+        <message>
+            <source>No card? Contact us to start your free trial.</source>
+            <translation>카드가 없나요? 문의하시면 무료 체험을 시작할 수 있습니다.</translation>
+        </message>
+        <message>
+            <source>Pay nothing today</source>
+            <translation>오늘은 결제하지 않습니다</translation>
+        </message>
+        <message>
+            <source>Pay nothing today, then your local price each month. Cancel anytime.</source>
+            <translation>오늘은 결제하지 않으며, 이후 매달 현지 가격이 청구됩니다. 언제든 취소할 수 있습니다.</translation>
+        </message>
+        <message>
+            <source>Pay nothing today, then your student price each month. Cancel anytime.</source>
+            <translation>오늘은 결제하지 않으며, 이후 매달 학생 가격이 청구됩니다. 언제든 취소할 수 있습니다.</translation>
+        </message>
+        <message>
+            <source>Pay nothing today, then {price}/month excl. VAT. Cancel anytime.</source>
+            <translation>오늘은 결제하지 않으며, 이후 월 {price}(부가세 별도)가 청구됩니다. 언제든 취소할 수 있습니다.</translation>
+        </message>
+        <message>
+            <source>Pay nothing today, then {price}/month. Cancel anytime.</source>
+            <translation>오늘은 결제하지 않으며, 이후 월 {price}가 청구됩니다. 언제든 취소할 수 있습니다.</translation>
+        </message>
+        <message>
+            <source>Payment of {amount} failed</source>
+            <translation>{amount} 결제에 실패했습니다</translation>
+        </message>
+        <message>
+            <source>Pro is paused until payment goes through.</source>
+            <translation>결제가 완료될 때까지 Pro가 일시 중지됩니다.</translation>
+        </message>
+        <message>
+            <source>Start Pro now</source>
+            <translation>지금 Pro 시작</translation>
+        </message>
+        <message>
+            <source>Start free trial</source>
+            <translation>무료 체험 시작</translation>
+        </message>
+        <message>
+            <source>Try Pro free for a week to get more tasks.</source>
+            <translation>일주일간 Pro를 무료로 사용하고 더 많은 작업을 받아 보세요.</translation>
+        </message>
+        <message>
+            <source>Welcome to Pro</source>
+            <translation>Pro에 오신 것을 환영합니다</translation>
+        </message>
+        <message>
+            <source>You now have {n} tasks a month.</source>
+            <translation>이제 한 달에 작업 {n}개를 사용할 수 있습니다.</translation>
+        </message>
+        <message>
+            <source>You used all your tasks this month</source>
+            <translation>이번 달 작업을 모두 사용했습니다</translation>
+        </message>
+        <message>
+            <source>You used your last task</source>
+            <translation>마지막 작업을 사용했습니다</translation>
+        </message>
+        <message>
+            <source>Your free trial runs until {date}.</source>
+            <translation>무료 체험은 {date}까지입니다.</translation>
+        </message>
+        <message>
+            <source>Your tasks reset next month.</source>
+            <translation>작업은 다음 달에 초기화됩니다.</translation>
+        </message>
+        <message>
+            <source>Your tasks reset on {date}.</source>
+            <translation>작업은 {date}에 초기화됩니다.</translation>
+        </message>
+        <message>
+            <source>Your trial did not start. You were not charged.</source>
+            <translation>체험이 시작되지 않았습니다. 요금은 청구되지 않았습니다.</translation>
+        </message>
+        <message>
+            <source>{n} tasks a month. Cancel anytime.</source>
+            <translation>월 {n}개 작업. 언제든 취소할 수 있습니다.</translation>
+        </message>
+        <message>
+            <source>{n} tasks left this month</source>
+            <translation>이번 달 작업 {n}개 남음</translation>
+        </message>
+        <message>
+            <source>{price} excl. VAT</source>
+            <translation>{price} (VAT 별도)</translation>
+        </message>
+        <message>
+            <source>{price}/month. Cancel anytime.</source>
+            <translation>월 {price}. 언제든 취소할 수 있습니다.</translation>
+        </message>
+        <message>
+            <source>{price}/month excl. VAT. Cancel anytime.</source>
+            <translation>월 {price}(부가세 별도). 언제든 취소할 수 있습니다.</translation>
+        </message>
     </context>
     <context>
         <name>QuotaPauseCard</name>
@@ -5645,6 +5869,22 @@ Thank you</source>
         <message>
             <source>{n} free tasks left</source>
             <translation>무료 작업 {n}개 남음</translation>
+        </message>
+        <message>
+            <source>1 task left</source>
+            <translation>작업 1개 남음</translation>
+        </message>
+        <message>
+            <source>Get more with Pro</source>
+            <translation>Pro로 더 많이 사용하기</translation>
+        </message>
+        <message>
+            <source>Pro: {n} tasks a month, higher effort levels and Autopilot.</source>
+            <translation>Pro: 월 {n}개 작업, 더 높은 작업 강도 단계, Autopilot.</translation>
+        </message>
+        <message>
+            <source>{n} tasks left</source>
+            <translation>작업 {n}개 남음</translation>
         </message>
     </context>
     <context>
@@ -6206,6 +6446,478 @@ Thank you</source>
             <source>Your usage and chats help us fix bugs. Turn it off anytime.</source>
             <translation>사용 정보와 채팅은 버그를 고치는 데 도움이 됩니다. 언제든 끌 수 있습니다.</translation>
         </message>
+        <message>
+            <source>Bell</source>
+            <translation>벨</translation>
+        </message>
+        <message>
+            <source>Chime</source>
+            <translation>차임</translation>
+        </message>
+        <message>
+            <source>Icon and sound</source>
+            <translation>아이콘과 소리</translation>
+        </message>
+        <message>
+            <source>Icon only</source>
+            <translation>아이콘만</translation>
+        </message>
+        <message>
+            <source>Little train</source>
+            <translation>꼬마 기차</translation>
+        </message>
+        <message>
+            <source>Marimba</source>
+            <translation>마림바</translation>
+        </message>
+        <message>
+            <source>Needs your answer</source>
+            <translation>답변 필요</translation>
+        </message>
+        <message>
+            <source>Notifications</source>
+            <translation>알림</translation>
+        </message>
+        <message>
+            <source>Notify me</source>
+            <translation>알림 받기</translation>
+        </message>
+        <message>
+            <source>Off</source>
+            <translation>끔</translation>
+        </message>
+        <message>
+            <source>Only while QGIS is in the background or the panel is hidden.</source>
+            <translation>QGIS가 백그라운드에 있거나 패널이 숨겨져 있을 때만 알립니다.</translation>
+        </message>
+        <message>
+            <source>Play</source>
+            <translation>재생</translation>
+        </message>
+        <message>
+            <source>Questions and approvals.</source>
+            <translation>질문과 승인.</translation>
+        </message>
+        <message>
+            <source>Run finished</source>
+            <translation>실행 완료</translation>
+        </message>
+        <message>
+            <source>Volume</source>
+            <translation>볼륨</translation>
+        </message>
+        <message>
+            <source>1 task left</source>
+            <translation>남은 작업 1개</translation>
+        </message>
+        <message>
+            <source>A badge on the QGIS icon and a sound, only while QGIS is in the background or the panel is hidden.</source>
+            <translation>QGIS가 백그라운드에 있거나 패널이 숨겨져 있을 때만 QGIS 아이콘의 배지와 소리로 알려 드립니다.</translation>
+        </message>
+        <message>
+            <source>About you and Instructions</source>
+            <translation>사용자 정보 및 지침</translation>
+        </message>
+        <message>
+            <source>Back in {n} days</source>
+            <translation>{n}일 후 복구</translation>
+        </message>
+        <message>
+            <source>Back tomorrow</source>
+            <translation>내일 복구</translation>
+        </message>
+        <message>
+            <source>Call me back while I work elsewhere</source>
+            <translation>다른 곳에서 작업하는 동안 다시 알려 주세요</translation>
+        </message>
+        <message>
+            <source>Change</source>
+            <translation>변경</translation>
+        </message>
+        <message>
+            <source>Commercial use included</source>
+            <translation>상업적 이용 포함</translation>
+        </message>
+        <message>
+            <source>Context for every task</source>
+            <translation>모든 작업의 맥락</translation>
+        </message>
+        <message>
+            <source>Could not load your usage</source>
+            <translation>사용량을 불러오지 못했습니다</translation>
+        </message>
+        <message>
+            <source>Detect and outline objects on imagery: buildings, trees, water or fields become polygons you can edit.</source>
+            <translation>이미지에서 객체를 감지하고 윤곽을 그립니다. 건물, 나무, 물, 농지가 편집할 수 있는 폴리곤이 됩니다.</translation>
+        </message>
+        <message>
+            <source>Edit your imagery with one sentence, the way you would ask a colleague.</source>
+            <translation>동료에게 부탁하듯 한 문장으로 이미지를 편집하세요.</translation>
+        </message>
+        <message>
+            <source>Every task, day by day, on terra-lab.ai</source>
+            <translation>모든 작업을 terra-lab.ai에서 일별로 확인하세요</translation>
+        </message>
+        <message>
+            <source>Everything else here works without an account.</source>
+            <translation>이 밖의 모든 기능은 계정 없이 사용할 수 있습니다.</translation>
+        </message>
+        <message>
+            <source>From your TerraLab account.</source>
+            <translation>TerraLab 계정에서 가져옵니다.</translation>
+        </message>
+        <message>
+            <source>General</source>
+            <translation>일반</translation>
+        </message>
+        <message>
+            <source>How the AI agent answers.</source>
+            <translation>AI 에이전트가 답변하는 방식입니다.</translation>
+        </message>
+        <message>
+            <source>How the AI agent calls you back.</source>
+            <translation>AI 에이전트가 다시 알려 주는 방식입니다.</translation>
+        </message>
+        <message>
+            <source>Install</source>
+            <translation>설치</translation>
+        </message>
+        <message>
+            <source>Install {plugin}</source>
+            <translation>{plugin} 설치</translation>
+        </message>
+        <message>
+            <source>Loading your plan...</source>
+            <translation>요금제를 불러오는 중...</translation>
+        </message>
+        <message>
+            <source>Loading your tasks...</source>
+            <translation>작업을 불러오는 중...</translation>
+        </message>
+        <message>
+            <source>Monthly tasks</source>
+            <translation>월간 작업</translation>
+        </message>
+        <message>
+            <source>More from TerraLab</source>
+            <translation>TerraLab의 다른 제품</translation>
+        </message>
+        <message>
+            <source>Needs your answer: {a} · Run finished: {b}</source>
+            <translation>답변 필요: {a} · 실행 완료: {b}</translation>
+        </message>
+        <message>
+            <source>One TerraLab account signs you in to all three plugins.</source>
+            <translation>TerraLab 계정 하나로 세 플러그인 모두에 로그인됩니다.</translation>
+        </message>
+        <message>
+            <source>One task is one message you send, however many steps the AI agent takes. Tasks that fail on our side are given back.</source>
+            <translation>작업 1개는 AI 에이전트가 몇 단계를 거치든 사용자가 보내는 메시지 1개입니다. 당사 측 문제로 실패한 작업은 돌려 드립니다.</translation>
+        </message>
+        <message>
+            <source>Open {plugin}</source>
+            <translation>{plugin} 열기</translation>
+        </message>
+        <message>
+            <source>Opens the QGIS plugin manager on this plugin. Free to install.</source>
+            <translation>이 플러그인의 QGIS 플러그인 관리자 페이지를 엽니다. 무료로 설치할 수 있습니다.</translation>
+        </message>
+        <message>
+            <source>Personal, non-commercial use</source>
+            <translation>개인용, 비상업적 이용</translation>
+        </message>
+        <message>
+            <source>Plan</source>
+            <translation>요금제</translation>
+        </message>
+        <message>
+            <source>Profile</source>
+            <translation>프로필</translation>
+        </message>
+        <message>
+            <source>Resets in {n} days</source>
+            <translation>{n}일 후 초기화</translation>
+        </message>
+        <message>
+            <source>Resets tomorrow</source>
+            <translation>내일 초기화</translation>
+        </message>
+        <message>
+            <source>Rules the AI agent always follows.</source>
+            <translation>AI 에이전트가 항상 따르는 규칙입니다.</translation>
+        </message>
+        <message>
+            <source>Saved on this computer.</source>
+            <translation>이 컴퓨터에 저장됩니다.</translation>
+        </message>
+        <message>
+            <source>Search settings</source>
+            <translation>설정 검색</translation>
+        </message>
+        <message>
+            <source>Show its panel.</source>
+            <translation>패널을 표시합니다.</translation>
+        </message>
+        <message>
+            <source>Sign in to see your plan and tasks</source>
+            <translation>로그인하여 요금제와 작업을 확인하세요</translation>
+        </message>
+        <message>
+            <source>Sounds</source>
+            <translation>소리</translation>
+        </message>
+        <message>
+            <source>Tell the AI agent who you are and the rules it always follows. Included in Pro.</source>
+            <translation>AI 에이전트에게 사용자가 누구인지와 항상 따라야 할 규칙을 알려 주세요. Pro에 포함됩니다.</translation>
+        </message>
+        <message>
+            <source>Two more AI plugins for QGIS, from the makers of AI Agent.</source>
+            <translation>AI Agent를 만든 팀의 QGIS용 AI 플러그인 두 개가 더 있습니다.</translation>
+        </message>
+        <message>
+            <source>Upgrade plan</source>
+            <translation>요금제 업그레이드</translation>
+        </message>
+        <message>
+            <source>Upgrade to Pro</source>
+            <translation>Pro로 업그레이드</translation>
+        </message>
+        <message>
+            <source>Usage</source>
+            <translation>사용량</translation>
+        </message>
+        <message>
+            <source>What counts as a task</source>
+            <translation>작업으로 계산되는 경우</translation>
+        </message>
+        <message>
+            <source>What leaves this computer, and for how long.</source>
+            <translation>이 컴퓨터에서 나가는 데이터와 보관 기간입니다.</translation>
+        </message>
+        <message>
+            <source>What you work on, your data, your area.</source>
+            <translation>작업 내용, 데이터, 작업 지역입니다.</translation>
+        </message>
+        <message>
+            <source>Your plan and the tasks you used this month.</source>
+            <translation>요금제와 이번 달에 사용한 작업입니다.</translation>
+        </message>
+        <message>
+            <source>Your plan, payment method and invoices, on terra-lab.ai.</source>
+            <translation>요금제, 결제 수단, 청구서를 terra-lab.ai에서 확인하세요.</translation>
+        </message>
+        <message>
+            <source>Your tasks are counted on our side; nothing is lost.</source>
+            <translation>작업은 당사 측에서 집계되므로 손실되지 않습니다.</translation>
+        </message>
+        <message>
+            <source>of {limit} this month</source>
+            <translation>이번 달 {limit} 중</translation>
+        </message>
+        <message>
+            <source>{n} tasks left</source>
+            <translation>남은 작업 {n}개</translation>
+        </message>
+        <message>
+            <source>{p}% left</source>
+            <translation>{p}% 남음</translation>
+        </message>
+        <message>
+            <source>1 task left this month</source>
+            <translation>이번 달 작업 1개 남음</translation>
+        </message>
+        <message>
+            <source>Cancel anytime before it ends.</source>
+            <translation>종료 전에는 언제든 취소할 수 있습니다.</translation>
+        </message>
+        <message>
+            <source>Card declined</source>
+            <translation>카드가 거절되었습니다</translation>
+        </message>
+        <message>
+            <source>Come back to Pro</source>
+            <translation>Pro로 돌아오기</translation>
+        </message>
+        <message>
+            <source>Ends {date}</source>
+            <translation>{date} 종료</translation>
+        </message>
+        <message>
+            <source>Payment failed</source>
+            <translation>결제 실패</translation>
+        </message>
+        <message>
+            <source>Pro is off until it's paid.</source>
+            <translation>결제될 때까지 Pro는 꺼져 있습니다.</translation>
+        </message>
+        <message>
+            <source>Pro trial</source>
+            <translation>Pro 체험</translation>
+        </message>
+        <message>
+            <source>Pro trial, 1 day left</source>
+            <translation>Pro 체험, 1일 남음</translation>
+        </message>
+        <message>
+            <source>Pro trial, ends {date}</source>
+            <translation>Pro 체험, {date} 종료</translation>
+        </message>
+        <message>
+            <source>Pro trial, {n} days left</source>
+            <translation>Pro 체험, {n}일 남음</translation>
+        </message>
+        <message>
+            <source>Then {price}/month. Cancel anytime.</source>
+            <translation>이후 월 {price}. 언제든 취소할 수 있습니다.</translation>
+        </message>
+        <message>
+            <source>Try Pro free for {n} days</source>
+            <translation>Pro를 {n}일 무료로 체험하기</translation>
+        </message>
+        <message>
+            <source>Try another card</source>
+            <translation>다른 카드로 시도</translation>
+        </message>
+        <message>
+            <source>Update card</source>
+            <translation>카드 업데이트</translation>
+        </message>
+        <message>
+            <source>You're out of tasks this month</source>
+            <translation>이번 달 작업을 모두 사용했습니다</translation>
+        </message>
+        <message>
+            <source>You're out until {date}</source>
+            <translation>{date}까지 사용할 수 없습니다</translation>
+        </message>
+        <message>
+            <source>Your trial didn't start. Nothing was charged.</source>
+            <translation>체험이 시작되지 않았습니다. 청구된 금액은 없습니다.</translation>
+        </message>
+        <message>
+            <source>{amount} due.</source>
+            <translation>결제 예정 금액 {amount}.</translation>
+        </message>
+        <message>
+            <source>{n} tasks left this month</source>
+            <translation>이번 달 작업 {n}개 남음</translation>
+        </message>
+        <message>
+            <source>{plan}, renews {date}</source>
+            <translation>{plan}, {date} 갱신</translation>
+        </message>
+        <message>
+            <source>{price} excl. VAT</source>
+            <translation>{price} (VAT 별도)</translation>
+        </message>
+        <message>
+            <source>{price}/month. Cancel anytime.</source>
+            <translation>월 {price}. 언제든 취소할 수 있습니다.</translation>
+        </message>
+        <message>
+            <source>{used} of {limit} used</source>
+            <translation>{limit} 중 {used} 사용</translation>
+        </message>
+        <message>
+            <source>Clear search</source>
+            <translation>검색어 지우기</translation>
+        </message>
+        <message>
+            <source>Try Pro free</source>
+            <translation>Pro 무료 체험</translation>
+        </message>
+        <message>
+            <source>Delete account</source>
+            <translation>계정 삭제</translation>
+        </message>
+        <message>
+            <source>Report a problem</source>
+            <translation>문제 신고</translation>
+        </message>
+        <message>
+            <source>Ends on {date}</source>
+            <translation>{date}에 종료</translation>
+        </message>
+        <message>
+            <source>Monthly limit reached, resets {date}</source>
+            <translation>월 한도에 도달했습니다. {date}에 초기화됩니다.</translation>
+        </message>
+        <message>
+            <source>Pro is paused until payment goes through.</source>
+            <translation>결제가 완료될 때까지 Pro가 일시 중지됩니다.</translation>
+        </message>
+        <message>
+            <source>Pro trial: 1 day left</source>
+            <translation>Pro 체험: 1일 남음</translation>
+        </message>
+        <message>
+            <source>Pro trial: {n} days left</source>
+            <translation>Pro 체험: {n}일 남음</translation>
+        </message>
+        <message>
+            <source>Your trial did not start. You were not charged.</source>
+            <translation>체험이 시작되지 않았습니다. 요금은 청구되지 않았습니다.</translation>
+        </message>
+        <message>
+            <source>Then {price}/month excl. VAT. Cancel anytime.</source>
+            <translation>이후 월 {price}(부가세 별도). 언제든 취소할 수 있습니다.</translation>
+        </message>
+        <message>
+            <source>{price}/month excl. VAT. Cancel anytime.</source>
+            <translation>월 {price}(부가세 별도). 언제든 취소할 수 있습니다.</translation>
+        </message>
+        <message>
+            <source>Desktop notifications</source>
+            <translation>데스크톱 알림</translation>
+        </message>
+        <message>
+            <source>When QGIS is in the background and a run finishes or needs you.</source>
+            <translation>QGIS가 백그라운드에 있을 때 실행이 끝나거나 사용자의 확인이 필요한 경우.</translation>
+        </message>
+        <message>
+            <source>Resets today</source>
+            <translation>오늘 초기화됩니다</translation>
+        </message>
+        <message>
+            <source>Try Pro free for 1 day</source>
+            <translation>Pro 1일 무료 체험</translation>
+        </message>
+        <message>
+            <source>More AI plugins</source>
+            <translation>AI 플러그인 더 보기</translation>
+        </message>
+        <message>
+            <source>Applies after restarting QGIS.</source>
+            <translation>QGIS를 다시 시작하면 적용됩니다.</translation>
+        </message>
+        <message>
+            <source>How AI Agent looks, what it knows about you, and how it calls you back.</source>
+            <translation>AI Agent의 외형, 사용자에 대해 아는 내용, 알림 방식을 설정합니다.</translation>
+        </message>
+        <message>
+            <source>Language</source>
+            <translation>언어</translation>
+        </message>
+        <message>
+            <source>Usage stats: only that you used the app and when. Chats are kept as your History retention says, so a conversation survives an update; we may read one, or have a model score it, to fix bugs, never to train AI. 0 days of history stores nothing.</source>
+            <translation>사용 통계: 앱을 사용했다는 사실과 시점만 해당됩니다. 업데이트 후에도 대화가 유지되도록 채팅을 기록 보관 기간 설정에 따라 보관하며, 버그를 고치기 위해 채팅을 읽거나 모델이 점수를 매기게 할 수 있고, AI 학습에는 절대 사용하지 않습니다. 기록 0일로 설정하면 아무것도 저장되지 않습니다.</translation>
+        </message>
+        <message>
+            <source>Grey text in the message box. Tab takes it.</source>
+            <translation>메시지 입력창에 표시되는 회색 글자입니다. Tab 키로 적용합니다.</translation>
+        </message>
+        <message>
+            <source>Typing suggestions</source>
+            <translation>입력 제안</translation>
+        </message>
+        <message>
+            <source>Language, response style, suggestions and notifications go back to their defaults.</source>
+            <translation>언어, 답변 스타일, 입력 제안, 알림이 기본값으로 돌아갑니다.</translation>
+        </message>
+        <message>
+            <source>Reset settings</source>
+            <translation>설정 초기화</translation>
+        </message>
     </context>
     <context>
         <name>SiblingCard</name>
@@ -6608,6 +7320,10 @@ Thank you</source>
         <message>
             <source>Always allowed</source>
             <translation>항상 허용됨</translation>
+        </message>
+        <message>
+            <source>Allow AI Agent to write in {folder}?</source>
+            <translation>AI Agent가 {folder}에 쓰도록 허용할까요?</translation>
         </message>
     </context>
     <context>
@@ -8929,6 +9645,97 @@ Thank you</source>
         <message>
             <source>Selected</source>
             <translation>선택됨</translation>
+        </message>
+    </context>
+    <context>
+        <name>FolderCard</name>
+        <message>
+            <source>A folder on another computer of your network.</source>
+            <translation>네트워크의 다른 컴퓨터에 있는 폴더입니다.</translation>
+        </message>
+        <message>
+            <source>Denied</source>
+            <translation>거부됨</translation>
+        </message>
+        <message>
+            <source>Deny</source>
+            <translation>거부</translation>
+        </message>
+        <message>
+            <source>Let AI Agent open this folder?</source>
+            <translation>AI Agent가 이 폴더를 열도록 허용할까요?</translation>
+        </message>
+        <message>
+            <source>Read and write</source>
+            <translation>읽기 및 쓰기</translation>
+        </message>
+        <message>
+            <source>Read only</source>
+            <translation>읽기 전용</translation>
+        </message>
+        <message>
+            <source>What AI Agent reads there is sent to the AI model. Kept for this project.</source>
+            <translation>AI Agent가 그곳에서 읽은 내용은 AI 모델로 전송됩니다. 이 프로젝트에 대해 유지됩니다.</translation>
+        </message>
+    </context>
+    <context>
+        <name>FolderChip</name>
+        <message>
+            <source>1 folder</source>
+            <translation>폴더 1개</translation>
+        </message>
+        <message>
+            <source>Folders</source>
+            <translation>폴더</translation>
+        </message>
+        <message>
+            <source>Folders AI Agent can open in this project</source>
+            <translation>이 프로젝트에서 AI Agent가 열 수 있는 폴더</translation>
+        </message>
+        <message>
+            <source>{n} folders</source>
+            <translation>폴더 {n}개</translation>
+        </message>
+    </context>
+    <context>
+        <name>FolderPopover</name>
+        <message>
+            <source>Folders AI Agent can open in this project</source>
+            <translation>이 프로젝트에서 AI Agent가 열 수 있는 폴더</translation>
+        </message>
+        <message>
+            <source>The project folder and its layers' folders are always open for reading.</source>
+            <translation>프로젝트 폴더와 레이어의 폴더는 항상 읽기용으로 열려 있습니다.</translation>
+        </message>
+    </context>
+    <context>
+        <name>_FolderRow</name>
+        <message>
+            <source>Read and write</source>
+            <translation>읽기 및 쓰기</translation>
+        </message>
+        <message>
+            <source>Read only</source>
+            <translation>읽기 전용</translation>
+        </message>
+        <message>
+            <source>Remove</source>
+            <translation>제거</translation>
+        </message>
+    </context>
+    <context>
+        <name>AIAgentRecovery</name>
+        <message>
+            <source>QGIS closed during a run. {n} layer(s) of unsaved work came back in the group "{group}". Save them to keep them.</source>
+            <translation>실행 중에 QGIS가 종료되었습니다. 저장하지 않은 작업의 레이어 {n}개가 "{group}" 그룹으로 복구되었습니다. 유지하려면 저장하세요.</translation>
+        </message>
+        <message>
+            <source>Some unsaved work could not be put back. Its copy is kept in {folder}.</source>
+            <translation>저장하지 않은 일부 작업을 복구하지 못했습니다. 사본은 {folder}에 보관되어 있습니다.</translation>
+        </message>
+        <message>
+            <source>{name} (unsaved edits kept)</source>
+            <translation>{name} (저장하지 않은 편집 내용 유지됨)</translation>
         </message>
     </context>
 </TS>

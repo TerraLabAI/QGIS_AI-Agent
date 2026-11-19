@@ -44,7 +44,7 @@ _MAX_URL_CHARS = 300
 
 
 _SERVICE_TOKENS = frozenset({
-    "osm_themes", "overture_themes", "division_subtypes", "footprint_sources",
+    "osm_themes", "overture_themes", "overture_twin_themes", "division_subtypes", "footprint_sources",
 })
 _MAX_TOKENS = 60
 _MAX_TOKEN_CHARS = 40

@@ -9,10 +9,8 @@
 
 from __future__ import annotations
 
-import sys
-
 from qgis.PyQt.QtCore import Qt, pyqtSignal
-from qgis.PyQt.QtGui import QKeySequence, QPixmap
+from qgis.PyQt.QtGui import QPixmap
 from qgis.PyQt.QtWidgets import (
     QApplication,
     QDialog,
@@ -30,14 +28,10 @@ from ...core.served_state import SUPPORT_EMAIL
 from ..external_links import open_external_url
 from ..font_scale import apply_font_scale_to_tree, scale_px_length, scale_qss_font_px, widget_pixel_ratio
 from ..shared import (
-    CHECKPOINTS_KEYS,
     PLUGIN_ICON_PATH,
     PRODUCT_NAME,
-    STEP_BACK_KEYS,
-    STEP_FORWARD_KEYS,
     exec_dialog,
     size_within_screen,
-    toggle_panel_key_text,
     tr,
 )
 from ..style import (
@@ -46,20 +40,15 @@ from ..style import (
     _BTN_PRIMARY_WIDE,
     BTN_PILL_PX,
     BTN_PRIMARY_WIDE_PX,
-    BTN_PX,
-    CHIP_PX,
     FIELD,
-    FONT_BASE,
     FONT_BODY,
     FONT_HINT,
     INK,
     INK_2,
     INK_3,
     LINE,
-    MONO_FAMILY,
     PAGE,
     RADIUS_CARD,
-    RADIUS_CHIP,
     SURFACE,
     WEIGHT_MEDIUM,
     keyboard_ring,
@@ -69,34 +58,6 @@ from ..styles import (
     _UPDATE_LATER_STYLE,
     _UPDATE_NOTE_STYLE,
     _UPDATE_TITLE_STYLE,
-    MUTED_TEXT,
-    PANEL_TEXT,
-)
-
-
-
-_SHORTCUTS_QSS = scale_qss_font_px(
-    f"QDialog#shortcutsDialog {{ background: {PAGE}; }}"
-    f"QLabel#shTitle {{ font-size: 16px; font-weight: 600; color: {INK};"
-    " background: transparent; }"
-    f"QLabel#shSub {{ font-size: {FONT_BODY}px; color: {INK_2}; background: transparent; }}"
-    f"QFrame#shCard {{ background: {SURFACE}; border: 1px solid {LINE};"
-    f" border-radius: {RADIUS_CARD}px; }}"
-    f"QFrame#shColumnRule {{ background: {LINE}; border: none;"
-    " min-width: 1px; max-width: 1px; }"
-    f"QLabel#shSection {{ font-size: {FONT_HINT}px; font-weight: {WEIGHT_MEDIUM};"
-    f" color: {INK_3}; background: transparent; }}"
-    f"QLabel#shAction {{ font-size: {FONT_BASE}px; color: {INK}; background: transparent; }}"
-    f"QLabel#shNote {{ font-size: {FONT_HINT}px; color: {INK_3}; background: transparent; }}"
-    f"QLabel#shJoin {{ font-size: {FONT_HINT}px; color: {INK_3}; background: transparent; }}"
-    f"QLabel#shKey {{ font-family: {MONO_FAMILY}; font-size: {FONT_HINT}px; color: {INK_2};"
-    f" background: {FIELD}; border: 1px solid {LINE}; border-radius: {RADIUS_CHIP}px;"
-    " padding: 0 7px; }"
-    f"QLabel#shSymbol {{ font-size: {FONT_BASE + 1}px; color: {INK_2};"
-    f" background: {FIELD}; border: 1px solid {LINE}; border-radius: {RADIUS_CHIP}px;"
-    " padding: 0 4px; }"
-    f"QLabel#shWord {{ font-size: {FONT_HINT}px; color: {INK_2}; background: {FIELD};"
-    f" border: 1px solid {LINE}; border-radius: {RADIUS_CHIP}px; padding: 0 7px; }}"
 )
 
 
@@ -240,276 +201,123 @@ class UpdateBanner(QWidget):
         self.dismissed.emit(self.version)
 
 
-def _kbd(text: str, parent, mono: bool = True) -> QLabel:
-
-    cap = QLabel(text, parent)
-
-
-    symbol = mono and len(text) == 1 and not text.isascii()
-    cap.setObjectName("shSymbol" if symbol else "shKey" if mono else "shWord")
-    cap.setAlignment(Qt.AlignmentFlag.AlignCenter)
-    cap.setFixedHeight(scale_px_length(CHIP_PX))
-    cap.setMinimumWidth(scale_px_length(CHIP_PX))
-    return cap
-
-
-_MAC_MODIFIERS = "⌃⌥⇧⌘"
-
-
-def _key_parts(label: str) -> list:
-
-
-
-    if label == "⎋":
-        return ["esc"]
-    if "+" in label.strip("+"):
-        return [part for part in label.split("+") if part]
-    parts = []
-    rest = label
-    while len(rest) > 1 and rest[0] in _MAC_MODIFIERS:
-        parts.append(rest[0])
-        rest = rest[1:]
-    return parts + [rest] if rest else parts
-
-
-def _shortcut_row(parent, action: str, note: str, caps: tuple) -> QWidget:
-
-
-
-
-
-    row = QWidget(parent)
-    line = QHBoxLayout(row)
-    line.setContentsMargins(0, 0, 0, 0)
-    line.setSpacing(10)
-    words = QVBoxLayout()
-    words.setContentsMargins(0, 0, 0, 0)
-    words.setSpacing(1)
-    title = QLabel(action, row)
-    title.setObjectName("shAction")
-    title.setWordWrap(True)
-    words.addWidget(title)
-    if note:
-        hint = QLabel(note, row)
-        hint.setObjectName("shNote")
-        hint.setWordWrap(True)
-        words.addWidget(hint)
-    line.addLayout(words, 1)
-    keys = QHBoxLayout()
-    keys.setContentsMargins(0, 0, 0, 0)
-    keys.setSpacing(4)
-    for index, (label, mono) in enumerate(caps):
-        if index:
-            joiner = QLabel(tr("or"), row)
-            joiner.setObjectName("shJoin")
-            keys.addWidget(joiner)
-        for part in (_key_parts(label) if mono else [label]):
-            keys.addWidget(_kbd(part, row, mono))
-    line.addLayout(keys, 0)
-    line.setAlignment(keys, Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignRight)
-    return row
-
-
-def _shortcut_column(parent, sections: tuple) -> QWidget:
-
-    column = QWidget(parent)
-    col = QVBoxLayout(column)
-    col.setContentsMargins(0, 0, 0, 0)
-    col.setSpacing(6)
-    for index, (heading, rows) in enumerate(sections):
-        label = QLabel(heading, column)
-        label.setObjectName("shSection")
-        label.setContentsMargins(0, 14 if index else 0, 0, 6)
-        col.addWidget(label)
-        for action, note, caps in rows:
-            col.addWidget(_shortcut_row(column, action, note, caps))
-    col.addStretch(1)
-    return column
-
-
-def shortcut_columns() -> tuple:
-
-
-
-
-
-
-
-
-    def native(seq) -> str:
-        return QKeySequence(seq).toString(QKeySequence.SequenceFormat.NativeText)
-
-    def key(label: str) -> tuple:
-        return ((label, True),)
-
-
-
-
-    enter_name = "Return" if sys.platform == "darwin" else "Enter"
-    enter_key = native(enter_name)
-    esc_key = native("Esc")
-    composer = (
-        (tr("Send the message"), "", key(enter_key)),
-        (tr("New line"), "", key(native(f"Shift+{enter_name}"))),
-        (tr("Add a layer from the project"), tr("Or drag it from the Layers panel"), key("@")),
-        (tr("Bring back the last message you sent"), "", key(native("Up"))),
-        (tr("Close the open list"), "", key(esc_key)),
-    )
-    panel = (
-        (tr("Open or close AI Agent"), "", key(toggle_panel_key_text())),
-    )
-    history = (
-        (tr("Undo the AI agent's last request"), tr("In this chat"),
-         key(native(STEP_BACK_KEYS))),
-        (tr("Put it back"), "", key(native(STEP_FORWARD_KEYS))),
-
-
-        (tr("Go back to an earlier version of your project"), "", key(native(CHECKPOINTS_KEYS))),
-    )
-
-
-
-
-    during = (
-
-        (tr("Stop the run"), tr("Press it twice"), key(esc_key)),
-        (tr("Queue a message"), tr("The AI agent reads it at its next step"), key(enter_key)),
-        (tr("Edit the last queued message"), tr("In an empty box"), key(native("Up"))),
-    )
-
-
-    return (
-        ((tr("Composer"), composer), (tr("Panel"), panel)),
-        ((tr("History"), history), (tr("During a run"), during)),
-    )
-
-
-def build_shortcuts_card(parent) -> QFrame:
-
-
-
-
-
-    left_sections, right_sections = shortcut_columns()
-    card = QFrame(parent)
-    card.setObjectName("shCard")
-    card.setStyleSheet(_SHORTCUTS_QSS)
-    card.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
-    columns = QHBoxLayout(card)
-    columns.setContentsMargins(16, 14, 16, 14)
-    columns.setSpacing(28)
-    columns.addWidget(_shortcut_column(card, left_sections), 1)
-    rule = QFrame(card)
-    rule.setObjectName("shColumnRule")
-    rule.setFrameShape(QFrame.Shape.NoFrame)
-    columns.addWidget(rule)
-    columns.addWidget(_shortcut_column(card, right_sections), 1)
-    return card
-
-
-def show_shortcuts_dialog(parent=None) -> None:
-
-
-
-
-
-
-    dlg = QDialog(parent)
-    dlg.setObjectName("shortcutsDialog")
-    dlg.setWindowTitle(tr("Keyboard shortcuts"))
-    dlg.setStyleSheet(_SHORTCUTS_QSS)
-
-
-
-
-    layout = QVBoxLayout(dlg)
-    layout.setContentsMargins(20, 18, 20, 16)
-    layout.setSpacing(14)
-    title = QLabel(tr("Keyboard shortcuts"), dlg)
-    title.setObjectName("shTitle")
-    layout.addWidget(title)
-    subtitle = QLabel(tr("Everything the panel does without leaving the keyboard."), dlg)
-    subtitle.setObjectName("shSub")
-    subtitle.setWordWrap(True)
-    layout.addWidget(subtitle)
-
-    card = build_shortcuts_card(dlg)
-    layout.addWidget(card)
-
-    foot = QHBoxLayout()
-    foot.setContentsMargins(0, 0, 0, 0)
-    foot.addStretch(1)
-    ok_btn = QPushButton(tr("Done"), dlg)
-    ok_btn.setStyleSheet(_BTN_PRIMARY)
-    keyboard_ring(ok_btn)
-    ok_btn.setFixedHeight(BTN_PX)
-    ok_btn.setMinimumWidth(scale_px_length(96))
-    ok_btn.setCursor(Qt.CursorShape.PointingHandCursor)
-    ok_btn.setAutoDefault(False)
-    ok_btn.clicked.connect(dlg.accept)
-    foot.addWidget(ok_btn)
-    layout.addLayout(foot)
-
-    apply_font_scale_to_tree(dlg)
-    dlg.adjustSize()
-    size_within_screen(dlg, max(dlg.width(), scale_px_length(660)), dlg.height(),
-                       scale_px_length(480), 0)
-    exec_dialog(dlg)
+CONTACT_QSS = scale_qss_font_px(
+    f"QDialog#contactDialog, QDialog#feedbackDialog {{ background: {PAGE}; }}"
+    f"QLabel#ctTitle {{ font-size: 18px; font-weight: 600; color: {INK}; background: transparent; }}"
+    f"QLabel#ctSub {{ font-size: {FONT_BODY}px; color: {INK_2}; background: transparent; }}"
+    f"QFrame#ctCard {{ background: {SURFACE}; border: 1px solid {LINE}; border-radius: {RADIUS_CARD}px; }}"
+    f"QLabel#ctTopic {{ font-size: {FONT_HINT}px; font-weight: {WEIGHT_MEDIUM}; color: {INK_2};"
+    f" background: {FIELD}; border: 1px solid {LINE}; border-radius: 8px; padding: 2px 9px; }}"
+    f"QLabel#ctEmail {{ font-size: 15px; font-weight: 600; color: {INK}; background: transparent; }}"
+    f"QLabel#ctNote {{ font-size: {FONT_HINT}px; color: {INK_3}; background: transparent; }}"
+    f"QFrame#ctRule {{ background: {LINE}; border: none; min-height: 1px; max-height: 1px; }}"
+)
 
 
 def show_contact_dialog(parent=None, support_email: str = SUPPORT_EMAIL,
                         call_url: str = "") -> None:
 
+
+    from ...core.host_platform import prefers_reduced_motion
+    from ..mascot import GAZE, LIVE, Mascot
+    from ..settings_final import InfoButton
+
     dlg = QDialog(parent)
+    dlg.setObjectName("contactDialog")
     dlg.setWindowTitle(tr("Contact us"))
-    dlg.setMinimumWidth(scale_px_length(350))
-    dlg.setMaximumWidth(scale_px_length(450))
+    dlg.setStyleSheet(CONTACT_QSS)
     lay = QVBoxLayout(dlg)
-    lay.setSpacing(10)
-    lay.setContentsMargins(16, 16, 16, 16)
+    lay.setSpacing(14)
+    lay.setContentsMargins(24, 22, 24, 22)
 
-    msg = QLabel(tr("Bug, question, feature request?") + "\n" + tr("We read every message."), dlg)
-    msg.setWordWrap(True)
-    msg.setStyleSheet("font-size: 12px; color: " + PANEL_TEXT + ";")
-    lay.addWidget(msg)
+    head = QHBoxLayout()
+    head.setSpacing(14)
+    seat = QWidget(dlg)
+    seat.setFixedSize(scale_px_length(46), scale_px_length(54))
+    mark = Mascot(seat)
+    mark.set_mode(GAZE if prefers_reduced_motion() else LIVE)
+    mark.set_mood("listen")
+    head.addWidget(seat, 0, Qt.AlignmentFlag.AlignVCenter)
+    words = QVBoxLayout()
+    words.setSpacing(2)
+    title = QLabel(tr("Contact us"), dlg)
+    title.setObjectName("ctTitle")
+    words.addWidget(title)
+    sub = QLabel(tr("We read every message."), dlg)
+    sub.setObjectName("ctSub")
+    words.addWidget(sub)
+    head.addLayout(words, 1)
+    lay.addLayout(head)
 
-    email_label = QLabel(f"<b>{support_email}</b>", dlg)
+    card = QFrame(dlg)
+    card.setObjectName("ctCard")
+    inner = QVBoxLayout(card)
+    inner.setContentsMargins(18, 16, 18, 16)
+    inner.setSpacing(14)
+    topics = QHBoxLayout()
+    topics.setSpacing(6)
+    for word in (tr("Bugs"), tr("Questions"), tr("Ideas"), tr("Team needs")):
+        chip = QLabel(word, card)
+        chip.setObjectName("ctTopic")
+        topics.addWidget(chip)
+    topics.addWidget(InfoButton(card, tr("Licences, quotes and invoices for your team, too."), tr("Team needs")),
+                     0, Qt.AlignmentFlag.AlignVCenter)
+    topics.addStretch(1)
+    inner.addLayout(topics)
+
+    line = QHBoxLayout()
+    line.setSpacing(12)
+    address = QVBoxLayout()
+    address.setSpacing(2)
+    email_label = QLabel(support_email, card)
+    email_label.setObjectName("ctEmail")
     email_label.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
-    email_label.setStyleSheet("font-size: 12px; color: " + PANEL_TEXT + ";")
-    lay.addWidget(email_label)
-
+    address.addWidget(email_label)
     version = plugin_version()
     if version:
-        version_label = QLabel(tr("{product} {version}").format(
-            product=PRODUCT_NAME, version=version), dlg)
-        version_label.setStyleSheet(f"font-size: 11px; color: {MUTED_TEXT};")
-        lay.addWidget(version_label)
-
-    copy_btn = QPushButton(tr("Copy email address"), dlg)
+        version_label = QLabel(tr("{product} {version}").format(product=PRODUCT_NAME, version=version), card)
+        version_label.setObjectName("ctNote")
+        address.addWidget(version_label)
+    line.addLayout(address, 1)
+    copy_btn = QPushButton(tr("Copy email address"), card)
     copy_btn.setStyleSheet(_BTN_PRIMARY)
     keyboard_ring(copy_btn)
     copy_btn.setFixedHeight(BTN_PILL_PX)
     copy_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+    copy_btn.setAutoDefault(False)
 
     def _copy() -> None:
         QApplication.clipboard().setText(support_email)
         copy_btn.setText(tr("Copied"))
+        mark.fire("run.done")
 
     copy_btn.clicked.connect(_copy)
-    lay.addWidget(copy_btn)
+    line.addWidget(copy_btn, 0, Qt.AlignmentFlag.AlignVCenter)
+    inner.addLayout(line)
 
     if call_url:
-        or_label = QLabel(tr("or"), dlg)
-        or_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        or_label.setStyleSheet("color: " + PANEL_TEXT + "; font-size: 11px;")
-        lay.addWidget(or_label)
-        call_btn = QPushButton(tr("Book a video call"), dlg)
+        rule = QFrame(card)
+        rule.setObjectName("ctRule")
+        inner.addWidget(rule)
+        team = QHBoxLayout()
+        team.setSpacing(12)
+        note = QLabel(tr("For a team, a call is quickest."), card)
+        note.setObjectName("ctSub")
+        note.setWordWrap(True)
+        team.addWidget(note, 1)
+        call_btn = QPushButton(tr("Book a video call"), card)
         call_btn.setStyleSheet(_BTN_GHOST)
         keyboard_ring(call_btn)
         call_btn.setFixedHeight(BTN_PILL_PX)
         call_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        call_btn.setAutoDefault(False)
         call_btn.clicked.connect(lambda: open_external_url(call_url, parent=dlg))
-        lay.addWidget(call_btn)
+        team.addWidget(call_btn, 0, Qt.AlignmentFlag.AlignVCenter)
+        inner.addLayout(team)
+    lay.addWidget(card)
 
     apply_font_scale_to_tree(dlg)
+    dlg.adjustSize()
+    size_within_screen(dlg, max(dlg.width(), scale_px_length(520)), dlg.height(), scale_px_length(420), 0)
+    mark.put(seat.width() / 2.0, seat.height() - 2.0, scale_px_length(44))
     exec_dialog(dlg)

@@ -40,6 +40,7 @@
 
 from __future__ import annotations
 
+import contextlib
 import hashlib
 import json
 import os
@@ -86,6 +87,10 @@ _pending: dict = {}
 _quit_signal = None
 _session_end_signal = None
 _quitting = False
+
+
+_off_thread: dict = {}
+_OFF_THREAD_MAX = 64
 
 
 def quitting() -> bool:
@@ -311,6 +316,36 @@ def write(run_id: str, tool_call_id: str, session_id: str, tool: str, args) -> N
 def clear() -> None:
 
     _update(call=None)
+
+
+def note_off_thread(run_id: str, tool_call_id: str, tool: str, args) -> None:
+
+    _off_thread[str(tool_call_id or "")] = (str(run_id or ""), {
+        "tool_call_id": str(tool_call_id or ""), "tool": str(tool or ""), "args_digest": args_digest(args)})
+    while len(_off_thread) > _OFF_THREAD_MAX:
+        _off_thread.pop(next(iter(_off_thread)))
+
+
+def forget_off_thread(tool_call_id: str) -> None:
+    _off_thread.pop(str(tool_call_id or ""), None)
+
+
+@contextlib.contextmanager
+def main_step(tool_call_id: str):
+
+
+
+    entry = _off_thread.get(str(tool_call_id or ""))
+    if entry is None or not _record:
+        yield
+        return
+    previous_run, previous_call = _record.get("run_id", ""), _record.get("call")
+    _update(run_id=entry[0], call={**entry[1], "started_at": time.time()},
+            session_end_at=None)
+    try:
+        yield
+    finally:
+        _update(run_id=previous_run, call=previous_call)
 
 
 def pid_alive(pid: int) -> bool:

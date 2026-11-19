@@ -7,7 +7,15 @@ from __future__ import annotations
 
 import os
 
-from qgis.core import QgsCoordinateTransform, QgsCsException, QgsFeatureRequest, QgsProject, QgsVectorLayer, QgsWkbTypes
+from qgis.core import (
+    QgsApplication,
+    QgsCoordinateTransform,
+    QgsCsException,
+    QgsFeatureRequest,
+    QgsProject,
+    QgsVectorLayer,
+    QgsWkbTypes,
+)
 from qgis.utils import iface
 
 from ..core import canvas_glide, ground, siblings, tuning
@@ -398,7 +406,9 @@ def _field_entries(layer, compute_unique: bool) -> tuple[list, dict]:
                 break
             for i in list(open_fields):
                 values = distinct[i]
-                values.add(feature[i])
+                value = feature[i]
+
+                values.add(dump_json(value) if isinstance(value, (list, dict)) else value)
                 if len(values) > 15:
                     open_fields.discard(i)
             if not open_fields:
@@ -452,6 +462,8 @@ def _project_ellipsoid() -> str:
 
 _UNFILTERED_COUNT_MAX_BYTES = 20_000_000
 _COUNT_KEPT_SUFFIXES = (".gpkg", ".shp", ".fgb", ".sqlite")
+
+_ROWS_CHECK_BYTES = 5_000_000
 _UNFILTERED_COUNT_PROVIDERS = frozenset({"ogr", "delimitedtext", "spatialite"})
 
 
@@ -616,6 +628,25 @@ def _get_layer_info(args: dict) -> dict:
         fc = _safe_feature_count(layer)
         info["feature_count"] = fc if fc is not None else "unknown"
         info.update(filter_facts(layer))
+
+
+
+        if (fc is not None and layer.providerType() == "delimitedtext" and layer.isSpatial()
+                and 0 <= info.get("source_bytes", -1) <= _ROWS_CHECK_BYTES):
+
+
+            if QgsApplication.taskManager().countActiveTasks():
+                info["rows_note"] = ("Rows whose coordinates QGIS could not read were not counted while a "
+                                     "background task runs; ask again once it ends.")
+            else:
+                from .csv_loader import rows_without_point
+
+                missing = rows_without_point(layer)
+                if missing:
+                    info["rows_without_point"] = missing
+                    info["rows_note"] = (f"{missing} rows of the file have coordinates QGIS could not read, so the "
+                                         f"layer counts and draws {fc} of {fc + missing} rows; reads without geometry "
+                                         "see all of them. A decimal comma in some rows is the usual cause.")
 
 
 

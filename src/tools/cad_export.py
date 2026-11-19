@@ -28,12 +28,19 @@ import re
 
 from qgis.core import (
     Qgis,
+    QgsCategorizedSymbolRenderer,
     QgsCoordinateReferenceSystem,
     QgsDxfExport,
+    QgsExpressionContext,
+    QgsExpressionContextUtils,
+    QgsFeatureRenderer,
     QgsFeatureRequest,
     QgsFillSymbol,
+    QgsGraduatedSymbolRenderer,
     QgsMapSettings,
     QgsProject,
+    QgsRenderContext,
+    QgsRuleBasedRenderer,
     QgsSingleSymbolRenderer,
     QgsWkbTypes,
 )
@@ -102,8 +109,6 @@ def _outline_renderer(layer):
 
     color, width = "0,0,0,255", "0.26"
     try:
-        from qgis.core import QgsRenderContext
-
         symbols = layer.renderer().symbols(QgsRenderContext()) if layer.renderer() else []
         first = symbols[0].symbolLayer(0) if symbols and symbols[0].symbolLayerCount() else None
         if first is not None and hasattr(first, "strokeColor"):
@@ -116,15 +121,81 @@ def _outline_renderer(layer):
         {"style": "no", "outline_color": color, "outline_width": width, "outline_style": "solid"}))
 
 
+def _not_drawn(layer, request: QgsFeatureRequest) -> int:
+
+
+    if layer.renderer() is None:
+        return 0
+    renderer = layer.renderer().clone()
+    context = QgsRenderContext()
+    context.setExpressionContext(QgsExpressionContext(QgsExpressionContextUtils.globalProjectLayerScopes(layer)))
+    renderer.startRender(context, layer.fields())
+    try:
+        read = QgsFeatureRequest(request)
+        read.setSubsetOfAttributes(renderer.usedAttributes(context), layer.fields())
+        if not renderer.filterNeedsGeometry():
+            read.setFlags(read.flags() | enum_member(QgsFeatureRequest, "Flag", "NoGeometry"))
+        missing = 0
+        for feature in layer.getFeatures(read):
+            context.expressionContext().setFeature(feature)
+            missing += not renderer.willRenderFeature(feature, context)
+        return missing
+    finally:
+        renderer.stopRender(context)
+
+
+def _every_class_on(renderer):
+
+    clone = renderer.clone()
+    if isinstance(clone, QgsCategorizedSymbolRenderer):
+        for index in range(len(clone.categories())):
+            clone.updateCategoryRenderState(index, True)
+    elif isinstance(clone, QgsGraduatedSymbolRenderer):
+        for index in range(len(clone.ranges())):
+            clone.updateRangeRenderState(index, True)
+    elif isinstance(clone, QgsRuleBasedRenderer):
+        for rule in clone.rootRule().descendants():
+            rule.setActive(True)
+    return clone
+
+
+def _drawing_every_feature(layer, source, copy, request: QgsFeatureRequest):
+
+
+
+
+    left_out = _not_drawn(source, request)
+    if not left_out:
+        return source, copy, {}
+    if copy is None:
+        copy = layer.materialize(request)
+        copy.setName(layer.name())
+        if layer.labeling() is not None:
+            copy.setLabeling(layer.labeling().clone())
+        copy.setLabelsEnabled(layer.labelsEnabled())
+        source = copy
+    copy.setRenderer(_every_class_on(source.renderer()))
+    note = {"features_not_drawn_by_style": left_out,
+            "style_note": f"The layer's style draws {left_out} of these features with no symbol (a hidden class), and "
+                          "QGIS's DXF writer leaves such features out, so the drawing used the style with every class "
+                          "switched on. The layer's own style is unchanged."}
+    if _not_drawn(copy, QgsFeatureRequest()):
+        copy.setRenderer(QgsFeatureRenderer.defaultRenderer(QgsWkbTypes.geometryType(layer.wkbType())))
+        note["style_note"] = (f"The layer's style draws {left_out} of these features with no symbol, and QGIS's DXF "
+                              "writer leaves such features out, so every feature was drawn with one default symbol: "
+                              "the drawing does not carry the style's classes. The layer's own style is unchanged.")
+    return source, copy, note
+
+
 def _export_source(layer, selected_only: bool, polygons_as_lines: bool):
 
     is_polygon = QgsWkbTypes.geometryType(layer.wkbType()) == enum_member(Qgis, "GeometryType", "Polygon")
     lines = polygons_as_lines and is_polygon
-    if not selected_only and not lines:
-        return layer, None
     request = QgsFeatureRequest()
     if selected_only:
         request.setFilterFids(layer.selectedFeatureIds())
+    if not selected_only and not lines:
+        return _drawing_every_feature(layer, layer, None, request)
     copy = layer.materialize(request)
     copy.setName(layer.name())
     if layer.labeling() is not None:
@@ -134,7 +205,7 @@ def _export_source(layer, selected_only: bool, polygons_as_lines: bool):
         copy.setRenderer(_outline_renderer(layer))
     elif layer.renderer() is not None:
         copy.setRenderer(layer.renderer().clone())
-    return copy, copy
+    return _drawing_every_feature(layer, copy, copy, QgsFeatureRequest())
 
 
 def _readback(path: str) -> dict:
@@ -216,7 +287,7 @@ def export_dxf(layer, path: str, args: dict) -> dict:
         return tool_error(f"Invalid CRS: {args.get('crs') or layer.crs().authid()}", "INVALID_ARGS",
                           hint="cad_drawing_crs")
     polygons_as_lines = bool(args.get("polygons_as_lines", False))
-    source, copy = _export_source(layer, selected_only, polygons_as_lines)
+    source, copy, style_note = _export_source(layer, selected_only, polygons_as_lines)
 
     dxf = QgsDxfExport()
     settings = QgsMapSettings()
@@ -281,6 +352,7 @@ def export_dxf(layer, path: str, args: dict) -> dict:
         out["escaped_characters"] = escaped
         out["note"] = (f"{escaped} characters are not in {chosen}; they are written as AutoCAD \\U+ escapes, "
                        f"which AutoCAD and GDAL read back as the character.")
+    out.update(style_note)
     if field:
         out["cad_layer_field"] = layer.fields().at(field_index).name()
     if crs.isGeographic():

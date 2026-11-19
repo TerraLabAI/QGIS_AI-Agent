@@ -26,7 +26,7 @@ from qgis.PyQt.QtWidgets import QHBoxLayout, QLabel, QSizePolicy, QWidget
 
 from ..core.numbers import as_float
 from .card_base import tr
-from .font_scale import scale_point_size
+from .font_scale import scale_point_size, scale_qss_font_px
 from .style import FONT_BODY, INK, INK_2, INK_3, medium_font_weight, qcolor
 
 GRID_PX = 15
@@ -244,6 +244,11 @@ def user_waiting(waiting: bool) -> None:
         del _USER_WAITS[:-200]
 
 
+def user_is_waiting() -> bool:
+
+    return bool(_USER_WAIT_SINCE)
+
+
 def waited_between(start: float, end: float | None = None) -> float:
 
     end = time.monotonic() if end is None else float(end)
@@ -301,6 +306,30 @@ class ElapsedClock(QWidget):
         self._timer.start()
 
 
+def quiet_words(seconds: float, call: str | None) -> str:
+
+
+
+    spent = format_elapsed(seconds)
+    if call is None:
+        return tr("The AI agent has been thinking for {time}").format(time=spent)
+    if call == "execute_code":
+        return tr("Code running in QGIS for {time}").format(time=spent)
+    return tr("Running in QGIS for {time}").format(time=spent)
+
+
+def quiet_label(parent) -> QLabel:
+
+
+    label = QLabel(parent)
+    label.setObjectName("quietLine")
+    label.setStyleSheet(scale_qss_font_px(
+        f"QLabel {{ font-size: {FONT_BODY}px; color: {INK_3}; background: transparent; border: none; }}"))
+    label.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, True)
+    label.hide()
+    return label
+
+
 def _mono_label(parent):
 
 
@@ -310,4 +339,5 @@ def _mono_label(parent):
 
 
 __all__ = ["DotsLoader", "ElapsedClock", "GAP_PX", "LINE_PX", "ShimmerLabel",
-           "format_elapsed", "pixel_on", "user_waiting", "waited_between"]
+           "format_elapsed", "pixel_on", "quiet_label", "quiet_words", "user_is_waiting",
+           "user_waiting", "waited_between"]

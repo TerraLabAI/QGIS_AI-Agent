@@ -29,6 +29,8 @@ def _stamp_provenance(layer, provenance: dict) -> None:
 
 
 
+
+
     try:
         from datetime import datetime, timezone
 
@@ -44,12 +46,9 @@ def _stamp_provenance(layer, provenance: dict) -> None:
 
         own = any(str(text).strip() for text in md.licenses())
         inputs = ", ".join(str(name) for name in provenance.get("inputs") or [])
-        md.addHistoryItem(f"{when}: produced by the TerraLab AI Agent with {algorithm}"
+        md.addHistoryItem(f"{when}: {algorithm}"
                           + (f". Inputs: {inputs}" if inputs else "")
                           + (f". Command: {command}" if command else ""))
-        if not md.abstract():
-            md.setAbstract(f"Output of {algorithm}, produced by the TerraLab AI Agent on {when}. "
-                           "The exact command is in the metadata history.")
         layer.setMetadata(md)
         layer.setCustomProperty(ORIGIN_PROPERTY, True)
         if own:

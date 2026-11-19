@@ -72,6 +72,7 @@ from .source_marks import _clipped as clipped_mark
 from .source_marks import connector_row, family_pixmap, source_host, source_mark_pixmap
 from .style import (
     _BTN_QUIET,
+    ACCENT_INK,
     HOVER,
     INK_2,
     INK_3,
@@ -123,7 +124,9 @@ _LOCATE_PX = 20
 
 _PEEK_DELAY_MS = 120
 _LOCATE_QSS = ("QToolButton { border: none; border-radius: 6px; background: transparent; padding: 0; }"
-               "QToolButton:hover { background: rgba(128,128,128,0.16); }")
+               "QToolButton:hover { background: rgba(128,128,128,0.16); }"
+               "QToolButton:pressed { background: rgba(128,128,128,0.28); }"
+               f'QToolButton[ring="true"]:focus {{ border: 2px solid {ACCENT_INK}; outline: none; }}')
 
 _VERB_MIN_PX = 130
 _QWIDGETSIZE_MAX = (1 << 24) - 1

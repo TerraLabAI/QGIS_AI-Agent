@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import math
-import os
 
 from qgis.core import (
     QgsCoordinateReferenceSystem,
@@ -274,7 +273,6 @@ def register_layer_tools(registry: ToolRegistry):
         },
         handler=_save_project,
         saves_open_project=True,
-        always_confirm=_saves_over_user_file,
     ))
 
     registry.register(Tool(
@@ -1181,21 +1179,6 @@ def _new_project_path() -> str:
         path, number = os.path.join(folder, f"{stem}_{number}.qgz"), number + 1
     os.makedirs(folder, exist_ok=True)
     return path
-
-
-def _saves_over_user_file(args: dict) -> bool:
-
-
-
-
-
-    current = QgsProject.instance().fileName()
-    if not current or not os.path.isfile(current):
-        return False
-    path = str(args.get("path") or "").strip()
-    if not path:
-        return True
-    return os.path.normcase(os.path.realpath(path)) == os.path.normcase(os.path.realpath(current))
 
 
 def _save_project(args: dict) -> dict:

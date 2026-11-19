@@ -112,7 +112,7 @@ class Companion(QObject):
         return stored or table_of.BUILT_IN
 
     def refresh_mode(self) -> None:
-        if not getattr(self._settings, "mascot_animated", True) or not self.mascot.table()["enabled"]:
+        if not self.mascot.table()["enabled"]:
             mode = STILL
         elif prefers_reduced_motion():
             mode = GAZE

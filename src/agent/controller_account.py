@@ -116,6 +116,7 @@ class _ControllerAccount:
             self._thread_id = None
             self._last_run = None
             self._last_verification = None
+            self._drop_folder_ask()
             self._panel_call("clear_thread")
             self._panel_call("set_current_thread", "")
             self._panel_call("set_run_changes", 0, False)

@@ -243,6 +243,7 @@ _TIGHTEN_ONLY: dict[str, dict[str, tuple[float, float]]] = {
         "call_max_seconds_main": (8.0, limits.CALL_MAX_SECONDS_MAIN),
         "call_max_seconds_main_long": (30.0, limits.CALL_MAX_SECONDS_MAIN_LONG),
         "call_max_seconds_background": (60.0, limits.CALL_MAX_SECONDS_BACKGROUND),
+        "handed_back_download_seconds": (300.0, limits.HANDED_BACK_DOWNLOAD_SECONDS),
         "watchdog_tick_s": (0.5, limits.WATCHDOG_TICK_S),
         "watchdog_blocked_s": (3.0, limits.WATCHDOG_BLOCKED_S),
 

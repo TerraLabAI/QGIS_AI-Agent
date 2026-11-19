@@ -301,6 +301,11 @@ def _run_in_qgis(args: dict, made: list) -> dict:
             hint="code_timeout", executed=False, stdout=_cap(stdout_capture.getvalue()),
             timeout_s=int(context.timeout_s),
         )
+
+
+        web_layer = isolated_code.too_large_web_layer(code)
+        if web_layer:
+            out.update(variant="web_layer", web_layer=web_layer)
         _partial_state(out, _changed(before, project, edits))
         return out
     if error is not None:
@@ -471,6 +476,23 @@ def _subscripted_layer_names(tree) -> list:
     return wanted
 
 
+
+_PANDAS_EXCEL = frozenset({"read_excel", "to_excel", "ExcelWriter", "ExcelFile"})
+
+
+def _loads_openpyxl(node) -> bool:
+    if isinstance(node, ast.ImportFrom):
+        return any(alias.name in _PANDAS_EXCEL for alias in node.names)
+    if not isinstance(node, ast.Call):
+        return False
+    func = node.func
+    name = func.attr if isinstance(func, ast.Attribute) else func.id if isinstance(func, ast.Name) else ""
+    if name not in _PANDAS_EXCEL:
+        return False
+    engine = next((k.value for k in node.keywords if k.arg == "engine"), None)
+    return not (isinstance(engine, ast.Constant) and isinstance(engine.value, str) and engine.value != "openpyxl")
+
+
 def _preflight(code: str) -> dict | None:
 
     try:
@@ -480,6 +502,19 @@ def _preflight(code: str) -> dict | None:
     except Exception:  # noqa: BLE001
         return None
     try:
+        for node in ast.walk(tree):
+            names = ([alias.name for alias in node.names] if isinstance(node, ast.Import)
+                     else [node.module] if isinstance(node, ast.ImportFrom) and node.module and not node.level
+                     else [])
+            if any(name.split(".")[0] == "openpyxl" for name in names) or _loads_openpyxl(node):
+
+
+                return tool_error(
+                    f"openpyxl on line {node.lineno} would run inside QGIS, where it "
+                    "crashes QGIS. Nothing was run. A snippet that "
+                    "only reads or writes the workbook runs in its own process; add_data then loads the "
+                    "sheet, and export_layer to a .xlsx path writes a layer as one.",
+                    "INVALID_ARGS", hint="openpyxl_in_qgis", executed=False, line=node.lineno)
         lists = _list_names(tree)
         for node in ast.walk(tree):
             if not isinstance(node, ast.Call) or _called_name(node) != "QgsSpatialIndex" or not node.args:

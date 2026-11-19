@@ -51,6 +51,7 @@ from .data_overture import (
     _overture_themes,
     _overture_tile_url,
     _overture_tiles,
+    _overture_twin_url,
     _present_tiles,
     _stop_if_cancelled,
     _stream_refusal,
@@ -267,9 +268,31 @@ def _outline_test(outline: dict, cut: bool = False):
 
 
     keep.prepared = prepared if cut else None
+    keep.shape = shape if cut else None
     keep.parts = [part for part in (_polys_bbox([(exterior, [])]) for exterior, _holes in outline.get("polys") or [])
                   if part]
     return keep
+
+
+def _tile_meets(label: str, outline) -> bool:
+
+
+
+
+
+    bounds = _tile_bounds(label)
+    if bounds is None:
+        return True
+    from osgeo import ogr
+
+    pad = 1e-7
+    west, south, east, north = bounds[0] - pad, bounds[1] - pad, bounds[2] + pad, bounds[3] + pad
+    ring = ogr.Geometry(ogr.wkbLinearRing)
+    for x, y in ((west, south), (east, south), (east, north), (west, north), (west, south)):
+        ring.AddPoint_2D(x, y)
+    cell = ogr.Geometry(ogr.wkbPolygon)
+    cell.AddGeometry(ring)
+    return bool(outline.Intersects(cell))
 
 
 def _filter_can_match(wanted, fields: set) -> bool:
@@ -433,6 +456,8 @@ def _osm_class_fields(theme: str) -> tuple:
 
 
     routing = volume_guard._routing()
+    if routing is None:
+        return ()
     keys = {key for key, owner in routing.theme_keys.items() if owner == theme}
     keys |= {key for key, (_values, owner) in routing.value_themes.items() if owner == theme}
     published = routing.fields.get(theme) or frozenset()
@@ -655,6 +680,8 @@ def _strictly_inside(geometry, bounds) -> bool:
 
 _WRITE_EVERY_S = 1.0
 
+_C_ROWS_PER_COMMIT = 10_000
+
 
 
 def _window_grid() -> int:
@@ -779,6 +806,7 @@ class _ExtractRead:
         self.seen: set = set()
         self.pending: dict = {}
         self.retried: set = set()
+        self.no_twin: set = set()
         self.skip: dict = {}
         self.missing: list = []
         self.finished: list = []
@@ -797,6 +825,8 @@ class _ExtractRead:
         self.made: dict = {}
 
         self.share, self.reading = 0.0, False
+
+        self.merging = None
 
     def read(self, target, deadline: float, cancelled=None, room=None) -> str:
 
@@ -824,11 +854,24 @@ class _ExtractRead:
                 return self._merge(target, cancelled) or "disk"
             gdal.ErrorReset()
             local = ""
-            try:
-                source = ogr.Open(f"/vsicurl/{url}")
-                message = "" if source is not None else gdal.GetLastErrorMsg()
-            except RuntimeError as exc:
-                source, message = None, str(exc)
+            source = None
+            twin = self._twin(label)
+            if twin:
+                try:
+                    source = ogr.Open(f"/vsicurl/{twin}")
+                except RuntimeError:
+                    source = None
+                if source is None:
+
+
+                    self.no_twin.add(label)
+                    gdal.ErrorReset()
+            if source is None:
+                try:
+                    source = ogr.Open(f"/vsicurl/{url}")
+                    message = "" if source is not None else gdal.GetLastErrorMsg()
+                except RuntimeError as exc:
+                    source, message = None, str(exc)
             if source is None:
 
 
@@ -859,6 +902,7 @@ class _ExtractRead:
                 self.finished.append(label)
                 continue
             clause = " AND ".join(part for part in (self.where, self.code_where) if part)
+            applied = clause
             if clause:
                 try:
 
@@ -870,6 +914,7 @@ class _ExtractRead:
                 if unusable:
                     layer_in.SetAttributeFilter(self.code_where or None)
                     self.in_python = self.in_python or self.wanted
+                    applied = self.code_where
             definition = layer_in.GetLayerDefn()
             field_names = [definition.GetFieldDefn(i).GetName() for i in range(definition.GetFieldCount())]
             field_set = set(field_names)
@@ -945,7 +990,12 @@ class _ExtractRead:
 
             gdal.ErrorReset()
             written_at = time.monotonic()
-            for number, (window, feature) in enumerate(_window_features(layer_in, windows, failed), start=1):
+            features = _window_features(layer_in, windows, failed)
+            if self._reads_in_c(windows, bounds, skip):
+                features = ()
+                stopped, read_outside = self._read_in_c(source, layer_in, windows[0], bounds, applied, in_file,
+                                                        deadline, cancelled, failed, file_ids, target, outputs)
+            for number, (window, feature) in enumerate(features, start=1):
                 if number % _LIFTED_CHECK_EVERY == 0 or time.monotonic() - written_at > _WRITE_EVERY_S:
                     position = min(feature.GetFID() / in_file, 1.0) if in_file else 0.0
                     self.share = (sum(areas[:window]) + areas[window] * position) / (sum(areas) or 1.0)
@@ -1048,6 +1098,175 @@ class _ExtractRead:
             self.finished.append(label)
         return self._merge(target, cancelled)
 
+    def _twin(self, label: str) -> str:
+
+        if label in self.no_twin:
+            return ""
+        try:
+            x, y = (int(part) for part in str(label).split("/"))
+        except ValueError:
+            return ""
+        return _overture_twin_url(self.theme, x, y)
+
+    def _reads_in_c(self, windows: list, bounds, skip: int) -> bool:
+
+
+        window = windows[0] if len(windows) == 1 else None
+        return (self.dedupe and bounds is not None and window is not None and self.in_python is None
+                and not skip and (self.inside is None or window[4] is not None))
+
+    def _read_in_c(self, source, layer_in, window, bounds, where: str, in_file: int, deadline: float, cancelled,
+                   failed: list, file_ids: set, target, outputs: dict) -> tuple:
+
+
+
+
+
+
+
+
+
+        import time
+
+        from osgeo import gdal, ogr
+
+        stage_name = "stage"
+        stage_path = os.path.join(self.directory, f"stage_{len(self.finished)}.gpkg")
+        west, south, east, north, cells = window
+        stopped = []
+        calls = [0]
+        expected = max(in_file, 1)
+
+        def progress(_share, _message, _data):
+            calls[0] += 1
+            if calls[0] % _LIFTED_CHECK_EVERY:
+                return 1
+            self.share = min(calls[0] / expected, 0.99)
+            if cancelled is not None and cancelled():
+                stopped.append("cancelled")
+            elif time.monotonic() > deadline:
+                stopped.append("clock")
+            return 0 if stopped else 1
+
+        try:
+            stage = gdal.VectorTranslate(stage_path, source, options=gdal.VectorTranslateOptions(
+                format="GPKG", layers=[layer_in.GetName()], layerName=stage_name, where=where or None,
+                spatFilter=[west, south, east, north], callback=progress,
+                layerCreationOptions=["SPATIAL_INDEX=NO"]))
+        except RuntimeError as exc:
+            stage = None
+            if not stopped:
+                failed.append(str(exc))
+        if stage is None or stopped:
+            stage = None
+            remove_quietly(stage_path)
+            return (stopped[0] if stopped else ""), 0
+        try:
+            layer = stage.GetLayerByName(stage_name)
+            geometry_column = layer.GetGeometryColumn() or "geom"
+            stage.ExecuteSQL(f'DELETE FROM "{stage_name}" WHERE "{geometry_column}" IS NULL')  # nosec B608
+            grid = _window_grid()
+            whole = [row * grid + column for row, line in enumerate(cells or []) for column, held in enumerate(line)
+                     if held]
+
+
+            minx, maxx, miny, maxy = (f'ST_{edge}("{geometry_column}")' for edge in ("MinX", "MaxX", "MinY", "MaxY"))
+            margin = 1e-7
+            near_edge = (f"NOT ({minx} > {bounds[0] + margin!r} AND {maxx} < {bounds[2] - margin!r} AND "
+                         f"{miny} > {bounds[1] + margin!r} AND {maxy} < {bounds[3] - margin!r})")
+            if self.inside is not None:
+                column = f"CAST(({minx} - {west!r}) / {east - west!r} * {grid} AS INTEGER)"
+                row = f"CAST(({miny} - {south!r}) / {north - south!r} * {grid} AS INTEGER)"
+                held = (f"({minx} > {west!r} AND {maxx} < {east!r} AND {miny} > {south!r} AND {maxy} < {north!r} AND "
+                        f"{column} = CAST(({maxx} - {west!r}) / {east - west!r} * {grid} AS INTEGER) AND "
+                        f"{row} = CAST(({maxy} - {south!r}) / {north - south!r} * {grid} AS INTEGER) AND "
+                        f"({row} * {grid} + {column}) IN ({', '.join(map(str, whole)) or '-1'}))")
+                near_edge = f"NOT {held} OR {near_edge}"
+            definition = layer.GetLayerDefn()
+            has_id = definition.GetFieldIndex("id") >= 0
+            fid_column = layer.GetFIDColumn() or "fid"
+            columns = ", ".join(f'"{name}"' for name in (fid_column, "id" if has_id else "", geometry_column) if name)
+            found = stage.ExecuteSQL(f'SELECT {columns} FROM "{stage_name}" WHERE {near_edge} ORDER BY "{fid_column}"')  # nosec B608
+            outside = 0
+            dropped = []
+            reshaped = []
+
+            for feature in found:
+                geometry = feature.GetGeometryRef()
+                family = _lifted_family(geometry.GetGeometryType()) if geometry is not None else ""
+                if not family:
+                    continue
+                fid = feature.GetFID()
+                if self.inside is not None:
+                    envelope = geometry.GetEnvelope()
+                    if not (_within(envelope, window) and _whole(envelope, window)):
+                        kept = self.inside(geometry)
+                        if kept is None:
+                            outside += 1
+                            dropped.append(fid)
+                            continue
+                        if kept is not geometry:
+                            geometry = ogr.ForceTo(kept.Clone(), _multi_kind(family))
+                            reshaped.append((fid, geometry))
+                identity = feature.GetField("id") if has_id else None
+                if identity:
+                    if identity in self.seen or identity in file_ids:
+                        dropped.append(fid)
+                        if reshaped and reshaped[-1][0] == fid:
+                            reshaped.pop()
+                        continue
+                    file_ids.add(identity)
+                    if not _strictly_inside(geometry, bounds):
+                        self.seen.add(identity)
+            stage.ReleaseResultSet(found)
+            stage.StartTransaction()
+            for fid in dropped:
+                layer.DeleteFeature(fid)
+            for fid, geometry in reshaped:
+                feature = layer.GetFeature(fid)
+                feature.SetGeometry(geometry)
+                layer.SetFeature(feature)
+            stage.CommitTransaction()
+            names = {definition.GetFieldDefn(i).GetName() for i in range(definition.GetFieldCount())}
+            if self.classes.class_fields is None:
+                self.classes.class_fields = tuple(geodata_rules.rule("overture_extract", "class_fields"))
+            asked = [field for field in self.classes.class_fields if field in names]
+            quoted = ", ".join(f'"{field}"' for field in asked)
+
+
+            for family, kind in (("points", "POINT"), ("lines", "LINESTRING"), ("polygons", "POLYGON")):
+                of_family = f"ST_GeometryType(\"{geometry_column}\") IN ('{kind}', 'MULTI{kind}')"
+                counted = stage.ExecuteSQL(f'SELECT {quoted + ", " if quoted else ""}COUNT(*) FROM "{stage_name}" '  # nosec B608
+                                           f"WHERE {of_family}" + (f" GROUP BY {quoted}" if quoted else ""))
+                kept_total = 0
+                for one in counted:
+                    values = {field: one.GetField(index) for index, field in enumerate(asked)}
+                    count = one.GetField(len(asked))
+                    kept_total += count
+                    if count:
+                        self.classes.add(values.get, count)
+                stage.ReleaseResultSet(counted)
+                if not kept_total:
+                    continue
+                self.counts[family] += kept_total
+                table = f"{file_stem(self.name, 'extract')}_{family}"
+
+
+                gdal.VectorTranslate(target, stage, options=gdal.VectorTranslateOptions(
+                    accessMode="append", addFields=True, layerName=table, geometryType=f"MULTI{kind}",
+                    SQLStatement=f'SELECT * FROM "{stage_name}" WHERE {of_family}',  # nosec B608
+                    transactionSize=_C_ROWS_PER_COMMIT, layerCreationOptions=["SPATIAL_INDEX=YES"]))
+                outputs[family] = target.GetLayerByName(table)
+                self.tables[family] = table
+            self.outside += outside
+
+
+            gdal.ErrorReset()
+        finally:
+            stage = None
+            remove_quietly(stage_path)
+        return "", outside
+
     def _merge(self, target, cancelled=None) -> str:
 
 
@@ -1065,6 +1284,7 @@ class _ExtractRead:
         target.StartTransaction()
         try:
             for number, (key, fids) in enumerate(groups):
+                self.merging = (number, len(groups))
                 if number % _LIFTED_CHECK_EVERY == 0 and cancelled is not None and cancelled():
                     stopped = "cancelled"
                     break
@@ -1093,6 +1313,7 @@ class _ExtractRead:
                     self.outside -= len(left)
                     self.left_out.pop(key[1:], None)
         finally:
+            self.merging = None
             target.CommitTransaction()
         return stopped
 
@@ -1204,6 +1425,13 @@ def _overture_extract(theme: str, box, wanted, outline, args: dict, forced_clip:
         code_where = f'"{code_field}" = ' + "'" + str(division[code_field]).replace("'", "''") + "'"
     inside = (_outline_test(outline, cut=theme not in _SELECTED_WHOLE_THEMES)
               if outline is not None and not code_where else None)
+
+
+
+
+    cut_shape = getattr(inside, "prepared", None) or getattr(inside, "shape", None)
+    if cut_shape is not None and theme in _osm_themes():
+        sources = [(label, url) for label, url in sources if _tile_meets(label, cut_shape)]
     directory = create_managed_temp_dir("lifted")
     path = os.path.join(directory, f"{file_stem(name, 'extract')}.gpkg")
     reader = _ExtractRead(theme=theme, name=name, path=path, directory=directory, box=box, sources=sources,
@@ -1398,6 +1626,12 @@ class ExtractContinuation(QgsTask):
 
 
 
+                        if reader.merging is not None:
+
+
+                            joined, groups = reader.merging
+                            self.setProgress(100.0 * joined / max(groups, 1))
+                            return self.isCanceled()
                         files = done + before - len(reader.queue) - (1 if reader.reading else 0)
                         share = (files + (reader.share if reader.reading else 0.0)) / max(self.files, 1)
                         self.setProgress(100.0 * share)

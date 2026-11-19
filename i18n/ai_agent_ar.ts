@@ -1882,6 +1882,78 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <source>left out</source>
             <translation>مستبعد</translation>
         </message>
+        <message>
+            <source>The AI agent has been thinking for {time}</source>
+            <translation>وكيل الذكاء الاصطناعي يفكر منذ {time}</translation>
+        </message>
+        <message>
+            <source>Code running in QGIS for {time}</source>
+            <translation>الشيفرة قيد التشغيل في QGIS منذ {time}</translation>
+        </message>
+        <message>
+            <source>Running in QGIS for {time}</source>
+            <translation>قيد التشغيل في QGIS منذ {time}</translation>
+        </message>
+        <message>
+            <source>Bugs</source>
+            <translation>الأخطاء</translation>
+        </message>
+        <message>
+            <source>For a team, a call is quickest.</source>
+            <translation>للفرق، المكالمة هي الأسرع.</translation>
+        </message>
+        <message>
+            <source>Ideas</source>
+            <translation>الأفكار</translation>
+        </message>
+        <message>
+            <source>Licences, quotes and invoices for your team, too.</source>
+            <translation>التراخيص وعروض الأسعار والفواتير لفريقك أيضاً.</translation>
+        </message>
+        <message>
+            <source>Questions</source>
+            <translation>الأسئلة</translation>
+        </message>
+        <message>
+            <source>Team needs</source>
+            <translation>احتياجات الفريق</translation>
+        </message>
+        <message>
+            <source>Map history</source>
+            <translation>سجل الخريطة</translation>
+        </message>
+        <message>
+            <source>Open earlier project versions</source>
+            <translation>فتح إصدارات المشروع السابقة</translation>
+        </message>
+        <message>
+            <source>Recall your last message</source>
+            <translation>استرجاع رسالتك الأخيرة</translation>
+        </message>
+        <message>
+            <source>Redo it</source>
+            <translation>إعادة التنفيذ</translation>
+        </message>
+        <message>
+            <source>Sent with this conversation and the plugin's recent log.</source>
+            <translation>يُرسل مع هذه المحادثة وآخر سجل للإضافة.</translation>
+        </message>
+        <message>
+            <source>Undo the last request</source>
+            <translation>التراجع عن آخر طلب</translation>
+        </message>
+        <message>
+            <source>We read every message and use it to improve AI Agent.</source>
+            <translation>نقرأ كل رسالة ونستخدمها لتحسين AI Agent.</translation>
+        </message>
+        <message>
+            <source>What happened, and what did you expect? For example: the buffer came out in degrees instead of metres.</source>
+            <translation>ماذا حدث، وماذا كنت تتوقع؟ مثال: خرج المحيط (buffer) بالدرجات بدل الأمتار.</translation>
+        </message>
+        <message>
+            <source>Kept until you delete it</source>
+            <translation>يُحفظ حتى تحذفه</translation>
+        </message>
     </context>
     <context>
         <name>AIAgentContext</name>
@@ -2015,12 +2087,12 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <translation>الأداة: {tool}</translation>
         </message>
         <message>
-            <source>{day} UTC, AI Agent run {run}: added {layers}</source>
-            <translation>{day} UTC، تشغيل AI Agent رقم {run}: أضاف {layers}</translation>
+            <source>{day} UTC, run {run}: added {layers}</source>
+            <translation>{day} UTC، تشغيل رقم {run}: أضاف {layers}</translation>
         </message>
         <message>
-            <source>{day} UTC, added by AI Agent by TerraLab</source>
-            <translation>{day} UTC، أضافه AI Agent من TerraLab</translation>
+            <source>Data source</source>
+            <translation>مصدر البيانات</translation>
         </message>
     </context>
     <context>
@@ -3477,6 +3549,10 @@ The erasure is final once the grace period ends. Until then you can cancel it by
             <source>Stopping...</source>
             <translation>جارٍ الإيقاف...</translation>
         </message>
+        <message>
+            <source>the map render</source>
+            <translation>عرض الخريطة</translation>
+        </message>
     </context>
     <context>
         <name>Composer</name>
@@ -4265,6 +4341,18 @@ This file is no longer where the run wrote it.</source>
             <source>Dock or undock AI Agent</source>
             <translation>تثبيت AI Agent أو فصله</translation>
         </message>
+        <message>
+            <source>Pro ends on {date}. Keep it in one click.</source>
+            <translation>ينتهي Pro في {date}. أبقِه بنقرة واحدة.</translation>
+        </message>
+        <message>
+            <source>Pro is set to end. Keep it in one click.</source>
+            <translation>سينتهي Pro قريبا. أبقِه بنقرة واحدة.</translation>
+        </message>
+        <message>
+            <source>See what's in Pro</source>
+            <translation>اطّلع على ما يتضمنه Pro</translation>
+        </message>
     </context>
     <context>
         <name>HistoryPopup</name>
@@ -4860,6 +4948,10 @@ Click to show it in the Layers panel.</source>
             <source>{n} of {total} features in {layer}</source>
             <translation>{n} من أصل {total} ميزة في {layer}</translation>
         </message>
+        <message>
+            <source>Allow lets AI Agent read and write in {folder} for this project.</source>
+            <translation>السماح يتيح لـ AI Agent القراءة والكتابة في {folder} لهذا المشروع.</translation>
+        </message>
     </context>
     <context>
         <name>PermissionChip</name>
@@ -5404,6 +5496,138 @@ Thank you</source>
             <source>{n} tasks a month, cancel anytime</source>
             <translation>{n} مهمة في الشهر، ويمكنك الإلغاء في أي وقت</translation>
         </message>
+        <message>
+            <source>1 task left this month</source>
+            <translation>بقيت مهمة واحدة هذا الشهر</translation>
+        </message>
+        <message>
+            <source>All {n} tasks used. They reset on {date}.</source>
+            <translation>استُخدمت كل المهام ({n}). تتجدد في {date}.</translation>
+        </message>
+        <message>
+            <source>Back to Pro</source>
+            <translation>العودة إلى Pro</translation>
+        </message>
+        <message>
+            <source>Come back to Pro for {n} tasks a month.</source>
+            <translation>عد إلى Pro للحصول على {n} مهمة شهريا.</translation>
+        </message>
+        <message>
+            <source>Contact us</source>
+            <translation>اتصل بنا</translation>
+        </message>
+        <message>
+            <source>Contact us for more tasks</source>
+            <translation>اتصل بنا للحصول على مهام أكثر</translation>
+        </message>
+        <message>
+            <source>Get Pro for {n} tasks a month.</source>
+            <translation>احصل على Pro لـ {n} مهمة شهريا.</translation>
+        </message>
+        <message>
+            <source>Need Pro for work?</source>
+            <translation>تحتاج Pro للعمل؟</translation>
+        </message>
+        <message>
+            <source>No card? Contact us to pay by invoice.</source>
+            <translation>لا تملك بطاقة؟ اتصل بنا للدفع بفاتورة.</translation>
+        </message>
+        <message>
+            <source>No card? Contact us to start your free trial.</source>
+            <translation>لا تملك بطاقة؟ اتصل بنا لبدء تجربتك المجانية.</translation>
+        </message>
+        <message>
+            <source>Pay nothing today</source>
+            <translation>لا تدفع شيئا اليوم</translation>
+        </message>
+        <message>
+            <source>Pay nothing today, then your local price each month. Cancel anytime.</source>
+            <translation>لا تدفع شيئا اليوم، ثم سعرك المحلي كل شهر. يمكنك الإلغاء في أي وقت.</translation>
+        </message>
+        <message>
+            <source>Pay nothing today, then your student price each month. Cancel anytime.</source>
+            <translation>لا تدفع شيئا اليوم، ثم سعر الطلاب كل شهر. يمكنك الإلغاء في أي وقت.</translation>
+        </message>
+        <message>
+            <source>Pay nothing today, then {price}/month excl. VAT. Cancel anytime.</source>
+            <translation>لا تدفع شيئا اليوم، ثم {price}/شهر بدون ضريبة القيمة المضافة. يمكنك الإلغاء في أي وقت.</translation>
+        </message>
+        <message>
+            <source>Pay nothing today, then {price}/month. Cancel anytime.</source>
+            <translation>لا تدفع شيئا اليوم، ثم {price}/شهر. يمكنك الإلغاء في أي وقت.</translation>
+        </message>
+        <message>
+            <source>Payment of {amount} failed</source>
+            <translation>فشلت دفعة بقيمة {amount}</translation>
+        </message>
+        <message>
+            <source>Pro is paused until payment goes through.</source>
+            <translation>Pro متوقف مؤقتا حتى تنجح عملية الدفع.</translation>
+        </message>
+        <message>
+            <source>Start Pro now</source>
+            <translation>ابدأ Pro الآن</translation>
+        </message>
+        <message>
+            <source>Start free trial</source>
+            <translation>ابدأ التجربة المجانية</translation>
+        </message>
+        <message>
+            <source>Try Pro free for a week to get more tasks.</source>
+            <translation>جرّب Pro مجانا لمدة أسبوع للحصول على مهام أكثر.</translation>
+        </message>
+        <message>
+            <source>Welcome to Pro</source>
+            <translation>مرحبا بك في Pro</translation>
+        </message>
+        <message>
+            <source>You now have {n} tasks a month.</source>
+            <translation>لديك الآن {n} مهمة شهريا.</translation>
+        </message>
+        <message>
+            <source>You used all your tasks this month</source>
+            <translation>استخدمت كل مهامك هذا الشهر</translation>
+        </message>
+        <message>
+            <source>You used your last task</source>
+            <translation>استخدمت مهمتك الأخيرة</translation>
+        </message>
+        <message>
+            <source>Your free trial runs until {date}.</source>
+            <translation>تستمر تجربتك المجانية حتى {date}.</translation>
+        </message>
+        <message>
+            <source>Your tasks reset next month.</source>
+            <translation>تتجدد مهامك الشهر القادم.</translation>
+        </message>
+        <message>
+            <source>Your tasks reset on {date}.</source>
+            <translation>تتجدد مهامك في {date}.</translation>
+        </message>
+        <message>
+            <source>Your trial did not start. You were not charged.</source>
+            <translation>لم تبدأ تجربتك. لم يتم خصم أي مبلغ منك.</translation>
+        </message>
+        <message>
+            <source>{n} tasks a month. Cancel anytime.</source>
+            <translation>{n} مهمة شهريا. يمكنك الإلغاء في أي وقت.</translation>
+        </message>
+        <message>
+            <source>{n} tasks left this month</source>
+            <translation>بقيت {n} مهمة هذا الشهر</translation>
+        </message>
+        <message>
+            <source>{price} excl. VAT</source>
+            <translation>{price} بدون ضريبة القيمة المضافة</translation>
+        </message>
+        <message>
+            <source>{price}/month. Cancel anytime.</source>
+            <translation>{price}/شهر. يمكنك الإلغاء في أي وقت.</translation>
+        </message>
+        <message>
+            <source>{price}/month excl. VAT. Cancel anytime.</source>
+            <translation>{price}/شهر بدون ضريبة القيمة المضافة. يمكنك الإلغاء في أي وقت.</translation>
+        </message>
     </context>
     <context>
         <name>QuotaPauseCard</name>
@@ -5645,6 +5869,22 @@ Thank you</source>
         <message>
             <source>{n} free tasks left</source>
             <translation>المهام المجانية المتبقية: {n}</translation>
+        </message>
+        <message>
+            <source>1 task left</source>
+            <translation>بقيت مهمة واحدة</translation>
+        </message>
+        <message>
+            <source>Get more with Pro</source>
+            <translation>احصل على المزيد مع Pro</translation>
+        </message>
+        <message>
+            <source>Pro: {n} tasks a month, higher effort levels and Autopilot.</source>
+            <translation>Pro: {n} مهمة شهريا، ومستويات جهد أعلى والطيار الآلي.</translation>
+        </message>
+        <message>
+            <source>{n} tasks left</source>
+            <translation>بقيت {n} مهمة</translation>
         </message>
     </context>
     <context>
@@ -6206,6 +6446,478 @@ Thank you</source>
             <source>Your usage and chats help us fix bugs. Turn it off anytime.</source>
             <translation>استخدامك ومحادثاتك يساعداننا في إصلاح الأخطاء. يمكنك إيقافه في أي وقت.</translation>
         </message>
+        <message>
+            <source>Bell</source>
+            <translation>الجرس</translation>
+        </message>
+        <message>
+            <source>Chime</source>
+            <translation>رنين</translation>
+        </message>
+        <message>
+            <source>Icon and sound</source>
+            <translation>الأيقونة والصوت</translation>
+        </message>
+        <message>
+            <source>Icon only</source>
+            <translation>الأيقونة فقط</translation>
+        </message>
+        <message>
+            <source>Little train</source>
+            <translation>قطار صغير</translation>
+        </message>
+        <message>
+            <source>Marimba</source>
+            <translation>ماريمبا</translation>
+        </message>
+        <message>
+            <source>Needs your answer</source>
+            <translation>يحتاج إلى ردك</translation>
+        </message>
+        <message>
+            <source>Notifications</source>
+            <translation>الإشعارات</translation>
+        </message>
+        <message>
+            <source>Notify me</source>
+            <translation>أبلغني</translation>
+        </message>
+        <message>
+            <source>Off</source>
+            <translation>إيقاف</translation>
+        </message>
+        <message>
+            <source>Only while QGIS is in the background or the panel is hidden.</source>
+            <translation>فقط عندما يكون QGIS في الخلفية أو تكون اللوحة مخفية.</translation>
+        </message>
+        <message>
+            <source>Play</source>
+            <translation>تشغيل</translation>
+        </message>
+        <message>
+            <source>Questions and approvals.</source>
+            <translation>الأسئلة والموافقات.</translation>
+        </message>
+        <message>
+            <source>Run finished</source>
+            <translation>اكتمل التشغيل</translation>
+        </message>
+        <message>
+            <source>Volume</source>
+            <translation>مستوى الصوت</translation>
+        </message>
+        <message>
+            <source>1 task left</source>
+            <translation>مهمة واحدة متبقية</translation>
+        </message>
+        <message>
+            <source>A badge on the QGIS icon and a sound, only while QGIS is in the background or the panel is hidden.</source>
+            <translation>شارة على أيقونة QGIS وصوت، فقط عندما يكون QGIS في الخلفية أو اللوحة مخفية.</translation>
+        </message>
+        <message>
+            <source>About you and Instructions</source>
+            <translation>عنك والتعليمات</translation>
+        </message>
+        <message>
+            <source>Back in {n} days</source>
+            <translation>تعود بعد {n} أيام</translation>
+        </message>
+        <message>
+            <source>Back tomorrow</source>
+            <translation>تعود غداً</translation>
+        </message>
+        <message>
+            <source>Call me back while I work elsewhere</source>
+            <translation>نبّهني أثناء عملي في مكان آخر</translation>
+        </message>
+        <message>
+            <source>Change</source>
+            <translation>تغيير</translation>
+        </message>
+        <message>
+            <source>Commercial use included</source>
+            <translation>الاستخدام التجاري مشمول</translation>
+        </message>
+        <message>
+            <source>Context for every task</source>
+            <translation>سياق لكل مهمة</translation>
+        </message>
+        <message>
+            <source>Could not load your usage</source>
+            <translation>تعذّر تحميل استهلاكك</translation>
+        </message>
+        <message>
+            <source>Detect and outline objects on imagery: buildings, trees, water or fields become polygons you can edit.</source>
+            <translation>اكتشف الكائنات على الصور وارسم حدودها: المباني أو الأشجار أو المياه أو الحقول تصبح مضلعات يمكنك تعديلها.</translation>
+        </message>
+        <message>
+            <source>Edit your imagery with one sentence, the way you would ask a colleague.</source>
+            <translation>عدّل صورك بجملة واحدة، كما تطلب من زميل.</translation>
+        </message>
+        <message>
+            <source>Every task, day by day, on terra-lab.ai</source>
+            <translation>كل مهمة، يوماً بيوم، على terra-lab.ai</translation>
+        </message>
+        <message>
+            <source>Everything else here works without an account.</source>
+            <translation>كل ما عدا ذلك هنا يعمل دون حساب.</translation>
+        </message>
+        <message>
+            <source>From your TerraLab account.</source>
+            <translation>من حسابك في TerraLab.</translation>
+        </message>
+        <message>
+            <source>General</source>
+            <translation>عام</translation>
+        </message>
+        <message>
+            <source>How the AI agent answers.</source>
+            <translation>كيف يجيب وكيل الذكاء الاصطناعي.</translation>
+        </message>
+        <message>
+            <source>How the AI agent calls you back.</source>
+            <translation>كيف ينبّهك وكيل الذكاء الاصطناعي.</translation>
+        </message>
+        <message>
+            <source>Install</source>
+            <translation>تثبيت</translation>
+        </message>
+        <message>
+            <source>Install {plugin}</source>
+            <translation>تثبيت {plugin}</translation>
+        </message>
+        <message>
+            <source>Loading your plan...</source>
+            <translation>جارٍ تحميل خطتك...</translation>
+        </message>
+        <message>
+            <source>Loading your tasks...</source>
+            <translation>جارٍ تحميل مهامك...</translation>
+        </message>
+        <message>
+            <source>Monthly tasks</source>
+            <translation>المهام الشهرية</translation>
+        </message>
+        <message>
+            <source>More from TerraLab</source>
+            <translation>المزيد من TerraLab</translation>
+        </message>
+        <message>
+            <source>Needs your answer: {a} · Run finished: {b}</source>
+            <translation>بحاجة إلى ردك: {a} · اكتمل التشغيل: {b}</translation>
+        </message>
+        <message>
+            <source>One TerraLab account signs you in to all three plugins.</source>
+            <translation>حساب TerraLab واحد يسجّل دخولك إلى الإضافات الثلاث.</translation>
+        </message>
+        <message>
+            <source>One task is one message you send, however many steps the AI agent takes. Tasks that fail on our side are given back.</source>
+            <translation>المهمة الواحدة هي رسالة واحدة ترسلها، مهما كان عدد الخطوات التي ينفذها وكيل الذكاء الاصطناعي. المهام التي تفشل من جانبنا تُعاد إليك.</translation>
+        </message>
+        <message>
+            <source>Open {plugin}</source>
+            <translation>فتح {plugin}</translation>
+        </message>
+        <message>
+            <source>Opens the QGIS plugin manager on this plugin. Free to install.</source>
+            <translation>يفتح مدير إضافات QGIS على هذه الإضافة. التثبيت مجاني.</translation>
+        </message>
+        <message>
+            <source>Personal, non-commercial use</source>
+            <translation>استخدام شخصي غير تجاري</translation>
+        </message>
+        <message>
+            <source>Plan</source>
+            <translation>الخطة</translation>
+        </message>
+        <message>
+            <source>Profile</source>
+            <translation>الملف الشخصي</translation>
+        </message>
+        <message>
+            <source>Resets in {n} days</source>
+            <translation>يُعاد الضبط بعد {n} أيام</translation>
+        </message>
+        <message>
+            <source>Resets tomorrow</source>
+            <translation>يُعاد الضبط غداً</translation>
+        </message>
+        <message>
+            <source>Rules the AI agent always follows.</source>
+            <translation>قواعد يتبعها وكيل الذكاء الاصطناعي دائماً.</translation>
+        </message>
+        <message>
+            <source>Saved on this computer.</source>
+            <translation>محفوظ على هذا الحاسوب.</translation>
+        </message>
+        <message>
+            <source>Search settings</source>
+            <translation>بحث في الإعدادات</translation>
+        </message>
+        <message>
+            <source>Show its panel.</source>
+            <translation>أظهر لوحتها.</translation>
+        </message>
+        <message>
+            <source>Sign in to see your plan and tasks</source>
+            <translation>سجّل الدخول لرؤية خطتك ومهامك</translation>
+        </message>
+        <message>
+            <source>Sounds</source>
+            <translation>الأصوات</translation>
+        </message>
+        <message>
+            <source>Tell the AI agent who you are and the rules it always follows. Included in Pro.</source>
+            <translation>أخبر وكيل الذكاء الاصطناعي من أنت والقواعد التي يتبعها دائماً. مشمول في Pro.</translation>
+        </message>
+        <message>
+            <source>Two more AI plugins for QGIS, from the makers of AI Agent.</source>
+            <translation>إضافتان أخريان للذكاء الاصطناعي في QGIS، من صانعي AI Agent.</translation>
+        </message>
+        <message>
+            <source>Upgrade plan</source>
+            <translation>ترقية الخطة</translation>
+        </message>
+        <message>
+            <source>Upgrade to Pro</source>
+            <translation>الترقية إلى Pro</translation>
+        </message>
+        <message>
+            <source>Usage</source>
+            <translation>الاستهلاك</translation>
+        </message>
+        <message>
+            <source>What counts as a task</source>
+            <translation>ما الذي يُحتسب مهمة</translation>
+        </message>
+        <message>
+            <source>What leaves this computer, and for how long.</source>
+            <translation>ما الذي يغادر هذا الحاسوب، ولكم من الوقت.</translation>
+        </message>
+        <message>
+            <source>What you work on, your data, your area.</source>
+            <translation>ما تعمل عليه، وبياناتك، ومنطقتك.</translation>
+        </message>
+        <message>
+            <source>Your plan and the tasks you used this month.</source>
+            <translation>خطتك والمهام التي استخدمتها هذا الشهر.</translation>
+        </message>
+        <message>
+            <source>Your plan, payment method and invoices, on terra-lab.ai.</source>
+            <translation>خطتك وطريقة الدفع والفواتير، على terra-lab.ai.</translation>
+        </message>
+        <message>
+            <source>Your tasks are counted on our side; nothing is lost.</source>
+            <translation>مهامك تُحتسب من جانبنا؛ لا شيء يضيع.</translation>
+        </message>
+        <message>
+            <source>of {limit} this month</source>
+            <translation>من {limit} هذا الشهر</translation>
+        </message>
+        <message>
+            <source>{n} tasks left</source>
+            <translation>{n} مهام متبقية</translation>
+        </message>
+        <message>
+            <source>{p}% left</source>
+            <translation>{p}% متبقٍ</translation>
+        </message>
+        <message>
+            <source>1 task left this month</source>
+            <translation>متبقية مهمة واحدة هذا الشهر</translation>
+        </message>
+        <message>
+            <source>Cancel anytime before it ends.</source>
+            <translation>يمكنك الإلغاء في أي وقت قبل انتهائها.</translation>
+        </message>
+        <message>
+            <source>Card declined</source>
+            <translation>تم رفض البطاقة</translation>
+        </message>
+        <message>
+            <source>Come back to Pro</source>
+            <translation>ارجع إلى Pro</translation>
+        </message>
+        <message>
+            <source>Ends {date}</source>
+            <translation>تنتهي في {date}</translation>
+        </message>
+        <message>
+            <source>Payment failed</source>
+            <translation>فشل الدفع</translation>
+        </message>
+        <message>
+            <source>Pro is off until it's paid.</source>
+            <translation>Pro متوقف حتى يتم الدفع.</translation>
+        </message>
+        <message>
+            <source>Pro trial</source>
+            <translation>تجربة Pro</translation>
+        </message>
+        <message>
+            <source>Pro trial, 1 day left</source>
+            <translation>تجربة Pro، متبقٍ يوم واحد</translation>
+        </message>
+        <message>
+            <source>Pro trial, ends {date}</source>
+            <translation>تجربة Pro، تنتهي في {date}</translation>
+        </message>
+        <message>
+            <source>Pro trial, {n} days left</source>
+            <translation>تجربة Pro، متبقٍ {n} أيام</translation>
+        </message>
+        <message>
+            <source>Then {price}/month. Cancel anytime.</source>
+            <translation>ثم {price}/شهر. يمكنك الإلغاء في أي وقت.</translation>
+        </message>
+        <message>
+            <source>Try Pro free for {n} days</source>
+            <translation>جرّب Pro مجاناً لمدة {n} أيام</translation>
+        </message>
+        <message>
+            <source>Try another card</source>
+            <translation>جرّب بطاقة أخرى</translation>
+        </message>
+        <message>
+            <source>Update card</source>
+            <translation>تحديث البطاقة</translation>
+        </message>
+        <message>
+            <source>You're out of tasks this month</source>
+            <translation>نفدت مهامك هذا الشهر</translation>
+        </message>
+        <message>
+            <source>You're out until {date}</source>
+            <translation>نفدت مهامك حتى {date}</translation>
+        </message>
+        <message>
+            <source>Your trial didn't start. Nothing was charged.</source>
+            <translation>لم تبدأ تجربتك. لم يتم خصم أي مبلغ.</translation>
+        </message>
+        <message>
+            <source>{amount} due.</source>
+            <translation>المبلغ المستحق {amount}.</translation>
+        </message>
+        <message>
+            <source>{n} tasks left this month</source>
+            <translation>متبقي {n} مهام هذا الشهر</translation>
+        </message>
+        <message>
+            <source>{plan}, renews {date}</source>
+            <translation>{plan}، يتجدد في {date}</translation>
+        </message>
+        <message>
+            <source>{price} excl. VAT</source>
+            <translation>{price} بدون ضريبة القيمة المضافة</translation>
+        </message>
+        <message>
+            <source>{price}/month. Cancel anytime.</source>
+            <translation>{price}/شهر. يمكنك الإلغاء في أي وقت.</translation>
+        </message>
+        <message>
+            <source>{used} of {limit} used</source>
+            <translation>استخدمت {used} من {limit}</translation>
+        </message>
+        <message>
+            <source>Clear search</source>
+            <translation>مسح البحث</translation>
+        </message>
+        <message>
+            <source>Try Pro free</source>
+            <translation>جرّب Pro مجانًا</translation>
+        </message>
+        <message>
+            <source>Delete account</source>
+            <translation>حذف الحساب</translation>
+        </message>
+        <message>
+            <source>Report a problem</source>
+            <translation>الإبلاغ عن مشكلة</translation>
+        </message>
+        <message>
+            <source>Ends on {date}</source>
+            <translation>ينتهي في {date}</translation>
+        </message>
+        <message>
+            <source>Monthly limit reached, resets {date}</source>
+            <translation>بلغت الحد الشهري، يتجدد في {date}</translation>
+        </message>
+        <message>
+            <source>Pro is paused until payment goes through.</source>
+            <translation>Pro متوقف مؤقتا حتى تنجح عملية الدفع.</translation>
+        </message>
+        <message>
+            <source>Pro trial: 1 day left</source>
+            <translation>تجربة Pro: بقي يوم واحد</translation>
+        </message>
+        <message>
+            <source>Pro trial: {n} days left</source>
+            <translation>تجربة Pro: بقيت {n} أيام</translation>
+        </message>
+        <message>
+            <source>Your trial did not start. You were not charged.</source>
+            <translation>لم تبدأ تجربتك. لم يتم خصم أي مبلغ منك.</translation>
+        </message>
+        <message>
+            <source>Then {price}/month excl. VAT. Cancel anytime.</source>
+            <translation>ثم {price}/شهر بدون ضريبة القيمة المضافة. يمكنك الإلغاء في أي وقت.</translation>
+        </message>
+        <message>
+            <source>{price}/month excl. VAT. Cancel anytime.</source>
+            <translation>{price}/شهر بدون ضريبة القيمة المضافة. يمكنك الإلغاء في أي وقت.</translation>
+        </message>
+        <message>
+            <source>Desktop notifications</source>
+            <translation>إشعارات سطح المكتب</translation>
+        </message>
+        <message>
+            <source>When QGIS is in the background and a run finishes or needs you.</source>
+            <translation>عندما يكون QGIS في الخلفية وينتهي تشغيل أو يحتاج إليك.</translation>
+        </message>
+        <message>
+            <source>Resets today</source>
+            <translation>يتجدد اليوم</translation>
+        </message>
+        <message>
+            <source>Try Pro free for 1 day</source>
+            <translation>جرّب Pro مجانا ليوم واحد</translation>
+        </message>
+        <message>
+            <source>More AI plugins</source>
+            <translation>المزيد من إضافات الذكاء الاصطناعي</translation>
+        </message>
+        <message>
+            <source>Applies after restarting QGIS.</source>
+            <translation>يسري بعد إعادة تشغيل QGIS.</translation>
+        </message>
+        <message>
+            <source>How AI Agent looks, what it knows about you, and how it calls you back.</source>
+            <translation>مظهر AI Agent، وما يعرفه عنك، وكيف ينبّهك.</translation>
+        </message>
+        <message>
+            <source>Language</source>
+            <translation>اللغة</translation>
+        </message>
+        <message>
+            <source>Usage stats: only that you used the app and when. Chats are kept as your History retention says, so a conversation survives an update; we may read one, or have a model score it, to fix bugs, never to train AI. 0 days of history stores nothing.</source>
+            <translation>إحصاءات الاستخدام: فقط أنك استخدمت التطبيق ومتى. تُحفظ المحادثات وفق إعداد الاحتفاظ بالسجل حتى تبقى المحادثة بعد التحديث. قد نقرأ محادثة، أو نجعل نموذجًا يقيّمها، لإصلاح الأخطاء، وليس لتدريب الذكاء الاصطناعي أبدًا. 0 أيام من السجل تعني عدم حفظ أي شيء.</translation>
+        </message>
+        <message>
+            <source>Grey text in the message box. Tab takes it.</source>
+            <translation>نص رمادي في مربع الرسالة. اضغط Tab لقبوله.</translation>
+        </message>
+        <message>
+            <source>Typing suggestions</source>
+            <translation>اقتراحات الكتابة</translation>
+        </message>
+        <message>
+            <source>Language, response style, suggestions and notifications go back to their defaults.</source>
+            <translation>تعود اللغة وأسلوب الإجابة والاقتراحات والإشعارات إلى قيمها الافتراضية.</translation>
+        </message>
+        <message>
+            <source>Reset settings</source>
+            <translation>إعادة تعيين الإعدادات</translation>
+        </message>
     </context>
     <context>
         <name>SiblingCard</name>
@@ -6608,6 +7320,10 @@ Thank you</source>
         <message>
             <source>Always allowed</source>
             <translation>مسموح دائماً</translation>
+        </message>
+        <message>
+            <source>Allow AI Agent to write in {folder}?</source>
+            <translation>هل تسمح لـ AI Agent بالكتابة في {folder}؟</translation>
         </message>
     </context>
     <context>
@@ -8919,6 +9635,97 @@ Thank you</source>
         <message>
             <source>Selected</source>
             <translation>محدد</translation>
+        </message>
+    </context>
+    <context>
+        <name>FolderCard</name>
+        <message>
+            <source>A folder on another computer of your network.</source>
+            <translation>مجلد على حاسوب آخر في شبكتك.</translation>
+        </message>
+        <message>
+            <source>Denied</source>
+            <translation>مرفوض</translation>
+        </message>
+        <message>
+            <source>Deny</source>
+            <translation>رفض</translation>
+        </message>
+        <message>
+            <source>Let AI Agent open this folder?</source>
+            <translation>هل تسمح لـ AI Agent بفتح هذا المجلد؟</translation>
+        </message>
+        <message>
+            <source>Read and write</source>
+            <translation>قراءة وكتابة</translation>
+        </message>
+        <message>
+            <source>Read only</source>
+            <translation>قراءة فقط</translation>
+        </message>
+        <message>
+            <source>What AI Agent reads there is sent to the AI model. Kept for this project.</source>
+            <translation>ما يقرؤه AI Agent هناك يُرسل إلى نموذج الذكاء الاصطناعي. يُحفظ لهذا المشروع.</translation>
+        </message>
+    </context>
+    <context>
+        <name>FolderChip</name>
+        <message>
+            <source>1 folder</source>
+            <translation>مجلد واحد</translation>
+        </message>
+        <message>
+            <source>Folders</source>
+            <translation>المجلدات</translation>
+        </message>
+        <message>
+            <source>Folders AI Agent can open in this project</source>
+            <translation>المجلدات التي يمكن لـ AI Agent فتحها في هذا المشروع</translation>
+        </message>
+        <message>
+            <source>{n} folders</source>
+            <translation>{n} مجلدات</translation>
+        </message>
+    </context>
+    <context>
+        <name>FolderPopover</name>
+        <message>
+            <source>Folders AI Agent can open in this project</source>
+            <translation>المجلدات التي يمكن لـ AI Agent فتحها في هذا المشروع</translation>
+        </message>
+        <message>
+            <source>The project folder and its layers' folders are always open for reading.</source>
+            <translation>مجلد المشروع ومجلدات طبقاته مفتوحة دائماً للقراءة.</translation>
+        </message>
+    </context>
+    <context>
+        <name>_FolderRow</name>
+        <message>
+            <source>Read and write</source>
+            <translation>قراءة وكتابة</translation>
+        </message>
+        <message>
+            <source>Read only</source>
+            <translation>قراءة فقط</translation>
+        </message>
+        <message>
+            <source>Remove</source>
+            <translation>إزالة</translation>
+        </message>
+    </context>
+    <context>
+        <name>AIAgentRecovery</name>
+        <message>
+            <source>QGIS closed during a run. {n} layer(s) of unsaved work came back in the group "{group}". Save them to keep them.</source>
+            <translation>أُغلق QGIS أثناء التشغيل. عادت {n} طبقة من العمل غير المحفوظ في المجموعة "{group}". احفظها للاحتفاظ بها.</translation>
+        </message>
+        <message>
+            <source>Some unsaved work could not be put back. Its copy is kept in {folder}.</source>
+            <translation>تعذّرت استعادة بعض العمل غير المحفوظ. نسخته محفوظة في {folder}.</translation>
+        </message>
+        <message>
+            <source>{name} (unsaved edits kept)</source>
+            <translation>{name} (التعديلات غير المحفوظة محفوظة)</translation>
         </message>
     </context>
 </TS>

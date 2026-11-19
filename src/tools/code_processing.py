@@ -36,10 +36,12 @@
 
 from __future__ import annotations
 
+import functools
 import uuid
 
 from qgis.core import (
     QgsApplication,
+    QgsFeedback,
     QgsMapLayer,
     QgsProcessingAlgRunnerTask,
     QgsProcessingException,
@@ -63,6 +65,8 @@ QUIET_MS = 1000
 
 
 WINDOW_NAME = "terralab_code_processing_wait"
+
+_RENDER_ALONE_S = 120.0
 
 _WAITS: list = []
 _LAYER_OUTPUTS = (QgsProcessingOutputVectorLayer, QgsProcessingOutputRasterLayer, QgsProcessingOutputMapLayer)
@@ -175,6 +179,46 @@ def threaded(real_run):
         return _run_in_task(alg, parameters, context)
 
     return run
+
+
+class _RenderJob:
+
+
+    def __init__(self, job):
+        self.job = job
+
+    def cancel(self) -> None:
+        self.job.cancelWithoutBlocking()
+
+
+def render_waited(job):
+
+
+
+
+
+
+
+
+    from .code_tripwire import AS_WRITTEN
+    from .render_wait import finish_on_main
+
+    if not background.on_main_thread():
+        return AS_WRITTEN
+    if not job.isActive():
+        return None
+    context = call_context()
+    if context is None:
+        finish_on_main(job, _RENDER_ALONE_S)
+        return None
+    wait = Wait(_RenderJob(job), context.run_id, context.stop)
+    done = functools.partial(wait.finished, True, {})
+    job.finished.connect(done)
+    try:
+        wait_under_window(wait, tr("the map render"), QgsFeedback(), lambda: None)
+    finally:
+        disconnect_quietly(job, "finished", done)
+    return None
 
 
 def call_context():

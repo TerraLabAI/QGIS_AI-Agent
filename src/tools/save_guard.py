@@ -34,14 +34,23 @@ from .scratch_scan import scratch_layers
 
 
 
+
+
+
 _ERRORS = (
+    ("Unable to save to file %1. Your project may be corrupted on disk. Try clearing some space on the "
+     "volume and check file permissions before pressing save again.", "write_incomplete"),
+    ("%1 is not writable. Please adjust permissions (if possible) and try again.", "not_writable"),
     ("Unable to write temporary qgs file", "temp_unwritable"),
-    ("Unable to save zip file", "zip_unwritable"),
-    ("Unable to save auxiliary storage", "auxiliary_storage"),
-    ("Unable to create backup file", "backup_unwritable"),
-    ("Your project may be corrupted on disk", "write_incomplete"),
-    ("Unable to save to file", "file_unwritable"),
-    ("Unable to save project to storage", "storage"),
+    ("Unable to perform zip", "zip_unwritable"),
+    ("Unable to save auxiliary storage file ('%1'). The project has been saved but the latest changes to "
+     "auxiliary data cannot be recovered. It is recommended to reload the project.", "auxiliary_storage"),
+    ("Unable to save auxiliary storage ('%1')", "auxiliary_storage"),
+    ("Unable to save attachments archive", "attachments"),
+    ("Unable to create backup file %1", "backup_unwritable"),
+    ("Unable to save project to storage %1", "storage"),
+    ("Unable to read file %1", "storage"),
+    ("Unable to save to file %1", "file_unwritable"),
 )
 _SAVE_ACTIONS = ("mActionSaveProject", "mActionSaveProjectAs", "mActionExit")
 
@@ -50,11 +59,37 @@ def tr(text: str) -> str:
     return QCoreApplication.translate("SaveGuard", text)
 
 
-def error_code(text: str) -> str:
-    for needle, code in _ERRORS:
-        if needle in (text or ""):
-            return code
-    return "other" if text else ""
+def _says(text: str, source: str) -> bool:
+
+
+    for form in {source, QCoreApplication.translate("QgsProject", source)}:
+        parts = [part.strip() for part in form.split("%1") if part.strip()]
+        at = 0
+        for part in parts:
+            at = text.find(part, at)
+            if at < 0:
+                break
+            at += len(part)
+        else:
+            if parts:
+                return True
+    return False
+
+
+def error_code(text: str, path: str = "") -> str:
+
+
+
+
+    if not text:
+        return ""
+    code = next((code for source, code in _ERRORS if _says(text, source)), "other")
+    if path and code in ("zip_unwritable", "file_unwritable", "other"):
+        if not os.path.isdir(os.path.dirname(path)):
+            return "folder_missing"
+        if os.path.exists(path) and not os.access(path, os.W_OK):
+            return "not_writable"
+    return code
 
 
 def _temp_path() -> str:
@@ -405,9 +440,10 @@ class SaveGuard(QObject):
             return
         project = QgsProject.instance()
         error = project.error() or ""
+        on_disk = project.fileName() if error and project.projectStorage() is None else ""
         temporary = self._temporary_layers()
         props = {
-            "ok": not error, "error_code": error_code(error), "during_run": pending["during_run"],
+            "ok": not error, "error_code": error_code(error, on_disk), "during_run": pending["during_run"],
             "while_quitting": pending["while_quitting"], "format": pending["format"],
             "temp_folder_restored": self._restored, "agent_temp_layers": len(temporary),
             "qgis_temp_layers": _in_qgis_temp(project),

@@ -33,6 +33,8 @@
 
 from __future__ import annotations
 
+import os
+
 from qgis.core import (
     QgsCoordinateTransform,
     QgsFeatureRequest,
@@ -243,7 +245,8 @@ def _primary_output(outputs: dict) -> tuple[str, dict] | tuple[None, None]:
     if not isinstance(outputs, dict):
         return None, None
     entry = outputs.get("OUTPUT")
-    if isinstance(entry, dict) and "layer_id" in entry:
+
+    if isinstance(entry, dict) and ("layer_id" in entry or "path" in entry):
         return "OUTPUT", entry
     layers = [(key, value) for key, value in outputs.items()
               if isinstance(value, dict) and "layer_id" in value]
@@ -461,6 +464,101 @@ def joined_input_fields(algorithm_id: str, parameters: dict) -> list | None:
         return None
     layer = _input_layer(parameters if isinstance(parameters, dict) else {})
     return list(layer.fields().names()) if layer is not None else None
+
+
+
+
+
+_CALC_INPUTS = ("INPUT_A", "INPUT_B", "INPUT_C", "INPUT_D", "INPUT_E", "INPUT_F")
+_CALC_GRID = 256
+
+
+def calculator_inputs(algorithm_id: str, parameters: dict) -> list | None:
+
+
+    if str(algorithm_id or "").lower() != "gdal:rastercalculator" or not isinstance(parameters, dict):
+        return None
+    if "hidenodata" in str(parameters.get("EXTRA") or "").lower():
+        return None
+    inputs = []
+    for key in _CALC_INPUTS:
+        value = parameters.get(key)
+        if value in (None, ""):
+            continue
+        layer = _layer_of(value)
+        path = str(layer.source()) if layer is not None else str(value)
+        if "://" in path or path.lower().startswith("/vsi") or not os.path.isfile(path):
+            return None
+        try:
+            band = int(parameters.get("BAND_" + key[-1]) or 1)
+        except (TypeError, ValueError):
+            band = 1
+        inputs.append((path, band))
+    return inputs if len(inputs) >= 2 else None
+
+
+def _calc_key(path: str) -> str:
+    return os.path.normcase(os.path.normpath(str(path).split("|", 1)[0]))
+
+
+def read_raster_ahead(path: str, inputs: list) -> None:
+
+
+
+    try:
+        from osgeo import gdal
+
+        out = gdal.OpenEx(path, gdal.OF_RASTER)
+        gt = out.GetGeoTransform(can_return_null=True) if out is not None else None
+        if gt is None or gt[2] or gt[4]:
+            return
+        width, height = out.RasterXSize, out.RasterYSize
+        bounds = (gt[0], gt[3] + gt[5] * height, gt[0] + gt[1] * width, gt[3])
+        wkt = out.GetProjection()
+        out = None
+        step = max(1, max(width, height) // _CALC_GRID)
+        size = (max(1, width // step), max(1, height // step))
+
+        def covered(source: str, band: int):
+            single = gdal.Translate("", source, format="VRT", bandList=[band])
+            warped = gdal.Warp("", single, format="MEM", outputBounds=bounds, width=size[0], height=size[1],
+                               dstSRS=wkt or None, resampleAlg="near", dstAlpha=True)
+            alpha = warped.GetRasterBand(warped.RasterCount).ReadAsArray() > 0
+            warped = single = None
+            return alpha
+
+        masks = [covered(source, band) for source, band in inputs]
+        output = covered(path, 1)
+    except Exception:  # noqa: BLE001  # nosec B110
+        return
+    cells = float(output.size)
+    anyone, every = masks[0].copy(), masks[0].copy()
+    for mask in masks[1:]:
+        anyone |= mask
+        every &= mask
+    _remember("calc", _calc_key(path), {
+        "inputs_pct": [round(100.0 * int(mask.sum()) / cells, 1) for mask in masks],
+        "any_input_pct": round(100.0 * int(anyone.sum()) / cells, 1),
+        "every_input_pct": round(100.0 * int(every.sum()) / cells, 1),
+        "output_pct": round(100.0 * int(output.sum()) / cells, 1),
+        "grid": list(size)})
+
+
+def _calculator_footprint(entry) -> tuple[dict, str | None]:
+
+
+    path = entry.get("path") if isinstance(entry, dict) else None
+    found = _READ_AHEAD.pop(("calc", _calc_key(path)), None) if path else None
+    if not found:
+        return {}, None
+    anyone, kept = found["any_input_pct"], found["output_pct"]
+    if anyone <= 0 or kept >= tuning.threshold("calc_kept_warn_ratio", 0.5, 0.1, 0.95) * anyone:
+        return {"calc_coverage": found}, None
+    return {"calc_coverage": found}, _Coded(
+        f"the output has data on {kept:g}% of its grid, where some input has data on {anyone:g}% and every "
+        f"input on {found['every_input_pct']:g}%: gdal:rastercalculator writes NoData wherever any input reads "
+        f"NoData, whatever FORMULA says.", "calc_nodata_intersection",
+        output_pct=kept, any_input_pct=anyone, every_input_pct=found["every_input_pct"])
 
 
 def read_ahead(layer, layer_id: str, joined_from: list | None = None) -> None:
@@ -746,6 +844,12 @@ def _alpha_band(layer) -> int | None:
 
 def has_any_data(layer) -> bool | None:
 
+    sampled = _sampled_range(layer)
+    return None if sampled is None else sampled[0] <= sampled[1]
+
+
+def _sampled_range(layer) -> tuple[float, float] | None:
+
 
 
 
@@ -774,7 +878,7 @@ def has_any_data(layer) -> bool | None:
 
 
 
-    return low <= high
+    return low, high
 
 
 def _raster_checks(algorithm_id: str, parameters: dict, input_layer, output_layer) -> tuple[dict, list[str]]:
@@ -858,13 +962,20 @@ def _raster_checks(algorithm_id: str, parameters: dict, input_layer, output_laye
     if width and height:
         checks["size_out"] = [width, height]
 
-    has_data = has_any_data(output_layer)
-    if has_data is not None:
-        checks["has_data"] = has_data
-        if not has_data:
+    sampled = _sampled_range(output_layer)
+    if sampled is not None:
+        low, high = sampled
+        checks["has_data"] = low <= high
+        if low > high:
             warnings.append(_Coded(
                 f"every one of the {_RASTER_SAMPLE_PIXELS} sampled pixels is nodata.",
                 "raster_all_nodata", sampled=_RASTER_SAMPLE_PIXELS))
+        elif low == high:
+
+
+            warnings.append(_Coded(
+                f"every one of the {_RASTER_SAMPLE_PIXELS} sampled pixels holds {low:g}.",
+                "raster_single_value", sampled=_RASTER_SAMPLE_PIXELS, value=low))
     return checks, warnings
 
 
@@ -975,6 +1086,10 @@ def compute_checks(algorithm_id: str, parameters: dict, outputs: dict) -> dict |
                                                         input_layer, output_layer)
         checks.update(raster_report)
         warnings.extend(raster_warnings)
+        coverage, calc_warning = _calculator_footprint(entry)
+        checks.update(coverage)
+        if calc_warning:
+            warnings.append(calc_warning)
         terrain = _terrain_cell_note(algorithm_id, parameters, input_layer)
         if terrain:
             checks["ground_metres_per_input_unit"] = terrain[0]

@@ -30,6 +30,7 @@ from qgis.core import (
     QgsDataSourceUri,
     QgsFeatureRequest,
     QgsProviderRegistry,
+    QgsTask,
     QgsVectorLayer,
     QgsVectorLayerExporterTask,
 )
@@ -38,6 +39,7 @@ from qgis.PyQt.QtCore import QT_TRANSLATE_NOOP
 from ..core import limits
 from ..core.feature_requests import feature_request
 from ..core.layer_release import register_task
+from ..core.qt_compat import qt_deleted
 from ..core.quiet_credentials import no_login_prompt
 from ..core.tool_registry import Tool, ToolRegistry, tool_error
 from ._layers import layer_not_found, resolve_layer
@@ -78,6 +80,19 @@ def register_postgis_import_tools(registry: ToolRegistry):
         },
         handler=_import_to_postgis,
     ))
+
+
+
+
+
+_writing: tuple | None = None
+_ACTIVE = (QgsTask.TaskStatus.Queued, QgsTask.TaskStatus.OnHold, QgsTask.TaskStatus.Running)
+
+
+def _import_still_writing() -> tuple | None:
+    if _writing is None or qt_deleted(_writing[0]) or _writing[0].status() not in _ACTIVE:
+        return None
+    return _writing
 
 
 class _PostgisImportTask(QgsVectorLayerExporterTask):
@@ -390,9 +405,15 @@ def _import_to_postgis(args: dict) -> dict:
         except (AttributeError, TypeError):
             pass
 
-    task_id, _entry = register_task(task, f"import_to_postgis {schema}.{table}", connect=wire)
+    global _writing
+    before = _import_still_writing()
+    task_id, _entry = register_task(task, f"import_to_postgis {schema}.{table}", connect=wire,
+                                    after=before[0] if before else None)
+    _writing = (task, task_id, f"{schema}.{table}")
+    note = (f"Starts once the import into {before[2]} ({before[1]}) has finished." if before
+            else "Writing in the background.")
     return {"task_id": task_id, "status": "running", "importing": f"{schema}.{table}",
             "feature_count": feature_count,
-            "note": "Writing in the background.", "note_hint": "pg_import_running",
+            "note": note, "note_hint": "pg_import_running",
             "poll": {"tool": "get_task_status", "args": {"task_id": task_id},
                      "interval_s": 0.5, "label": f"Importing into {schema}.{table}"}}

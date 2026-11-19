@@ -1086,17 +1086,59 @@ def _tripped(status: dict, stdout: str) -> dict:
     return out
 
 
+
+_PREREAD_TOO_SLOW: set[str] = set()
+
+
+def _written_strings(code: str) -> set[str] | None:
+
+    import ast
+
+    try:
+        tree = ast.parse(code)
+    except (SyntaxError, ValueError):
+        return None
+    return {node.value.casefold() for node in ast.walk(tree)
+            if isinstance(node, ast.Constant) and isinstance(node.value, str)}
+
+
 def _web_service_layers(code: str) -> list:
+
+
+
 
 
 
 
     from qgis.core import QgsProject, QgsVectorLayer
 
+    written = _written_strings(code)
     return [layer for layer in QgsProject.instance().mapLayers().values()
             if isinstance(layer, QgsVectorLayer) and layer.isValid()
+            and layer.id() not in _PREREAD_TOO_SLOW
             and str(layer.providerType() or "").lower() in WEB_SERVICE_PROVIDERS
-            and ((layer.name() and layer.name() in code) or layer.id() in code)]
+            and _named(layer, code, written)]
+
+
+def _named(layer, code: str, written: set[str] | None) -> bool:
+    name = layer.name()
+    if layer.id() in code:
+        return True
+    if not name:
+        return False
+    return name in code if written is None else name.casefold() in written
+
+
+def too_large_web_layer(code: str) -> str:
+
+    from qgis.core import QgsProject
+
+    written = _written_strings(code)
+    for layer_id in sorted(_PREREAD_TOO_SLOW):
+        layer = QgsProject.instance().mapLayer(layer_id)
+        if layer is not None and _named(layer, code, written):
+            return layer.name()
+    return ""
 
 
 def runs_in_task(args: dict) -> bool:
@@ -1116,10 +1158,11 @@ def reads_web_services(args: dict) -> bool:
 def _web_service_sources(code: str) -> list:
     from qgis.core import QgsVectorLayerFeatureSource
 
-    return [(layer.name(), QgsVectorLayerFeatureSource(layer)) for layer in _web_service_layers(code)]
+    return [(layer.name(), layer.id(), QgsVectorLayerFeatureSource(layer)) for layer in _web_service_layers(code)]
 
 
 def _read_web_services(code: str, cancel_check) -> dict | None:
+
 
 
 
@@ -1136,7 +1179,8 @@ def _read_web_services(code: str, cancel_check) -> dict | None:
         log_warning(f"execute_code web service pre-read skipped: {exc}")
         return None
 
-    for name, source in sources:
+    deadline = time.monotonic() + limits.current("WEB_SERVICE_PREREAD_SECONDS")
+    for name, layer_id, source in sources:
         request, feedback = QgsFeatureRequest(), background.prime(QgsFeedback())
         if hasattr(request, "setFeedback"):
             request.setFeedback(feedback)
@@ -1162,6 +1206,12 @@ def _read_web_services(code: str, cancel_check) -> dict | None:
                 feedback.cancel()
                 return tool_error(f"Stopped while the layer {name!r} was read from its service. "
                                   f"Nothing was changed.", "CANCELLED")
+            if time.monotonic() > deadline:
+                feedback.cancel()
+                _PREREAD_TOO_SLOW.add(layer_id)
+                log_warning(f"execute_code stopped reading {name!r} ahead of the snippet after "
+                            f"{limits.current('WEB_SERVICE_PREREAD_SECONDS'):.0f} s; it is not read ahead again")
+                return None
         if failure:
             log_warning(f"execute_code could not read {name!r} ahead of the snippet: {failure[0]}")
     return None

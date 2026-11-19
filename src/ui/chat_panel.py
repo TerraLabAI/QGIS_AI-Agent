@@ -66,6 +66,8 @@ class ChatPanel(_ChatPanelRuns, _ChatPanelQueue, _ChatPanelPrompts, _ChatPanelTh
 
 
     permission_decided = pyqtSignal(str, str, object)
+    folder_decided = pyqtSignal(str, str)
+    folder_removed = pyqtSignal(str)
     question_answered = pyqtSignal(str, str)
 
 
@@ -92,9 +94,10 @@ class ChatPanel(_ChatPanelRuns, _ChatPanelQueue, _ChatPanelPrompts, _ChatPanelTh
     chip_removed = pyqtSignal(str, str)
     files_dropped = pyqtSignal(object)
     open_settings_requested = pyqtSignal()
+
+    open_settings_page_requested = pyqtSignal(str)
     sign_in_requested = pyqtSignal()
     sign_out_requested = pyqtSignal()
-    context_add_requested = pyqtSignal(str)
     mode_changed = pyqtSignal(str, str)
     effort_changed = pyqtSignal(str)
     pairing_reopen_requested = pyqtSignal()

@@ -174,11 +174,12 @@ class PrivacyNoticeDialog(QDialog):
 
 
 
+
         return get_privacy_notice_checks((
             tr("Your chats are private"),
             tr("Hosted in the EU"),
             tr("Never used to train AI"),
-            tr("Deleted after 90 days at most"),
+            tr("Kept until you delete it"),
         ))
 
     def _build_check(self, claim: str) -> QWidget:

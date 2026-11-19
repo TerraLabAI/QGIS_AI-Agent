@@ -18,7 +18,6 @@ from __future__ import annotations
 
 import json
 import time
-import weakref
 
 from qgis.PyQt.QtCore import QEasingCurve, QEvent, QObject, QPoint, QPointF, Qt, QTimer
 from qgis.PyQt.QtWidgets import QApplication
@@ -32,14 +31,6 @@ from .mascot import BOX_H, BOX_W, GAZE, LIVE, STILL, Mascot
 HEAD, HOME, SIGNIN, CARD, QUESTION, OFFER = "head", "home", "signin", "card", "question", "offer"
 _PEEK = 0.27
 _PEEK_INSET = 48
-_STAGES = weakref.WeakSet()
-
-
-def refresh_mascots() -> None:
-
-    for stage in list(_STAGES):
-        stage.refresh_mode()
-        stage.sync()
 
 
 class _Watch(QObject):
@@ -117,7 +108,6 @@ class MascotStage(QObject):
         self._later.timeout.connect(self._place)
         panel.installEventFilter(self)
         self._apply_table(table)
-        _STAGES.add(self)
 
 
 
@@ -148,13 +138,10 @@ class MascotStage(QObject):
         self.refresh_mode()
         self.sync()
 
-    def animated(self) -> bool:
-        return self._settings is None or self._settings.mascot_animated
-
     def refresh_mode(self) -> None:
 
 
-        if not self.animated() or not self.mascot.table()["enabled"]:
+        if not self.mascot.table()["enabled"]:
             mode = STILL
         elif prefers_reduced_motion():
             mode = GAZE
@@ -623,4 +610,4 @@ class MascotStage(QObject):
             mascot.raise_()
 
 
-__all__ = ["CARD", "HEAD", "HOME", "OFFER", "MascotStage", "QUESTION", "SIGNIN", "refresh_mascots"]
+__all__ = ["CARD", "HEAD", "HOME", "OFFER", "MascotStage", "QUESTION", "SIGNIN"]

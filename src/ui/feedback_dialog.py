@@ -21,32 +21,39 @@ import sys
 
 from qgis.core import QgsApplication, QgsTask
 from qgis.PyQt.QtCore import QEvent, Qt
-from qgis.PyQt.QtWidgets import QDialog, QHBoxLayout, QLabel, QPlainTextEdit, QPushButton, QVBoxLayout
+from qgis.PyQt.QtWidgets import QDialog, QFrame, QHBoxLayout, QLabel, QPlainTextEdit, QPushButton, QVBoxLayout, QWidget
 
 from ..api.terralab_client import TerraLabClient
-from ..core.host_platform import os_info, os_label, plugin_version
+from ..core.host_platform import os_info, os_label, plugin_version, prefers_reduced_motion
 from ..core.log_scrub import scrub_secrets, scrub_user_paths
 from ..core.logger import log_warning, recent_logs
 from ..core.served_state import PRODUCT_ID, SUPPORT_EMAIL, _served_text
-from .font_scale import scale_px_length, scale_qss_font_px
+from .dock.about import CONTACT_QSS
+from .font_scale import apply_font_scale_to_tree, scale_px_length, scale_qss_font_px
+from .mascot import GAZE, LIVE, Mascot
 from .session_export import render_markdown
-from .settings_pages import TEXTAREA_QSS
 from .shared import exec_dialog, tr
 from .style import (
     _BTN_GHOST,
     _BTN_PRIMARY,
+    ACCENT,
     BTN_PILL_PX,
     FONT_BASE,
-    FONT_BODY,
     FONT_HINT,
-    INK_3,
-    MUTED,
+    INK,
+    LINE,
     RED,
+    SURFACE,
     keyboard_ring,
     with_platform_font,
 )
 from .transcript import redact_signed_urls
 from .widgets import placeholder_ink
+
+_BOX_QSS = scale_qss_font_px(
+    f"QPlainTextEdit#fbBox {{ font-size: {FONT_BASE}px; color: {INK}; background: {SURFACE};"
+    f" border: 1px solid {LINE}; border-radius: 8px; padding: 8px 10px; }}"
+    f"QPlainTextEdit#fbBox:focus {{ border-color: {ACCENT}; }}")
 
 
 def _report_email() -> str:
@@ -185,7 +192,7 @@ class FeedbackDialog(QDialog):
         with_platform_font(self)
         self.setWindowTitle(tr("Send feedback"))
         self.setModal(True)
-        self.setMinimumWidth(scale_px_length(420))
+        self.setMinimumWidth(scale_px_length(440))
         self._run_id = str(run_id or "")
         self._error = str(error_message or "")
         self._entry = entry
@@ -196,43 +203,65 @@ class FeedbackDialog(QDialog):
         self._export: dict | None = None
         self._task = None
         self.sent = False
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(20, 18, 20, 18)
-        layout.setSpacing(6)
-        title = QLabel(tr("Send feedback"), self)
-        title.setStyleSheet(scale_qss_font_px(f"font-weight: 600; font-size: {FONT_BASE + 2}px;"))
-        layout.addWidget(title)
-        subtitle = QLabel(tr("Report a bug, suggest an idea, or share what's working well."), self)
-        subtitle.setWordWrap(True)
-        subtitle.setStyleSheet(scale_qss_font_px(f"color: {MUTED}; font-size: {FONT_BODY}px;"))
-        layout.addWidget(subtitle)
-        layout.addSpacing(8)
 
-        self._text = QPlainTextEdit(self)
-        self._text.setPlaceholderText(tr("Example: the buffer came out in degrees instead of metres."))
+        self.setObjectName("feedbackDialog")
+        self.setStyleSheet(CONTACT_QSS + _BOX_QSS)
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(24, 22, 24, 22)
+        layout.setSpacing(14)
+        head = QHBoxLayout()
+        head.setSpacing(14)
+        self._seat = QWidget(self)
+        self._seat.setFixedSize(scale_px_length(46), scale_px_length(54))
+        self._mascot = Mascot(self._seat)
+        self._mascot.set_mode(GAZE if prefers_reduced_motion() else LIVE)
+        self._mascot.set_mood("listen")
+        head.addWidget(self._seat, 0, Qt.AlignmentFlag.AlignVCenter)
+        words = QVBoxLayout()
+        words.setSpacing(2)
+        title = QLabel(tr("Send feedback"), self)
+        title.setObjectName("ctTitle")
+        words.addWidget(title)
+        subtitle = QLabel(tr("We read every message and use it to improve AI Agent."), self)
+        subtitle.setObjectName("ctSub")
+        subtitle.setWordWrap(True)
+        words.addWidget(subtitle)
+        head.addLayout(words, 1)
+        layout.addLayout(head)
+
+        card = QFrame(self)
+        card.setObjectName("ctCard")
+        inner = QVBoxLayout(card)
+        inner.setContentsMargins(16, 16, 16, 14)
+        inner.setSpacing(10)
+        self._text = QPlainTextEdit(card)
+        self._text.setObjectName("fbBox")
+        self._text.setPlaceholderText(tr("What happened, and what did you expect? For example: the buffer came out "
+                                         "in degrees instead of metres."))
         placeholder_ink(self._text)
-        self._text.setStyleSheet(scale_qss_font_px(TEXTAREA_QSS))
         self._text.setTabChangesFocus(True)
         self._text.installEventFilter(self)
-        self._text.setFixedHeight(scale_px_length(120))
+        self._text.setFixedHeight(scale_px_length(132))
         self._text.textChanged.connect(self._sync_send)
-        layout.addWidget(self._text)
-        self._note = QLabel(self._note_text(), self)
+        inner.addWidget(self._text)
+        self._note = QLabel(self._note_text(), card)
+        self._note.setObjectName("ctNote")
         self._note.setWordWrap(True)
         self._note.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
-        self._note.setStyleSheet(scale_qss_font_px(f"color: {INK_3}; font-size: {FONT_HINT}px;"))
-        layout.addSpacing(4)
-        layout.addWidget(self._note)
-        self._failure = QLabel(self)
+        inner.addWidget(self._note)
+        self._failure = QLabel(card)
         self._failure.setWordWrap(True)
-        self._failure.setStyleSheet(scale_qss_font_px(f"color: {RED}; font-size: {FONT_HINT}px;"))
+        self._failure.setStyleSheet(
+            scale_qss_font_px(f"color: {RED}; font-size: {FONT_HINT}px; background: transparent;"))
         self._failure.hide()
-        layout.addWidget(self._failure)
-        layout.addSpacing(10)
+        inner.addWidget(self._failure)
+        layout.addWidget(card)
+
+
         row = QHBoxLayout()
         row.setSpacing(8)
         row.addStretch(1)
-        self._cancel = QPushButton(tr("Cancel"), self)
+        self._cancel = QPushButton(tr("Cancel"), card)
         self._cancel.setCursor(Qt.CursorShape.PointingHandCursor)
         self._cancel.setStyleSheet(_BTN_GHOST)
         keyboard_ring(self._cancel)
@@ -240,15 +269,24 @@ class FeedbackDialog(QDialog):
         self._cancel.setAutoDefault(False)
         self._cancel.clicked.connect(self.reject)
         row.addWidget(self._cancel)
-        self._send = QPushButton(tr("Send"), self)
+        self._send = QPushButton(tr("Send"), card)
         self._send.setCursor(Qt.CursorShape.PointingHandCursor)
         self._send.setStyleSheet(_BTN_PRIMARY)
         keyboard_ring(self._send)
         self._send.setFixedHeight(scale_px_length(BTN_PILL_PX))
-        self._send.setMinimumWidth(scale_px_length(72))
+
+        self._send.ensurePolished()
+        metrics = self._send.fontMetrics()
+        self._send.setMinimumWidth(max(scale_px_length(84), 32 + max(
+            metrics.horizontalAdvance(tr("Send")), metrics.horizontalAdvance(tr("Sending...")))))
         self._send.clicked.connect(self._on_send)
         row.addWidget(self._send)
-        layout.addLayout(row)
+        inner.addSpacing(2)
+        inner.addLayout(row)
+        apply_font_scale_to_tree(self)
+        self.adjustSize()
+        self.resize(max(self.width(), scale_px_length(520)), self.height())
+        self._mascot.put(self._seat.width() / 2.0, self._seat.height() - 2.0, scale_px_length(44))
         self._sync_send()
         self._text.setFocus()
 
@@ -263,8 +301,7 @@ class FeedbackDialog(QDialog):
         if not self._auth():
             return tr("Sign in to send feedback from here, or write to us at {email}.").format(
                 email=_report_email())
-        return tr("This report includes your description and the current conversation. "
-                  "We use it to fix issues and improve AI Agent.")
+        return tr("Sent with this conversation and the plugin's recent log.")
 
     def eventFilter(self, obj, event):  # noqa: N802
 

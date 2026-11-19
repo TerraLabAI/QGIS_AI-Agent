@@ -21,6 +21,7 @@ from qgis.core import QgsCoordinateReferenceSystem, QgsProject, QgsVectorLayer, 
 
 from ..core import (
     accounts,
+    background,
     http_headers,
     limits,
     link_vault,
@@ -686,7 +687,15 @@ def _sublayers_of(layer) -> list:
 
 
 
-_ARCHIVE_RASTER_EXTENSIONS = (".tif", ".tiff", ".img", ".jp2", ".asc", ".nc", ".bil", ".flt", ".hgt", ".xyz")
+_ARCHIVE_RASTER_EXTENSIONS = (".tif", ".tiff", ".img", ".jp2", ".asc", ".nc", ".bil", ".flt", ".hgt", ".xyz",
+                               ".sid")
+
+
+def is_archive_raster(name: str) -> bool:
+
+
+    lowered = name.lower()
+    return lowered.endswith(_ARCHIVE_RASTER_EXTENSIONS) or os.path.basename(lowered) == "hdr.adf"
 
 
 def _archive_entries(root: str) -> list:
@@ -940,8 +949,11 @@ def _download_to_disk(args: dict, url: str, layer_name, shared: bool) -> dict:
 
     tmp_dir = create_managed_temp_dir("download")
     body = os.path.join(tmp_dir, "download.bin")
-    clock = limits.current("CALL_MAX_SECONDS_BACKGROUND") * _STREAM_DOWNLOAD_SHARE
-    streamed = _stream_to_disk(url, body, min(_DOWNLOAD_TOTAL_TIMEOUT, clock))
+    if background.hands_back_call():
+        clock = limits.current("HANDED_BACK_DOWNLOAD_SECONDS")
+    else:
+        clock = min(_DOWNLOAD_TOTAL_TIMEOUT, limits.current("CALL_MAX_SECONDS_BACKGROUND") * _STREAM_DOWNLOAD_SHARE)
+    streamed = _stream_to_disk(url, body, clock)
     if isinstance(streamed, dict):
         return _discard_download(tmp_dir, streamed)
     with open(streamed.path, "rb") as handle:
@@ -1137,7 +1149,7 @@ def _load_download(args: dict, url: str, layer_name, tmp_dir: str, filepath: str
 
             rasters = {os.path.relpath(f, tmp_dir).replace(os.sep, "/"): f
                        for f in sorted(_archive_entries(tmp_dir), key=lambda f: (f.count(os.sep), f.lower()))
-                       if f != filepath and f.lower().endswith(_ARCHIVE_RASTER_EXTENSIONS)}
+                       if f != filepath and is_archive_raster(f)}
             named_raster = members_matching(list(rasters), wanted) if wanted and rasters else []
             if named_raster and not members_matching(list(candidates), wanted):
                 return _load_unpacked_raster(tmp_dir, url, [rasters[name] for name in named_raster], layer_name)
@@ -2014,7 +2026,7 @@ def _too_large_to_read(url: str, headers: dict) -> dict | None:
 _REASON_BYTES = 4096
 _REASON_CHARS = 300
 _OWS_EXCEPTION_RE = re.compile(rb"<(?:\w+:)?(?:ExceptionText|ServiceException)[^>]*>\s*(.*?)\s*</", re.DOTALL)
-_JSON_REASON_KEYS = ("message", "error", "detail", "description", "reason", "title")
+_JSON_REASON_KEYS = ("message", "messages", "error", "errors", "detail", "description", "reason", "title")
 
 
 def _json_reason(value) -> str:
@@ -2026,6 +2038,10 @@ def _json_reason(value) -> str:
             if found:
                 return found
     if isinstance(value, list) and value:
+
+
+        if all(isinstance(item, str) for item in value):
+            return " ".join(value)
         return _json_reason(value[0])
     return ""
 

@@ -19,11 +19,11 @@ from qgis.PyQt.QtWidgets import (
     QVBoxLayout,
 )
 
-from .font_scale import scale_qss_font_px
+from .font_scale import scale_px_length, scale_qss_font_px
 from .settings_pages import DANGER_GHOST_BTN_QSS, GHOST_BTN_QSS, INPUT_QSS, MUTED
 from .shared import exec_dialog, tr
 from .style import with_platform_font
-from .widgets import placeholder_ink
+from .widgets import ChatLabel, placeholder_ink
 
 
 class DeleteAccountDialog(QDialog):
@@ -35,7 +35,7 @@ class DeleteAccountDialog(QDialog):
         self._email = str(email or "").strip()
         self.setWindowTitle(tr("Delete my account"))
         self.setModal(True)
-        self.setMinimumWidth(420)
+        self.setMinimumWidth(scale_px_length(420))
         layout = QVBoxLayout(self)
         layout.setContentsMargins(18, 18, 18, 18)
         layout.setSpacing(12)
@@ -54,9 +54,9 @@ class DeleteAccountDialog(QDialog):
         body.setWordWrap(True)
         layout.addWidget(body)
 
-        who = QLabel(tr("Signed in as {email}").format(email=self._email), self)
-        who.setWordWrap(True)
-        who.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+
+        who = ChatLabel(tr("Signed in as {email}").format(email=self._email), self, wrap=True,
+                        selectable=True)
         who.setStyleSheet("font-weight: 600;")
         layout.addWidget(who)
 

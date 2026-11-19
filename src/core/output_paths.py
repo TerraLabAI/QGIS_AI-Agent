@@ -23,7 +23,13 @@ import unicodedata
 from . import host_platform
 from .host_platform import expand_leading_env
 
-DEFAULT_SUBFOLDER = "TerraLab exports"
+
+
+LEGACY_SUBFOLDER = "TerraLab exports"
+
+
+
+_PROCESSING_SUBFOLDER = "processing"
 
 
 _ALIASES = {
@@ -157,6 +163,29 @@ def _writable(folder: str) -> bool:
     return True
 
 
+def processing_output_folder() -> str:
+
+    return os.path.join(os.path.expanduser("~"), _PROCESSING_SUBFOLDER)
+
+
+def export_candidates() -> list:
+
+    import tempfile
+
+    chosen = os.environ.get("QGIS_AI_AGENT_EXPORTS", "").strip()
+    if chosen:
+        return [os.path.normpath(os.path.expanduser(chosen))]
+    return [processing_output_folder(), os.path.join(tempfile.gettempdir(), _PROCESSING_SUBFOLDER)]
+
+
+def legacy_folders() -> list:
+
+    import tempfile
+
+    return [os.path.join(base, LEGACY_SUBFOLDER)
+            for base in (standard_folder("documents"), os.path.expanduser("~"), tempfile.gettempdir()) if base]
+
+
 def exports_folder(make: bool = True) -> str:
 
 
@@ -170,18 +199,11 @@ def exports_folder(make: bool = True) -> str:
 
 
 
-
-
-    import tempfile
-
-    chosen = os.environ.get("QGIS_AI_AGENT_EXPORTS", "").strip()
-    if chosen:
-        return os.path.normpath(os.path.expanduser(chosen))
-    if _WRITABLE and os.path.isdir(_WRITABLE[0]):
+    folders = export_candidates()
+    if len(folders) == 1:
+        return folders[0]
+    if _WRITABLE and _WRITABLE[0] in folders and os.path.isdir(_WRITABLE[0]):
         return _WRITABLE[0]
-    folders = [os.path.join(base, DEFAULT_SUBFOLDER)
-               for base in (standard_folder("documents"), os.path.expanduser("~"), tempfile.gettempdir())
-               if base and os.path.isdir(base)] or [os.path.join(tempfile.gettempdir(), DEFAULT_SUBFOLDER)]
     if not make:
         return next((folder for folder in folders if os.path.isdir(folder)), folders[0])
     for folder in folders:
@@ -429,7 +451,10 @@ def make_exports_folder(path) -> bool:
     folder = os.path.dirname(os.path.abspath(path.strip()))
     if not folder or security.refused_share(folder) or os.path.isdir(folder):
         return False
-    if os.path.basename(folder).casefold() != DEFAULT_SUBFOLDER.casefold():
+    def key(value: str) -> str:
+        return os.path.normcase(os.path.normpath(value))
+
+    if key(folder) not in {key(candidate) for candidate in export_candidates()}:
         return False
     if not os.path.isdir(os.path.dirname(folder)):
         return False
