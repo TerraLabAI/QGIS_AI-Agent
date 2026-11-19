@@ -35,14 +35,17 @@ about=
 
     By TerraLab, terra-lab.ai
 
-version=2.0.3
+version=2.0.4
 author=TerraLab
-email=gregoire.bruneau@terra-lab.ai
+email=lilien.auger@terra-lab.ai
 homepage=https://terra-lab.ai/ai-agent?utm_source=plugins.qgis.org&utm_medium=referral
 repository=https://github.com/TerraLabAI/QGIS_AI-Agent
 tracker=https://github.com/TerraLabAI/QGIS_AI-Agent/issues
 license=GPL-2.0-or-later
 changelog=
+    2.0.4
+    - The plugin page lists the right contact address again
+
     2.0.3
     - A new Settings window: interface language, a switch for typing suggestions, Learn tutorials
     - Word reports with headings, text, pictures and tables; print layouts in every QGIS paper size
@@ -65,11 +68,6 @@ changelog=
     - A Memory page on every plan, a new effort slider, and calmer permission and effort menus
     - Fewer freezes and crashes: WFS layers added together, layout exports from code, 3D views, Stop and Undo
 
-    1.9.5
-    - Question cards show their choices as tiles, with the recommended one marked on its label
-    - An opened step shows what came back first, with layer icons, colour swatches and a link into QGIS
-    - Data sources sort by continent, country and publisher; examples bring their files into the chat
-    - Safer Undo, two QGIS open side by side, a sign-in key sealed for your Windows user, fewer freezes
 
 
 

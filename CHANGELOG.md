@@ -9,6 +9,12 @@ is what the QGIS Plugin Manager renders.
 
 ## [Unreleased]
 
+## [2.0.4] - 2026-11-19
+
+### Changed
+
+- The plugin page and the support fallback list the previous contact addresses again.
+
 ## [2.0.3] - 2026-11-19
 
 ### Added

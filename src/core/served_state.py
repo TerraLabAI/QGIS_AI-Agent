@@ -52,7 +52,7 @@ TERRALAB_MORE_URL = build_utm_url("", "menu_more")
 
 
 SITE_HOME_URL = build_utm_url("", "settings_site")
-SUPPORT_EMAIL = "gregoire.bruneau@terra-lab.ai"
+SUPPORT_EMAIL = "yvann.barbot@terra-lab.ai"
 
 
 BOOK_A_CALL_URL = ""
